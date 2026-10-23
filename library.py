@@ -124,8 +124,9 @@ class Disconnector(Component):
             canvas.create_text(sx + r_port + 5*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size
-        return (self.x - r, self.y - r, self.x + r, self.y + r)
+        rx = self.grid_size * 0.3   # уже по ширине
+        ry = self.grid_size * 0.5   # высоту оставляем
+        return (self.x - rx, self.y - ry, self.x + rx, self.y + ry)
 
 
 # ==========================================
@@ -212,7 +213,7 @@ class Transformer(Component):
             canvas.create_text(sx + r + 15*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size * 2
+        r = self.grid_size * 1
         return (self.x - r, self.y - r, self.x + r, self.y + r)
 
 # ==========================================
@@ -247,8 +248,11 @@ class PowerLine(Component):
         self.rotation = 0
         self.generate_ports()
 
+    def _length(self):
+        return self.grid_size * 3
+
     def generate_ports(self):
-        length = self.grid_size * 3
+        length = self._length()
         if self.rotation == 0:
             self.ports = {
                 "in":  {"x": self.x, "y": self.y - length, "node_id": f"N_{self.id}_in"},
@@ -296,12 +300,21 @@ class PowerLine(Component):
             canvas.create_text(end_x + 15*zoom, end_y + length/2, text=self.name, anchor="w", font=("Arial", int(9*zoom)), fill="black")
 
     def get_bounding_box(self):
-        length = self.grid_size * 3
-        if self.rotation in [0, 180]:
-            return (self.x - 10, self.y - length - 10, self.x + 10, self.y + length + 10)
-        else:
-            return (self.x - length - 10, self.y - 10, self.x + length + 10, self.y + 10)
+        length = self._length()
+        pad = self.grid_size * 0.5
 
+        if self.rotation == 0:
+            # линия от y до y-length
+            return (self.x - pad, self.y - length - pad, self.x + pad, self.y + pad)
+        elif self.rotation == 180:
+            # линия от y до y+length
+            return (self.x - pad, self.y - pad, self.x + pad, self.y + length + pad)
+        elif self.rotation == 90:
+            # линия от x до x+length
+            return (self.x - pad, self.y - pad, self.x + length + pad, self.y + pad)
+        elif self.rotation == 270:
+            # линия от x до x-length
+            return (self.x - length - pad, self.y - pad, self.x + pad, self.y + pad)
 
 # ==========================================
 # 7. УГОЛОК
@@ -410,8 +423,8 @@ class GroundingSwitch(Component):
             canvas.create_text(sx + r_out + 15*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size
-        return (self.x - r*2, self.y - r*2, self.x + r*2, self.y + r*2)
+        r = self.grid_size * 1.2  # 120% достаточно для захвата "ножек" заземления
+        return (self.x - r, self.y - r, self.x + r, self.y + r)
 
 
 # ==========================================
@@ -475,7 +488,7 @@ class SplitTransformer(Component):
             canvas.create_text(sx + r * 3, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size * 3
+        r = self.grid_size * 1
         return (self.x - r, self.y - r, self.x + r, self.y + r)
 
 
@@ -530,7 +543,7 @@ class ThreeWindingTransformer(Component):
             canvas.create_text(sx - r * 2, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size * 2
+        r = self.grid_size * 0.8
         return (self.x - r, self.y - r*2, self.x + r*2, self.y + r*2)
 
 
@@ -608,7 +621,7 @@ class Autotransformer(Component):
             canvas.create_text(sx + r * 2.5, sy, text=self.name, anchor="w", font=("Arial", int(10 * zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size * 2
+        r = self.grid_size * 0.8
         return (self.x - r, self.y - r, self.x + r, self.y + r)
 
 
@@ -630,7 +643,6 @@ class Reactor(Component):
             "top":    {"x": self.x, "y": self.y - g * 2, "node_id": f"N_{self.id}_top"},
             "bottom": {"x": self.x, "y": self.y + g * 2, "node_id": f"N_{self.id}_bot"}
         }
-
 
     def draw(self, canvas, zoom, offset_x, offset_y):
         sx = self.x * zoom + offset_x
@@ -663,7 +675,7 @@ class Reactor(Component):
             canvas.create_text(sx + r + 15*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size * 2
+        r = self.grid_size * 0.8
         return (self.x - r, self.y - r, self.x + r, self.y + r)
 
 

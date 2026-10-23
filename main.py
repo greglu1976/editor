@@ -439,16 +439,44 @@ class CircuitEditor:
                 if el.type == "bus":
                     self.draw_handles(el)
                     
-        # 4. Все узлы
+        # 4. Все узлы (с цветовой индикацией занятости)
         if self.show_all_nodes:
+            # Сначала собираем IDs всех узлов, которые участвуют в связях
+            used_node_ids = set()
+            for c in self.connections:
+                el1 = self.elements.get(c["from"])
+                el2 = self.elements.get(c["to"])
+                if el1 and el2:
+                    p1 = el1.ports.get(c.get("port_from"))
+                    p2 = el2.ports.get(c.get("port_to"))
+                    if p1: used_node_ids.add(p1["node_id"])
+                    if p2: used_node_ids.add(p2["node_id"])
+
+            # Теперь рисуем узлы разным цветом
             for el in self.elements.values():
                 for p_name, p_data in el.ports.items():
                     sx, sy = self.world_to_screen(p_data["x"], p_data["y"])
                     r = 3 * self.zoom
-                    self.canvas.create_oval(sx-r, sy-r, sx+r, sy+r, outline="orange", fill="yellow")
+                    
+                    node_id = p_data["node_id"]
+                    
+                    # Если узел есть в списке использованных — зеленый, иначе желтый
+                    if node_id in used_node_ids:
+                        fill_color = "red2" # "#00FF00"  # Ярко-зеленый
+                        outline_color = "red4" # "#006400" # Темно-зеленая обводка
+                    else:
+                        fill_color = "green2"
+                        outline_color = "green4"
+
+                    self.canvas.create_oval(
+                        sx-r, sy-r, sx+r, sy+r, 
+                        outline=outline_color, 
+                        fill=fill_color,
+                        width=max(1, int(1.5*self.zoom)) # Чуть толще обводка для зеленых
+                    )
 
         # 5. ФИОЛЕТОВАЯ РАМКА ВЫДЕЛЕНИЯ
-        highlight_color = "#8A2BE2"
+        highlight_color = "wheat4" # "#8A2BE2"
         highlight_width = max(1, int(2 * self.zoom))
         margin = 4 * self.zoom
         
@@ -587,18 +615,31 @@ class CircuitEditor:
                 if sx1 <= event.x <= sx2 and sy1 <= event.y <= sy2:
                     clicked_el = el.id
                     break
-            
+
             if clicked_el:
+                # --- НОВОЕ: Ctrl+клик — добавить/исключить из выделения ---
+                ctrl_pressed = bool(event.state & 0x0004)  # Control
+                # (для macOS можно также проверить 0x0008 — Command, если нужно)
+
+                if ctrl_pressed:
+                    if clicked_el in self.selected_elements:
+                        self.selected_elements.remove(clicked_el)
+                    else:
+                        self.selected_elements.append(clicked_el)
+                    self.redraw_all()
+                    return  # не начинаем перетаскивание
+
+                # Обычный клик без Ctrl
                 if clicked_el not in self.selected_elements:
                     self.selected_elements = [clicked_el]
-                
+
                 self.dragging_group = True
                 mouse_wx, mouse_wy = wx, wy
                 self.drag_offsets = {}
                 for el_id in self.selected_elements:
                     el = self.elements[el_id]
                     self.drag_offsets[el_id] = (mouse_wx - el.x, mouse_wy - el.y)
-                
+
                 self.redraw_all()
                 return
             
@@ -608,7 +649,8 @@ class CircuitEditor:
             sx_start, sy_start = event.x, event.y
             self.selection_rect_id = self.canvas.create_rectangle(
                 sx_start, sy_start, sx_start, sy_start,
-                outline="#8A2BE2", fill="#8A2BE2", stipple="gray50", width=2
+                #outline="#8A2BE2", fill="#8A2BE2", stipple="gray50", width=2
+                outline="wheat3", fill="wheat1", stipple="gray12", width=2
             )
             return
 
