@@ -1,0 +1,6 @@
+/venv
+/env
+/arch
+/__pycache__
+*/__pycache__
+/output
