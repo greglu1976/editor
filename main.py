@@ -1,35 +1,38 @@
-# main.py (полный обновленный код)
-
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
 import json
 import uuid
 import math
+import copy
 import library
 
 class CircuitEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Редактор электрических схем (Групповое выделение)")
+        self.root.title("Редактор электрических схем (Pro)")
         
         self.elements = {}    
         self.connections = [] 
         
-        # --- ВЫДЕЛЕНИЕ ---
+        # --- ВЫДЕЛЕНИЕ И БУФЕР ОБМЕНА ---
         self.current_tool = "select"
-        self.selected_elements = []  # ТЕПЕРЬ ЭТО СПИСОК!
+        self.selected_elements = []  
         self.link_start = None  
         
-        # --- РАМКА ВЫДЕЛЕНИЯ ---
-        self.selection_start = None       # (wx, wy) точка начала рамки
-        self.selection_start_screen = None # <--- ДОБАВИТЬ ЭТУ СТРОКУ
-        self.selection_rect_id = None     # ID прямоугольника на canvas
+        # Рамка выделения
+        self.selection_start = None       
+        self.selection_start_screen = None 
+        self.selection_rect_id = None     
         
-        # --- ПЕРЕТАСКИВАНИЕ ГРУППЫ ---
+        # Перетаскивание группы
         self.dragging_group = False
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
+        self.drag_offsets = {}
         
+        # Буфер обмена
+        self.clipboard = None          
+        self.clipboard_connections = [] 
+        
+        # Изменение размера шины
         self.resizing_element = None
         self.resize_handle = None
 
@@ -48,12 +51,39 @@ class CircuitEditor:
         self.bind_events()
 
     def setup_ui(self):
+        # === ВЕРХНЯЯ ПАНЕЛЬ ИНСТРУМЕНТОВ ===
+        toolbar = tk.Frame(self.root, bg="#f0f0f0", bd=1, relief=tk.RAISED)
+        toolbar.pack(side=tk.TOP, fill=tk.X)
+        
+        # Кнопка Выбрать/Двигать (теперь здесь!)
+        btn_select = tk.Button(toolbar, text=" Выбрать/Двигать", width=18, anchor="w", 
+                               command=lambda: self.set_tool("select"))
+        btn_select.pack(side=tk.LEFT, padx=5, pady=2)
+        
+        # Разделитель
+        tk.Frame(toolbar, width=2, bg="gray").pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=4)
+        
+        # Кнопки Копировать / Вставить
+        btn_copy = tk.Button(toolbar, text="📋 Копировать", width=12, command=self.copy_selection)
+        btn_copy.pack(side=tk.LEFT, padx=2, pady=2)
+        
+        btn_paste = tk.Button(toolbar, text="📥 Вставить", width=12, command=self.paste_selection)
+        btn_paste.pack(side=tk.LEFT, padx=2, pady=2)
+        
+        # Разделитель
+        tk.Frame(toolbar, width=2, bg="gray").pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=4)
+        
+        # Файловые операции
+        tk.Button(toolbar, text="💾 Сохранить", command=self.save_json).pack(side=tk.LEFT, padx=5, pady=2)
+        tk.Button(toolbar, text="📂 Загрузить", command=self.load_json).pack(side=tk.LEFT, padx=5, pady=2)
+        tk.Button(toolbar, text="🗑 Очистить", command=self.clear_all).pack(side=tk.LEFT, padx=5, pady=2)
+
+        # === ЛЕВАЯ ПАЛИТРА (только элементы схемы) ===
         palette = tk.Frame(self.root, width=180, bg="#f0f0f0")
         palette.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
-        tk.Label(palette, text="Инструменты", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(pady=5)
+        tk.Label(palette, text="Элементы схемы", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(pady=5)
         
         tools = [
-            ("Выбрать/Двигать", "select"),
             ("Выключатель", "breaker"),
             ("Разъединитель", "disconnector"),
             ("Шина", "bus"),
@@ -96,12 +126,7 @@ class CircuitEditor:
         self.zoom_label.pack(anchor="w", padx=5, pady=10)
         tk.Button(palette, text="Сбросить вид", command=self.reset_view).pack(anchor="w", padx=5, pady=2)
 
-        file_frame = tk.Frame(self.root, bg="#e0e0e0")
-        file_frame.pack(side=tk.TOP, fill=tk.X)
-        tk.Button(file_frame, text="💾 Сохранить JSON", command=self.save_json).pack(side=tk.LEFT, padx=5, pady=5)
-        tk.Button(file_frame, text="📂 Загрузить JSON", command=self.load_json).pack(side=tk.LEFT, padx=5, pady=5)
-        tk.Button(file_frame, text="🗑 Очистить всё", command=self.clear_all).pack(side=tk.LEFT, padx=5, pady=5)
-        
+        # === ХОЛСТ ===
         self.canvas = tk.Canvas(self.root, bg="white", width=800, height=700)
         self.canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
@@ -118,7 +143,11 @@ class CircuitEditor:
         self.canvas.bind("<Motion>", self.on_hover)
         self.root.bind("<r>", self.rotate_selected)
         self.root.bind("<R>", self.rotate_selected)
-        self.root.bind("<Escape>", self.deselect_all)  # <--- НОВОЕ: снятие выделения
+        self.root.bind("<Escape>", self.deselect_all)
+        
+        # Горячие клавиши копирования/вставки
+        self.root.bind("<Control-c>", self.copy_selection)
+        self.root.bind("<Control-v>", self.paste_selection)
 
     # ================= МАСШТАБИРОВАНИЕ И СЕТКА =================
     def on_zoom(self, event):
@@ -189,7 +218,6 @@ class CircuitEditor:
         except ValueError: pass
 
     def rotate_selected(self, event):
-        # Вращаем ВСЕ выбранные элементы
         for el_id in list(self.selected_elements):
             if el_id in self.elements:
                 el = self.elements[el_id]
@@ -205,8 +233,99 @@ class CircuitEditor:
         self.redraw_all()
 
     def deselect_all(self, event=None):
-        """Снимает выделение со всех элементов"""
         self.selected_elements = []
+        self.redraw_all()
+
+    # ================= КОПИРОВАНИЕ / ВСТАВКА =================
+    def copy_selection(self, event=None):
+        if not self.selected_elements:
+            return
+            
+        self.clipboard = {}
+        for el_id in self.selected_elements:
+            if el_id in self.elements:
+                el = self.elements[el_id]
+                el_copy = copy.deepcopy(el)
+                el_copy.id = None 
+                self.clipboard[el_id] = el_copy
+        
+        self.clipboard_connections = []
+        selected_set = set(self.selected_elements)
+        
+        for c in self.connections:
+            if c["from"] in selected_set and c["to"] in selected_set:
+                conn_copy = copy.deepcopy(c)
+                conn_copy["canvas_id"] = None
+                self.clipboard_connections.append(conn_copy)
+
+    def paste_selection(self, event=None):
+        if self.clipboard is None:
+            return
+            
+        w = self.canvas.winfo_width() or 800
+        h = self.canvas.winfo_height() or 700
+        center_wx, center_wy = self.screen_to_world(w/2, h/2)
+        
+        if self.selected_elements:
+            orig_cx = sum(self.elements[eid].x for eid in self.selected_elements if eid in self.elements) / len(self.selected_elements)
+            orig_cy = sum(self.elements[eid].y for eid in self.selected_elements if eid in self.elements) / len(self.selected_elements)
+            offset_x = center_wx - orig_cx
+            offset_y = center_wy - orig_cy
+        else:
+            offset_x, offset_y = 0, 0
+            
+        if self.snap_to_grid:
+            offset_x = round(offset_x / self.grid_size) * self.grid_size
+            offset_y = round(offset_y / self.grid_size) * self.grid_size
+
+        id_mapping = {}
+        new_selected = []
+        
+        prefix_map = {
+            "breaker":"Q", "disconnector":"QS", "transformer":"T", 
+            "split_transformer":"T", "three_winding_transformer":"T",
+            "autotransformer":"AT", "reactor":"R", "line":"W", 
+            "bus":"BB", "node":"N", "corner":"C", "grounding_switch":"QSG"
+        }
+        
+        for old_id, el_template in self.clipboard.items():
+            new_id = f"{el_template.type[:2].upper()}{str(uuid.uuid4())[:4]}"
+            
+            new_el = library.create_component(
+                el_template.type, new_id, 
+                el_template.x + offset_x, 
+                el_template.y + offset_y, 
+                self.grid_size
+            )
+            
+            new_el.name = self.get_next_name(
+                prefix_map.get(el_template.type, "EL"),
+                el_template.type
+            )
+            
+            if hasattr(el_template, 'rotation'): new_el.rotation = el_template.rotation
+            if hasattr(el_template, 'orientation'): new_el.orientation = el_template.orientation
+            if hasattr(el_template, 'length'): new_el.length = el_template.length
+            
+            new_el.generate_ports()
+            self.elements[new_id] = new_el
+            id_mapping[old_id] = new_id
+            new_selected.append(new_id)
+            
+        for conn in self.clipboard_connections:
+            old_from = conn["from"]
+            old_to = conn["to"]
+            
+            if old_from in id_mapping and old_to in id_mapping:
+                new_from = id_mapping[old_from]
+                new_to = id_mapping[old_to]
+                
+                port_from = conn.get("port_from")
+                port_to = conn.get("port_to")
+                
+                self.create_connection(new_from, new_to, port_from, port_to)
+        
+        self.selected_elements = new_selected
         self.redraw_all()
 
     # ================= ПЕРЕРИСОВКА =================
@@ -234,14 +353,14 @@ class CircuitEditor:
         for el in self.elements.values():
             el.draw(self.canvas, self.zoom, self.offset_x, self.offset_y)
             
-        # 3. Маркеры шины (если шина в группе выделения)
+        # 3. Маркеры шины
         for el_id in self.selected_elements:
             if el_id in self.elements:
                 el = self.elements[el_id]
                 if el.type == "bus":
                     self.draw_handles(el)
                     
-        # 4. Все узлы (если включена галочка)
+        # 4. Все узлы
         if self.show_all_nodes:
             for el in self.elements.values():
                 for p_name, p_data in el.ports.items():
@@ -249,8 +368,7 @@ class CircuitEditor:
                     r = 3 * self.zoom
                     self.canvas.create_oval(sx-r, sy-r, sx+r, sy+r, outline="orange", fill="yellow")
 
-        # === НОВОЕ: ФИОЛЕТОВАЯ РАМКА ВЫДЕЛЕНИЯ ВОКРУГ ЭЛЕМЕНТОВ ===
-        # Вставляем сюда, чтобы рамка была поверх элементов, но под активной рамкой мыши
+        # 5. ФИОЛЕТОВАЯ РАМКА ВЫДЕЛЕНИЯ ВОКРУГ ЭЛЕМЕНТОВ
         highlight_color = "#8A2BE2"  # BlueViolet
         highlight_width = max(1, int(2 * self.zoom))
         margin = 4 * self.zoom
@@ -260,11 +378,9 @@ class CircuitEditor:
                 el = self.elements[el_id]
                 bx1, by1, bx2, by2 = el.get_bounding_box()
                 
-                # Переводим мировые координаты bounding box в экранные
                 sx1, sy1 = self.world_to_screen(bx1, by1)
                 sx2, sy2 = self.world_to_screen(bx2, by2)
                 
-                # Рисуем пунктирную фиолетовую рамку с отступом
                 self.canvas.create_rectangle(
                     sx1 - margin, sy1 - margin,
                     sx2 + margin, sy2 + margin,
@@ -274,7 +390,6 @@ class CircuitEditor:
                     tags="selection_highlight"
                 )
                 
-                # Маленькие квадратики по углам (как в CAD)
                 corner_size = 5 * self.zoom
                 corners = [
                     (sx1 - margin, sy1 - margin),
@@ -291,11 +406,10 @@ class CircuitEditor:
                         width=1,
                         tags="selection_highlight"
                     )
-        # ============================================================
 
-        # 5. Рамка выделения (если активна — тянем мышью)
+        # 6. Активная рамка мыши (если тянем)
         if self.selection_start is not None and self.selection_rect_id is not None:
-            pass  # Рамка обновляется в on_drag
+            pass 
 
     def draw_handles(self, el):
         lx, ly = self.world_to_screen(el.x - el.length, el.y)
@@ -319,7 +433,6 @@ class CircuitEditor:
         
         if self.current_tool == "select":
             cursor = "arrow"
-            # Проверяем хендлы шин только если шина в выделении
             for el_id in self.selected_elements:
                 if el_id in self.elements and self.elements[el_id].type == "bus":
                     if self.find_resize_handle(el_id, event.x, event.y):
@@ -345,7 +458,6 @@ class CircuitEditor:
     # ================= КЛИКИ =================
     def set_tool(self, tool):
         if tool == "delete":
-            # Удаляем ВСЕ выбранные элементы
             for el_id in list(self.selected_elements):
                 self.delete_element(el_id)
             self.selected_elements = []
@@ -358,23 +470,34 @@ class CircuitEditor:
         wx, wy = self.screen_to_world(event.x, event.y)
         wx, wy = self.snap(wx, wy)
         
-        # === УДАЛЕНИЕ СВЯЗИ КЛИКОМ ===
-        items = self.canvas.find_closest(event.x, event.y)
-        if items:
-            item_id = items[0]
-            conn_to_delete = None
-            for c in self.connections:
-                if c.get("canvas_id") == item_id:
-                    conn_to_delete = c
-                    break
-            if conn_to_delete:
-                self.connections.remove(conn_to_delete)
-                self.redraw_all()
-                return
-        
-        # === НАЧАЛО ВЫДЕЛЕНИЯ РАМКОЙ ===
+        # === УДАЛЕНИЕ СВЯЗИ ТОЛЬКО В РЕЖИМЕ SELECT ===
         if self.current_tool == "select":
-            # Проверяем, кликнули ли мы по элементу
+            items = self.canvas.find_closest(event.x, event.y)
+            if items:
+                item_id = items[0]
+                conn_to_delete = None
+                for c in self.connections:
+                    if c.get("canvas_id") == item_id:
+                        conn_to_delete = c
+                        break
+                if conn_to_delete:
+                    self.connections.remove(conn_to_delete)
+                    self.redraw_all()
+                    return
+        
+        # === ОБРАБОТКА ИНСТРУМЕНТА SELECT ===
+        if self.current_tool == "select":
+            
+            # А) ПРОВЕРКА МАРКЕРОВ ИЗМЕНЕНИЯ РАЗМЕРА ШИНЫ (Приоритет №1)
+            for el_id in self.selected_elements:
+                if el_id in self.elements and self.elements[el_id].type == "bus":
+                    handle = self.find_resize_handle(el_id, event.x, event.y)
+                    if handle:
+                        self.resizing_element = el_id
+                        self.resize_handle = handle
+                        return 
+
+            # Б) ПРОВЕРКА КЛИКА ПО ЭЛЕМЕНТУ (Для перетаскивания)
             clicked_el = None
             for el in reversed(list(self.elements.values())):
                 bx1, by1, bx2, by2 = el.get_bounding_box()
@@ -384,14 +507,10 @@ class CircuitEditor:
                     clicked_el = el.id
                     break
             
-            # Если кликнули по элементу — начинаем перетаскивание (возможно группы)
             if clicked_el:
-                # Если элемент уже в выделении — тащим всю группу
-                # Если нет — сбрасываем выделение и выбираем только этот
                 if clicked_el not in self.selected_elements:
                     self.selected_elements = [clicked_el]
                 
-                # Запоминаем смещение для каждого элемента относительно курсора
                 self.dragging_group = True
                 mouse_wx, mouse_wy = wx, wy
                 self.drag_offsets = {}
@@ -402,21 +521,17 @@ class CircuitEditor:
                 self.redraw_all()
                 return
             
-            # Если кликнули по пустому месту — начинаем рамку выделения
+            # В) КЛИК ПО ПУСТОМУ МЕСТУ — НАЧАЛО РАМКИ ВЫДЕЛЕНИЯ
             self.selection_start = (wx, wy)
             self.selection_start_screen = (event.x, event.y)
-            
-            # === ИЗМЕНЕННЫЙ ЦВЕТ НА ФИОЛЕТОВЫЙ ===
+            sx_start, sy_start = event.x, event.y
             self.selection_rect_id = self.canvas.create_rectangle(
-                event.x, event.y, event.x, event.y,
-                outline="#8A2BE2",      # Ярко-фиолетовая граница (BlueViolet)
-                fill="#8A2BE2",         # Фиолетовая заливка
-                stipple="gray50",       # Полупрозрачный узор (чтобы видеть элементы под рамкой)
-                width=2                 # Чуть толще линия для заметности
+                sx_start, sy_start, sx_start, sy_start,
+                outline="#8A2BE2", fill="#8A2BE2", stipple="gray50", width=2
             )
             return
 
-        # === ДОБАВЛЕНИЕ ЭЛЕМЕНТА ===
+        # === ИНСТРУМЕНТ CONNECT (Связывание) ===
         if self.current_tool == "connect":
             best_port_el = None
             best_port_name = None
@@ -447,6 +562,7 @@ class CircuitEditor:
                     self.redraw_all()
             return
 
+        # === ДОБАВЛЕНИЕ НОВЫХ ЭЛЕМЕНТОВ ===
         tool = self.current_tool
         if tool in ["breaker", "disconnector", "bus", "transformer", "line", "node", "corner", 
                      "grounding_switch", "split_transformer", "three_winding_transformer", 
@@ -495,7 +611,7 @@ class CircuitEditor:
                 self.redraw_all()
 
     def on_drag(self, event):
-        # === ПЕРЕТАСКИВАНИЕ ГРУППЫ ===
+        # ПЕРЕТАСКИВАНИЕ ГРУППЫ
         if self.current_tool == "select" and self.dragging_group:
             wx, wy = self.screen_to_world(event.x, event.y)
             wx, wy = self.snap(wx, wy)
@@ -507,7 +623,6 @@ class CircuitEditor:
                     new_x = wx - off_x
                     new_y = wy - off_y
                     
-                    # Привязка к сетке для всей группы
                     if self.snap_to_grid:
                         new_x = round(new_x / self.grid_size) * self.grid_size
                         new_y = round(new_y / self.grid_size) * self.grid_size
@@ -519,16 +634,15 @@ class CircuitEditor:
             self.redraw_all()
             return
 
-        # === РИСОВАНИЕ РАМКИ ВЫДЕЛЕНИЯ ===
+        # РИСОВАНИЕ РАМКИ ВЫДЕЛЕНИЯ
         if self.selection_start is not None and self.selection_rect_id is not None:
             sx_end, sy_end = event.x, event.y
-            # Обновляем координаты прямоугольника
             self.canvas.coords(self.selection_rect_id, 
                              self.selection_start_screen[0], self.selection_start_screen[1],
                              sx_end, sy_end)
             return
 
-        # === ИЗМЕНЕНИЕ РАЗМЕРА ШИНЫ ===
+        # ИЗМЕНЕНИЕ РАЗМЕРА ШИНЫ
         if self.current_tool == "select" and self.resizing_element:
             el = self.elements[self.resizing_element]
             wx, wy = self.screen_to_world(event.x, event.y)
@@ -551,43 +665,36 @@ class CircuitEditor:
             return
 
     def on_release(self, event):
-        # === ЗАВЕРШЕНИЕ РАМКИ ВЫДЕЛЕНИЯ ===
+        # ЗАВЕРШЕНИЕ РАМКИ ВЫДЕЛЕНИЯ
         if self.selection_start is not None and self.selection_start_screen is not None:
-            # Получаем координаты рамки в мировых координатах
-            sx1, sy1 = self.selection_start_screen  # <--- ТЕПЕРЬ БУДЕТ РАБОТАТЬ
+            sx1, sy1 = self.selection_start_screen
             sx2, sy2 = event.x, event.y
             
-            # Нормализуем (чтобы x1 < x2 и y1 < y2)
             rx1, rx2 = min(sx1, sx2), max(sx1, sx2)
             ry1, ry2 = min(sy1, sy2), max(sy1, sy2)
             
-            # Переводим в мировые координаты
             wx1, wy1 = self.screen_to_world(rx1, ry1)
             wx2, wy2 = self.screen_to_world(rx2, ry2)
             
-            # Находим все элементы, чей bounding box пересекается с рамкой
             new_selection = []
             for el_id, el in self.elements.items():
                 bx1, by1, bx2, by2 = el.get_bounding_box()
-                # Проверка пересечения прямоугольников
                 if bx1 <= wx2 and bx2 >= wx1 and by1 <= wy2 and by2 >= wy1:
                     new_selection.append(el_id)
             
             self.selected_elements = new_selection
             self.selection_start = None
-            self.selection_start_screen = None  # <--- СБРАСЫВАЕМ
+            self.selection_start_screen = None
             self.canvas.delete(self.selection_rect_id)
             self.selection_rect_id = None
             self.redraw_all()
             return
 
-        # === ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ===
         if self.dragging_group:
             self.dragging_group = False
             self.drag_offsets = {}
             return
 
-        # === ЗАВЕРШЕНИЕ ИЗМЕНЕНИЯ РАЗМЕРА ШИНЫ ===
         if self.resizing_element:
             self.resizing_element = None
             self.resize_handle = None
@@ -656,6 +763,9 @@ class CircuitEditor:
             self.resizing_element = None
             self.dragging_group = False
             self.selection_start = None
+            self.selection_start_screen = None
+            self.clipboard = None
+            self.clipboard_connections = []
             if self.selection_rect_id:
                 self.canvas.delete(self.selection_rect_id)
                 self.selection_rect_id = None
