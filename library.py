@@ -304,16 +304,12 @@ class PowerLine(Component):
         pad = self.grid_size * 0.5
 
         if self.rotation == 0:
-            # линия от y до y-length
             return (self.x - pad, self.y - length - pad, self.x + pad, self.y + pad)
         elif self.rotation == 180:
-            # линия от y до y+length
             return (self.x - pad, self.y - pad, self.x + pad, self.y + length + pad)
         elif self.rotation == 90:
-            # линия от x до x+length
             return (self.x - pad, self.y - pad, self.x + length + pad, self.y + pad)
         elif self.rotation == 270:
-            # линия от x до x-length
             return (self.x - length - pad, self.y - pad, self.x + pad, self.y + pad)
 
 # ==========================================
@@ -462,20 +458,13 @@ class SplitTransformer(Component):
         canvas.create_line(sx, sy - r * 2, sx, cy1 - r, width=max(1, int(2*zoom)), fill="black")
         
         # 2. ЛЕВЫЙ ХВОСТИК (Г-образный, с правильным спуском)
-        # Шаг 1: От круга вниз (ровно до уровня порта по Y, плюс одна клетка для ступеньки)
-        # Круг заканчивается на cy2 + r = sy + r * 1.5. Опускаем до sy + r * 2 (это на 0.5r ниже круга)
         canvas.create_line(cx_left, cy2 + r, cx_left, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        # Шаг 2: Горизонтальный поворот влево к координате X порта
         canvas.create_line(cx_left, sy + r * 2, sx - r * 2, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        # Шаг 3: Спуск вниз к самому порту (на 3 клетки от центра)
         canvas.create_line(sx - r * 2, sy + r * 2, sx - r * 2, sy + r * 3, width=max(1, int(2*zoom)), fill="black")
         
         # 3. ПРАВЫЙ ХВОСТИК (Г-образный, с правильным спуском)
-        # Шаг 1: От круга вниз
         canvas.create_line(cx_right, cy2 + r, cx_right, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        # Шаг 2: Горизонтальный поворот вправо
         canvas.create_line(cx_right, sy + r * 2, sx + r * 2, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        # Шаг 3: Спуск вниз к порту
         canvas.create_line(sx + r * 2, sy + r * 2, sx + r * 2, sy + r * 3, width=max(1, int(2*zoom)), fill="black")
         
         # 4. Рисуем три круга
@@ -504,12 +493,11 @@ class ThreeWindingTransformer(Component):
 
     def generate_ports(self):
         g = self.grid_size
-        # Порты: ВН (сверху), НН (снизу), СН (справа)
         self.ports = {
             "HV": {"x": self.x, "y": self.y - g * 2, "node_id": f"N_{self.id}_HV"},
             "LV": {"x": self.x, "y": self.y + g * 2, "node_id": f"N_{self.id}_LV"},
-            "MV": {"x": self.x + g * 2, "y": self.y, "node_id": f"N_{self.id}_MV"}, # Вывод СН справа
-            "N":  {"x": self.x - g, "y": self.y - g, "node_id": f"N_{self.id}_N"} # Нейтраль (опционально)
+            "MV": {"x": self.x + g * 2, "y": self.y, "node_id": f"N_{self.id}_MV"},
+            "N":  {"x": self.x - g, "y": self.y - g, "node_id": f"N_{self.id}_N"}
         }
 
     def draw(self, canvas, zoom, offset_x, offset_y):
@@ -517,28 +505,19 @@ class ThreeWindingTransformer(Component):
         sy = self.y * zoom + offset_y
         r = self.grid_size * zoom 
         
-        # 1. Линии выводов (строго по сетке, на 2r)
-        # ВН (сверху)
         canvas.create_line(sx, sy - r * 2, sx, sy - r * 1.5, width=max(1, int(2*zoom)), fill="black")
-        # НН (снизу)
         canvas.create_line(sx, sy + r * 1.5, sx, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        # СН (справа) - средний вывод не трогаем
         canvas.create_line(sx + r * 1.5, sy, sx + r * 2, sy, width=max(1, int(2*zoom)), fill="black")
         
-        # 2. Рисуем три круга
-        # Верхний круг (ВН) - подтягиваем ближе к центру (0.6r вместо 0.8r)
         cy_hv = sy - r * 0.6
         canvas.create_oval(sx-r, cy_hv-r, sx+r, cy_hv+r, fill="white", outline="black", width=max(1, int(2*zoom)))
         
-        # Нижний круг (НН) - подтягиваем ближе к центру (0.6r)
         cy_lv = sy + r * 0.6
         canvas.create_oval(sx-r, cy_lv-r, sx+r, cy_lv+r, fill="white", outline="black", width=max(1, int(2*zoom)))
         
-        # Средний (правый) круг (СН) - оставляем на 0.8r, как вы просили
         cx_mv = sx + r * 0.8
         canvas.create_oval(cx_mv-r, sy-r, cx_mv+r, sy+r, fill="white", outline="black", width=max(1, int(2*zoom)))
         
-        # 3. Подпись (слева)
         if self.name:
             canvas.create_text(sx - r * 2, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
@@ -562,7 +541,6 @@ class Autotransformer(Component):
         self.ports = {
             "HV": {"x": self.x, "y": self.y - g * 2, "node_id": f"N_{self.id}_HV"},
             "LV": {"x": self.x, "y": self.y + g * 2, "node_id": f"N_{self.id}_LV"},
-            # Перенесли узел MV на самый край отвода (g * 2) и выровняли по оси отвода (-g * 0.5)
             "MV": {"x": self.x + g * 2, "y": self.y - g * 0.5, "node_id": f"N_{self.id}_MV"}, 
             "N":  {"x": self.x - g, "y": self.y - g, "node_id": f"N_{self.id}_N"}
         }
@@ -572,58 +550,36 @@ class Autotransformer(Component):
         sy = self.y * zoom + offset_y
         r = self.grid_size * zoom 
         
-        # Центры кругов
-        cy1 = sy - r * 0.5  # Центр верхнего круга
-        cy2 = sy + r * 0.5  # Центр нижнего круга
+        cy1 = sy - r * 0.5
+        cy2 = sy + r * 0.5
         
-        # Толщина линий
         line_w = max(1, int(2 * zoom))
 
-        # --- ТОЧНАЯ ГЕОМЕТРИЯ ДУГИ ПО ГОСТ ---
-        # Вычисляем радиус и смещение центра дуги на основе радиуса круга r
         arc_radius = r * 1.6537
-        
-        # Смещение центра дуги относительно центра upper круга (sx, cy1)
-        # Центр смещается влево на ~0.653*r и чуть-чуть вниз на ~0.019*r
         arc_center_x = sx - r * 0.6536
         arc_center_y = cy1 + r * 0.0191
         
-        # Координаты описывающего прямоугольника (bounding box) для дуги
         arc_x0 = arc_center_x - arc_radius
         arc_y0 = arc_center_y - arc_radius
         arc_x1 = arc_center_x + arc_radius
         arc_y1 = arc_center_y + arc_radius
 
-        # Рисуем дугу: от 1 до 67 градусов (согласно вашему CAD-чертежу)
         canvas.create_arc(arc_x0, arc_y0, arc_x1, arc_y1, 
                           start=1, extent=66, style="arc", 
                           width=line_w, outline="black")
         
-        # --- ЛИНИИ ВЫВОДОВ ---
-        
-        # ВН (Верхний вывод): идет строго вертикально до верхней точки круга (sx, cy1 - r)
-        # Дуга сама идеально придет в эту точку
-        #canvas.create_line(sx, sy - r * 2, sx, cy1 - r, width=line_w, fill="black")
-        
-        # НН (Нижний вывод): без изменений
         canvas.create_line(sx, sy + r * 2, sx, cy2 + r, width=line_w, fill="black")
-        
-        # СН (Средний вывод): отходит горизонтально от правой точки круга (sx + r, cy1)
         canvas.create_line(sx + r, cy1, sx + r * 2, cy1, width=line_w, fill="black")
 
-        # --- ОСНОВНЫЕ КРУГИ ТРАНСФОРМАТОРА ---
-        # Рисуем поверх, чтобы контур круга идеально смыкался с концами дуги
         canvas.create_oval(sx - r, cy1 - r, sx + r, cy1 + r, fill="white", outline="black", width=line_w)
         canvas.create_oval(sx - r, cy2 - r, sx + r, cy2 + r, fill="white", outline="black", width=line_w)
         
-        # --- ПОДПИСЬ ---
         if self.name:
             canvas.create_text(sx + r * 2.5, sy, text=self.name, anchor="w", font=("Arial", int(10 * zoom)), fill="black")
 
     def get_bounding_box(self):
         r = self.grid_size * 0.8
         return (self.x - r, self.y - r, self.x + r, self.y + r)
-
 
 
 # ==========================================
@@ -638,7 +594,6 @@ class Reactor(Component):
 
     def generate_ports(self):
         g = self.grid_size
-        # Два порта: сверху и снизу, вынесены на 2 клетки
         self.ports = {
             "top":    {"x": self.x, "y": self.y - g * 2, "node_id": f"N_{self.id}_top"},
             "bottom": {"x": self.x, "y": self.y + g * 2, "node_id": f"N_{self.id}_bot"}
@@ -649,34 +604,218 @@ class Reactor(Component):
         sy = self.y * zoom + offset_y
         r = self.grid_size * zoom 
         
-        # 1. Линии внешних выводов (вертикальные)
-        # Верхний вывод: от порта до верхней точки дуги (12 часов)
         canvas.create_line(sx, sy - r * 2, sx, sy - r, width=max(1, int(2*zoom)), fill="black")
-        # Нижний вывод: от нижней точки дуги (6 часов) до порта
         canvas.create_line(sx, sy + r, sx, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
         
-        # 2. Рисуем дугу (тело реактора)
-        # start=90 (верх), extent=270 (против часовой стрелки до права)
         canvas.create_arc(sx-r, sy-r, sx+r, sy+r, 
                           start=90, extent=270, 
                           style=tk.ARC, 
                           outline="black", 
                           width=max(1, int(2*zoom)))
         
-        # 3. Внутренние отрезки (крестовина/лучи)
-        # Горизонтальный: от центра вправо до края дуги
         canvas.create_line(sx, sy, sx + r, sy, width=max(1, int(2*zoom)), fill="black")
-        
-        # Вертикальный: от центра вниз до края дуги (НОВЫЙ ОТРЕЗОК)
         canvas.create_line(sx, sy, sx, sy + r, width=max(1, int(2*zoom)), fill="black")
         
-        # 4. Подпись
         if self.name:
             canvas.create_text(sx + r + 15*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
         r = self.grid_size * 0.8
         return (self.x - r, self.y - r, self.x + r, self.y + r)
+
+
+# ==========================================
+# 13. ЗАЗЕМЛЕНИЕ (1 порт)
+# ==========================================
+class Ground(Component):
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "ground"
+        self.rotation = 0
+        self.generate_ports()
+
+    def _rotate_point(self, dx, dy):
+        angle = math.radians(self.rotation)
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
+        return dx * cos_a - dy * sin_a, dx * sin_a + dy * cos_a
+
+    def _local_to_world(self, dx, dy):
+        rdx, rdy = self._rotate_point(dx, dy)
+        return self.x + rdx, self.y + rdy
+
+    def generate_ports(self):
+        g = self.grid_size
+        wx, wy = self._local_to_world(0, -g)
+        self.ports = {
+            "top": {"x": wx, "y": wy, "node_id": f"N_{self.id}_top"}
+        }
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        g = self.grid_size
+        lw = max(1, int(2 * zoom))
+
+        def scr(dx, dy):
+            wx, wy = self._local_to_world(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        # 1. Вывод от порта к первому штриху
+        x1, y1 = scr(0, -g)
+        x2, y2 = scr(0, -g * 0.4)
+        canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        # 2. Три штриха
+        strokes = [
+            (-g * 0.8, -g * 0.4, g * 0.8, -g * 0.4),
+            (-g * 0.5,  g * 0.1, g * 0.5,  g * 0.1),
+            (-g * 0.2,  g * 0.6, g * 0.2,  g * 0.6),
+        ]
+        for lx1, ly1, lx2, ly2 in strokes:
+            cx1, cy1 = scr(lx1, ly1)
+            cx2, cy2 = scr(lx2, ly2)
+            canvas.create_line(cx1, cy1, cx2, cy2, width=lw, fill="black")
+
+        # 3. Подпись
+        if self.name:
+            tx, ty = scr(g * 1.2, 0)
+            canvas.create_text(tx, ty, text=self.name, anchor="w",
+                               font=("Arial", int(10 * zoom)), fill="black")
+
+    def get_bounding_box(self):
+        g = self.grid_size
+        return (self.x - g, self.y - g, self.x + g, self.y + g)
+
+
+# ==========================================
+# 14. ТН (ТРАНСФОРМАТОР НАПРЯЖЕНИЯ, УПРОЩЁННО)
+# ==========================================
+class VoltageTransformer(Component):
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "voltage_transformer"
+        self.rotation = 0
+        self.generate_ports()
+
+    def _rotate_point(self, dx, dy):
+        angle = math.radians(self.rotation)
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
+        return dx * cos_a - dy * sin_a, dx * sin_a + dy * cos_a
+
+    def _local_to_world(self, dx, dy):
+        rdx, rdy = self._rotate_point(dx, dy)
+        return self.x + rdx, self.y + rdy
+
+    def generate_ports(self):
+        g = self.grid_size
+        wx, wy = self._local_to_world(0, -g)
+        self.ports = {
+            "top": {"x": wx, "y": wy, "node_id": f"N_{self.id}_top"}
+        }
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        g = self.grid_size
+        lw = max(1, int(2 * zoom))
+
+        def scr(dx, dy):
+            wx, wy = self._local_to_world(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        x1, y1 = scr(0, -g)
+        x2, y2 = scr(0, -g / 2)
+        canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        h = g / 2
+        corners = [
+            scr(-h, -h), scr(h, -h),
+            scr(h, h),   scr(-h, h),
+        ]
+        canvas.create_polygon(
+            corners[0][0], corners[0][1],
+            corners[1][0], corners[1][1],
+            corners[2][0], corners[2][1],
+            corners[3][0], corners[3][1],
+            fill="white", outline="black", width=lw
+        )
+
+        cx, cy = scr(0, 0)
+        canvas.create_text(cx, cy, text="ТН",
+                           font=("Arial", int(9 * zoom), "bold"),
+                           fill="black")
+
+        if self.name:
+            tx, ty = scr(g * 1.2, 0)
+            canvas.create_text(tx, ty, text=self.name, anchor="w",
+                               font=("Arial", int(10 * zoom)), fill="black")
+
+    def get_bounding_box(self):
+        g = self.grid_size
+        return (self.x - g, self.y - g, self.x + g, self.y + g)
+
+
+
+# ==========================================
+# 15. ТТ (ТРАНСФОРМАТОР ТОКА, УПРОЩЁННО)
+# ==========================================
+class CurrentTransformer(Component):
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "current_transformer"
+        self.rotation = 0
+        self.generate_ports()
+
+    def _rotate_point(self, dx, dy):
+        angle = math.radians(self.rotation)
+        cos_a = math.cos(angle)
+        sin_a = math.sin(angle)
+        return dx * cos_a - dy * sin_a, dx * sin_a + dy * cos_a
+
+    def _local_to_world(self, dx, dy):
+        rdx, rdy = self._rotate_point(dx, dy)
+        return self.x + rdx, self.y + rdy
+
+    def generate_ports(self):
+        g = self.grid_size
+        # Два порта: сверху и снизу на 1 клетку от центра
+        wx_top, wy_top = self._local_to_world(0, -g)
+        wx_bot, wy_bot = self._local_to_world(0, g)
+        
+        self.ports = {
+            "top":    {"x": wx_top, "y": wy_top, "node_id": f"N_{self.id}_top"},
+            "bottom": {"x": wx_bot, "y": wy_bot, "node_id": f"N_{self.id}_bot"}
+        }
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        g = self.grid_size
+        lw = max(1, int(2 * zoom))
+
+        def scr(dx, dy):
+            wx, wy = self._local_to_world(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        cx, cy = scr(0, 0)
+        r = g * 0.4 * zoom
+
+        # 1. Белая заливка круга (скрывает сетку)
+        canvas.create_oval(cx-r, cy-r, cx+r, cy+r, fill="white", outline="")
+
+        # 2. Сплошная линия от верхнего порта до нижнего порта (сквозь круг)
+        x1, y1 = scr(0, -g)
+        x2, y2 = scr(0, g)
+        canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        # 3. Контур круга (рисуем поверх линии)
+        canvas.create_oval(cx-r, cy-r, cx+r, cy+r, fill="", outline="black", width=lw)
+
+        # 4. Внешняя подпись (имя элемента) справа
+        if self.name:
+            tx, ty = scr(g * 0.8, 0)
+            canvas.create_text(tx, ty, text=self.name, anchor="w",
+                               font=("Arial", int(10 * zoom)), fill="black")
+
+    def get_bounding_box(self):
+        g = self.grid_size
+        return (self.x - g, self.y - g, self.x + g, self.y + g)
 
 
 
@@ -689,8 +828,11 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
     elif comp_type == "three_winding_transformer": return ThreeWindingTransformer(comp_id, x, y, grid_size)
     elif comp_type == "autotransformer": return Autotransformer(comp_id, x, y, grid_size)
     elif comp_type == "reactor": return Reactor(comp_id, x, y, grid_size)
+    elif comp_type == "voltage_transformer": return VoltageTransformer(comp_id, x, y, grid_size)
+    elif comp_type == "current_transformer": return CurrentTransformer(comp_id, x, y, grid_size)
     elif comp_type == "node": return Node(comp_id, x, y, grid_size)
     elif comp_type == "line": return PowerLine(comp_id, x, y, grid_size)
     elif comp_type == "corner": return Corner(comp_id, x, y, grid_size)
     elif comp_type == "grounding_switch": return GroundingSwitch(comp_id, x, y, grid_size)
+    elif comp_type == "ground": return Ground(comp_id, x, y, grid_size)
     else: raise ValueError(f"Неизвестный тип элемента: {comp_type}")

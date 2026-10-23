@@ -7,7 +7,6 @@ import copy
 import library
 
 
-
 class UndoManager:
     """Менеджер истории с поддержкой Undo и Redo"""
     def __init__(self):
@@ -67,7 +66,7 @@ class CircuitEditor:
         
         # Буфер обмена
         self.clipboard = None          
-        self.clipboard_connections = [] 
+        self.clipboard_connections = []
         
         # Изменение размера шины
         self.resizing_element = None
@@ -132,8 +131,8 @@ class CircuitEditor:
             ("Выключатель", "breaker"), ("Разъединитель", "disconnector"), ("Шина", "bus"),
             ("Трансформатор", "transformer"), ("Трансф. с расщеп.", "split_transformer"),
             ("Трехобм. трансф.", "three_winding_transformer"), ("Автотрансформатор", "autotransformer"),
-            ("Реактор", "reactor"), ("ЛЭП", "line"), ("Уголок", "corner"),
-            ("Зазем. разъед.", "grounding_switch"), ("Узел (голубой)", "node"),
+            ("Реактор", "reactor"), ("ЛЭП", "line"), ("ТН", "voltage_transformer"), ("ТТ", "current_transformer"),  ("Уголок", "corner"),
+            ("Зазем. разъед.", "grounding_switch"), ("Заземление", "ground"), ("Узел", "node"),
             ("---", "separator"), ("Связать элементы", "connect"), ("Удалить выбранное", "delete")
         ]
         
@@ -183,12 +182,11 @@ class CircuitEditor:
         self.root.bind("<Control-c>", self.copy_selection)
         self.root.bind("<Control-v>", self.paste_selection)
         self.root.bind("<Control-z>", self.undo_last_action)
-        self.root.bind("<Control-y>", self.redo_last_action) # <--- НОВОЕ: Ctrl+Y для Redo
-        self.root.bind("<Control-Shift-Z>", self.redo_last_action) # Альтернатива Ctrl+Shift+Z
+        self.root.bind("<Control-y>", self.redo_last_action)
+        self.root.bind("<Control-Shift-Z>", self.redo_last_action)
 
     # ================= ОТМЕНА / ПОВТОР =================
     def _apply_state(self, state):
-        """Применяет сохраненное состояние к редактору"""
         if state is None:
             return
             
@@ -196,7 +194,6 @@ class CircuitEditor:
         self.connections = state["connections"]
         self.selected_elements = state["selected_elements"]
         
-        # Сбрасываем временные состояния редактирования
         self.dragging_group = False
         self.drag_offsets = {}
         self.resizing_element = None
@@ -364,7 +361,8 @@ class CircuitEditor:
             "breaker":"Q", "disconnector":"QS", "transformer":"T", 
             "split_transformer":"T", "three_winding_transformer":"T",
             "autotransformer":"AT", "reactor":"R", "line":"W", 
-            "bus":"BB", "node":"N", "corner":"C", "grounding_switch":"QSG"
+            "bus":"BB", "node":"N", "corner":"C", "grounding_switch":"QSG",
+            "ground":"G", "voltage_transformer":"TV"
         }
         
         for old_id, el_template in self.clipboard.items():
@@ -402,7 +400,14 @@ class CircuitEditor:
                 port_from = conn.get("port_from")
                 port_to = conn.get("port_to")
                 
-                self.create_connection(new_from, new_to, port_from, port_to)
+                # Проверка, что порты существуют (на случай смены схемы портов)
+                if port_from not in self.elements[new_from].ports:
+                    port_from = None
+                if port_to not in self.elements[new_to].ports:
+                    port_to = None
+                
+                if port_from and port_to:
+                    self.create_connection(new_from, new_to, port_from, port_to)
         
         self.selected_elements = new_selected
         self.redraw_all()
@@ -441,7 +446,6 @@ class CircuitEditor:
                     
         # 4. Все узлы (с цветовой индикацией занятости)
         if self.show_all_nodes:
-            # Сначала собираем IDs всех узлов, которые участвуют в связях
             used_node_ids = set()
             for c in self.connections:
                 el1 = self.elements.get(c["from"])
@@ -452,7 +456,6 @@ class CircuitEditor:
                     if p1: used_node_ids.add(p1["node_id"])
                     if p2: used_node_ids.add(p2["node_id"])
 
-            # Теперь рисуем узлы разным цветом
             for el in self.elements.values():
                 for p_name, p_data in el.ports.items():
                     sx, sy = self.world_to_screen(p_data["x"], p_data["y"])
@@ -460,10 +463,9 @@ class CircuitEditor:
                     
                     node_id = p_data["node_id"]
                     
-                    # Если узел есть в списке использованных — зеленый, иначе желтый
                     if node_id in used_node_ids:
-                        fill_color = "red2" # "#00FF00"  # Ярко-зеленый
-                        outline_color = "red4" # "#006400" # Темно-зеленая обводка
+                        fill_color = "red2"
+                        outline_color = "red4"
                     else:
                         fill_color = "green2"
                         outline_color = "green4"
@@ -472,11 +474,11 @@ class CircuitEditor:
                         sx-r, sy-r, sx+r, sy+r, 
                         outline=outline_color, 
                         fill=fill_color,
-                        width=max(1, int(1.5*self.zoom)) # Чуть толще обводка для зеленых
+                        width=max(1, int(1.5*self.zoom))
                     )
 
-        # 5. ФИОЛЕТОВАЯ РАМКА ВЫДЕЛЕНИЯ
-        highlight_color = "wheat4" # "#8A2BE2"
+        # 5. Рамка выделения
+        highlight_color = "wheat4"
         highlight_width = max(1, int(2 * self.zoom))
         margin = 4 * self.zoom
         
@@ -513,10 +515,6 @@ class CircuitEditor:
                         width=1,
                         tags="selection_highlight"
                     )
-
-        # 6. Активная рамка мыши
-        if self.selection_start is not None and self.selection_rect_id is not None:
-            pass 
 
     def draw_handles(self, el):
         lx, ly = self.world_to_screen(el.x - el.length, el.y)
@@ -617,9 +615,7 @@ class CircuitEditor:
                     break
 
             if clicked_el:
-                # --- НОВОЕ: Ctrl+клик — добавить/исключить из выделения ---
-                ctrl_pressed = bool(event.state & 0x0004)  # Control
-                # (для macOS можно также проверить 0x0008 — Command, если нужно)
+                ctrl_pressed = bool(event.state & 0x0004)
 
                 if ctrl_pressed:
                     if clicked_el in self.selected_elements:
@@ -627,9 +623,8 @@ class CircuitEditor:
                     else:
                         self.selected_elements.append(clicked_el)
                     self.redraw_all()
-                    return  # не начинаем перетаскивание
+                    return
 
-                # Обычный клик без Ctrl
                 if clicked_el not in self.selected_elements:
                     self.selected_elements = [clicked_el]
 
@@ -649,7 +644,6 @@ class CircuitEditor:
             sx_start, sy_start = event.x, event.y
             self.selection_rect_id = self.canvas.create_rectangle(
                 sx_start, sy_start, sx_start, sy_start,
-                #outline="#8A2BE2", fill="#8A2BE2", stipple="gray50", width=2
                 outline="wheat3", fill="wheat1", stipple="gray12", width=2
             )
             return
@@ -690,7 +684,7 @@ class CircuitEditor:
         tool = self.current_tool
         if tool in ["breaker", "disconnector", "bus", "transformer", "line", "node", "corner", 
                      "grounding_switch", "split_transformer", "three_winding_transformer", 
-                     "autotransformer", "reactor"]:
+                     "autotransformer", "reactor", "ground", "voltage_transformer", "current_transformer"]:
             self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
             self.add_element(tool, wx, wy)
 
@@ -723,12 +717,10 @@ class CircuitEditor:
             
             if new_name is not None:
                 new_name = new_name.strip()
-                if new_name == "":
-                    messagebox.showwarning("Ошибка", "Имя не может быть пустым.")
-                    return
                 
+                # Пустые имена разрешены, но не участвуют в проверке уникальности
                 for other_el in self.elements.values():
-                    if other_el.id != clicked_el.id and other_el.name.lower() == new_name.lower():
+                    if new_name and other_el.id != clicked_el.id and other_el.name.lower() == new_name.lower():
                         messagebox.showerror("Ошибка", f"Элемент с именем '{new_name}' уже существует на схеме!\nИмена должны быть уникальными.")
                         return
                 
@@ -860,9 +852,12 @@ class CircuitEditor:
         elif etype == "reactor": prefix, el_type = "R", "reactor"
         elif etype == "line": prefix, el_type = "W", "line"
         elif etype == "bus": prefix, el_type = "BB", "bus"
+        elif etype == "voltage_transformer": prefix, el_type = "TV", "voltage_transformer"
+        elif etype == "current_transformer": prefix, el_type = "TA", "current_transformer"
         elif etype == "node": prefix, el_type = "N", "node"
         elif etype == "corner": prefix, el_type = "C", "corner"
         elif etype == "grounding_switch": prefix, el_type = "QSG", "grounding_switch"
+        elif etype == "ground": prefix, el_type = "G", "ground"
         else: prefix, el_type = "EL", etype
         
         el.name = self.get_next_name(prefix, el_type)
@@ -916,7 +911,8 @@ class CircuitEditor:
                 "y": el.y
             }
             if el.type == "bus": item["length"] = el.length
-            if el.type in ["disconnector", "transformer", "line", "grounding_switch", "reactor"]: 
+            if el.type in ["disconnector", "transformer", "line", "grounding_switch",
+                           "reactor", "ground", "voltage_transformer", "current_transformer"]:
                 item["rotation"] = el.rotation
             if el.type == "corner":
                 item["orientation"] = el.orientation
@@ -930,6 +926,8 @@ class CircuitEditor:
             data["connections"].append({
                 "node_from": node1,
                 "node_to": node2,
+                "port_from": c["port_from"],
+                "port_to": c["port_to"],
                 "element_from": el1.id,
                 "element_to": el2.id
             })
@@ -955,7 +953,8 @@ class CircuitEditor:
                 if el.type == "bus" and "length" in item:
                     el.length = item["length"]
                     el.generate_ports()
-                if el.type in ["disconnector", "transformer", "line", "grounding_switch", "reactor"] and "rotation" in item:
+                if el.type in ["disconnector", "transformer", "line", "grounding_switch",
+                               "reactor", "ground", "voltage_transformer", "current_transformer"] and "rotation" in item:
                     el.rotation = item["rotation"]
                     el.generate_ports()
                 if el.type == "corner" and "orientation" in item:
@@ -966,149 +965,38 @@ class CircuitEditor:
             for c in data.get("connections", []):
                 el1_id = c.get("element_from")
                 el2_id = c.get("element_to")
+                if el1_id not in self.elements or el2_id not in self.elements:
+                    continue
+                el1 = self.elements[el1_id]
+                el2 = self.elements[el2_id]
                 
-                if el1_id in self.elements and el2_id in self.elements:
-                    el1 = self.elements[el1_id]
-                    el2 = self.elements[el2_id]
-                    
+                # Сначала по имени порта, затем fallback по node_id
+                port1 = c.get("port_from")
+                if port1 not in el1.ports:
                     port1 = None
                     for p_name, p_data in el1.ports.items():
-                        if p_data["node_id"] == c["node_from"]:
+                        if p_data["node_id"] == c.get("node_from"):
                             port1 = p_name
                             break
-                    
+                port2 = c.get("port_to")
+                if port2 not in el2.ports:
                     port2 = None
                     for p_name, p_data in el2.ports.items():
-                        if p_data["node_id"] == c["node_to"]:
+                        if p_data["node_id"] == c.get("node_to"):
                             port2 = p_name
                             break
-                    
-                    if port1 and port2:
-                        self.connections.append({
-                            "from": el1_id, "to": el2_id,
-                            "port_from": port1, "port_to": port2,
-                            "canvas_id": None
-                        })
+                
+                if port1 and port2:
+                    self.connections.append({
+                        "from": el1_id, "to": el2_id,
+                        "port_from": port1, "port_to": port2,
+                        "canvas_id": None
+                    })
             
             self.redraw_all()
             messagebox.showinfo("Успех", "Схема загружена!")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось загрузить файл:\n{e}")
-
-
-
-    def insert_from_json1(self, event=None):
-        """Вставляет схему из JSON-файла на текущее полотно"""
-        filepath = filedialog.askopenfilename(
-            title="Выберите файл схемы для вставки",
-            filetypes=[("JSON files", "*.json")]
-        )
-        if not filepath:
-            return
-            
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            if "elements" not in data or "connections" not in data:
-                messagebox.showerror("Ошибка", "Неверный формат файла.")
-                return
-
-            if not data["elements"]:
-                return
-                
-            xs = [el["x"] for el in data["elements"]]
-            ys = [el["y"] for el in data["elements"]]
-            src_cx = sum(xs) / len(xs)
-            src_cy = sum(ys) / len(ys)
-
-            w = self.canvas.winfo_width() or 800
-            h = self.canvas.winfo_height() or 700
-            dst_cx, dst_cy = self.screen_to_world(w/2, h/2)
-            
-            offset_x = dst_cx - src_cx
-            offset_y = dst_cy - src_cy
-            
-            if self.snap_to_grid:
-                offset_x = round(offset_x / self.grid_size) * self.grid_size
-                offset_y = round(offset_y / self.grid_size) * self.grid_size
-
-            id_mapping = {}
-            new_selected = []
-            
-            prefix_map = {
-                "breaker":"Q", "disconnector":"QS", "transformer":"T", 
-                "split_transformer":"T", "three_winding_transformer":"T",
-                "autotransformer":"AT", "reactor":"R", "line":"W", 
-                "bus":"BB", "node":"N", "corner":"C", "grounding_switch":"QSG"
-            }
-
-            for item in data["elements"]:
-                old_id = item["id"]
-                new_id = f"{item['type'][:2].upper()}{str(uuid.uuid4())[:4]}"
-                
-                new_el = library.create_component(
-                    item["type"], new_id, 
-                    item["x"] + offset_x, 
-                    item["y"] + offset_y, 
-                    self.grid_size
-                )
-                
-                new_el.name = self.get_next_name(
-                    prefix_map.get(item["type"], "EL"),
-                    item["type"]
-                )
-                
-                if item.get("length"): new_el.length = item["length"]
-                if item.get("rotation") is not None: new_el.rotation = item["rotation"]
-                if item.get("orientation"): new_el.orientation = item["orientation"]
-                
-                new_el.generate_ports()
-                self.elements[new_id] = new_el
-                id_mapping[old_id] = new_id
-                new_selected.append(new_id)
-
-            inserted_ids = set(id_mapping.values())
-            
-            for conn in data["connections"]:
-                old_from = conn.get("element_from")
-                old_to = conn.get("element_to")
-                
-                if old_from in id_mapping and old_to in id_mapping:
-                    new_from = id_mapping[old_from]
-                    new_to = id_mapping[old_to]
-                    
-                    port_from = None
-                    port_to = None
-                    
-                    el_from = self.elements[new_from]
-                    el_to = self.elements[new_to]
-                    
-                    target_node_from = conn.get("node_from")
-                    target_node_to = conn.get("node_to")
-                    
-                    for p_name, p_data in el_from.ports.items():
-                        if p_data["node_id"] == target_node_from:
-                            port_from = p_name
-                            break
-                            
-                    for p_name, p_data in el_to.ports.items():
-                        if p_data["node_id"] == target_node_to:
-                            port_to = p_name
-                            break
-                    
-                    if port_from and port_to:
-                        self.create_connection(new_from, new_to, port_from, port_to)
-
-            self.selected_elements = new_selected
-            self.redraw_all()
-            messagebox.showinfo("Успех", f"Вставлено {len(new_selected)} элементов.")
-            
-        except json.JSONDecodeError:
-            messagebox.showerror("Ошибка", "Файл поврежден или не является корректным JSON.")
-        except Exception as e:
-            messagebox.showerror("Ошибка", f"Не удалось вставить файл:\n{e}")
-
 
     def insert_from_json(self, event=None):
         """Вставляет схему из JSON-файла на текущее полотно"""
@@ -1147,7 +1035,6 @@ class CircuitEditor:
                 offset_x = round(offset_x / self.grid_size) * self.grid_size
                 offset_y = round(offset_y / self.grid_size) * self.grid_size
 
-            # Инициализируем списки ДО цикла
             id_mapping = {}
             new_selected = [] 
             
@@ -1155,7 +1042,9 @@ class CircuitEditor:
                 "breaker":"Q", "disconnector":"QS", "transformer":"T", 
                 "split_transformer":"T", "three_winding_transformer":"T",
                 "autotransformer":"AT", "reactor":"R", "line":"W", 
-                "bus":"BB", "node":"N", "corner":"C", "grounding_switch":"QSG"
+                "bus":"BB", "node":"N", "corner":"C", "grounding_switch":"QSG",
+                "ground":"G", "voltage_transformer":"TV",
+                "current_transformer":"TA" 
             }
 
             # 2. Вставляем элементы
@@ -1193,30 +1082,34 @@ class CircuitEditor:
                     new_from = id_mapping[old_from]
                     new_to = id_mapping[old_to]
                     
-                    port_from = None
-                    port_to = None
-                    
                     el_from = self.elements[new_from]
                     el_to = self.elements[new_to]
                     
-                    target_node_from = conn.get("node_from")
-                    target_node_to = conn.get("node_to")
+                    # Основной путь: по имени порта (id пересоздан, node_id не совпадёт)
+                    port_from = conn.get("port_from")
+                    port_to = conn.get("port_to")
                     
-                    for p_name, p_data in el_from.ports.items():
-                        if p_data["node_id"] == target_node_from:
-                            port_from = p_name
-                            break
-                            
-                    for p_name, p_data in el_to.ports.items():
-                        if p_data["node_id"] == target_node_to:
-                            port_to = p_name
-                            break
+                    if port_from not in el_from.ports:
+                        port_from = None
+                    if port_to not in el_to.ports:
+                        port_to = None
+                    
+                    # Fallback: старые файлы без port_from/port_to
+                    if port_from is None:
+                        for p_name, p_data in el_from.ports.items():
+                            if p_data["node_id"] == conn.get("node_from"):
+                                port_from = p_name
+                                break
+                    if port_to is None:
+                        for p_name, p_data in el_to.ports.items():
+                            if p_data["node_id"] == conn.get("node_to"):
+                                port_to = p_name
+                                break
                     
                     if port_from and port_to:
                         self.create_connection(new_from, new_to, port_from, port_to)
 
             # 4. Сохраняем состояние для Undo и выделяем
-            # new_selected гарантированно существует здесь
             self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
             
             self.selected_elements = new_selected
@@ -1227,6 +1120,7 @@ class CircuitEditor:
             messagebox.showerror("Ошибка", "Файл поврежден или не является корректным JSON.")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось вставить файл:\n{e}")
+
 
 if __name__ == "__main__":
     root = tk.Tk()
