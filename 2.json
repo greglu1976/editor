@@ -1,0 +1,43 @@
+{
+    "elements": [
+        {
+            "id": "SP3a6d",
+            "type": "split_transformer",
+            "name": "T1",
+            "x": 340,
+            "y": 330,
+            "rotation": 0,
+            "label": [
+                -29.8,
+                -26.3
+            ]
+        },
+        {
+            "id": "DIdf72",
+            "type": "disconnector",
+            "name": "QS1",
+            "x": 340,
+            "y": 230,
+            "rotation": 0,
+            "label": [
+                -68.7,
+                14.2
+            ]
+        }
+    ],
+    "connections": [
+        {
+            "node_from": "N_DIdf72_bot",
+            "node_to": "N_SP3a6d_HV",
+            "port_from": "bottom",
+            "port_to": "HV",
+            "element_from": "DIdf72",
+            "element_to": "SP3a6d"
+        }
+    ],
+    "view": {
+        "zoom": 2.0378,
+        "offset_x": -368.34,
+        "offset_y": -289.61
+    }
+}

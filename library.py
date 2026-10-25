@@ -31,6 +31,10 @@ class Component:
         self.cell = CELL
         self.type = "base"
         self.ports = {}
+        # Смещение подписи относительно штатного места (мировые единицы)
+        self.label_offset = [0.0, 0.0]
+        # Экранный bbox подписи, обновляется при отрисовке (для перетаскивания мышкой)
+        self._label_bbox = None
 
     def _local_rotated(self, dx, dy):
         """Локальные координаты относительно центра -> мировые с учётом поворота."""
@@ -46,24 +50,36 @@ class Component:
         ys = [p[1] for p in corners]
         return (min(xs), min(ys), max(xs), max(ys))
 
+    def _label_text(self, canvas, zoom, offset_x, offset_y, world_x, world_y,
+                    anchor="w", size=10):
+        """Рисует подпись в мировой точке с учётом смещения, заданного мышкой."""
+        if not self.name:
+            self._label_bbox = None
+            return
+        dx, dy = self.label_offset
+        sx = (world_x + dx) * zoom + offset_x
+        sy = (world_y + dy) * zoom + offset_y
+        item = canvas.create_text(sx, sy, text=self.name, anchor=anchor,
+                                  font=("Arial", int(size * zoom)), fill="black",
+                                  tags="element_label")
+        # bbox нужен для перетаскивания мышкой; у экспортного адаптера его нет
+        try:
+            self._label_bbox = canvas.bbox(item) if item is not None else None
+        except Exception:
+            self._label_bbox = None
+
     def _draw_label(self, canvas, zoom, offset_x, offset_y):
         """Подпись справа от габарита: не наезжает на провода при любом повороте."""
-        if not self.name:
-            return
         bx1, by1, bx2, by2 = self.get_bounding_box()
-        tx = (bx2 + 6) * zoom + offset_x
-        ty = ((by1 + by2) / 2) * zoom + offset_y
-        canvas.create_text(tx, ty, text=self.name, anchor="w",
-                           font=("Arial", int(10 * zoom)), fill="black")
+        self._label_text(canvas, zoom, offset_x, offset_y,
+                         bx2 + 6, (by1 + by2) / 2.0)
 
-    def _draw_name_at(self, canvas, zoom, offset_x, offset_y, local_x, local_y=0.0):
+    def _draw_name_at(self, canvas, zoom, offset_x, offset_y, local_x, local_y=0.0,
+                      anchor="w", size=10):
         """Подпись в фиксированной локальной точке — исходное место символа."""
-        if not self.name:
-            return
         wx, wy = self._local_rotated(local_x, local_y)
-        canvas.create_text(wx * zoom + offset_x, wy * zoom + offset_y,
-                           text=self.name, anchor="w",
-                           font=("Arial", int(10 * zoom)), fill="black")
+        self._label_text(canvas, zoom, offset_x, offset_y, wx, wy,
+                         anchor=anchor, size=size)
 
     def generate_ports(self):
         pass
@@ -113,8 +129,8 @@ class Breaker(Component):
             
         canvas.create_rectangle(sx-r_sq, sy-r_sq, sx+r_sq, sy+r_sq, fill="white", outline="black", width=max(1, int(2*zoom)))
         
-        if self.name:
-            canvas.create_text(sx + r_port + 5*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
+        self._label_text(canvas, zoom, offset_x, offset_y,
+                         self.x + self.cell + 5, self.y)
 
     def get_bounding_box(self):
         r = self.cell
@@ -172,8 +188,8 @@ class Disconnector(Component):
                 canvas.create_line(sx - blade_len*0.3, sy, sx + blade_len*0.3, sy + blade_len*0.6, width=max(1, int(3*zoom)), fill="black")
             canvas.create_line(sx + blade_len*0.3, sy, sx + r_inner, sy, width=max(1, int(2*zoom)), fill="black")
 
-        if self.name:
-            canvas.create_text(sx + r_port + 5*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
+        self._label_text(canvas, zoom, offset_x, offset_y,
+                         self.x + self.cell + 5, self.y)
 
     def get_bounding_box(self):
         # Порты разъединителя лежат на расстоянии CELL от центра — габарит должен их включать,
@@ -215,8 +231,8 @@ class Bus(Component):
         sy = self.y * zoom + offset_y
         length = self.length * zoom
         canvas.create_line(sx-length, sy, sx+length, sy, width=max(2, int(6*zoom)), fill="black")
-        if self.name:
-            canvas.create_text(sx, sy - 15*zoom, text=self.name, anchor="s", font=("Arial", int(10*zoom)), fill="black")
+        self._label_text(canvas, zoom, offset_x, offset_y,
+                         self.x, self.y - 15, anchor="s")
 
     def get_bounding_box(self):
         return (self.x - self.length, self.y - 10, self.x + self.length, self.y + 10)
@@ -357,7 +373,16 @@ class PowerLine(Component):
         canvas.create_line(arrow[0], arrow[1], arrow[4], arrow[5], width=max(1, int(2*zoom)), fill="black")
         
         if self.name:
-            canvas.create_text(end_x + 15*zoom, end_y + length/2, text=self.name, anchor="w", font=("Arial", int(9*zoom)), fill="black")
+            world_end = {
+                0: (self.x, self.y - self._length()),
+                180: (self.x, self.y + self._length()),
+                90: (self.x + self._length(), self.y),
+                270: (self.x - self._length(), self.y),
+            }.get(self.rotation, (self.x, self.y))
+            self._label_text(canvas, zoom, offset_x, offset_y,
+                             world_end[0] + 15,
+                             world_end[1] + self._length() / 2.0,
+                             size=9)
 
     def get_bounding_box(self):
         length = self._length()
@@ -475,8 +500,8 @@ class GroundingSwitch(Component):
             canvas.create_line(gx + 5*zoom, sy - 6*zoom, gx + 5*zoom, sy + 6*zoom, width=max(1, int(3*zoom)), fill="black")
             canvas.create_line(gx + 10*zoom, sy - 2*zoom, gx + 10*zoom, sy + 2*zoom, width=max(1, int(3*zoom)), fill="black")
 
-        if self.name:
-            canvas.create_text(sx + r_out + 15*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
+        self._label_text(canvas, zoom, offset_x, offset_y,
+                         self.x + self.cell + 15, self.y)
 
     def get_bounding_box(self):
         r = self.cell * 1.2  # 120% достаточно для захвата "ножек" заземления
@@ -771,10 +796,7 @@ class Ground(Component):
             canvas.create_line(cx1, cy1, cx2, cy2, width=lw, fill="black")
 
         # 3. Подпись
-        if self.name:
-            tx, ty = scr(g * 1.2, 0)
-            canvas.create_text(tx, ty, text=self.name, anchor="w",
-                               font=("Arial", int(10 * zoom)), fill="black")
+        self._draw_name_at(canvas, zoom, offset_x, offset_y, 1.2 * self.cell)
 
     def get_bounding_box(self):
         g = self.cell
@@ -838,10 +860,7 @@ class VoltageTransformer(Component):
                            font=("Arial", int(9 * zoom), "bold"),
                            fill="black")
 
-        if self.name:
-            tx, ty = scr(g * 1.2, 0)
-            canvas.create_text(tx, ty, text=self.name, anchor="w",
-                               font=("Arial", int(10 * zoom)), fill="black")
+        self._draw_name_at(canvas, zoom, offset_x, offset_y, 1.2 * self.cell)
 
     def get_bounding_box(self):
         g = self.cell
@@ -903,10 +922,7 @@ class CurrentTransformer(Component):
         canvas.create_oval(cx-r, cy-r, cx+r, cy+r, fill="", outline="black", width=lw)
 
         # 4. Внешняя подпись (имя элемента) справа
-        if self.name:
-            tx, ty = scr(g * 0.8, 0)
-            canvas.create_text(tx, ty, text=self.name, anchor="w",
-                               font=("Arial", int(10 * zoom)), fill="black")
+        self._draw_name_at(canvas, zoom, offset_x, offset_y, 0.8 * self.cell)
 
     def get_bounding_box(self):
         g = self.cell

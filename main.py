@@ -270,6 +270,12 @@ class CircuitEditor:
         self._pre_change_state = None
         self._drag_changed = False
         self._resize_changed = False
+
+        # Перетаскивание подписи элемента
+        self._dragging_label = None
+        self._label_drag_start = (0, 0)
+        self._label_drag_offset = [0.0, 0.0]
+        self._label_drag_changed = False
         
         # Буфер обмена
         self.clipboard = None          
@@ -811,6 +817,8 @@ class CircuitEditor:
         self._pre_change_state = None
         self._drag_changed = False
         self._resize_changed = False
+        self._dragging_label = None
+        self._label_drag_changed = False
         if self.selection_rect_id:
             self.canvas.delete(self.selection_rect_id)
             self.selection_rect_id = None
@@ -1008,6 +1016,8 @@ class CircuitEditor:
             if hasattr(el_template, 'rotation'): new_el.rotation = el_template.rotation
             if hasattr(el_template, 'orientation'): new_el.orientation = el_template.orientation
             if hasattr(el_template, 'length'): new_el.length = el_template.length
+            if hasattr(el_template, 'label_offset'):
+                new_el.label_offset = list(el_template.label_offset)
             
             new_el.generate_ports()
             self.elements[new_id] = new_el
@@ -1218,6 +1228,14 @@ class CircuitEditor:
                 return el.id
         return None
 
+    def _label_at(self, sx, sy):
+        """id элемента, чья подпись под курсором (bbox обновляется при отрисовке)."""
+        for el in reversed(list(self.elements.values())):
+            box = getattr(el, "_label_bbox", None)
+            if box and box[0] <= sx <= box[2] and box[1] <= sy <= box[3]:
+                return el.id
+        return None
+
     @staticmethod
     def _point_segment_distance(px, py, x1, y1, x2, y2):
         dx, dy = x2 - x1, y2 - y1
@@ -1270,9 +1288,20 @@ class CircuitEditor:
                         self._resize_changed = False
                         return
 
+            # Б) ПОДПИСЬ ЭЛЕМЕНТА — перетаскивается мышкой отдельно от символа
+            label_el = self._label_at(event.x, event.y)
+            if label_el is not None:
+                self._dragging_label = label_el
+                self._label_drag_start = (event.x, event.y)
+                self._label_drag_offset = list(self.elements[label_el].label_offset)
+                self._label_drag_changed = False
+                self._pre_change_state = self._capture_state()
+                self.canvas.config(cursor="fleur")
+                return
+
             clicked_el = self._element_at(event.x, event.y)
 
-            # Б) УДАЛЕНИЕ СВЯЗИ — только при точном попадании в линию
+            # В) УДАЛЕНИЕ СВЯЗИ — только при точном попадании в линию
             #    и только если под курсором нет элемента
             if clicked_el is None:
                 conn_to_delete = self._connection_at(event.x, event.y)
@@ -1403,6 +1432,18 @@ class CircuitEditor:
                 self.redraw_all()
 
     def on_drag(self, event):
+        # ПЕРЕТАСКИВАНИЕ ПОДПИСИ
+        if self._dragging_label is not None:
+            el = self.elements.get(self._dragging_label)
+            if el is not None:
+                dx = (event.x - self._label_drag_start[0]) / self.zoom
+                dy = (event.y - self._label_drag_start[1]) / self.zoom
+                el.label_offset = [round(self._label_drag_offset[0] + dx, 1),
+                                   round(self._label_drag_offset[1] + dy, 1)]
+                self._label_drag_changed = True
+                self.redraw_all()
+            return
+
         # ПЕРЕТАСКИВАНИЕ ГРУППЫ
         if self.current_tool == "select" and self.dragging_group:
             wx, wy = self.screen_to_world(event.x, event.y)
@@ -1462,6 +1503,17 @@ class CircuitEditor:
             return
 
     def on_release(self, event):
+        # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ПОДПИСИ
+        if self._dragging_label is not None:
+            if self._label_drag_changed:
+                self.undo_manager.push_state(self._pre_change_state)
+            self._dragging_label = None
+            self._label_drag_changed = False
+            self._pre_change_state = None
+            self.canvas.config(cursor="arrow" if self.current_tool == "select"
+                               else "crosshair")
+            return
+
         # ЗАВЕРШЕНИЕ РАМКИ ВЫДЕЛЕНИЯ
         if self.selection_start is not None and self.selection_start_screen is not None:
             sx1, sy1 = self.selection_start_screen
@@ -1642,6 +1694,9 @@ class CircuitEditor:
                 item["rotation"] = el.rotation
             if el.type == "corner":
                 item["orientation"] = el.orientation
+            offset = getattr(el, "label_offset", (0.0, 0.0))
+            if offset and (offset[0] or offset[1]):
+                item["label"] = [round(offset[0], 2), round(offset[1], 2)]
             data["elements"].append(item)
 
         for c in self.connections:
@@ -1750,6 +1805,9 @@ class CircuitEditor:
                 el.orientation = item["orientation"]
             if el.type == "bus" and item.get("length"):
                 el.length = item["length"]
+            label = item.get("label")
+            if isinstance(label, (list, tuple)) and len(label) == 2:
+                el.label_offset = [float(label[0]), float(label[1])]
 
             el.generate_ports()
             elements[item["id"]] = el
@@ -1850,6 +1908,9 @@ class CircuitEditor:
                     new_el.rotation = item["rotation"]
                 if item.get("orientation") and hasattr(new_el, "orientation"):
                     new_el.orientation = item["orientation"]
+                label = item.get("label")
+                if isinstance(label, (list, tuple)) and len(label) == 2:
+                    new_el.label_offset = [float(label[0]), float(label[1])]
                 
                 new_el.generate_ports()
                 self.elements[new_id] = new_el
