@@ -4,7 +4,15 @@ import json
 import uuid
 import math
 import copy
+import os
 import library
+import pdfunderlay
+import pdfexport
+
+try:
+    import pdf2json
+except Exception:  # подписи в подложке необязательны
+    pdf2json = None
 
 
 # Префиксы имён по типу элемента — единый источник для добавления, копирования и вставки.
@@ -204,6 +212,18 @@ def _ri_fit(c):
         c.create_line(x1, y1, x2, y2, width=2, arrow=tk.LAST)
 
 
+def _ri_pdf(c):
+    c.create_polygon(8, 4, 19, 4, 24, 9, 24, 28, 8, 28,
+                     outline="black", fill="white", width=2)
+    c.create_line(19, 4, 19, 9, 24, 9, width=1)
+    c.create_text(16, 19, text="PDF", font=("Arial", 6, "bold"))
+
+
+def _ri_eye(c):
+    c.create_oval(4, 11, 28, 21, outline="black", width=2)
+    c.create_oval(13, 13, 19, 19, fill="black", outline="black")
+
+
 def _ri_grid(c):
     for x in (8, 16, 24):
         c.create_line(x, 6, x, 26, width=1, fill="#666666")
@@ -262,7 +282,7 @@ class CircuitEditor:
         # Менеджер отмены/повтора
         self.undo_manager = UndoManager()
 
-        self.grid_size = 20
+        self.grid_size = 10
         self.grid_color = "#e0e0e0"
         self.snap_to_grid = True
         
@@ -271,6 +291,12 @@ class CircuitEditor:
         self.offset_y = 0.0
         
         self.show_all_nodes = True
+
+        # Подложка из PDF (векторная графика под схемой)
+        self.underlay = None
+        self.underlay_scale = 2.0
+        self.show_underlay = True
+        self._underlay_needs_fit = False
 
         self.setup_ui()
         self.draw_grid()
@@ -433,6 +459,7 @@ class CircuitEditor:
             self._ribbon_button(row, "Загрузить", self.load_json, _ri_load, 62).pack(side=tk.LEFT),
             self._ribbon_button(row, "Из файла", self.insert_from_json, _ri_insert, 60).pack(side=tk.LEFT),
             self._ribbon_button(row, "Очистить", self.clear_all, _ri_clear, 60).pack(side=tk.LEFT),
+            self._ribbon_button(row, "В PDF", self.export_pdf, _ri_pdf, 56).pack(side=tk.LEFT),
         ])
         return page
 
@@ -479,6 +506,27 @@ class CircuitEditor:
                      font=("Arial", 7)).pack()
 
         self._ribbon_group(page, "Масштаб", build_scale)
+
+        def build_underlay(row):
+            self._ribbon_button(row, "PDF…", self.load_underlay, _ri_pdf, 56).pack(side=tk.LEFT)
+            self.underlay_visible_var = tk.BooleanVar(value=True)
+            self._ribbon_toggle(row, "Показать", self.underlay_visible_var,
+                                self.toggle_underlay, _ri_eye, 62).pack(side=tk.LEFT)
+            self._ribbon_button(row, "Убрать", self.clear_underlay, _ri_clear, 58).pack(side=tk.LEFT)
+
+            cell = tk.Frame(row, bg="#f3f3f3")
+            cell.pack(side=tk.LEFT, padx=(8, 4))
+            tk.Label(cell, text="масштаб", bg="#f3f3f3", font=("Arial", 8)).pack(pady=(6, 0))
+            self.underlay_spin = tk.Spinbox(cell, from_=0.5, to=5.0, increment=0.5, width=4,
+                                            command=self.change_underlay_scale)
+            self.underlay_spin.delete(0, "end")
+            self.underlay_spin.insert(0, str(self.underlay_scale))
+            self.underlay_spin.pack(pady=2)
+            self.underlay_spin.bind("<Return>", lambda e: self.change_underlay_scale())
+            self.underlay_spin.bind("<KP_Enter>", lambda e: self.change_underlay_scale())
+            self.underlay_spin.bind("<FocusOut>", lambda e: self.change_underlay_scale())
+
+        self._ribbon_group(page, "Подложка", build_underlay)
         self._refresh_ribbon_toggles()
         return page
 
@@ -487,12 +535,172 @@ class CircuitEditor:
         h = self.canvas.winfo_height() or 700
         mx, my = self.screen_to_world(w / 2, h / 2)
         new_zoom = self.zoom * factor
-        if 0.2 < new_zoom < 5.0:
+        if 0.08 < new_zoom < 5.0:
             self.zoom = new_zoom
             self.offset_x = w / 2 - mx * self.zoom
             self.offset_y = h / 2 - my * self.zoom
             self.redraw_all()
             self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
+
+    # ================= ПОДЛОЖКА PDF =================
+    def toggle_underlay(self):
+        self.show_underlay = self.underlay_visible_var.get()
+        self.redraw_all()
+
+    def change_underlay_scale(self):
+        try:
+            value = float(self.underlay_spin.get().replace(",", "."))
+        except ValueError:
+            value = self.underlay_scale
+        self.underlay_scale = max(0.2, min(5.0, value))
+        self.underlay_spin.delete(0, "end")
+        self.underlay_spin.insert(0, f"{self.underlay_scale:g}")
+        self.redraw_all()
+
+    def _read_underlay(self, filepath):
+        """Читает PDF и подписи, возвращает структуру подложки (без изменения состояния)."""
+        width, height, lines = pdfunderlay.load_pdf(filepath)
+        labels = []
+        if pdf2json is not None:
+            try:
+                tool = pdf2json.find_pdftotext()
+                if tool:
+                    words = pdf2json.extract_words(filepath, tool)
+                    for label in pdf2json.group_labels(words):
+                        labels.append((label["text"], label["x1"], label["cy"]))
+            except Exception:
+                labels = []
+        return {
+            "path": filepath,
+            "width": width,
+            "height": height,
+            "lines": lines,
+            "labels": labels,
+        }
+
+    def load_underlay(self, event=None):
+        filepath = filedialog.askopenfilename(
+            title="Выберите PDF для подложки",
+            filetypes=[("PDF files", "*.pdf")])
+        if not filepath:
+            return
+        try:
+            self.underlay = self._read_underlay(filepath)
+        except Exception as error:
+            messagebox.showerror("Подложка", f"Не удалось прочитать PDF:\n{error}")
+            return
+
+        self.show_underlay = True
+        if hasattr(self, "underlay_visible_var"):
+            self.underlay_visible_var.set(True)
+            self._refresh_ribbon_toggles()
+        self._underlay_needs_fit = True
+        self.root.update_idletasks()
+        if self.canvas.winfo_width() > 50 and self.canvas.winfo_height() > 50:
+            self._underlay_needs_fit = False
+            self._fit_view_to_underlay()
+        else:
+            # окно ещё не разложено — подгоним при первом Configure
+            self.redraw_all()
+        messagebox.showinfo(
+            "Подложка",
+            f"Загружено: {os.path.basename(filepath)}\n"
+            f"линий: {len(self.underlay['lines'])}, подписей: {len(self.underlay['labels'])}\n"
+            f"масштаб подложки: {self.underlay_scale:g}")
+
+    def _restore_underlay(self, info, base_dir=None):
+        """Восстанавливает подложку из JSON схемы."""
+        path = info.get("path")
+        if not path:
+            return
+        if not os.path.isabs(path):
+            path = os.path.join(base_dir or os.getcwd(), path)
+        path = os.path.abspath(path)
+        try:
+            self.underlay_scale = float(info.get("scale", self.underlay_scale))
+        except (TypeError, ValueError):
+            pass
+        self.show_underlay = bool(info.get("visible", True))
+
+        if not os.path.exists(path):
+            self.underlay = None
+            messagebox.showwarning(
+                "Подложка",
+                f"Файл подложки не найден:\n{path}\nСхема открыта без подложки.")
+            return
+
+        try:
+            self.underlay = self._read_underlay(path)
+        except Exception as error:
+            self.underlay = None
+            messagebox.showwarning(
+                "Подложка", f"Не удалось прочитать подложку:\n{error}")
+            return
+
+        if hasattr(self, "underlay_visible_var"):
+            self.underlay_visible_var.set(self.show_underlay)
+        if hasattr(self, "underlay_spin"):
+            self.underlay_spin.delete(0, "end")
+            self.underlay_spin.insert(0, f"{self.underlay_scale:g}")
+        self._refresh_ribbon_toggles()
+
+    def _on_canvas_resize(self, event=None):
+        """Перерисовка при изменении размера; первая — с подгонкой подложки."""
+        if self._underlay_needs_fit and self.underlay:
+            if self.canvas.winfo_width() > 50 and self.canvas.winfo_height() > 50:
+                self._underlay_needs_fit = False
+                self._fit_view_to_underlay()
+                return
+        self.redraw_all()
+
+    def _fit_view_to_underlay(self):
+        """Подгоняет вид под загруженную подложку."""
+        if not self.underlay:
+            return
+        w = self.canvas.winfo_width() or 800
+        h = self.canvas.winfo_height() or 700
+        pw = self.underlay["width"] * self.underlay_scale
+        ph = self.underlay["height"] * self.underlay_scale
+        if pw <= 0 or ph <= 0:
+            return
+        self.zoom = max(0.08, min(5.0, min(w / pw, h / ph) * 0.95))
+        self.offset_x = (w - pw * self.zoom) / 2
+        self.offset_y = (h - ph * self.zoom) / 2
+        self.redraw_all()
+        if hasattr(self, "zoom_label"):
+            self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
+
+    def clear_underlay(self, event=None):
+        if self.underlay is None:
+            return
+        self.underlay = None
+        self.redraw_all()
+
+    def _draw_underlay(self):
+        """Рисует подложку под сеткой: линии серым, подписи — мелким шрифтом."""
+        if not self.underlay or not self.show_underlay:
+            return
+        zoom = self.zoom
+        scale = self.underlay_scale
+        ox, oy = self.offset_x, self.offset_y
+        line_width = max(1, int(zoom))
+
+        for points in self.underlay["lines"]:
+            coords = []
+            for x, y in points:
+                coords.append(x * scale * zoom + ox)
+                coords.append(y * scale * zoom + oy)
+            self.canvas.create_line(*coords, fill="#9a9a9a",
+                                    width=line_width, tags="underlay")
+
+        if scale * zoom >= 0.55:
+            font = ("Arial", max(1, int(5 * scale * zoom)))
+            for text, x, y in self.underlay["labels"]:
+                self.canvas.create_text(x * scale * zoom + ox,
+                                        y * scale * zoom + oy,
+                                        text=text, anchor="w",
+                                        fill="#a8a8a8", font=font,
+                                        tags="underlay")
 
     # ================= ПАЛИТРА =================
     def _scroll_palette(self, event):
@@ -566,7 +774,7 @@ class CircuitEditor:
         self.canvas.bind("<B1-Motion>", self.on_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_release)
         self.canvas.bind("<Button-3>", self.on_right_click)
-        self.canvas.bind("<Configure>", lambda e: self.redraw_all())
+        self.canvas.bind("<Configure>", self._on_canvas_resize)
         self.canvas.bind("<MouseWheel>", self.on_zoom)
         self.canvas.bind("<Button-4>", self.on_zoom)
         self.canvas.bind("<Button-5>", self.on_zoom)
@@ -641,7 +849,7 @@ class CircuitEditor:
         mx = (event.x - self.offset_x) / self.zoom
         my = (event.y - self.offset_y) / self.zoom
         new_zoom = self.zoom * factor
-        if 0.2 < new_zoom < 5.0:
+        if 0.08 < new_zoom < 5.0:
             self.zoom = new_zoom
             self.offset_x = event.x - mx * self.zoom
             self.offset_y = event.y - my * self.zoom
@@ -832,6 +1040,7 @@ class CircuitEditor:
     # ================= ПЕРЕРИСОВКА =================
     def redraw_all(self):
         self.canvas.delete("all")
+        self._draw_underlay()
         self.draw_grid()
         
         # 1. Связи
@@ -932,6 +1141,9 @@ class CircuitEditor:
                         width=1,
                         tags="selection_highlight"
                     )
+
+        # Подложка всегда под сеткой и элементами
+        self.canvas.tag_lower("underlay")
 
     def draw_handles(self, el):
         lx, ly = self.world_to_screen(el.x - el.length, el.y)
@@ -1342,6 +1554,76 @@ class CircuitEditor:
             self.clipboard_connections = []
             self.redraw_all()
 
+    # ================= ЭКСПОРТ PDF =================
+    def export_pdf(self, event=None):
+        """Сохраняет текущий вид схемы (подложка + элементы) в PDF."""
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
+        if not filepath:
+            return
+
+        margin = 40.0
+        xs, ys = [], []
+        if self.underlay:
+            xs += [0.0, self.underlay["width"] * self.underlay_scale]
+            ys += [0.0, self.underlay["height"] * self.underlay_scale]
+        for element in self.elements.values():
+            bx1, by1, bx2, by2 = element.get_bounding_box()
+            xs += [bx1, bx2]
+            ys += [by1, by2]
+        if not xs:
+            xs, ys = [0.0, 800.0], [0.0, 600.0]
+
+        min_x, max_x = min(xs) - margin, max(xs) + margin
+        min_y, max_y = min(ys) - margin, max(ys) + margin
+
+        # Масштаб экспорта: при подложке приводим лист к размеру исходного PDF
+        export_scale = 1.0
+        if self.underlay and self.underlay_scale > 0:
+            export_scale = 1.0 / self.underlay_scale
+        width = max(50.0, (max_x - min_x) * export_scale)
+        height = max(50.0, (max_y - min_y) * export_scale)
+
+        # Слишком маленький лист поднимаем до A4 (альбом), содержимое центрируем
+        offset_x, offset_y = -min_x, -min_y
+        if width < 842 or height < 595:
+            sheet_w = max(width, 842) / export_scale
+            sheet_h = max(height, 595) / export_scale
+            offset_x = -min_x + (sheet_w - (max_x - min_x)) / 2.0
+            offset_y = -min_y + (sheet_h - (max_y - min_y)) / 2.0
+            width = sheet_w * export_scale
+            height = sheet_h * export_scale
+
+        try:
+            document = pdfexport.PdfDocument(width, height, offset_x, offset_y,
+                                             scale=export_scale)
+        except Exception as error:
+            messagebox.showerror("PDF", f"Не удалось подготовить экспорт:\n{error}")
+            return
+
+        canvas = document.canvas
+        if self.underlay and self.show_underlay:
+            scale = self.underlay_scale
+            for points in self.underlay["lines"]:
+                coords = []
+                for x, y in points:
+                    coords.extend((x * scale, y * scale))
+                canvas.create_line(*coords, fill="#6f6f6f", width=1)
+            for text, x, y in self.underlay["labels"]:
+                canvas.create_text(x * scale, y * scale, text=text,
+                                   anchor="w", font=("Arial", 6), fill="#8a8a8a")
+
+        for element in self.elements.values():
+            element.draw(canvas, 1.0, 0.0, 0.0)
+
+        try:
+            document.save(filepath)
+        except Exception as error:
+            messagebox.showerror("PDF", f"Не удалось сохранить PDF:\n{error}")
+            return
+
+        messagebox.showinfo("PDF", f"Сохранено: {os.path.basename(filepath)}")
+
     # ================= СОХРАНЕНИЕ / ЗАГРУЗКА =================
     def save_json(self):
         data = {"elements": [], "connections": []}
@@ -1380,8 +1662,29 @@ class CircuitEditor:
                 "element_to": el2.id
             })
 
+        # Ссылка на подложку: по ней схема открывается вместе с чертежом
+        if self.underlay:
+            data["underlay"] = {
+                "path": os.path.abspath(self.underlay["path"]),
+                "scale": self.underlay_scale,
+                "visible": bool(self.show_underlay),
+            }
+        data["view"] = {
+            "zoom": round(self.zoom, 4),
+            "offset_x": round(self.offset_x, 2),
+            "offset_y": round(self.offset_y, 2),
+        }
+
         filepath = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
         if filepath:
+            # путь к подложке храним относительно файла схемы, чтобы папку можно было переносить
+            if "underlay" in data:
+                try:
+                    base = os.path.dirname(os.path.abspath(filepath))
+                    data["underlay"]["path"] = os.path.relpath(
+                        data["underlay"]["path"], base)
+                except ValueError:
+                    pass
             try:
                 with open(filepath, 'w', encoding='utf-8') as f:
                     json.dump(data, f, ensure_ascii=False, indent=4)
@@ -1413,7 +1716,24 @@ class CircuitEditor:
         self.elements = elements
         self.connections = connections
         self._reset_transient()
+
+        underlay_info = data.get("underlay")
+        if isinstance(underlay_info, dict):
+            self._restore_underlay(
+                underlay_info, os.path.dirname(os.path.abspath(filepath)))
+
+        view_info = data.get("view")
+        if isinstance(view_info, dict):
+            try:
+                self.zoom = float(view_info.get("zoom", self.zoom))
+                self.offset_x = float(view_info.get("offset_x", self.offset_x))
+                self.offset_y = float(view_info.get("offset_y", self.offset_y))
+            except (TypeError, ValueError):
+                pass
+
         self.redraw_all()
+        if hasattr(self, "zoom_label"):
+            self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
         messagebox.showinfo("Успех", "Схема загружена!")
 
     def _build_elements(self, data):

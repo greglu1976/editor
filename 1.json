@@ -1,0 +1,61 @@
+{
+    "elements": [
+        {
+            "id": "LI23c5",
+            "type": "line",
+            "name": "W1",
+            "x": 250,
+            "y": 260,
+            "rotation": 0
+        },
+        {
+            "id": "LIbc4a",
+            "type": "line_trap",
+            "name": "ВЧЗ1",
+            "x": 250,
+            "y": 340,
+            "rotation": 0
+        },
+        {
+            "id": "CU1412",
+            "type": "current_transformer",
+            "name": "TA1",
+            "x": 250,
+            "y": 450,
+            "rotation": 0
+        },
+        {
+            "id": "CO92f4",
+            "type": "corner",
+            "name": "C1",
+            "x": 250,
+            "y": 970,
+            "orientation": "top_right"
+        },
+        {
+            "id": "NO27d6",
+            "type": "node",
+            "name": "N1",
+            "x": 490,
+            "y": 970
+        }
+    ],
+    "connections": [
+        {
+            "node_from": "N_CU1412_bot",
+            "node_to": "N_CO92f4_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU1412",
+            "element_to": "CO92f4"
+        },
+        {
+            "node_from": "N_CO92f4_right",
+            "node_to": "NO27d6",
+            "port_from": "right",
+            "port_to": "center",
+            "element_from": "CO92f4",
+            "element_to": "NO27d6"
+        }
+    ]
+}

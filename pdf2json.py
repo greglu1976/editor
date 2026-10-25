@@ -279,6 +279,12 @@ def main(argv=None):
     words = extract_words(args.pdf, tool)
     labels = group_labels(words)
 
+    if not words:
+        print("В PDF нет текстового слоя (скан или текст переведён в кривые).")
+        print("Такой файл нельзя разобрать автоматически: нужен OCR (Tesseract) "
+              "или разметка поверх подложки.")
+        return 2
+
     parsed = []
     skipped = []
     for label in labels:
@@ -287,6 +293,12 @@ def main(argv=None):
             parsed.append(label)
         else:
             skipped.append(label["text"])
+
+    if not parsed:
+        print("Текстовый слой есть, но обозначений оборудования не найдено "
+              f"(подписей: {len(labels)}). Проверьте формат обозначений.")
+        print("Первые подписи: " + "; ".join(l["text"] for l in labels[:8]))
+        return 3
 
     elements = make_elements(parsed, layout=args.layout, scale=args.scale,
                              pitch=args.pitch, column_width=args.column_width)
