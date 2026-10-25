@@ -8,6 +8,8 @@ import os
 import library
 import pdfunderlay
 import pdfexport
+import ssdexport
+import cabs
 
 try:
     import pdf2json
@@ -24,6 +26,7 @@ PREFIX_BY_TYPE = {
     "ground": "G", "voltage_transformer": "TV", "current_transformer": "TA",
     "opn": "ОПН", "coupling_capacitor": "КС", "line_trap": "ВЧЗ",
     "connection_filter": "ФП", "av_breaker": "АВ", "fuse": "ПР",
+    "cabinet": "Ш",
 }
 
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
@@ -106,12 +109,13 @@ class UndoManager:
         self.redo_stack = []   # Стек для повтора
         self.max_history = 50
 
-    def save_state(self, elements, connections, selected_elements):
+    def save_state(self, elements, connections, selected_elements, protection_links=None):
         """Сохраняет состояние и очищает стек redo (т.к. создана новая ветка)"""
         state = {
             "elements": copy.deepcopy(elements),
             "connections": copy.deepcopy(connections),
-            "selected_elements": list(selected_elements)
+            "selected_elements": list(selected_elements),
+            "protection": copy.deepcopy(protection_links or []),
         }
         self.push_state(state)
 
@@ -219,6 +223,25 @@ def _ri_pdf(c):
     c.create_text(16, 19, text="PDF", font=("Arial", 6, "bold"))
 
 
+def _ri_ssd(c):
+    c.create_polygon(8, 4, 19, 4, 24, 9, 24, 28, 8, 28,
+                     outline="black", fill="white", width=2)
+    c.create_line(19, 4, 19, 9, 24, 9, width=1)
+    c.create_text(16, 19, text="SSD", font=("Arial", 6, "bold"))
+
+
+def _ri_shield(c):
+    c.create_polygon(16, 4, 27, 9, 27, 17, 16, 29, 5, 17, 5, 9,
+                     outline="black", fill="white", width=2)
+    c.create_line(16, 11, 16, 21, width=2)
+    c.create_line(11, 16, 21, 16, width=2)
+
+
+def _ri_protlink(c):
+    c.create_line(6, 26, 24, 8, width=2, arrow=tk.LAST)
+    c.create_oval(22, 4, 28, 10, outline="black", width=1)
+
+
 def _ri_eye(c):
     c.create_oval(4, 11, 28, 21, outline="black", width=2)
     c.create_oval(13, 13, 19, 19, fill="black", outline="black")
@@ -239,6 +262,131 @@ def _ri_nodes(c):
     for x, y in ((16, 10), (9, 23), (23, 23)):
         c.create_oval(x - 3, y - 3, x + 3, y + 3, fill="white", outline="black", width=2)
 
+
+def _format_option(value):
+    if value is None:
+        return ""
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+class SsdOptionsDialog(tk.Toplevel):
+    """Параметры SSD: подстанция, РУ, отсек, напряжение и частота."""
+
+    FIELDS = (
+        ("substation", "Подстанция", 34),
+        ("voltage_level", "РУ (VoltageLevel)", 34),
+        ("bay", "Отсек (Bay)", 34),
+        ("voltage_kv", "Напряжение, кВ", 10),
+        ("frequency_hz", "Частота, Гц", 10),
+    )
+
+    def __init__(self, parent, defaults):
+        super().__init__(parent)
+        self.title("Экспорт в SSD — МЭК 61850-6")
+        self.transient(parent)
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self._cancel)
+        self.result = None
+        self.vars = {}
+
+        form = tk.Frame(self, padx=12, pady=10)
+        form.pack(fill=tk.BOTH, expand=True)
+
+        for row, (key, label, width) in enumerate(self.FIELDS):
+            tk.Label(form, text=label, anchor="w").grid(row=row, column=0, sticky="w", pady=3)
+            variable = tk.StringVar(value=_format_option(defaults.get(key)))
+            entry = tk.Entry(form, textvariable=variable, width=width)
+            entry.grid(row=row, column=1, sticky="we", padx=(10, 0), pady=3)
+            self.vars[key] = variable
+            if row == 0:
+                self._first_entry = entry
+
+        self._hint = tk.Label(
+            form, text="Напряжение можно не заполнять — тогда блок Voltage не пишется.",
+            fg="#808080", font=("Arial", 8), anchor="w")
+        self._hint.grid(row=len(self.FIELDS), column=0, columnspan=2, sticky="w", pady=(6, 0))
+        self._error = tk.Label(form, text="", fg="#b00020", font=("Arial", 8), anchor="w")
+        self._error.grid(row=len(self.FIELDS) + 1, column=0, columnspan=2, sticky="w")
+
+        buttons = tk.Frame(self)
+        buttons.pack(fill=tk.X, padx=12, pady=(0, 10))
+        tk.Button(buttons, text="Отмена", width=10, command=self._cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Экспорт", width=12,
+                  command=self._accept).pack(side=tk.RIGHT, padx=(0, 6))
+
+        self.bind("<Return>", lambda event: self._accept())
+        self.bind("<KP_Enter>", lambda event: self._accept())
+        self.bind("<Escape>", lambda event: self._cancel())
+        self._center(parent)
+
+    def _center(self, parent):
+        self.update_idletasks()
+        x = parent.winfo_rootx() + max(0, (parent.winfo_width() - self.winfo_width()) // 2)
+        y = parent.winfo_rooty() + max(0, (parent.winfo_height() - self.winfo_height()) // 3)
+        self.geometry("+{}+{}".format(x, y))
+
+    def show(self):
+        # update() нужен, чтобы окно успело отобразиться: grab_set работает
+        # только для видимого окна (иначе TclError — просто не ставим захват).
+        self.update()
+        try:
+            self.grab_set()
+        except tk.TclError:
+            pass
+        self.lift()
+        self._first_entry.focus_set()
+        self.wait_window(self)
+        return self.result
+
+    def _fail(self, message):
+        self._error.config(text=message)
+
+    def _cancel(self):
+        self.result = None
+        self.destroy()
+
+    def _accept(self):
+        values = {key: variable.get().strip() for key, variable in self.vars.items()}
+        if not values["substation"]:
+            self._fail("Укажите имя подстанции.")
+            return
+        if not values["voltage_level"]:
+            self._fail("Укажите имя РУ (VoltageLevel).")
+            return
+        if not values["bay"]:
+            self._fail("Укажите имя отсека (Bay).")
+            return
+
+        voltage = None
+        if values["voltage_kv"]:
+            try:
+                voltage = float(values["voltage_kv"].replace(",", "."))
+            except ValueError:
+                self._fail("Напряжение должно быть числом, например 110.")
+                return
+            if voltage <= 0:
+                self._fail("Напряжение должно быть больше нуля.")
+                return
+
+        try:
+            frequency = float(values["frequency_hz"].replace(",", ".")) if values["frequency_hz"] else 50.0
+        except ValueError:
+            self._fail("Частота должна быть числом, например 50.")
+            return
+        if frequency <= 0:
+            self._fail("Частота должна быть больше нуля.")
+            return
+
+        self.result = {
+            "substation": values["substation"],
+            "voltage_level": values["voltage_level"],
+            "bay": values["bay"],
+            "voltage_kv": voltage,
+            "frequency_hz": frequency,
+        }
+        self.destroy()
 
 
 class CircuitEditor:
@@ -303,6 +451,13 @@ class CircuitEditor:
         self.underlay_scale = 2.0
         self.show_underlay = True
         self._underlay_needs_fit = False
+
+        # Защита: шкафы РЗА, защитные узлы первичного оборудования и связи IED→узел
+        self.protection_links = []
+        self.show_protection = True     # стрелки IED→узел и ромбы-узлы
+        self.show_cabinets = True       # сами шкафы
+        self._protection_start = None    # ("ied", cabinet_id, index) | ("element", id)
+        self._pending_cabinet = None
 
         self.setup_ui()
         self.draw_grid()
@@ -466,6 +621,12 @@ class CircuitEditor:
             self._ribbon_button(row, "Из файла", self.insert_from_json, _ri_insert, 60).pack(side=tk.LEFT),
             self._ribbon_button(row, "Очистить", self.clear_all, _ri_clear, 60).pack(side=tk.LEFT),
             self._ribbon_button(row, "В PDF", self.export_pdf, _ri_pdf, 56).pack(side=tk.LEFT),
+            self._ribbon_button(row, "В SSD", self.export_ssd, _ri_ssd, 56).pack(side=tk.LEFT),
+        ])
+        self._ribbon_group(page, "Защита", lambda row: [
+            self._ribbon_button(row, "Шкаф…", self.add_cabinet, _ri_shield, 58).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Связь РЗА", lambda: self.set_tool("protection"),
+                                _ri_protlink, 66).pack(side=tk.LEFT),
         ])
         return page
 
@@ -494,6 +655,16 @@ class CircuitEditor:
             self.grid_spin.bind("<FocusOut>", lambda e: self.change_grid_size())
 
         self._ribbon_group(page, "Сетка", build_grid)
+
+        def build_protection(row):
+            self.show_cabinets_var = tk.BooleanVar(value=True)
+            self._ribbon_toggle(row, "Шкафы", self.show_cabinets_var,
+                                self.toggle_cabinets, _ri_shield, 56).pack(side=tk.LEFT)
+            self.show_protection_var = tk.BooleanVar(value=True)
+            self._ribbon_toggle(row, "Связи РЗА", self.show_protection_var,
+                                self.toggle_protection, _ri_protlink, 72).pack(side=tk.LEFT)
+
+        self._ribbon_group(page, "Защита", build_protection)
 
         def build_scale(row):
             self._ribbon_button(row, "Уменьшить", lambda: self._zoom_step(0.8),
@@ -708,6 +879,312 @@ class CircuitEditor:
                                         fill="#a8a8a8", font=font,
                                         tags="underlay")
 
+    # ================= ЗАЩИТА: ШКАФЫ, IED И ЗАЩИТНЫЕ СВЯЗИ =================
+    def toggle_protection(self):
+        self.show_protection = self.show_protection_var.get()
+        if not self.show_protection:
+            self._protection_start = None
+        self.redraw_all()
+
+    def toggle_cabinets(self):
+        self.show_cabinets = self.show_cabinets_var.get()
+        if not self.show_cabinets:
+            self._protection_start = None
+            # скрытый шкаф нельзя случайно удалить — снимаем его с выделения
+            self.selected_elements = [
+                eid for eid in self.selected_elements
+                if eid in self.elements and self.elements[eid].type != "cabinet"
+            ]
+        self.redraw_all()
+
+    def add_cabinet(self):
+        """Добавляет шкаф из каталога cabs.py в центр видимой области."""
+        definition = self._choose_cabinet()
+        if not definition:
+            return
+        width = self.canvas.winfo_width()
+        height = self.canvas.winfo_height()
+        if width < 50:
+            width = 800
+        if height < 50:
+            height = 700
+        wx, wy = self.screen_to_world(width / 2, height / 2)
+        wx, wy = self.snap(wx, wy)
+
+        self.undo_manager.save_state(self.elements, self.connections,
+                                     self.selected_elements, self.protection_links)
+        cabinet = library.create_component("cabinet", f"CA{uuid.uuid4().hex[:4]}",
+                                           wx, wy, self.grid_size)
+        cabinet.set_cabinet(definition)
+        cabinet.name = self.get_next_name("Ш", "cabinet")
+        self.elements[cabinet.id] = cabinet
+        self.selected_elements = [cabinet.id]
+        self.current_tool = "select"
+        self.canvas.config(cursor="arrow")
+        self._mark_active_tool()
+        self.redraw_all()
+
+    def _choose_cabinet(self):
+        """Диалог выбора шкафа из cabs.py."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Шкаф РЗА")
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+
+        tk.Label(dialog,
+                 text="Типовые шкафы ШЭТ по СТО ПАО «ФСК ЕЭС» — "
+                      "Т/АТ, СКРМ, ЛЭП, СШ (архитектура II типа):",
+                 anchor="w", fg="#555555").pack(fill=tk.X, padx=10, pady=(8, 4))
+        frame = tk.Frame(dialog)
+        frame.pack(fill=tk.BOTH, expand=True, padx=10)
+        listbox = tk.Listbox(frame, width=78, height=max(3, min(16, len(cabs.CABINETS))),
+                             activestyle="dotbox")
+        scrollbar = tk.Scrollbar(frame, orient="vertical", command=listbox.yview)
+        listbox.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        def cabinet_label(cabinet):
+            group = cabinet.get("group")
+            prefix = f"[{group}] " if group else ""
+            code = cabinet.get("code")
+            name = cabinet.get("name", "Шкаф")
+            return f"{prefix}{code} — {name}" if code else prefix + name
+
+        for cabinet in cabs.CABINETS:
+            listbox.insert("end", cabinet_label(cabinet))
+
+        info = tk.Label(dialog, text="", anchor="w", justify="left",
+                        fg="#333333", wraplength=620)
+        info.pack(fill=tk.X, padx=10, pady=6)
+
+        footer = tk.Label(dialog, text="", anchor="w", fg="#808080",
+                          font=("Arial", 7), wraplength=620)
+        footer.pack(fill=tk.X, padx=10, pady=(0, 6))
+
+        result = {"value": None}
+
+        def update_info(event=None):
+            selection = listbox.curselection()
+            if not selection:
+                return
+            cabinet = cabs.CABINETS[selection[0]]
+            lines = []
+            if cabinet.get("description"):
+                lines.append(cabinet["description"])
+            if cabinet.get("standard_title"):
+                lines.append(f'Стандарт: {cabinet["standard_title"]} '
+                             f'({cabinet.get("standard")})')
+            if cabinet.get("voltage"):
+                lines.append(f'Напряжение: {cabinet["voltage"]}')
+            if cabinet.get("protected"):
+                lines.append(f'Защищаемый элемент: {cabinet["protected"]}')
+            if cabinet.get("controlled"):
+                lines.append("Управляемые: " + ", ".join(cabinet["controlled"]))
+            if cabinet.get("its_functions"):
+                lines.append("Функции ИТС: " + ", ".join(cabinet["its_functions"]))
+            ied_parts = []
+            for ied in cabinet.get("ieds", []):
+                functions = ", ".join(ied.get("functions", [])) or ied.get("desc", "")
+                ied_parts.append(f'{ied.get("name", "IED")} ({functions})')
+            if ied_parts:
+                lines.append("IED: " + "; ".join(ied_parts))
+            if cabinet.get("applicability"):
+                lines.append(f'Применимость: {cabinet["applicability"]}')
+            if cabinet.get("source"):
+                lines.append(f'Источник: {cabinet["source"]}')
+            info.config(text="\n".join(lines))
+
+            standard = cabs.standard_for(cabinet)
+            if standard:
+                footer.config(text="{} · габариты {} · порты {}".format(
+                    standard["code"], standard["dimensions"],
+                    ", ".join(standard["ports"])))
+            else:
+                footer.config(text="Произвольный шкаф · типовые НКУ: габариты {} · "
+                                   "порты {}".format(cabs.STANDARD["dimensions"],
+                                                     ", ".join(cabs.STANDARD["ports"])))
+
+        listbox.bind("<<ListboxSelect>>", update_info)
+        if cabs.CABINETS:
+            listbox.selection_set(0)
+            update_info()
+
+        def accept(event=None):
+            selection = listbox.curselection()
+            if selection:
+                result["value"] = cabs.CABINETS[selection[0]]
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(0, 8))
+        tk.Button(buttons, text="Отмена", width=10, command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Добавить", width=12, command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+
+        listbox.bind("<Double-Button-1>", accept)
+        dialog.bind("<Return>", accept)
+        dialog.bind("<Escape>", cancel)
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = self.root.winfo_rootx() + max(0, (self.root.winfo_width() - width) // 2)
+        y = self.root.winfo_rooty() + max(0, (self.root.winfo_height() - height) // 4)
+        dialog.geometry(f"+{x}+{y}")
+        try:
+            dialog.grab_set()
+        except tk.TclError:
+            pass
+        dialog.wait_window(dialog)
+        return result["value"]
+
+    # ---------------------------------------------------------- связи
+    def _ied_port_at(self, sx, sy):
+        """Ближайший порт IED на шкафах: (id шкафа, имя порта)."""
+        tolerance = max(6.0, 12.0 * self.zoom)
+        best = None
+        best_dist = tolerance
+        for element in self.elements.values():
+            if element.type != "cabinet":
+                continue
+            if not self.show_cabinets:
+                continue
+            for port_name, port in element.ports.items():
+                px, py = self.world_to_screen(port["x"], port["y"])
+                dist = math.hypot(sx - px, sy - py)
+                if dist <= best_dist:
+                    best_dist = dist
+                    best = (element.id, port_name)
+        return best
+
+    def _protection_link_at(self, sx, sy):
+        if not self.show_protection or not self.show_cabinets:
+            return None
+        tolerance = max(4.0, 5.0 * self.zoom)
+        for link in self.protection_links:
+            cabinet_id, _, index = link["ied"].partition("#")
+            cabinet = self.elements.get(cabinet_id)
+            element = self.elements.get(link["element"])
+            if not cabinet or not element:
+                continue
+            port = cabinet.ports.get(f"ied{index}")
+            if not port:
+                continue
+            x1, y1 = self.world_to_screen(port["x"], port["y"])
+            x2, y2 = self.world_to_screen(element.x, element.y)
+            if self._point_segment_distance(sx, sy, x1, y1, x2, y2) <= tolerance:
+                return link
+        return None
+
+    def _on_protection_click(self, event):
+        """Клик в режиме «Связь РЗА»: IED → защитный узел (или наоборот)."""
+        if self._protection_start is None:
+            link = self._protection_link_at(event.x, event.y)
+            if link is not None:
+                self.undo_manager.save_state(self.elements, self.connections,
+                                             self.selected_elements, self.protection_links)
+                self.protection_links.remove(link)
+                self.redraw_all()
+                return
+
+        ied = self._ied_port_at(event.x, event.y)
+        if ied is not None:
+            cabinet_id, port_name = ied
+            if self._protection_start is None:
+                self._protection_start = ("ied", cabinet_id, port_name)
+            elif self._protection_start[0] == "element":
+                self._add_protection_link(f"{cabinet_id}#{port_name[3:]}",
+                                          self._protection_start[1])
+                self._protection_start = None
+            else:
+                self._protection_start = None
+            self.redraw_all()
+            return
+
+        element_id = self._element_at(event.x, event.y)
+        if element_id:
+            element = self.elements.get(element_id)
+            if element and element.type != "cabinet":
+                if self._protection_start is None:
+                    self._protection_start = ("element", element_id)
+                elif self._protection_start[0] == "ied":
+                    _, cabinet_id, port_name = self._protection_start
+                    self._add_protection_link(f"{cabinet_id}#{port_name[3:]}", element_id)
+                    self._protection_start = None
+                else:
+                    self._protection_start = None
+                self.redraw_all()
+                return
+
+        if self._protection_start is not None:
+            self._protection_start = None
+            self.redraw_all()
+
+    def _add_protection_link(self, ied_ref, element_id):
+        cabinet_id, _, index = ied_ref.partition("#")
+        cabinet = self.elements.get(cabinet_id)
+        element = self.elements.get(element_id)
+        if not cabinet or cabinet.type != "cabinet" or not element:
+            return
+        if f"ied{index}" not in cabinet.ports:
+            return
+        for link in self.protection_links:
+            if link["ied"] == ied_ref and link["element"] == element_id:
+                return
+        self.undo_manager.save_state(self.elements, self.connections,
+                                     self.selected_elements, self.protection_links)
+        self.protection_links.append({"ied": ied_ref, "element": element_id})
+
+    def _draw_protection(self):
+        """Защитные узлы на оборудовании и стрелки IED → узел."""
+        if not self.show_protection:
+            return
+        node_r = max(3.0, 4.5 * self.zoom)
+        for element in self.elements.values():
+            if element.type in ("cabinet", "corner", "node"):
+                continue
+            x, y = self.world_to_screen(element.x, element.y)
+            self.canvas.create_polygon(
+                x, y - node_r, x + node_r, y, x, y + node_r, x - node_r, y,
+                fill="#1f4e79", outline="white",
+                width=1, tags="protection_node")
+
+        if self.show_cabinets:
+            for link in self.protection_links:
+                cabinet_id, _, index = link["ied"].partition("#")
+                cabinet = self.elements.get(cabinet_id)
+                element = self.elements.get(link["element"])
+                if not cabinet or not element or cabinet.type != "cabinet":
+                    continue
+                port = cabinet.ports.get(f"ied{index}")
+                if not port:
+                    continue
+                x1, y1 = self.world_to_screen(port["x"], port["y"])
+                x2, y2 = self.world_to_screen(element.x, element.y)
+                self.canvas.create_line(x1, y1, x2, y2, fill="#1f4e79",
+                                        width=max(1, int(1.5 * self.zoom)),
+                                        arrow=tk.LAST, tags="protection_link")
+
+        if self._protection_start is not None:
+            if self._protection_start[0] == "ied":
+                _, cabinet_id, port_name = self._protection_start
+                cabinet = self.elements.get(cabinet_id)
+                port = cabinet.ports.get(port_name) if cabinet else None
+                if port:
+                    px, py = self.world_to_screen(port["x"], port["y"])
+                    r = max(4.0, 6.0 * self.zoom)
+                    self.canvas.create_oval(px - r, py - r, px + r, py + r,
+                                            outline="red", width=2, tags="protection_start")
+            else:
+                element = self.elements.get(self._protection_start[1])
+                if element:
+                    px, py = self.world_to_screen(element.x, element.y)
+                    r = max(4.0, 6.0 * self.zoom)
+                    self.canvas.create_oval(px - r, py - r, px + r, py + r,
+                                            outline="red", width=2, tags="protection_start")
+
     # ================= ПАЛИТРА =================
     def _scroll_palette(self, event):
         self.palette_canvas.yview_scroll(int(-event.delta / 120), "units")
@@ -802,6 +1279,7 @@ class CircuitEditor:
         self.root.bind("<Control-z>", self.undo_last_action)
         self.root.bind("<Control-y>", self.redo_last_action)
         self.root.bind("<Control-Shift-Z>", self.redo_last_action)
+        self.root.bind("<Control-Shift-S>", self.export_ssd)
 
     # ================= ОТМЕНА / ПОВТОР =================
     def _reset_transient(self):
@@ -819,6 +1297,7 @@ class CircuitEditor:
         self._resize_changed = False
         self._dragging_label = None
         self._label_drag_changed = False
+        self._protection_start = None
         if self.selection_rect_id:
             self.canvas.delete(self.selection_rect_id)
             self.selection_rect_id = None
@@ -829,6 +1308,7 @@ class CircuitEditor:
 
         self.elements = state["elements"]
         self.connections = state["connections"]
+        self.protection_links = state.get("protection", [])
         self._reset_transient()
         self.selected_elements = list(state["selected_elements"])
 
@@ -839,6 +1319,7 @@ class CircuitEditor:
             "elements": copy.deepcopy(self.elements),
             "connections": copy.deepcopy(self.connections),
             "selected_elements": list(self.selected_elements),
+            "protection": copy.deepcopy(self.protection_links),
         }
 
     def undo_last_action(self, event=None):
@@ -922,7 +1403,7 @@ class CircuitEditor:
         self.redraw_all()
 
     def rotate_selected(self, event):
-        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
         
         for el_id in list(self.selected_elements):
             if el_id in self.elements:
@@ -968,7 +1449,7 @@ class CircuitEditor:
         if self.clipboard is None:
             return
         
-        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
             
         w = self.canvas.winfo_width() or 800
         h = self.canvas.winfo_height() or 700
@@ -1018,7 +1499,12 @@ class CircuitEditor:
             if hasattr(el_template, 'length'): new_el.length = el_template.length
             if hasattr(el_template, 'label_offset'):
                 new_el.label_offset = list(el_template.label_offset)
-            
+            if el_template.type == "cabinet":
+                new_el.cabinet_key = getattr(el_template, "cabinet_key", "")
+                new_el.title = getattr(el_template, "title", new_el.title)
+                new_el.info = dict(getattr(el_template, "info", {}))
+                new_el.ieds = [dict(ied) for ied in getattr(el_template, "ieds", [])][:3]
+
             new_el.generate_ports()
             self.elements[new_id] = new_el
             id_mapping[old_id] = new_id
@@ -1071,6 +1557,8 @@ class CircuitEditor:
                 
         # 2. Элементы
         for el in self.elements.values():
+            if el.type == "cabinet" and not self.show_cabinets:
+                continue
             el.draw(self.canvas, self.zoom, self.offset_x, self.offset_y)
             
         # 3. Маркеры шины
@@ -1113,6 +1601,9 @@ class CircuitEditor:
                         width=max(1, int(1.5*self.zoom))
                     )
 
+        # 4a. Защитные узлы и стрелки IED → узел
+        self._draw_protection()
+
         # 5. Рамка выделения
         highlight_color = "wheat4"
         highlight_width = max(1, int(2 * self.zoom))
@@ -1121,6 +1612,8 @@ class CircuitEditor:
         for el_id in self.selected_elements:
             if el_id in self.elements:
                 el = self.elements[el_id]
+                if el.type == "cabinet" and not self.show_cabinets:
+                    continue
                 bx1, by1, bx2, by2 = el.get_bounding_box()
                 
                 sx1, sy1 = self.world_to_screen(bx1, by1)
@@ -1204,15 +1697,19 @@ class CircuitEditor:
         if tool == "delete":
             self.delete_selected()
             return
+        had_protection_start = self._protection_start is not None
+        self._protection_start = None
         self.current_tool = tool
         self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
         self._mark_active_tool()
+        if had_protection_start:
+            self.redraw_all()
 
     def delete_selected(self, event=None):
         """Удаляет выделенные элементы (и все их связи) одним действием."""
         if not self.selected_elements:
             return
-        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
         for el_id in list(self.selected_elements):
             self.delete_element(el_id)
         self._reset_transient()
@@ -1221,6 +1718,8 @@ class CircuitEditor:
     def _element_at(self, sx, sy):
         """id элемента под курсором (верхний в порядке отрисовки) или None."""
         for el in reversed(list(self.elements.values())):
+            if el.type == "cabinet" and not self.show_cabinets:
+                continue
             bx1, by1, bx2, by2 = el.get_bounding_box()
             sx1, sy1 = self.world_to_screen(bx1, by1)
             sx2, sy2 = self.world_to_screen(bx2, by2)
@@ -1231,6 +1730,8 @@ class CircuitEditor:
     def _label_at(self, sx, sy):
         """id элемента, чья подпись под курсором (bbox обновляется при отрисовке)."""
         for el in reversed(list(self.elements.values())):
+            if el.type == "cabinet" and not self.show_cabinets:
+                continue
             box = getattr(el, "_label_bbox", None)
             if box and box[0] <= sx <= box[2] and box[1] <= sy <= box[3]:
                 return el.id
@@ -1306,7 +1807,7 @@ class CircuitEditor:
             if clicked_el is None:
                 conn_to_delete = self._connection_at(event.x, event.y)
                 if conn_to_delete is not None:
-                    self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+                    self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
                     self.connections.remove(conn_to_delete)
                     self.redraw_all()
                     return
@@ -1372,17 +1873,22 @@ class CircuitEditor:
                 else:
                     start_id, start_port = self.link_start
                     if best_port_el != start_id:
-                        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+                        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
                         self.create_connection(start_id, best_port_el, start_port, best_port_name)
                     self.canvas.delete("link_start")
                     self.link_start = None
                     self.redraw_all()
             return
 
+        # ИНСТРУМЕНТ «СВЯЗЬ РЗА»: IED ↔ защитный узел оборудования
+        if self.current_tool == "protection":
+            self._on_protection_click(event)
+            return
+
         # ДОБАВЛЕНИЕ НОВЫХ ЭЛЕМЕНТОВ
         tool = self.current_tool
         if tool in library.COMPONENT_TYPES:
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
             self.add_element(tool, wx, wy)
 
     def get_next_name(self, prefix, el_type=None):
@@ -1427,7 +1933,7 @@ class CircuitEditor:
                         messagebox.showerror("Ошибка", f"Элемент с именем '{new_name}' уже существует на схеме!\nИмена должны быть уникальными.")
                         return
                 
-                self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+                self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
                 clicked_el.name = new_name
                 self.redraw_all()
 
@@ -1565,7 +2071,7 @@ class CircuitEditor:
     def on_right_click(self, event):
         clicked_el = self._element_at(event.x, event.y)
         if clicked_el:
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
             self.delete_element(clicked_el)
             if clicked_el in self.selected_elements:
                 self.selected_elements.remove(clicked_el)
@@ -1585,6 +2091,11 @@ class CircuitEditor:
         if el_id not in self.elements: return
         del self.elements[el_id]
         self.connections = [c for c in self.connections if c["from"] != el_id and c["to"] != el_id]
+        # Защитные связи удалённого оборудования/шкафа
+        self.protection_links = [
+            link for link in self.protection_links
+            if link["element"] != el_id and link["ied"].split("#")[0] != el_id
+        ]
 
     def create_connection(self, id1, id2, port1, port2):
         for c in self.connections:
@@ -1598,7 +2109,7 @@ class CircuitEditor:
 
     def clear_all(self):
         if messagebox.askyesno("Очистить", "Удалить всю схему?"):
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
             self.elements = {}
             self.connections = []
             self._reset_transient()
@@ -1620,6 +2131,8 @@ class CircuitEditor:
             xs += [0.0, self.underlay["width"] * self.underlay_scale]
             ys += [0.0, self.underlay["height"] * self.underlay_scale]
         for element in self.elements.values():
+            if element.type == "cabinet" and not self.show_cabinets:
+                continue
             bx1, by1, bx2, by2 = element.get_bounding_box()
             xs += [bx1, bx2]
             ys += [by1, by2]
@@ -1666,6 +2179,8 @@ class CircuitEditor:
                                    anchor="w", font=("Arial", 6), fill="#8a8a8a")
 
         for element in self.elements.values():
+            if element.type == "cabinet" and not self.show_cabinets:
+                continue
             element.draw(canvas, 1.0, 0.0, 0.0)
 
         try:
@@ -1675,6 +2190,53 @@ class CircuitEditor:
             return
 
         messagebox.showinfo("PDF", f"Сохранено: {os.path.basename(filepath)}")
+
+    # ================= ЭКСПОРТ SSD (МЭК 61850-6) =================
+    def export_ssd(self, event=None):
+        """Сохраняет схему в SSD (System Specification Description, МЭК 61850-6)."""
+        if not self.elements:
+            messagebox.showinfo("SSD", "Схема пуста — экспортировать нечего.")
+            return
+
+        underlay_path = self.underlay["path"] if self.underlay else None
+        options = SsdOptionsDialog(self.root,
+                                   ssdexport.suggest_options(underlay_path)).show()
+        if not options:
+            return
+
+        filepath = filedialog.asksaveasfilename(
+            title="Экспорт в SSD (МЭК 61850-6)",
+            defaultextension=".ssd",
+            initialfile=ssdexport.safe_file_name(options["substation"]) + ".ssd",
+            filetypes=[("SSD (IEC 61850)", "*.ssd"),
+                       ("SCL/XML", "*.xml"),
+                       ("Все файлы", "*.*")])
+        if not filepath:
+            return
+
+        try:
+            stats = ssdexport.export_ssd(
+                self.elements, self.connections, filepath,
+                substation=options["substation"],
+                voltage_level=options["voltage_level"],
+                bay=options["bay"],
+                voltage_kv=options["voltage_kv"],
+                frequency_hz=options["frequency_hz"])
+        except Exception as error:
+            messagebox.showerror("SSD", f"Не удалось сохранить SSD:\n{error}")
+            return
+
+        message = ("Сохранено: {}\nОборудование: {}\nУзлы (ConnectivityNode): {}\n"
+                   "Выводы (Terminal): {}").format(
+            os.path.basename(filepath), stats["equipment"],
+            stats["connectivity_nodes"], stats["terminals"])
+        warnings = stats["warnings"]
+        if warnings:
+            shown = warnings[:8]
+            message += "\n\nПредупреждения:\n" + "\n".join(shown)
+            if len(warnings) > len(shown):
+                message += f"\n… и ещё {len(warnings) - len(shown)}."
+        messagebox.showinfo("SSD", message)
 
     # ================= СОХРАНЕНИЕ / ЗАГРУЗКА =================
     def save_json(self):
@@ -1697,6 +2259,13 @@ class CircuitEditor:
             offset = getattr(el, "label_offset", (0.0, 0.0))
             if offset and (offset[0] or offset[1]):
                 item["label"] = [round(offset[0], 2), round(offset[1], 2)]
+            if el.type == "cabinet":
+                item["cabinet"] = {
+                    "key": getattr(el, "cabinet_key", ""),
+                    "title": getattr(el, "title", "Шкаф РЗА"),
+                    "info": dict(getattr(el, "info", {})),
+                    "ieds": [dict(ied) for ied in getattr(el, "ieds", [])],
+                }
             data["elements"].append(item)
 
         for c in self.connections:
@@ -1724,6 +2293,8 @@ class CircuitEditor:
                 "scale": self.underlay_scale,
                 "visible": bool(self.show_underlay),
             }
+        if self.protection_links:
+            data["protection_links"] = [dict(link) for link in self.protection_links]
         data["view"] = {
             "zoom": round(self.zoom, 4),
             "offset_x": round(self.offset_x, 2),
@@ -1767,9 +2338,11 @@ class CircuitEditor:
             messagebox.showerror("Ошибка", f"Не удалось загрузить схему:\n{e}")
             return
 
-        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
         self.elements = elements
         self.connections = connections
+        self.protection_links = self._build_protection_links(
+            data.get("protection_links", []))
         self._reset_transient()
 
         underlay_info = data.get("underlay")
@@ -1808,10 +2381,39 @@ class CircuitEditor:
             label = item.get("label")
             if isinstance(label, (list, tuple)) and len(label) == 2:
                 el.label_offset = [float(label[0]), float(label[1])]
+            if el.type == "cabinet":
+                cabinet = item.get("cabinet") or {}
+                el.cabinet_key = cabinet.get("key", "")
+                el.title = cabinet.get("title", el.title)
+                el.info = dict(cabinet.get("info") or {})
+                el.ieds = [dict(ied) for ied in cabinet.get("ieds", [])][:3]
 
             el.generate_ports()
             elements[item["id"]] = el
         return elements
+
+    def _build_protection_links(self, links, id_mapping=None):
+        """Проверяет и (при вставке) переназначает защитные связи."""
+        result = []
+        for link in links or []:
+            if not isinstance(link, dict):
+                continue
+            ied_ref = link.get("ied") or ""
+            element_id = link.get("element") or ""
+            cabinet_id, sep, index = ied_ref.partition("#")
+            if not sep:
+                continue
+            if id_mapping is not None:
+                cabinet_id = id_mapping.get(cabinet_id, "")
+                element_id = id_mapping.get(element_id, "")
+            cabinet = self.elements.get(cabinet_id)
+            element = self.elements.get(element_id)
+            if not cabinet or cabinet.type != "cabinet":
+                continue
+            if not element or f"ied{index}" not in cabinet.ports:
+                continue
+            result.append({"ied": f"{cabinet_id}#{index}", "element": element_id})
+        return result
 
     def _build_connections(self, data, elements):
         connections = []
@@ -1863,7 +2465,7 @@ class CircuitEditor:
                 return
 
             # Состояние сохраняем ДО вставки, иначе Undo возвращал уже вставленную схему
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
 
             # 1. Вычисляем смещение
             xs = [el["x"] for el in data["elements"]]
@@ -1911,7 +2513,13 @@ class CircuitEditor:
                 label = item.get("label")
                 if isinstance(label, (list, tuple)) and len(label) == 2:
                     new_el.label_offset = [float(label[0]), float(label[1])]
-                
+                if new_el.type == "cabinet":
+                    cabinet = item.get("cabinet") or {}
+                    new_el.cabinet_key = cabinet.get("key", "")
+                    new_el.title = cabinet.get("title", new_el.title)
+                    new_el.info = dict(cabinet.get("info") or {})
+                    new_el.ieds = [dict(ied) for ied in cabinet.get("ieds", [])][:3]
+
                 new_el.generate_ports()
                 self.elements[new_id] = new_el
                 id_mapping[old_id] = new_id
@@ -1934,6 +2542,16 @@ class CircuitEditor:
 
                     if port_from and port_to:
                         self.create_connection(new_from, new_to, port_from, port_to)
+
+            # 3a. Защитные связи внутри вставленного фрагмента
+            inserted_links = self._build_protection_links(
+                data.get("protection_links", []), id_mapping)
+            existing = {(link["ied"], link["element"]) for link in self.protection_links}
+            for link in inserted_links:
+                key = (link["ied"], link["element"])
+                if key not in existing:
+                    self.protection_links.append(link)
+                    existing.add(key)
 
             # 4. Выделяем вставленное
             self.selected_elements = new_selected

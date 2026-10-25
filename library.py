@@ -1240,12 +1240,113 @@ class Fuse(Component):
         return self._rotated_bbox((-0.4 * c, -2 * c, 0.4 * c, 2 * c))
 
 
+# ==========================================
+# 22. ШКАФ РЗА (1..3 IED)
+# ==========================================
+class Cabinet(Component):
+    """Шкаф РЗА: прямоугольник с 1–3 устройствами IED внутри.
+
+    Каждый IED имеет порт на правой грани (ied0, ied1, ...) — к нему
+    подключаются защитные связи с защитными узлами первичного оборудования.
+    """
+
+    WIDTH = 170
+    ROW_H = 32
+    TOP_H = 22
+
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "cabinet"
+        self.cabinet_key = ""
+        self.title = "Шкаф РЗА"
+        self.ieds = []
+        self.info = {}
+        self.generate_ports()
+
+    def set_cabinet(self, definition):
+        """Заполняет шкаф по описанию из cabs.py."""
+        self.cabinet_key = definition.get("key", "")
+        self.title = definition.get("code") or definition.get("name", "Шкаф РЗА")
+        self.ieds = [dict(ied) for ied in definition.get("ieds", [])][:3]
+        self.info = {
+            key: definition.get(key)
+            for key in ("code", "name", "title", "description", "voltage",
+                        "architecture", "protected", "controlled",
+                        "its_functions", "applicability", "source",
+                        "standard", "standard_title", "group", "goose")
+            if definition.get(key) is not None
+        }
+        self.generate_ports()
+
+    def row_count(self):
+        return max(1, len(self.ieds))
+
+    def _rect(self):
+        height = self.TOP_H + self.row_count() * self.ROW_H
+        half_w = self.WIDTH / 2.0
+        half_h = height / 2.0
+        return (self.x - half_w, self.y - half_h,
+                self.x + half_w, self.y + half_h)
+
+    def _ied_center(self, index):
+        x1, y1, _x2, _y2 = self._rect()
+        return (self.x, y1 + self.TOP_H + index * self.ROW_H + self.ROW_H / 2.0)
+
+    def generate_ports(self):
+        self.ports = {}
+        x1, _y1, x2, _y2 = self._rect()
+        for index, _ied in enumerate(self.ieds):
+            _cx, cy = self._ied_center(index)
+            self.ports[f"ied{index}"] = {
+                "x": x2,
+                "y": cy,
+                "node_id": f"N_{self.id}_ied{index}",
+            }
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        x1, y1, x2, y2 = self._rect()
+        sx1, sy1 = x1 * zoom + offset_x, y1 * zoom + offset_y
+        sx2, sy2 = x2 * zoom + offset_x, y2 * zoom + offset_y
+        lw = max(1, int(2 * zoom))
+
+        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#f2f6fb",
+                                outline="#1f4e79", width=lw, tags="cabinet_body")
+        canvas.create_text((sx1 + sx2) / 2.0, sy1 + 9 * zoom,
+                           text=self.title, font=("Arial", int(8 * zoom)),
+                           fill="#1f4e79")
+
+        for index, ied in enumerate(self.ieds):
+            _cx, cy = self._ied_center(index)
+            by1 = (cy - self.ROW_H / 2.0 + 2) * zoom + offset_y
+            by2 = (cy + self.ROW_H / 2.0 - 2) * zoom + offset_y
+            canvas.create_rectangle(sx1 + 5 * zoom, by1, sx2 - 5 * zoom, by2,
+                                    fill="white", outline="#8a9bb0", width=1,
+                                    tags="cabinet_body")
+            canvas.create_text(sx1 + 9 * zoom, (by1 + by2) / 2.0,
+                               text=ied.get("name", f"IED{index + 1}"),
+                               anchor="w", font=("Arial", int(7 * zoom)),
+                               fill="black")
+            port = self.ports.get(f"ied{index}")
+            if port:
+                px = port["x"] * zoom + offset_x
+                py = port["y"] * zoom + offset_y
+                r = max(2.0, 2.5 * zoom)
+                canvas.create_oval(px - r, py - r, px + r, py + r,
+                                   fill="#1f4e79", outline="white",
+                                   tags="cabinet_body")
+
+        self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        return self._rect()
+
+
 COMPONENT_TYPES = (
     "breaker", "disconnector", "bus", "transformer", "split_transformer",
     "three_winding_transformer", "autotransformer", "reactor", "line",
     "voltage_transformer", "current_transformer", "node", "corner",
     "grounding_switch", "ground", "opn", "coupling_capacitor", "line_trap",
-    "connection_filter", "av_breaker", "fuse",
+    "connection_filter", "av_breaker", "fuse", "cabinet",
 )
 
 
@@ -1271,4 +1372,5 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
     elif comp_type == "connection_filter": return ConnectionFilter(comp_id, x, y, grid_size)
     elif comp_type == "av_breaker": return AutomaticBreaker(comp_id, x, y, grid_size)
     elif comp_type == "fuse": return Fuse(comp_id, x, y, grid_size)
+    elif comp_type == "cabinet": return Cabinet(comp_id, x, y, grid_size)
     else: raise ValueError(f"Неизвестный тип элемента: {comp_type}")
