@@ -1243,31 +1243,59 @@ class Fuse(Component):
 # ==========================================
 # 22. ШКАФ РЗА (1..3 IED)
 # ==========================================
-class Cabinet(Component):
-    """Шкаф РЗА: прямоугольник с 1–3 устройствами IED внутри.
+CABINET_MAX_KOMPLETS = 7
 
-    Каждый IED имеет порт на правой грани (ied0, ied1, ...) — к нему
-    подключаются защитные связи с защитными узлами первичного оборудования.
+
+def komplets_from_ieds(ieds):
+    """Старый формат: каждый ИЭУ становится отдельным комплектом."""
+    komplets = []
+    for index, ied in enumerate(ieds[:CABINET_MAX_KOMPLETS]):
+        komplets.append({
+            "name": "Комплект {}".format(index + 1),
+            "type": ied.get("type", "МП РЗА"),
+            "functions": list(ied.get("functions", [])),
+            "desc": ied.get("desc", ""),
+            "ieds": [dict(ied)],
+        })
+    return komplets
+
+
+class Cabinet(Component):
+    """Шкаф РЗА: до 7 комплектов, в каждом — 0..N устройств ИЭУ.
+
+    Комплект — подключаемая единица: у него свой порт на правой грани
+    (komplekt0..komplekt6), к которому идут защитные связи. Комплект может
+    быть и без ИЭУ — привязка к оборудованию всё равно работает.
     """
 
-    WIDTH = 170
-    ROW_H = 32
+    WIDTH = 190
+    ROW_H = 30
     TOP_H = 22
+    MAX_KOMPLETS = CABINET_MAX_KOMPLETS
 
     def __init__(self, comp_id, x, y, grid_size=20):
         super().__init__(comp_id, x, y, grid_size)
         self.type = "cabinet"
         self.cabinet_key = ""
         self.title = "Шкаф РЗА"
-        self.ieds = []
+        self.komplets = []
         self.info = {}
         self.generate_ports()
 
     def set_cabinet(self, definition):
-        """Заполняет шкаф по описанию из cabs.py."""
+        """Заполняет шкаф по описанию из каталога."""
         self.cabinet_key = definition.get("key", "")
         self.title = definition.get("code") or definition.get("name", "Шкаф РЗА")
-        self.ieds = [dict(ied) for ied in definition.get("ieds", [])][:3]
+        komplets = definition.get("komplets")
+        if not isinstance(komplets, list):
+            komplets = komplets_from_ieds(definition.get("ieds", []))
+        self.komplets = []
+        for index, komplekt in enumerate(komplets[:self.MAX_KOMPLETS]):
+            entry = dict(komplekt)
+            entry.setdefault("name", "Комплект {}".format(index + 1))
+            entry["functions"] = list(entry.get("functions", []))
+            entry["ieds"] = [dict(ied) for ied in entry.get("ieds", [])]
+            self.komplets.append(entry)
         self.info = {
             key: definition.get(key)
             for key in ("code", "name", "title", "description", "voltage",
@@ -1279,7 +1307,7 @@ class Cabinet(Component):
         self.generate_ports()
 
     def row_count(self):
-        return max(1, len(self.ieds))
+        return max(1, len(self.komplets))
 
     def _rect(self):
         height = self.TOP_H + self.row_count() * self.ROW_H
@@ -1288,19 +1316,19 @@ class Cabinet(Component):
         return (self.x - half_w, self.y - half_h,
                 self.x + half_w, self.y + half_h)
 
-    def _ied_center(self, index):
+    def _komplekt_center(self, index):
         x1, y1, _x2, _y2 = self._rect()
         return (self.x, y1 + self.TOP_H + index * self.ROW_H + self.ROW_H / 2.0)
 
     def generate_ports(self):
         self.ports = {}
-        x1, _y1, x2, _y2 = self._rect()
-        for index, _ied in enumerate(self.ieds):
-            _cx, cy = self._ied_center(index)
-            self.ports[f"ied{index}"] = {
+        _x1, _y1, x2, _y2 = self._rect()
+        for index, _komplekt in enumerate(self.komplets):
+            _cx, cy = self._komplekt_center(index)
+            self.ports["komplekt{}".format(index)] = {
                 "x": x2,
                 "y": cy,
-                "node_id": f"N_{self.id}_ied{index}",
+                "node_id": "N_{}_k{}".format(self.id, index),
             }
 
     def draw(self, canvas, zoom, offset_x, offset_y):
@@ -1315,18 +1343,21 @@ class Cabinet(Component):
                            text=self.title, font=("Arial", int(8 * zoom)),
                            fill="#1f4e79")
 
-        for index, ied in enumerate(self.ieds):
-            _cx, cy = self._ied_center(index)
+        for index, komplekt in enumerate(self.komplets):
+            _cx, cy = self._komplekt_center(index)
             by1 = (cy - self.ROW_H / 2.0 + 2) * zoom + offset_y
             by2 = (cy + self.ROW_H / 2.0 - 2) * zoom + offset_y
             canvas.create_rectangle(sx1 + 5 * zoom, by1, sx2 - 5 * zoom, by2,
                                     fill="white", outline="#8a9bb0", width=1,
                                     tags="cabinet_body")
+            ieds = komplekt.get("ieds", [])
+            suffix = " · {} ИЭУ".format(len(ieds)) if ieds else ""
+            name = komplekt.get("name") or "Комплект {}".format(index + 1)
             canvas.create_text(sx1 + 9 * zoom, (by1 + by2) / 2.0,
-                               text=ied.get("name", f"IED{index + 1}"),
+                               text=name + suffix,
                                anchor="w", font=("Arial", int(7 * zoom)),
                                fill="black")
-            port = self.ports.get(f"ied{index}")
+            port = self.ports.get("komplekt{}".format(index))
             if port:
                 px = port["x"] * zoom + offset_x
                 py = port["y"] * zoom + offset_y

@@ -19,8 +19,16 @@
         "its_functions": ["функции ИТС"],
         "applicability": "применимость по типовым схемам",
         "source": "раздел СТО",
-        "ieds": [{"name": "...", "type": "...", "desc": "...", "functions": [...]}],
+        "komplets": [
+            {"name": "Комплект 1", "type": "МП РЗА",
+             "functions": ["ДЗТ", "..."], "desc": "...",
+             "ieds": [{"name": "ИЭУ1", "type": "МП РЗА", "desc": "..."}]},
+        ],
     }
+
+Комплектов в шкафу — от 1 до MAX_KOMPLETS (7). Комплект — подключаемая
+единица: у него свой порт, к которому идут защитные связи; ИЭУ внутри
+комплекта может не быть.
 
 Каталог содержит типовые шкафы ШЭТ по четырём стандартам ПАО «ФСК ЕЭС»
 (архитектура II типа, введены 26.12.2019):
@@ -32,6 +40,12 @@
 * СТО 56947007-33.040.20.286-2019 — сборные шины, ошиновки и шинные
   аппараты 6-750 кВ.
 """
+
+import copy
+import json
+import os
+import re
+import uuid
 
 _COMMON_STANDARD = {
     "organization": "ПАО «ФСК ЕЭС»",
@@ -847,7 +861,8 @@ CABINETS = [
 ]
 
 # Привязка шкафов к стандартам: код → полное наименование СТО, группа, архитектура
-for cabinet in CABINETS:
+def _apply_standard_defaults(cabinet):
+    """Дополняет шкаф данными его стандарта (группа, архитектура, СТО)."""
     standard_key = cabinet.get("standard_key")
     if standard_key is None and cabinet.get("code"):
         standard_key = "tat"       # шкафы (авто)трансформаторов из первого СТО
@@ -860,3 +875,196 @@ for cabinet in CABINETS:
         cabinet.setdefault("group", standard["group"])
     else:
         cabinet.setdefault("group", "Прочие")
+
+
+for cabinet in CABINETS:
+    _apply_standard_defaults(cabinet)
+
+
+# ---------------------------------------------------------------------------
+# Пользовательский каталог: создание, изменение и удаление шкафов
+# ---------------------------------------------------------------------------
+# Встроенные шкафы из CABINETS не меняются. Всё, что пользователь создал или
+# изменил, хранится в cabinets.json рядом с этим файлом:
+#     {"custom": [...], "overrides": {"ключ": {...}}, "deleted": ["ключ", ...]}
+#
+# Шкаф содержит до MAX_KOMPLETS комплектов. Комплект — подключаемая единица
+# (свой порт и защитные связи) и может содержать 0..N устройств ИЭУ.
+
+MAX_KOMPLETS = 7
+
+USER_CATALOG_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "cabinets.json")
+
+
+def normalize_cabinet(cabinet):
+    """Приводит шкаф к формату комплектов (старое поле ieds → komplets)."""
+    komplets = cabinet.get("komplets")
+    if isinstance(komplets, list):
+        result = []
+        for index, komplekt in enumerate(komplets[:MAX_KOMPLETS]):
+            entry = dict(komplekt)
+            entry.setdefault("name", "Комплект {}".format(index + 1))
+            entry["functions"] = list(entry.get("functions", []))
+            entry["ieds"] = [dict(ied) for ied in entry.get("ieds", [])]
+            result.append(entry)
+        cabinet["komplets"] = result
+        return cabinet
+
+    # Старый формат: список ИЭУ прямо в шкафу — каждый ИЭУ становится комплектом
+    result = []
+    for index, ied in enumerate(cabinet.get("ieds", [])[:MAX_KOMPLETS]):
+        result.append({
+            "name": "Комплект {}".format(index + 1),
+            "type": ied.get("type", "МП РЗА"),
+            "functions": list(ied.get("functions", [])),
+            "desc": ied.get("desc", ""),
+            "ieds": [{
+                "name": ied.get("name", "ИЭУ{}".format(index + 1)),
+                "type": ied.get("type", "МП РЗА"),
+                "desc": ied.get("desc", ""),
+            }],
+        })
+    cabinet["komplets"] = result
+    return cabinet
+
+
+def _read_user_catalog():
+    if not os.path.exists(USER_CATALOG_PATH):
+        return {"custom": [], "overrides": {}, "deleted": []}
+    try:
+        with open(USER_CATALOG_PATH, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except Exception:
+        return {"custom": [], "overrides": {}, "deleted": []}
+    data.setdefault("custom", [])
+    data.setdefault("overrides", {})
+    data.setdefault("deleted", [])
+    return data
+
+
+def _write_user_catalog(data):
+    if not data["custom"] and not data["overrides"] and not data["deleted"]:
+        if os.path.exists(USER_CATALOG_PATH):
+            os.remove(USER_CATALOG_PATH)
+        return
+    with open(USER_CATALOG_PATH, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, ensure_ascii=False, indent=2)
+
+
+def builtin_keys():
+    return {cabinet.get("key") for cabinet in CABINETS}
+
+
+def is_builtin(key):
+    return key in builtin_keys()
+
+
+def all_cabinets():
+    """Встроенные шкафы + пользовательские, с учётом правок и удалений."""
+    user = _read_user_catalog()
+    result = []
+    for cabinet in CABINETS:
+        key = cabinet.get("key")
+        if key in user["deleted"]:
+            continue
+        entry = copy.deepcopy(user["overrides"].get(key) or cabinet)
+        normalize_cabinet(entry)
+        _apply_standard_defaults(entry)
+        result.append(entry)
+    for entry in user["custom"]:
+        if entry.get("key") in user["deleted"]:
+            continue
+        entry = copy.deepcopy(entry)
+        normalize_cabinet(entry)
+        _apply_standard_defaults(entry)
+        result.append(entry)
+    return result
+
+
+def find_cabinet(key):
+    for cabinet in all_cabinets():
+        if cabinet.get("key") == key:
+            return cabinet
+    return None
+
+
+def _make_key(code, name):
+    base = code or name or "cabinet"
+    slug = re.sub(r"[^0-9A-Za-zА-Яа-яЁё]+", "-", base).strip("-").lower()
+    slug = slug or "cabinet"
+    existing = {cabinet.get("key") for cabinet in all_cabinets()}
+    key = slug
+    while key in existing:
+        key = "{}-{}".format(slug, uuid.uuid4().hex[:4])
+    return key
+
+
+def save_cabinet(definition, original_key=None):
+    """Создаёт или изменяет шкаф в пользовательском каталоге.
+
+    original_key — ключ изменяемого шкафа (None при создании).
+    Возвращает ключ сохранённого шкафа.
+    """
+    user = _read_user_catalog()
+    entry = copy.deepcopy(definition)
+    key = original_key or entry.get("key")
+    if not key or (original_key is None and not entry.get("key")):
+        key = _make_key(entry.get("code"), entry.get("name"))
+    entry["key"] = key
+    normalize_cabinet(entry)
+    _apply_standard_defaults(entry)
+
+    if is_builtin(key):
+        user["overrides"][key] = entry
+    else:
+        replaced = False
+        for index, cabinet in enumerate(user["custom"]):
+            if cabinet.get("key") == key:
+                user["custom"][index] = entry
+                replaced = True
+                break
+        if not replaced:
+            user["custom"].append(entry)
+
+    if key in user["deleted"]:
+        user["deleted"].remove(key)
+    _write_user_catalog(user)
+    return key
+
+
+def delete_cabinet(key):
+    """Удаляет шкаф из каталога (встроенный — скрывается навсегда)."""
+    user = _read_user_catalog()
+    if is_builtin(key):
+        if key not in user["deleted"]:
+            user["deleted"].append(key)
+        user["overrides"].pop(key, None)
+    else:
+        user["custom"] = [cabinet for cabinet in user["custom"]
+                          if cabinet.get("key") != key]
+    _write_user_catalog(user)
+
+
+def duplicate_cabinet(key):
+    """Создаёт копию шкафа из каталога и возвращает ключ копии.
+
+    Копия всегда становится пользовательским шкафом (встроенный не меняется).
+    """
+    source = find_cabinet(key)
+    if source is None:
+        return None
+    entry = copy.deepcopy(source)
+    entry["key"] = ""
+    name = entry.get("name", "Шкаф")
+    entry["name"] = "{} (копия)".format(name)
+    code = entry.get("code")
+    if code:
+        entry["code"] = "{} (копия)".format(code)
+    return save_cabinet(entry, None)
+
+
+def reset_user_catalog():
+    """Возвращает каталог к встроенному набору (удаляет cabinets.json)."""
+    if os.path.exists(USER_CATALOG_PATH):
+        os.remove(USER_CATALOG_PATH)
