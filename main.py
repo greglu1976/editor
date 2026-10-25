@@ -7,6 +7,90 @@ import copy
 import library
 
 
+# Префиксы имён по типу элемента — единый источник для добавления, копирования и вставки.
+PREFIX_BY_TYPE = {
+    "breaker": "Q", "disconnector": "QS", "transformer": "T",
+    "split_transformer": "T", "three_winding_transformer": "T",
+    "autotransformer": "AT", "reactor": "R", "line": "W",
+    "bus": "BB", "node": "N", "corner": "C", "grounding_switch": "QSG",
+    "ground": "G", "voltage_transformer": "TV", "current_transformer": "TA",
+    "opn": "ОПН", "coupling_capacitor": "КС", "line_trap": "ВЧЗ",
+    "connection_filter": "ФП", "av_breaker": "АВ", "fuse": "ПР",
+}
+
+# Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
+PALETTE_ITEMS = [
+    ("Выключатель", "breaker"),
+    ("Разъединитель", "disconnector"),
+    ("Шина", "bus"),
+    ("Трансформатор", "transformer"),
+    ("Трансформатор с расщеплением", "split_transformer"),
+    ("Трёхобмоточный трансформатор", "three_winding_transformer"),
+    ("Автотрансформатор", "autotransformer"),
+    ("Реактор", "reactor"),
+    ("ЛЭП", "line"),
+    ("ТН — трансформатор напряжения", "voltage_transformer"),
+    ("ТТ — трансформатор тока", "current_transformer"),
+    ("ОПН — ограничитель перенапряжений", "opn"),
+    ("КС — конденсатор связи", "coupling_capacitor"),
+    ("ВЧЗ — высокочастотный заградитель", "line_trap"),
+    ("ФП — фильтр присоединения", "connection_filter"),
+    ("Автоматический выключатель 0,4 кВ", "av_breaker"),
+    ("Предохранитель", "fuse"),
+    ("Уголок", "corner"),
+    ("Заземляющий разъединитель", "grounding_switch"),
+    ("Заземление", "ground"),
+    ("Узел", "node"),
+]
+
+
+class ToolTip:
+    """Всплывающая подсказка для кнопок-иконок."""
+
+    def __init__(self, widget, text, delay=450):
+        self.widget = widget
+        self.text = text
+        self.delay = delay
+        self.tip = None
+        self._after_id = None
+        widget.bind("<Enter>", self._schedule, add="+")
+        widget.bind("<Leave>", self._hide, add="+")
+        widget.bind("<ButtonPress>", self._hide, add="+")
+
+    def _schedule(self, event=None):
+        self._cancel()
+        self._after_id = self.widget.after(self.delay, self._show)
+
+    def _show(self):
+        self._after_id = None
+        if self.tip is not None:
+            return
+        x = self.widget.winfo_rootx() + self.widget.winfo_width() + 8
+        y = self.widget.winfo_rooty() + 4
+        # Владелец — корневое окно: вложенный Toplevel внутри canvas не отображается
+        self.tip = tk.Toplevel(self.widget.winfo_toplevel())
+        self.tip.wm_overrideredirect(True)
+        self.tip.wm_attributes("-topmost", True)
+        self.tip.wm_geometry(f"+{x}+{y}")
+        tk.Label(self.tip, text=self.text, bg="#ffffe0", fg="black",
+                 relief="solid", bd=1, padx=6, pady=2,
+                 font=("Arial", 9)).pack()
+
+    def _hide(self, event=None):
+        self._cancel()
+        if self.tip is not None:
+            self.tip.destroy()
+            self.tip = None
+
+    def _cancel(self):
+        if self._after_id is not None:
+            try:
+                self.widget.after_cancel(self._after_id)
+            except tk.TclError:
+                pass
+            self._after_id = None
+
+
 class UndoManager:
     """Менеджер истории с поддержкой Undo и Redo"""
     def __init__(self):
@@ -21,10 +105,16 @@ class UndoManager:
             "connections": copy.deepcopy(connections),
             "selected_elements": list(selected_elements)
         }
+        self.push_state(state)
+
+    def push_state(self, state):
+        """Кладёт в историю уже снятую копию состояния (для отложенных операций)."""
+        if state is None:
+            return
         self.history.append(state)
         if len(self.history) > self.max_history:
             self.history.pop(0)
-        
+
         # Очищаем redo, так как мы сделали новое действие
         self.redo_stack.clear()
 
@@ -41,6 +131,95 @@ class UndoManager:
         return self.redo_stack.pop()
 
 
+# ================= ИКОНКИ ЛЕНТЫ =================
+# Рисуются на canvas 32x32 — без внешних файлов и зависимостей.
+
+def _ri_select(c):
+    c.create_polygon(12, 5, 12, 26, 16, 22, 19, 28, 22, 26.5, 19, 20.5, 24, 19.5,
+                     fill="black")
+
+
+def _ri_undo(c):
+    c.create_line(24, 16, 12, 16, width=2, fill="black")
+    c.create_polygon(6, 16, 14, 10, 14, 22, fill="black")
+
+
+def _ri_redo(c):
+    c.create_line(8, 16, 20, 16, width=2, fill="black")
+    c.create_polygon(26, 16, 18, 10, 18, 22, fill="black")
+
+
+def _ri_copy(c):
+    c.create_rectangle(6, 10, 19, 25, outline="black", width=2)
+    c.create_rectangle(12, 6, 25, 21, outline="black", width=2)
+
+
+def _ri_paste(c):
+    c.create_rectangle(7, 8, 25, 27, outline="black", width=2)
+    c.create_rectangle(12, 4, 20, 9, outline="black", width=2, fill="white")
+    c.create_line(11, 16, 21, 16, width=1)
+
+
+def _ri_save(c):
+    c.create_rectangle(6, 5, 26, 27, outline="black", width=2)
+    c.create_rectangle(10, 5, 22, 13, outline="black", width=1)
+    c.create_rectangle(9, 18, 23, 27, outline="black", width=1)
+
+
+def _ri_load(c):
+    c.create_polygon(5, 11, 12, 11, 15, 8, 27, 8, 27, 25, 5, 25,
+                     outline="black", fill="white", width=2)
+
+
+def _ri_insert(c):
+    c.create_rectangle(5, 5, 17, 27, outline="black", width=1)
+    c.create_line(20, 16, 28, 16, width=2, fill="black")
+    c.create_line(24, 12, 28, 16, width=2, fill="black")
+    c.create_line(24, 20, 28, 16, width=2, fill="black")
+
+
+def _ri_clear(c):
+    c.create_line(6, 9, 26, 9, width=2)
+    c.create_line(12, 6, 20, 6, width=2)
+    c.create_polygon(8, 10, 24, 10, 22, 27, 10, 27, outline="black", fill="white", width=2)
+    c.create_line(13, 14, 13, 24, width=1)
+    c.create_line(19, 14, 19, 24, width=1)
+
+
+def _ri_minus(c):
+    c.create_oval(5, 5, 27, 27, outline="black", width=2)
+    c.create_line(11, 16, 21, 16, width=2)
+
+
+def _ri_plus(c):
+    c.create_oval(5, 5, 27, 27, outline="black", width=2)
+    c.create_line(11, 16, 21, 16, width=2)
+    c.create_line(16, 11, 16, 21, width=2)
+
+
+def _ri_fit(c):
+    c.create_rectangle(11, 11, 21, 21, outline="black", width=2)
+    for x1, y1, x2, y2 in ((5, 5, 10, 10), (27, 5, 22, 10),
+                           (5, 27, 10, 22), (27, 27, 22, 22)):
+        c.create_line(x1, y1, x2, y2, width=2, arrow=tk.LAST)
+
+
+def _ri_grid(c):
+    for x in (8, 16, 24):
+        c.create_line(x, 6, x, 26, width=1, fill="#666666")
+    for y in (8, 16, 24):
+        c.create_line(6, y, 26, y, width=1, fill="#666666")
+    c.create_rectangle(6, 6, 26, 26, outline="black", width=1)
+
+
+def _ri_nodes(c):
+    c.create_line(9, 23, 16, 10, width=1, fill="#666666")
+    c.create_line(16, 10, 23, 23, width=1, fill="#666666")
+    c.create_line(9, 23, 23, 23, width=1, fill="#666666")
+    for x, y in ((16, 10), (9, 23), (23, 23)):
+        c.create_oval(x - 3, y - 3, x + 3, y + 3, fill="white", outline="black", width=2)
+
+
 
 class CircuitEditor:
     def __init__(self, root):
@@ -54,6 +233,9 @@ class CircuitEditor:
         self.current_tool = "select"
         self.selected_elements = []  
         self.link_start = None  
+        # Панорамирование средней кнопкой мыши
+        self._pan_active = False
+        self._pan_last = (0, 0)
         
         # Рамка выделения
         self.selection_start = None       
@@ -63,6 +245,11 @@ class CircuitEditor:
         # Перетаскивание группы
         self.dragging_group = False
         self.drag_offsets = {}
+        # Состояние до начала перетаскивания/ресайза: пишем в историю,
+        # только если элемент действительно сдвинулся
+        self._pre_change_state = None
+        self._drag_changed = False
+        self._resize_changed = False
         
         # Буфер обмена
         self.clipboard = None          
@@ -90,79 +277,288 @@ class CircuitEditor:
         self.bind_events()
 
     def setup_ui(self):
-        # === ВЕРХНЯЯ ПАНЕЛЬ ИНСТРУМЕНТОВ ===
-        toolbar = tk.Frame(self.root, bg="#f0f0f0", bd=1, relief=tk.RAISED)
-        toolbar.pack(side=tk.TOP, fill=tk.X)
-        
-        btn_select = tk.Button(toolbar, text=" Выбрать/Двигать", width=18, anchor="w", 
-                               command=lambda: self.set_tool("select"))
-        btn_select.pack(side=tk.LEFT, padx=5, pady=2)
-        
-        tk.Frame(toolbar, width=2, bg="gray").pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=4)
-        
-        # КНОПКИ UNDO / REDO
-        self.btn_undo = tk.Button(toolbar, text="↩ Назад", width=8, command=self.undo_last_action)
-        self.btn_undo.pack(side=tk.LEFT, padx=2, pady=2)
-        
-        self.btn_redo = tk.Button(toolbar, text=" Вперед", width=8, command=self.redo_last_action)
-        self.btn_redo.pack(side=tk.LEFT, padx=2, pady=2)
-        
-        tk.Frame(toolbar, width=2, bg="gray").pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=4)
-        
-        btn_copy = tk.Button(toolbar, text="📋 Копировать", width=12, command=self.copy_selection)
-        btn_copy.pack(side=tk.LEFT, padx=2, pady=2)
-        
-        btn_paste = tk.Button(toolbar, text="📥 Вставить", width=12, command=self.paste_selection)
-        btn_paste.pack(side=tk.LEFT, padx=2, pady=2)
-        
-        tk.Frame(toolbar, width=2, bg="gray").pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=4)
-        
-        tk.Button(toolbar, text="💾 Сохранить", command=self.save_json).pack(side=tk.LEFT, padx=5, pady=2)
-        tk.Button(toolbar, text="📂 Загрузить", command=self.load_json).pack(side=tk.LEFT, padx=5, pady=2)
-        tk.Button(toolbar, text=" Очистить", command=self.clear_all).pack(side=tk.LEFT, padx=5, pady=2)
-        tk.Button(toolbar, text=" Вставить из файла", width=16, command=self.insert_from_json).pack(side=tk.LEFT, padx=2, pady=2)
+        self._build_ribbon()
 
-        # === ЛЕВАЯ ПАЛИТРА ===
-        palette = tk.Frame(self.root, width=180, bg="#f0f0f0")
-        palette.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
+        # === ЛЕВАЯ ПАЛИТРА (прокручиваемая: элементов стало больше) ===
+        palette_wrap = tk.Frame(self.root, width=200, bg="#f0f0f0")
+        palette_wrap.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
+        palette_wrap.pack_propagate(False)
+
+        self.palette_canvas = tk.Canvas(palette_wrap, width=188, bg="#f0f0f0",
+                                        highlightthickness=0, takefocus=False)
+        palette_scroll = tk.Scrollbar(palette_wrap, orient="vertical",
+                                      command=self.palette_canvas.yview)
+        self.palette_canvas.configure(yscrollcommand=palette_scroll.set)
+        palette_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.palette_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        palette = tk.Frame(self.palette_canvas, bg="#f0f0f0")
+        self.palette_canvas.create_window((0, 0), window=palette, anchor="nw", width=180)
+        palette.bind("<Configure>",
+                     lambda e: self.palette_canvas.configure(scrollregion=self.palette_canvas.bbox("all")))
+        self.palette_canvas.bind("<MouseWheel>", self._scroll_palette)
+
         tk.Label(palette, text="Элементы схемы", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(pady=5)
-        
-        tools = [
-            ("Выключатель", "breaker"), ("Разъединитель", "disconnector"), ("Шина", "bus"),
-            ("Трансформатор", "transformer"), ("Трансф. с расщеп.", "split_transformer"),
-            ("Трехобм. трансф.", "three_winding_transformer"), ("Автотрансформатор", "autotransformer"),
-            ("Реактор", "reactor"), ("ЛЭП", "line"), ("ТН", "voltage_transformer"), ("ТТ", "current_transformer"),  ("Уголок", "corner"),
-            ("Зазем. разъед.", "grounding_switch"), ("Заземление", "ground"), ("Узел", "node"),
-            ("---", "separator"), ("Связать элементы", "connect"), ("Удалить выбранное", "delete")
-        ]
-        
-        for text, tool in tools:
-            if tool == "separator":
-                tk.Frame(palette, height=2, bg="gray").pack(fill=tk.X, pady=5)
-                continue
-            btn = tk.Button(palette, text=text, width=18, anchor="w", command=lambda t=tool: self.set_tool(t))
-            btn.pack(pady=2, fill=tk.X)
 
-        tk.Label(palette, text="Настройки", font=("Arial", 10, "bold"), bg="#f0f0f0").pack(pady=(15, 2))
-        self.snap_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(palette, text="Привязка к сетке", variable=self.snap_var, command=self.toggle_snap, bg="#f0f0f0").pack(anchor="w", padx=5)
-        
-        self.show_nodes_var = tk.BooleanVar(value=True)
-        tk.Checkbutton(palette, text="Показать все узлы", variable=self.show_nodes_var, 
-                       command=self.toggle_show_nodes, bg="#f0f0f0").pack(anchor="w", padx=5, pady=(5,0))
-                       
-        tk.Label(palette, text="Шаг сетки:", bg="#f0f0f0").pack(anchor="w", padx=5, pady=(5,0))
-        self.grid_spin = tk.Spinbox(palette, from_=5, to=100, increment=5, command=self.change_grid_size, width=5)
-        self.grid_spin.delete(0, "end")
-        self.grid_spin.insert(0, str(self.grid_size))
-        self.grid_spin.pack(anchor="w", padx=5, pady=2)
-        
-        self.zoom_label = tk.Label(palette, text="Масштаб: 100%", bg="#f0f0f0", fg="blue")
-        self.zoom_label.pack(anchor="w", padx=5, pady=10)
-        tk.Button(palette, text="Сбросить вид", command=self.reset_view).pack(anchor="w", padx=5, pady=2)
+        # Иконки элементов: 3 колонки, подсказка при наведении
+        self._tool_icons = {}
+        icons_frame = tk.Frame(palette, bg="#f0f0f0")
+        icons_frame.pack(fill=tk.X, padx=2, pady=2)
+        for index, (label, etype) in enumerate(PALETTE_ITEMS):
+            icon = self._make_tool_icon(icons_frame, etype, label)
+            icon.grid(row=index // 3, column=index % 3, padx=2, pady=2)
+            self._tool_icons[etype] = icon
 
-        self.canvas = tk.Canvas(self.root, bg="white", width=800, height=700)
+        tk.Frame(palette, height=2, bg="gray").pack(fill=tk.X, pady=6)
+        tk.Button(palette, text="Связать элементы", width=18,
+                  command=lambda: self.set_tool("connect")).pack(pady=2)
+        tk.Button(palette, text="Удалить выбранное", width=18,
+                  command=lambda: self.set_tool("delete")).pack(pady=2)
+        tk.Label(palette, text="Подсказка: наведите на иконку\nСредняя кнопка мыши — панорама",
+                 bg="#f0f0f0", fg="#8a8a8a", font=("Arial", 7), justify="left").pack(anchor="w", padx=4, pady=(10, 0))
+
+        self.canvas = tk.Canvas(self.root, bg="white", width=800, height=700,
+                                takefocus=True, highlightthickness=0)
         self.canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        self._bind_palette_wheel(palette)
+
+    # ================= ЛЕНТА (RIBBON) =================
+    def _build_ribbon(self):
+        ribbon = tk.Frame(self.root, bg="#f3f3f3")
+        ribbon.pack(side=tk.TOP, fill=tk.X)
+
+        tabbar = tk.Frame(ribbon, bg="#e4e4e4")
+        tabbar.pack(side=tk.TOP, fill=tk.X)
+
+        content = tk.Frame(ribbon, bg="#f3f3f3")
+        content.pack(side=tk.TOP, fill=tk.X)
+
+        self._ribbon_pages = {}
+        self._ribbon_tab_buttons = {}
+        for name, builder in (("Главная", self._build_ribbon_home),
+                              ("Вид", self._build_ribbon_view)):
+            self._ribbon_pages[name] = builder(content)
+            button = tk.Button(tabbar, text=name, relief=tk.FLAT, bd=0,
+                               padx=16, pady=3, font=("Arial", 9),
+                               bg="#e4e4e4", activebackground="#f3f3f3",
+                               command=lambda n=name: self._show_ribbon_tab(n))
+            button.pack(side=tk.LEFT, padx=(2, 0))
+            self._ribbon_tab_buttons[name] = button
+
+        self._show_ribbon_tab("Главная")
+
+    def _show_ribbon_tab(self, name):
+        for page in self._ribbon_pages.values():
+            page.pack_forget()
+        self._ribbon_pages[name].pack(side=tk.TOP, fill=tk.X)
+        for tab_name, button in self._ribbon_tab_buttons.items():
+            active = (tab_name == name)
+            button.config(bg="#f3f3f3" if active else "#e4e4e4",
+                          font=("Arial", 9, "bold" if active else "normal"))
+
+    def _ribbon_group(self, parent, title, build_row):
+        group = tk.Frame(parent, bg="#f3f3f3")
+        group.pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=2)
+        row = tk.Frame(group, bg="#f3f3f3")
+        row.pack(side=tk.TOP)
+        build_row(row)
+        tk.Label(group, text=title, bg="#f3f3f3", fg="#808080",
+                 font=("Arial", 7)).pack(side=tk.BOTTOM, pady=(0, 2))
+        tk.Frame(parent, width=1, bg="#d8d8d8").pack(side=tk.LEFT, fill=tk.Y, pady=6)
+
+    def _ribbon_button(self, parent, text, command, icon, width=64):
+        """Крупная кнопка ленты: иконка сверху, подпись снизу."""
+        cell = tk.Frame(parent, bg="#f3f3f3", cursor="hand2")
+        canvas = tk.Canvas(cell, width=32, height=32, bg="#f3f3f3",
+                           highlightthickness=0, takefocus=False)
+        canvas.pack(pady=(4, 0), padx=6)
+        try:
+            icon(canvas)
+        except Exception:
+            pass
+        label = tk.Label(cell, text=text, bg="#f3f3f3", font=("Arial", 8),
+                         justify="center")
+        label.pack(padx=3, pady=(1, 4))
+        cell._label = label
+        cell._base_text = text
+
+        def on_click(event=None):
+            command()
+
+        def on_enter(event=None):
+            for widget in (cell, canvas, label):
+                widget.config(bg="#dce9f7")
+
+        def on_leave(event=None):
+            for widget in (cell, canvas, label):
+                widget.config(bg="#f3f3f3")
+
+        for widget in (cell, canvas, label):
+            widget.bind("<Button-1>", on_click)
+            widget.bind("<Enter>", on_enter)
+            widget.bind("<Leave>", on_leave)
+        return cell
+
+    def _ribbon_toggle(self, parent, text, variable, command, icon, width=64):
+        def toggle():
+            variable.set(not variable.get())
+            command()
+            self._refresh_ribbon_toggles()
+
+        cell = self._ribbon_button(parent, text, toggle, icon, width)
+        cell._variable = variable
+        self._ribbon_toggle_cells.append(cell)
+        return cell
+
+    def _refresh_ribbon_toggles(self):
+        for cell in getattr(self, "_ribbon_toggle_cells", []):
+            mark = "☑ " if cell._variable.get() else "☐ "
+            cell._label.config(text=mark + cell._base_text)
+
+    def _build_ribbon_home(self, parent):
+        page = tk.Frame(parent, bg="#f3f3f3")
+        self._ribbon_group(page, "Инструменты", lambda row: self._ribbon_button(
+            row, "Выбрать/Двигать", lambda: self.set_tool("select"), _ri_select, 76).pack(side=tk.LEFT))
+        self._ribbon_group(page, "История", lambda row: [
+            self._ribbon_button(row, "Назад", self.undo_last_action, _ri_undo, 52).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Вперёд", self.redo_last_action, _ri_redo, 52).pack(side=tk.LEFT),
+        ])
+        self._ribbon_group(page, "Буфер обмена", lambda row: [
+            self._ribbon_button(row, "Копировать", self.copy_selection, _ri_copy, 64).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Вставить", self.paste_selection, _ri_paste, 58).pack(side=tk.LEFT),
+        ])
+        self._ribbon_group(page, "Файл", lambda row: [
+            self._ribbon_button(row, "Сохранить", self.save_json, _ri_save, 62).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Загрузить", self.load_json, _ri_load, 62).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Из файла", self.insert_from_json, _ri_insert, 60).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Очистить", self.clear_all, _ri_clear, 60).pack(side=tk.LEFT),
+        ])
+        return page
+
+    def _build_ribbon_view(self, parent):
+        page = tk.Frame(parent, bg="#f3f3f3")
+        self._ribbon_toggle_cells = []
+
+        def build_grid(row):
+            self.snap_var = tk.BooleanVar(value=True)
+            self.show_nodes_var = tk.BooleanVar(value=True)
+            self._ribbon_toggle(row, "Привязка к сетке", self.snap_var,
+                                self.toggle_snap, _ri_grid, 70).pack(side=tk.LEFT)
+            self._ribbon_toggle(row, "Показать узлы", self.show_nodes_var,
+                                self.toggle_show_nodes, _ri_nodes, 66).pack(side=tk.LEFT)
+
+            cell = tk.Frame(row, bg="#f3f3f3")
+            cell.pack(side=tk.LEFT, padx=(8, 4))
+            tk.Label(cell, text="Шаг сетки", bg="#f3f3f3", font=("Arial", 8)).pack(pady=(6, 0))
+            self.grid_spin = tk.Spinbox(cell, from_=5, to=100, increment=5,
+                                        command=self.change_grid_size, width=5)
+            self.grid_spin.delete(0, "end")
+            self.grid_spin.insert(0, str(self.grid_size))
+            self.grid_spin.pack(pady=2)
+            self.grid_spin.bind("<Return>", lambda e: self.change_grid_size())
+            self.grid_spin.bind("<KP_Enter>", lambda e: self.change_grid_size())
+            self.grid_spin.bind("<FocusOut>", lambda e: self.change_grid_size())
+
+        self._ribbon_group(page, "Сетка", build_grid)
+
+        def build_scale(row):
+            self._ribbon_button(row, "Уменьшить", lambda: self._zoom_step(0.8),
+                                _ri_minus, 58).pack(side=tk.LEFT)
+            self._ribbon_button(row, "Увеличить", lambda: self._zoom_step(1.25),
+                                _ri_plus, 58).pack(side=tk.LEFT)
+            self._ribbon_button(row, "Сбросить", self.reset_view, _ri_fit, 58).pack(side=tk.LEFT)
+
+            cell = tk.Frame(row, bg="#f3f3f3")
+            cell.pack(side=tk.LEFT, padx=(8, 6))
+            self.zoom_label = tk.Label(cell, text=f"{int(self.zoom * 100)}%",
+                                       bg="#f3f3f3", fg="#1f4e79",
+                                       font=("Arial", 11, "bold"), width=5)
+            self.zoom_label.pack(pady=(8, 0))
+            tk.Label(cell, text="масштаб", bg="#f3f3f3", fg="#808080",
+                     font=("Arial", 7)).pack()
+
+        self._ribbon_group(page, "Масштаб", build_scale)
+        self._refresh_ribbon_toggles()
+        return page
+
+    def _zoom_step(self, factor):
+        w = self.canvas.winfo_width() or 800
+        h = self.canvas.winfo_height() or 700
+        mx, my = self.screen_to_world(w / 2, h / 2)
+        new_zoom = self.zoom * factor
+        if 0.2 < new_zoom < 5.0:
+            self.zoom = new_zoom
+            self.offset_x = w / 2 - mx * self.zoom
+            self.offset_y = h / 2 - my * self.zoom
+            self.redraw_all()
+            self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
+
+    # ================= ПАЛИТРА =================
+    def _scroll_palette(self, event):
+        self.palette_canvas.yview_scroll(int(-event.delta / 120), "units")
+
+    def _bind_palette_wheel(self, widget):
+        """Колесо мыши прокручивает палитру, не задевая зум схемы."""
+        for child in widget.winfo_children():
+            if not isinstance(child, (tk.Entry, tk.Spinbox)):
+                child.bind("<MouseWheel>", self._scroll_palette)
+            self._bind_palette_wheel(child)
+
+    def _make_tool_icon(self, parent, etype, label, size=46):
+        """Кнопка-иконка: символ элемента, нарисованный на маленьком canvas."""
+        canvas = tk.Canvas(parent, width=size, height=size, bg="white",
+                           highlightthickness=1, highlightbackground="#b0b0b0",
+                           takefocus=False)
+        try:
+            comp = library.create_component(etype, f"icon_{etype}", 0, 0, self.grid_size)
+            bx1, by1, bx2, by2 = comp.get_bounding_box()
+            bw = max(bx2 - bx1, 1.0)
+            bh = max(by2 - by1, 1.0)
+            zoom = min(0.85 * min(size / bw, size / bh), 1.2)
+            cx = (bx1 + bx2) / 2.0
+            cy = (by1 + by2) / 2.0
+            comp.draw(canvas, zoom, size / 2.0 - cx * zoom, size / 2.0 - cy * zoom)
+        except Exception:
+            canvas.create_text(size / 2, size / 2, text="?", fill="#a00000")
+
+        canvas.bind("<Button-1>", lambda e, t=etype: self.set_tool(t))
+        ToolTip(canvas, label)
+        return canvas
+
+    def _mark_active_tool(self):
+        for etype, canvas in getattr(self, "_tool_icons", {}).items():
+            active = (etype == self.current_tool)
+            canvas.config(highlightbackground="#1f4e79" if active else "#b0b0b0",
+                          highlightthickness=2 if active else 1)
+
+    # ================= ПАНОРАМИРОВАНИЕ (средняя кнопка) =================
+    def on_pan_start(self, event):
+        self._pan_active = True
+        self._pan_last = (event.x, event.y)
+        self.canvas.config(cursor="fleur")
+        return "break"
+
+    def on_pan_move(self, event):
+        if not self._pan_active:
+            return "break"
+        dx = event.x - self._pan_last[0]
+        dy = event.y - self._pan_last[1]
+        if dx or dy:
+            self.canvas.move("all", dx, dy)
+            self.offset_x += dx
+            self.offset_y += dy
+            self._pan_last = (event.x, event.y)
+        return "break"
+
+    def on_pan_end(self, event):
+        if not self._pan_active:
+            return "break"
+        self._pan_active = False
+        self.canvas.config(cursor="crosshair" if self.current_tool != "select" else "arrow")
+        # Полная перерисовка: подтягивает сетку и линии к новым краям полотна
+        self.redraw_all()
+        return "break"
 
     def bind_events(self):
         self.canvas.bind("<Button-1>", self.on_left_click)
@@ -175,8 +571,16 @@ class CircuitEditor:
         self.canvas.bind("<Button-4>", self.on_zoom)
         self.canvas.bind("<Button-5>", self.on_zoom)
         self.canvas.bind("<Motion>", self.on_hover)
-        self.root.bind("<r>", self.rotate_selected)
-        self.root.bind("<R>", self.rotate_selected)
+        # Панорамирование, как в AutoCAD: зажали среднюю кнопку и тянем чертёж
+        self.canvas.bind("<Button-2>", self.on_pan_start)
+        self.canvas.bind("<B2-Motion>", self.on_pan_move)
+        self.canvas.bind("<ButtonRelease-2>", self.on_pan_end)
+        # Клавиши схемы вешаем на полотно, а не на окно: иначе R/Delete срабатывали
+        # при вводе в поле «Шаг сетки» и портили схему.
+        self.canvas.bind("<r>", self.rotate_selected)
+        self.canvas.bind("<R>", self.rotate_selected)
+        self.canvas.bind("<Delete>", self.delete_selected)
+        self.canvas.bind("<BackSpace>", self.delete_selected)
         self.root.bind("<Escape>", self.deselect_all)
         
         self.root.bind("<Control-c>", self.copy_selection)
@@ -186,24 +590,32 @@ class CircuitEditor:
         self.root.bind("<Control-Shift-Z>", self.redo_last_action)
 
     # ================= ОТМЕНА / ПОВТОР =================
-    def _apply_state(self, state):
-        if state is None:
-            return
-            
-        self.elements = state["elements"]
-        self.connections = state["connections"]
-        self.selected_elements = state["selected_elements"]
-        
+    def _reset_transient(self):
+        """Сбрасывает незавершённые операции (перетаскивание, рамка, ресайз)."""
+        self.selected_elements = []
+        self.link_start = None
         self.dragging_group = False
         self.drag_offsets = {}
         self.resizing_element = None
         self.resize_handle = None
         self.selection_start = None
         self.selection_start_screen = None
+        self._pre_change_state = None
+        self._drag_changed = False
+        self._resize_changed = False
         if self.selection_rect_id:
             self.canvas.delete(self.selection_rect_id)
             self.selection_rect_id = None
-            
+
+    def _apply_state(self, state):
+        if state is None:
+            return
+
+        self.elements = state["elements"]
+        self.connections = state["connections"]
+        self._reset_transient()
+        self.selected_elements = list(state["selected_elements"])
+
         self.redraw_all()
 
     def _capture_state(self):
@@ -234,14 +646,14 @@ class CircuitEditor:
             self.offset_x = event.x - mx * self.zoom
             self.offset_y = event.y - my * self.zoom
             self.redraw_all()
-            self.zoom_label.config(text=f"Масштаб: {int(self.zoom * 100)}%")
+            self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
 
     def reset_view(self):
         self.zoom = 1.0
         self.offset_x = 0.0
         self.offset_y = 0.0
         self.redraw_all()
-        self.zoom_label.config(text="Масштаб: 100%")
+        self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
 
     def screen_to_world(self, sx, sy):
         return (sx - self.offset_x) / self.zoom, (sy - self.offset_y) / self.zoom
@@ -279,15 +691,19 @@ class CircuitEditor:
         self.redraw_all()
 
     def change_grid_size(self):
+        """Шаг сетки влияет только на привязку и вид сетки, но не на размеры элементов.
+
+        Геометрия элементов задаётся константой library.CELL, поэтому изменение шага
+        больше не «масштабирует» схему и не сдвигает порты уже созданных элементов.
+        """
         try:
-            self.grid_size = int(self.grid_spin.get())
-            if self.grid_size < 2: self.grid_size = 2
-            for el in self.elements.values():
-                el.grid_size = self.grid_size
-                el.generate_ports()
-            self.draw_grid()
-            self.redraw_all()
-        except ValueError: pass
+            value = int(float(self.grid_spin.get().replace(",", ".")))
+        except ValueError:
+            value = self.grid_size
+        self.grid_size = max(2, min(200, value))
+        self.grid_spin.delete(0, "end")
+        self.grid_spin.insert(0, str(self.grid_size))
+        self.redraw_all()
 
     def rotate_selected(self, event):
         self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
@@ -341,10 +757,11 @@ class CircuitEditor:
         w = self.canvas.winfo_width() or 800
         h = self.canvas.winfo_height() or 700
         center_wx, center_wy = self.screen_to_world(w/2, h/2)
-        
-        if self.selected_elements:
-            orig_cx = sum(self.elements[eid].x for eid in self.selected_elements if eid in self.elements) / len(self.selected_elements)
-            orig_cy = sum(self.elements[eid].y for eid in self.selected_elements if eid in self.elements) / len(self.selected_elements)
+
+        live_selection = [eid for eid in self.selected_elements if eid in self.elements]
+        if live_selection:
+            orig_cx = sum(self.elements[eid].x for eid in live_selection) / len(live_selection)
+            orig_cy = sum(self.elements[eid].y for eid in live_selection) / len(live_selection)
             offset_x = center_wx - orig_cx
             offset_y = center_wy - orig_cy
         else:
@@ -362,7 +779,7 @@ class CircuitEditor:
             "split_transformer":"T", "three_winding_transformer":"T",
             "autotransformer":"AT", "reactor":"R", "line":"W", 
             "bus":"BB", "node":"N", "corner":"C", "grounding_switch":"QSG",
-            "ground":"G", "voltage_transformer":"TV"
+            "ground":"G", "voltage_transformer":"TV", "current_transformer":"TA"
         }
         
         for old_id, el_template in self.clipboard.items():
@@ -563,57 +980,97 @@ class CircuitEditor:
     # ================= КЛИКИ =================
     def set_tool(self, tool):
         if tool == "delete":
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
-            for el_id in list(self.selected_elements):
-                self.delete_element(el_id)
-            self.selected_elements = []
-            self.redraw_all()
-        else:
-            self.current_tool = tool
-            self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
+            self.delete_selected()
+            return
+        self.current_tool = tool
+        self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
+        self._mark_active_tool()
+
+    def delete_selected(self, event=None):
+        """Удаляет выделенные элементы (и все их связи) одним действием."""
+        if not self.selected_elements:
+            return
+        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+        for el_id in list(self.selected_elements):
+            self.delete_element(el_id)
+        self._reset_transient()
+        self.redraw_all()
+
+    def _element_at(self, sx, sy):
+        """id элемента под курсором (верхний в порядке отрисовки) или None."""
+        for el in reversed(list(self.elements.values())):
+            bx1, by1, bx2, by2 = el.get_bounding_box()
+            sx1, sy1 = self.world_to_screen(bx1, by1)
+            sx2, sy2 = self.world_to_screen(bx2, by2)
+            if sx1 <= sx <= sx2 and sy1 <= sy <= sy2:
+                return el.id
+        return None
+
+    @staticmethod
+    def _point_segment_distance(px, py, x1, y1, x2, y2):
+        dx, dy = x2 - x1, y2 - y1
+        if dx == 0 and dy == 0:
+            return math.hypot(px - x1, py - y1)
+        t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)
+        t = max(0.0, min(1.0, t))
+        return math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
+
+    def _connection_at(self, sx, sy):
+        """Связь, проходящая в пределах нескольких пикселей от курсора.
+
+        Раньше здесь использовался canvas.find_closest без порога: любой клик
+        «где-то рядом» с проводом удалял связь. Теперь попадание строго по линии.
+        """
+        tolerance = max(4.0, 6.0 * self.zoom)
+        best, best_dist = None, tolerance
+        for c in self.connections:
+            el1 = self.elements.get(c.get("from"))
+            el2 = self.elements.get(c.get("to"))
+            if not el1 or not el2:
+                continue
+            p1 = el1.ports.get(c.get("port_from"))
+            p2 = el2.ports.get(c.get("port_to"))
+            if not p1 or not p2:
+                continue
+            x1, y1 = self.world_to_screen(p1["x"], p1["y"])
+            x2, y2 = self.world_to_screen(p2["x"], p2["y"])
+            dist = self._point_segment_distance(sx, sy, x1, y1, x2, y2)
+            if dist <= best_dist:
+                best, best_dist = c, dist
+        return best
 
     def on_left_click(self, event):
+        self.canvas.focus_set()
         wx, wy = self.screen_to_world(event.x, event.y)
         wx, wy = self.snap(wx, wy)
-        
-        # УДАЛЕНИЕ СВЯЗИ ТОЛЬКО В РЕЖИМЕ SELECT
-        if self.current_tool == "select":
-            items = self.canvas.find_closest(event.x, event.y)
-            if items:
-                item_id = items[0]
-                conn_to_delete = None
-                for c in self.connections:
-                    if c.get("canvas_id") == item_id:
-                        conn_to_delete = c
-                        break
-                if conn_to_delete:
-                    self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
-                    self.connections.remove(conn_to_delete)
-                    self.redraw_all()
-                    return
-        
+
         # ОБРАБОТКА ИНСТРУМЕНТА SELECT
         if self.current_tool == "select":
-            
+
             # А) ПРОВЕРКА МАРКЕРОВ ИЗМЕНЕНИЯ РАЗМЕРА ШИНЫ
-            for el_id in self.selected_elements:
+            for el_id in list(self.selected_elements):
                 if el_id in self.elements and self.elements[el_id].type == "bus":
                     handle = self.find_resize_handle(el_id, event.x, event.y)
                     if handle:
                         self.resizing_element = el_id
                         self.resize_handle = handle
-                        return 
+                        self._pre_change_state = self._capture_state()
+                        self._resize_changed = False
+                        return
 
-            # Б) ПРОВЕРКА КЛИКА ПО ЭЛЕМЕНТУ
-            clicked_el = None
-            for el in reversed(list(self.elements.values())):
-                bx1, by1, bx2, by2 = el.get_bounding_box()
-                sx1, sy1 = self.world_to_screen(bx1, by1)
-                sx2, sy2 = self.world_to_screen(bx2, by2)
-                if sx1 <= event.x <= sx2 and sy1 <= event.y <= sy2:
-                    clicked_el = el.id
-                    break
+            clicked_el = self._element_at(event.x, event.y)
 
+            # Б) УДАЛЕНИЕ СВЯЗИ — только при точном попадании в линию
+            #    и только если под курсором нет элемента
+            if clicked_el is None:
+                conn_to_delete = self._connection_at(event.x, event.y)
+                if conn_to_delete is not None:
+                    self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+                    self.connections.remove(conn_to_delete)
+                    self.redraw_all()
+                    return
+
+            # В) КЛИК ПО ЭЛЕМЕНТУ
             if clicked_el:
                 ctrl_pressed = bool(event.state & 0x0004)
 
@@ -629,16 +1086,17 @@ class CircuitEditor:
                     self.selected_elements = [clicked_el]
 
                 self.dragging_group = True
-                mouse_wx, mouse_wy = wx, wy
+                self._pre_change_state = self._capture_state()
+                self._drag_changed = False
                 self.drag_offsets = {}
                 for el_id in self.selected_elements:
                     el = self.elements[el_id]
-                    self.drag_offsets[el_id] = (mouse_wx - el.x, mouse_wy - el.y)
+                    self.drag_offsets[el_id] = (wx - el.x, wy - el.y)
 
                 self.redraw_all()
                 return
-            
-            # В) КЛИК ПО ПУСТОМУ МЕСТУ
+
+            # Г) КЛИК ПО ПУСТОМУ МЕСТУ — рамка выделения
             self.selection_start = (wx, wy)
             self.selection_start_screen = (event.x, event.y)
             sx_start, sy_start = event.x, event.y
@@ -682,23 +1140,27 @@ class CircuitEditor:
 
         # ДОБАВЛЕНИЕ НОВЫХ ЭЛЕМЕНТОВ
         tool = self.current_tool
-        if tool in ["breaker", "disconnector", "bus", "transformer", "line", "node", "corner", 
-                     "grounding_switch", "split_transformer", "three_winding_transformer", 
-                     "autotransformer", "reactor", "ground", "voltage_transformer", "current_transformer"]:
+        if tool in library.COMPONENT_TYPES:
             self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
             self.add_element(tool, wx, wy)
 
-    def get_next_name(self, prefix, el_type):
+    def get_next_name(self, prefix, el_type=None):
+        """Следующий свободный номер по префиксу.
+
+        Уникальность проверяется по всей схеме, а не внутри одного типа:
+        иначе трансформатор, трёхобмоточный и расщеплённый получали одинаковые T1/T2.
+        """
         existing_numbers = []
         for el in self.elements.values():
-            if el.type == el_type and el.name.startswith(prefix):
-                num_part = el.name[len(prefix):]
-                if num_part.isdigit():
-                    existing_numbers.append(int(num_part))
-        
+            if not el.name.startswith(prefix):
+                continue
+            num_part = el.name[len(prefix):]
+            if num_part.isdigit():
+                existing_numbers.append(int(num_part))
+
         if not existing_numbers:
             return f"{prefix}1"
-        
+
         next_num = max(existing_numbers) + 1
         return f"{prefix}{next_num}"
 
@@ -748,6 +1210,7 @@ class CircuitEditor:
                     if new_x != el.x or new_y != el.y:
                         el.x, el.y = new_x, new_y
                         el.generate_ports()
+                        self._drag_changed = True
             
             self.redraw_all()
             return
@@ -770,12 +1233,16 @@ class CircuitEditor:
                 fixed_edge = el.x - el.length
                 new_length = wx - fixed_edge
                 if new_length < self.grid_size: new_length = self.grid_size
+                if new_length != el.length:
+                    self._resize_changed = True
                 el.length = new_length
                 el.x = fixed_edge + new_length
             elif self.resize_handle == "left":
                 fixed_edge = el.x + el.length
                 new_length = fixed_edge - wx
                 if new_length < self.grid_size: new_length = self.grid_size
+                if new_length != el.length:
+                    self._resize_changed = True
                 el.length = new_length
                 el.x = fixed_edge - new_length
             el.generate_ports()
@@ -803,34 +1270,36 @@ class CircuitEditor:
             self.selected_elements = new_selection
             self.selection_start = None
             self.selection_start_screen = None
-            self.canvas.delete(self.selection_rect_id)
+            if self.selection_rect_id:
+                self.canvas.delete(self.selection_rect_id)
             self.selection_rect_id = None
             self.redraw_all()
             return
 
         # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ
         if self.dragging_group:
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+            # Состояние «до» записываем в историю только если что-то реально сдвинулось,
+            # иначе обычный клик по элементу засорял бы стек отмены пустыми шагами.
+            if self._drag_changed:
+                self.undo_manager.push_state(self._pre_change_state)
             self.dragging_group = False
+            self._drag_changed = False
+            self._pre_change_state = None
             self.drag_offsets = {}
             return
 
         # ЗАВЕРШЕНИЕ ИЗМЕНЕНИЯ РАЗМЕРА ШИНЫ
         if self.resizing_element:
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+            if self._resize_changed:
+                self.undo_manager.push_state(self._pre_change_state)
             self.resizing_element = None
             self.resize_handle = None
+            self._resize_changed = False
+            self._pre_change_state = None
             self.redraw_all()
 
     def on_right_click(self, event):
-        clicked_el = None
-        for el in reversed(list(self.elements.values())):
-            bx1, by1, bx2, by2 = el.get_bounding_box()
-            sx1, sy1 = self.world_to_screen(bx1, by1)
-            sx2, sy2 = self.world_to_screen(bx2, by2)
-            if sx1 <= event.x <= sx2 and sy1 <= event.y <= sy2:
-                clicked_el = el.id
-                break
+        clicked_el = self._element_at(event.x, event.y)
         if clicked_el:
             self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
             self.delete_element(clicked_el)
@@ -842,26 +1311,9 @@ class CircuitEditor:
     def add_element(self, etype, x, y):
         el_id = f"{etype[:2].upper()}{str(uuid.uuid4())[:4]}"
         el = library.create_component(etype, el_id, x, y, self.grid_size)
-        
-        if etype == "breaker": prefix, el_type = "Q", "breaker"
-        elif etype == "disconnector": prefix, el_type = "QS", "disconnector"
-        elif etype == "transformer": prefix, el_type = "T", "transformer"
-        elif etype == "split_transformer": prefix, el_type = "T", "split_transformer"
-        elif etype == "three_winding_transformer": prefix, el_type = "T", "three_winding_transformer"
-        elif etype == "autotransformer": prefix, el_type = "AT", "autotransformer"
-        elif etype == "reactor": prefix, el_type = "R", "reactor"
-        elif etype == "line": prefix, el_type = "W", "line"
-        elif etype == "bus": prefix, el_type = "BB", "bus"
-        elif etype == "voltage_transformer": prefix, el_type = "TV", "voltage_transformer"
-        elif etype == "current_transformer": prefix, el_type = "TA", "current_transformer"
-        elif etype == "node": prefix, el_type = "N", "node"
-        elif etype == "corner": prefix, el_type = "C", "corner"
-        elif etype == "grounding_switch": prefix, el_type = "QSG", "grounding_switch"
-        elif etype == "ground": prefix, el_type = "G", "ground"
-        else: prefix, el_type = "EL", etype
-        
-        el.name = self.get_next_name(prefix, el_type)
-        
+
+        el.name = self.get_next_name(PREFIX_BY_TYPE.get(etype, "EL"), etype)
+
         self.elements[el_id] = el
         self.redraw_all()
 
@@ -885,118 +1337,132 @@ class CircuitEditor:
             self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
             self.elements = {}
             self.connections = []
-            self.selected_elements = []
-            self.link_start = None
-            self.resizing_element = None
-            self.dragging_group = False
-            self.selection_start = None
-            self.selection_start_screen = None
+            self._reset_transient()
             self.clipboard = None
             self.clipboard_connections = []
-            if self.selection_rect_id:
-                self.canvas.delete(self.selection_rect_id)
-                self.selection_rect_id = None
             self.redraw_all()
 
     # ================= СОХРАНЕНИЕ / ЗАГРУЗКА =================
     def save_json(self):
         data = {"elements": [], "connections": []}
-        
+
         for el in self.elements.values():
             item = {
-                "id": el.id, 
-                "type": el.type, 
+                "id": el.id,
+                "type": el.type,
                 "name": el.name,
-                "x": el.x, 
+                "x": el.x,
                 "y": el.y
             }
-            if el.type == "bus": item["length"] = el.length
-            if el.type in ["disconnector", "transformer", "line", "grounding_switch",
-                           "reactor", "ground", "voltage_transformer", "current_transformer"]:
+            if el.type == "bus":
+                item["length"] = el.length
+            if hasattr(el, "rotation"):
                 item["rotation"] = el.rotation
             if el.type == "corner":
                 item["orientation"] = el.orientation
             data["elements"].append(item)
-            
+
         for c in self.connections:
-            el1 = self.elements[c["from"]]
-            el2 = self.elements[c["to"]]
-            node1 = el1.ports[c["port_from"]]["node_id"]
-            node2 = el2.ports[c["port_to"]]["node_id"]
+            el1 = self.elements.get(c.get("from"))
+            el2 = self.elements.get(c.get("to"))
+            if not el1 or not el2:
+                continue
+            p1 = el1.ports.get(c.get("port_from"))
+            p2 = el2.ports.get(c.get("port_to"))
+            if not p1 or not p2:
+                continue
             data["connections"].append({
-                "node_from": node1,
-                "node_to": node2,
+                "node_from": p1["node_id"],
+                "node_to": p2["node_id"],
                 "port_from": c["port_from"],
                 "port_to": c["port_to"],
                 "element_from": el1.id,
                 "element_to": el2.id
             })
-            
+
         filepath = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
         if filepath:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-            messagebox.showinfo("Успех", "Схема сохранена!")
+            try:
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    json.dump(data, f, ensure_ascii=False, indent=4)
+                messagebox.showinfo("Успех", "Схема сохранена!")
+            except OSError as e:
+                messagebox.showerror("Ошибка", f"Не удалось сохранить файл:\n{e}")
 
     def load_json(self):
         filepath = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
-        if not filepath: return
+        if not filepath:
+            return
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            self.clear_all()
-            
-            for item in data.get("elements", []):
-                el = library.create_component(item["type"], item["id"], item["x"], item["y"], self.grid_size)
-                el.name = item.get("name", item["id"])
-                
-                if el.type == "bus" and "length" in item:
-                    el.length = item["length"]
-                    el.generate_ports()
-                if el.type in ["disconnector", "transformer", "line", "grounding_switch",
-                               "reactor", "ground", "voltage_transformer", "current_transformer"] and "rotation" in item:
-                    el.rotation = item["rotation"]
-                    el.generate_ports()
-                if el.type == "corner" and "orientation" in item:
-                    el.orientation = item["orientation"]
-                    el.generate_ports()
-                self.elements[item["id"]] = el
-                
-            for c in data.get("connections", []):
-                el1_id = c.get("element_from")
-                el2_id = c.get("element_to")
-                if el1_id not in self.elements or el2_id not in self.elements:
-                    continue
-                el1 = self.elements[el1_id]
-                el2 = self.elements[el2_id]
-                
-                # Сначала по имени порта, затем fallback по node_id
-                port1 = c.get("port_from")
-                if port1 not in el1.ports:
-                    port1 = None
-                    for p_name, p_data in el1.ports.items():
-                        if p_data["node_id"] == c.get("node_from"):
-                            port1 = p_name
-                            break
-                port2 = c.get("port_to")
-                if port2 not in el2.ports:
-                    port2 = None
-                    for p_name, p_data in el2.ports.items():
-                        if p_data["node_id"] == c.get("node_to"):
-                            port2 = p_name
-                            break
-                
-                if port1 and port2:
-                    self.connections.append({
-                        "from": el1_id, "to": el2_id,
-                        "port_from": port1, "port_to": port2,
-                        "canvas_id": None
-                    })
-            
-            self.redraw_all()
-            messagebox.showinfo("Успех", "Схема загружена!")
         except Exception as e:
-            messagebox.showerror("Ошибка", f"Не удалось загрузить файл:\n{e}")
+            messagebox.showerror("Ошибка", f"Не удалось прочитать файл:\n{e}")
+            return
+
+        # Схема собирается отдельно: при ошибке текущая схема остаётся нетронутой
+        # (раньше файл сначала стирал полотно диалогом clear_all).
+        try:
+            elements = self._build_elements(data)
+            connections = self._build_connections(data, elements)
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось загрузить схему:\n{e}")
+            return
+
+        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+        self.elements = elements
+        self.connections = connections
+        self._reset_transient()
+        self.redraw_all()
+        messagebox.showinfo("Успех", "Схема загружена!")
+
+    def _build_elements(self, data):
+        """Создаёт элементы схемы из разобранного JSON, не трогая текущее полотно."""
+        elements = {}
+        for item in data.get("elements", []):
+            el = library.create_component(item["type"], item["id"],
+                                          item.get("x", 0), item.get("y", 0), self.grid_size)
+            el.name = item.get("name", item["id"])
+
+            if hasattr(el, "rotation") and item.get("rotation") is not None:
+                el.rotation = item["rotation"]
+            if el.type == "corner" and item.get("orientation"):
+                el.orientation = item["orientation"]
+            if el.type == "bus" and item.get("length"):
+                el.length = item["length"]
+
+            el.generate_ports()
+            elements[item["id"]] = el
+        return elements
+
+    def _build_connections(self, data, elements):
+        connections = []
+        for c in data.get("connections", []):
+            el1 = elements.get(c.get("element_from"))
+            el2 = elements.get(c.get("element_to"))
+            if not el1 or not el2:
+                continue
+
+            port1 = self._resolve_port(el1, c.get("port_from"), c.get("node_from"))
+            port2 = self._resolve_port(el2, c.get("port_to"), c.get("node_to"))
+            if port1 and port2:
+                connections.append({
+                    "from": el1.id, "to": el2.id,
+                    "port_from": port1, "port_to": port2,
+                    "canvas_id": None
+                })
+        return connections
+
+    @staticmethod
+    def _resolve_port(el, port_name, node_id):
+        """Имя порта: прямое совпадение, затем поиск по node_id (совместимость со старыми файлами)."""
+        if port_name in el.ports:
+            return port_name
+        if node_id:
+            for p_name, p_data in el.ports.items():
+                if p_data.get("node_id") == node_id:
+                    return p_name
+        return None
 
     def insert_from_json(self, event=None):
         """Вставляет схему из JSON-файла на текущее полотно"""
@@ -1017,7 +1483,10 @@ class CircuitEditor:
 
             if not data["elements"]:
                 return
-                
+
+            # Состояние сохраняем ДО вставки, иначе Undo возвращал уже вставленную схему
+            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
+
             # 1. Вычисляем смещение
             xs = [el["x"] for el in data["elements"]]
             ys = [el["y"] for el in data["elements"]]
@@ -1036,16 +1505,7 @@ class CircuitEditor:
                 offset_y = round(offset_y / self.grid_size) * self.grid_size
 
             id_mapping = {}
-            new_selected = [] 
-            
-            prefix_map = {
-                "breaker":"Q", "disconnector":"QS", "transformer":"T", 
-                "split_transformer":"T", "three_winding_transformer":"T",
-                "autotransformer":"AT", "reactor":"R", "line":"W", 
-                "bus":"BB", "node":"N", "corner":"C", "grounding_switch":"QSG",
-                "ground":"G", "voltage_transformer":"TV",
-                "current_transformer":"TA" 
-            }
+            new_selected = []
 
             # 2. Вставляем элементы
             for item in data["elements"]:
@@ -1060,13 +1520,16 @@ class CircuitEditor:
                 )
                 
                 new_el.name = self.get_next_name(
-                    prefix_map.get(item["type"], "EL"),
+                    PREFIX_BY_TYPE.get(item["type"], "EL"),
                     item["type"]
                 )
                 
-                if item.get("length"): new_el.length = item["length"]
-                if item.get("rotation") is not None: new_el.rotation = item["rotation"]
-                if item.get("orientation"): new_el.orientation = item["orientation"]
+                if item.get("length") and hasattr(new_el, "length"):
+                    new_el.length = item["length"]
+                if item.get("rotation") is not None and hasattr(new_el, "rotation"):
+                    new_el.rotation = item["rotation"]
+                if item.get("orientation") and hasattr(new_el, "orientation"):
+                    new_el.orientation = item["orientation"]
                 
                 new_el.generate_ports()
                 self.elements[new_id] = new_el
@@ -1081,37 +1544,17 @@ class CircuitEditor:
                 if old_from in id_mapping and old_to in id_mapping:
                     new_from = id_mapping[old_from]
                     new_to = id_mapping[old_to]
-                    
-                    el_from = self.elements[new_from]
-                    el_to = self.elements[new_to]
-                    
-                    # Основной путь: по имени порта (id пересоздан, node_id не совпадёт)
-                    port_from = conn.get("port_from")
-                    port_to = conn.get("port_to")
-                    
-                    if port_from not in el_from.ports:
-                        port_from = None
-                    if port_to not in el_to.ports:
-                        port_to = None
-                    
-                    # Fallback: старые файлы без port_from/port_to
-                    if port_from is None:
-                        for p_name, p_data in el_from.ports.items():
-                            if p_data["node_id"] == conn.get("node_from"):
-                                port_from = p_name
-                                break
-                    if port_to is None:
-                        for p_name, p_data in el_to.ports.items():
-                            if p_data["node_id"] == conn.get("node_to"):
-                                port_to = p_name
-                                break
-                    
+
+                    # id пересоздан, поэтому node_id не совпадёт — ищем по имени порта
+                    port_from = self._resolve_port(self.elements[new_from],
+                                                   conn.get("port_from"), conn.get("node_from"))
+                    port_to = self._resolve_port(self.elements[new_to],
+                                                 conn.get("port_to"), conn.get("node_to"))
+
                     if port_from and port_to:
                         self.create_connection(new_from, new_to, port_from, port_to)
 
-            # 4. Сохраняем состояние для Undo и выделяем
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements)
-            
+            # 4. Выделяем вставленное
             self.selected_elements = new_selected
             self.redraw_all()
             messagebox.showinfo("Успех", f"Вставлено {len(new_selected)} элементов.")

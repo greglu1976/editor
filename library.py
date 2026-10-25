@@ -3,15 +3,67 @@
 import math
 import tkinter as tk
 
+# Базовая единица геометрии элементов в мировых координатах.
+# Не зависит от шага сетки: изменение шага меняет только привязку и вид сетки,
+# но не размеры и пропорции элементов схемы.
+CELL = 20
+
+
+def rotate_point(dx, dy, rotation):
+    """Поворот локального вектора (градусы, по часовой стрелке на экране)."""
+    rotation %= 360
+    if rotation == 0:
+        return dx, dy
+    angle = math.radians(rotation)
+    cos_a = math.cos(angle)
+    sin_a = math.sin(angle)
+    return dx * cos_a - dy * sin_a, dx * sin_a + dy * cos_a
+
+
 class Component:
     def __init__(self, comp_id, x, y, grid_size=20):
         self.id = comp_id
         self.name = ""
         self.x = x
         self.y = y
+        # Шаг сетки на момент создания оставлен для совместимости; геометрию задаёт CELL.
         self.grid_size = grid_size
+        self.cell = CELL
         self.type = "base"
         self.ports = {}
+
+    def _local_rotated(self, dx, dy):
+        """Локальные координаты относительно центра -> мировые с учётом поворота."""
+        rdx, rdy = rotate_point(dx, dy, getattr(self, "rotation", 0))
+        return self.x + rdx, self.y + rdy
+
+    def _rotated_bbox(self, local_box):
+        """Локальный прямоугольник -> габариты в мировых координатах с учётом поворота."""
+        x1, y1, x2, y2 = local_box
+        corners = [self._local_rotated(px, py) for px, py in
+                   ((x1, y1), (x2, y1), (x1, y2), (x2, y2))]
+        xs = [p[0] for p in corners]
+        ys = [p[1] for p in corners]
+        return (min(xs), min(ys), max(xs), max(ys))
+
+    def _draw_label(self, canvas, zoom, offset_x, offset_y):
+        """Подпись справа от габарита: не наезжает на провода при любом повороте."""
+        if not self.name:
+            return
+        bx1, by1, bx2, by2 = self.get_bounding_box()
+        tx = (bx2 + 6) * zoom + offset_x
+        ty = ((by1 + by2) / 2) * zoom + offset_y
+        canvas.create_text(tx, ty, text=self.name, anchor="w",
+                           font=("Arial", int(10 * zoom)), fill="black")
+
+    def _draw_name_at(self, canvas, zoom, offset_x, offset_y, local_x, local_y=0.0):
+        """Подпись в фиксированной локальной точке — исходное место символа."""
+        if not self.name:
+            return
+        wx, wy = self._local_rotated(local_x, local_y)
+        canvas.create_text(wx * zoom + offset_x, wy * zoom + offset_y,
+                           text=self.name, anchor="w",
+                           font=("Arial", int(10 * zoom)), fill="black")
 
     def generate_ports(self):
         pass
@@ -34,7 +86,7 @@ class Breaker(Component):
         self.generate_ports()
 
     def generate_ports(self):
-        r = self.grid_size
+        r = self.cell
         if self.rotation in [0, 180]:
             self.ports = {
                 "top":    {"x": self.x, "y": self.y - r, "node_id": f"N_{self.id}_top"},
@@ -49,8 +101,8 @@ class Breaker(Component):
     def draw(self, canvas, zoom, offset_x, offset_y):
         sx = self.x * zoom + offset_x
         sy = self.y * zoom + offset_y
-        r_sq = (self.grid_size / 2) * zoom
-        r_port = self.grid_size * zoom
+        r_sq = (self.cell / 2) * zoom
+        r_port = self.cell * zoom
         
         if self.rotation in [0, 180]:
             canvas.create_line(sx, sy - r_sq, sx, sy - r_port, width=max(1, int(2*zoom)), fill="black")
@@ -65,7 +117,7 @@ class Breaker(Component):
             canvas.create_text(sx + r_port + 5*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size
+        r = self.cell
         return (self.x - r, self.y - r, self.x + r, self.y + r)
 
 
@@ -80,7 +132,7 @@ class Disconnector(Component):
         self.generate_ports()
 
     def generate_ports(self):
-        r = self.grid_size
+        r = self.cell
         if self.rotation in [0, 180]:
             self.ports = {
                 "top":    {"x": self.x, "y": self.y - r, "node_id": f"N_{self.id}_top"},
@@ -95,8 +147,8 @@ class Disconnector(Component):
     def draw(self, canvas, zoom, offset_x, offset_y):
         sx = self.x * zoom + offset_x
         sy = self.y * zoom + offset_y
-        r_inner = (self.grid_size / 2) * 0.8 * zoom
-        r_port = self.grid_size * zoom
+        r_inner = (self.cell / 2) * 0.8 * zoom
+        r_port = self.cell * zoom
         blade_len = 12 * zoom
 
         if self.rotation in [0, 180]:
@@ -124,9 +176,10 @@ class Disconnector(Component):
             canvas.create_text(sx + r_port + 5*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
-        rx = self.grid_size * 0.3   # уже по ширине
-        ry = self.grid_size * 0.5   # высоту оставляем
-        return (self.x - rx, self.y - ry, self.x + rx, self.y + ry)
+        # Порты разъединителя лежат на расстоянии CELL от центра — габарит должен их включать,
+        # иначе элемент нельзя выбрать/перетащить за вывод.
+        r = self.cell
+        return (self.x - r, self.y - r, self.x + r, self.y + r)
 
 
 # ==========================================
@@ -136,7 +189,7 @@ class Bus(Component):
     def __init__(self, comp_id, x, y, grid_size=20, length=None):
         super().__init__(comp_id, x, y, grid_size)
         self.type = "bus"
-        self.length = length if length else grid_size * 4
+        self.length = length if length else CELL * 4
         self.generate_ports()
 
     def generate_ports(self):
@@ -145,7 +198,7 @@ class Bus(Component):
             "right":  {"x": self.x + self.length, "y": self.y, "node_id": f"N_{self.id}_right"},
             "center": {"x": self.x, "y": self.y, "node_id": f"N_{self.id}_center"}
         }
-        step = self.grid_size
+        step = self.cell
         start_x = self.x - self.length + step
         end_x = self.x + self.length - step
         idx = 1
@@ -175,46 +228,53 @@ class Transformer(Component):
     def __init__(self, comp_id, x, y, grid_size=20):
         super().__init__(comp_id, x, y, grid_size)
         self.type = "transformer"
-        self.rotation = 0 
+        self.rotation = 0
         self.generate_ports()
 
     def generate_ports(self):
-        # Порты строго по сетке: на 2 клетки вверх и вниз
-        self.ports = {
-            "HV": {"x": self.x, "y": self.y - self.grid_size * 2, "node_id": f"N_{self.id}_HV"},
-            "LV": {"x": self.x, "y": self.y + self.grid_size * 2, "node_id": f"N_{self.id}_LV"},
-            # Нейтраль на 1 клетку влево и на 1 клетку вверх от центра
-            "N":  {"x": self.x - self.grid_size, "y": self.y - self.grid_size, "node_id": f"N_{self.id}_N"} 
-        }
+        c = self.cell
+        self.ports = {}
+        # Нейтраль остаётся точкой подключения (узел), но без нарисованного отрезка вывода.
+        for name, dx, dy in (("HV", 0, -2 * c), ("LV", 0, 2 * c), ("N", -c, -c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
+    def _primitives(self):
+        c = self.cell
+        lines = [
+            (0, -2 * c, 0, -1.5 * c),      # вывод ВН
+            (0, 2 * c, 0, 1.5 * c),        # вывод НН
+        ]
+        circles = [(0, -0.5 * c, c), (0, 0.5 * c, c)]
+        return lines, circles
 
     def draw(self, canvas, zoom, offset_x, offset_y):
-        sx = self.x * zoom + offset_x
-        sy = self.y * zoom + offset_y
-        # Радиус = 1 клетка сетки (чтобы круги помещались между узлами)
-        r = self.grid_size * zoom 
-        
-        # Центры кругов: верхний на 0.5 клетки вверх, нижний на 0.5 клетки вниз
-        cy1 = sy - r * 0.5
-        cy2 = sy + r * 0.5
-        
-        # 1. Линии выводов ВН и НН
-        canvas.create_line(sx, sy - r * 2, sx, cy1 - r, width=max(1, int(2*zoom)), fill="black")
-        canvas.create_line(sx, sy + r * 2, sx, cy2 + r, width=max(1, int(2*zoom)), fill="black")
-        
-        # 2. Линия нейтрали (короткая горизонтальная от левого края верхнего круга)
-        canvas.create_line(sx - r, cy1, sx - r, cy1, width=max(1, int(2*zoom)), fill="black") # Точка нейтрали
-        
-        # 3. Рисуем два круга
-        canvas.create_oval(sx-r, cy1-r, sx+r, cy1+r, fill="white", outline="black", width=max(1, int(2*zoom)))
-        canvas.create_oval(sx-r, cy2-r, sx+r, cy2+r, fill="white", outline="black", width=max(1, int(2*zoom)))
-        
-        # 4. Подпись
-        if self.name:
-            canvas.create_text(sx + r + 15*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
+        lw = max(1, int(2 * zoom))
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        lines, circles = self._primitives()
+        for dx1, dy1, dx2, dy2 in lines:
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        for cdx, cdy, cr in circles:
+            cx, cy = scr(cdx, cdy)
+            r = cr * zoom
+            canvas.create_oval(cx - r, cy - r, cx + r, cy + r,
+                               fill="white", outline="black", width=lw)
+
+        if getattr(self, "rotation", 0) % 360 == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, self.cell + 15)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
 
     def get_bounding_box(self):
-        r = self.grid_size * 1
-        return (self.x - r, self.y - r, self.x + r, self.y + r)
+        c = self.cell
+        return self._rotated_bbox((-c, -2 * c, c, 2 * c))
 
 # ==========================================
 # 5. УЗЕЛ
@@ -249,7 +309,7 @@ class PowerLine(Component):
         self.generate_ports()
 
     def _length(self):
-        return self.grid_size * 3
+        return self.cell * 3
 
     def generate_ports(self):
         length = self._length()
@@ -277,7 +337,7 @@ class PowerLine(Component):
     def draw(self, canvas, zoom, offset_x, offset_y):
         sx = self.x * zoom + offset_x
         sy = self.y * zoom + offset_y
-        length = self.grid_size * 3 * zoom
+        length = self.cell * 3 * zoom
         
         if self.rotation == 0:
             end_x, end_y = sx, sy - length
@@ -301,7 +361,7 @@ class PowerLine(Component):
 
     def get_bounding_box(self):
         length = self._length()
-        pad = self.grid_size * 0.5
+        pad = self.cell * 0.5
 
         if self.rotation == 0:
             return (self.x - pad, self.y - length - pad, self.x + pad, self.y + pad)
@@ -323,7 +383,7 @@ class Corner(Component):
         self.generate_ports()
 
     def generate_ports(self):
-        r = self.grid_size
+        r = self.cell
         self.ports = {
             "top":    {"x": self.x, "y": self.y - r, "node_id": f"N_{self.id}_top"},
             "bottom": {"x": self.x, "y": self.y + r, "node_id": f"N_{self.id}_bot"},
@@ -334,7 +394,7 @@ class Corner(Component):
     def draw(self, canvas, zoom, offset_x, offset_y, connections=None):
         sx = self.x * zoom + offset_x
         sy = self.y * zoom + offset_y
-        r = self.grid_size * zoom
+        r = self.cell * zoom
         
         if self.orientation == "bottom_right":
             canvas.create_line(sx, sy, sx + r, sy, width=max(1, int(2*zoom)), fill="black")
@@ -350,7 +410,7 @@ class Corner(Component):
             canvas.create_line(sx, sy, sx, sy - r, width=max(1, int(2*zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size
+        r = self.cell
         return (self.x - r, self.y - r, self.x + r, self.y + r)
 
 
@@ -365,7 +425,7 @@ class GroundingSwitch(Component):
         self.generate_ports()
 
     def generate_ports(self):
-        r = self.grid_size
+        r = self.cell
         if self.rotation in [0, 180]:
             self.ports = {"top": {"x": self.x, "y": self.y - r, "node_id": f"N_{self.id}_top"}}
         else:
@@ -374,8 +434,8 @@ class GroundingSwitch(Component):
     def draw(self, canvas, zoom, offset_x, offset_y):
         sx = self.x * zoom + offset_x
         sy = self.y * zoom + offset_y
-        r_inner = (self.grid_size / 2) * 0.8 * zoom
-        r_out = self.grid_size * zoom
+        r_inner = (self.cell / 2) * 0.8 * zoom
+        r_out = self.cell * zoom
         blade_len = 14 * zoom
         
         def draw_ground(gx, gy):
@@ -419,7 +479,7 @@ class GroundingSwitch(Component):
             canvas.create_text(sx + r_out + 15*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
 
     def get_bounding_box(self):
-        r = self.grid_size * 1.2  # 120% достаточно для захвата "ножек" заземления
+        r = self.cell * 1.2  # 120% достаточно для захвата "ножек" заземления
         return (self.x - r, self.y - r, self.x + r, self.y + r)
 
 
@@ -434,51 +494,55 @@ class SplitTransformer(Component):
         self.generate_ports()
 
     def generate_ports(self):
-        g = self.grid_size
-        # Порты LV1 и LV2 вынесены на 2 клетки в стороны и на 3 клетки вниз.
-        self.ports = {
-            "HV":  {"x": self.x, "y": self.y - g * 2, "node_id": f"N_{self.id}_HV"},
-            "LV1": {"x": self.x - g * 2, "y": self.y + g * 3, "node_id": f"N_{self.id}_LV1"},
-            "LV2": {"x": self.x + g * 2, "y": self.y + g * 3, "node_id": f"N_{self.id}_LV2"},
-            "N":   {"x": self.x - g, "y": self.y - g, "node_id": f"N_{self.id}_N"}
-        }
+        c = self.cell
+        self.ports = {}
+        # Нейтраль — узел подключения без нарисованного отрезка вывода.
+        for name, dx, dy in (("HV", 0, -2 * c), ("LV1", -2 * c, 3 * c),
+                             ("LV2", 2 * c, 3 * c), ("N", -c, -c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
+    def _primitives(self):
+        c = self.cell
+        lines = [
+            (0, -2 * c, 0, -1.5 * c),                    # вывод ВН
+            (-0.75 * c, 1.5 * c, -0.75 * c, 2 * c),      # левый хвостик
+            (-0.75 * c, 2 * c, -2 * c, 2 * c),
+            (-2 * c, 2 * c, -2 * c, 3 * c),
+            (0.75 * c, 1.5 * c, 0.75 * c, 2 * c),        # правый хвостик
+            (0.75 * c, 2 * c, 2 * c, 2 * c),
+            (2 * c, 2 * c, 2 * c, 3 * c),
+        ]
+        circles = [(0, -0.5 * c, c), (-0.75 * c, 0.5 * c, c), (0.75 * c, 0.5 * c, c)]
+        return lines, circles
 
     def draw(self, canvas, zoom, offset_x, offset_y):
-        sx = self.x * zoom + offset_x
-        sy = self.y * zoom + offset_y
-        r = self.grid_size * zoom 
-        
-        cy1 = sy - r * 0.5
-        cy2 = sy + r * 0.5
-        
-        cx_left = sx - r * 0.75
-        cx_right = sx + r * 0.75
-        
-        # 1. Хвостик сверху (ВН)
-        canvas.create_line(sx, sy - r * 2, sx, cy1 - r, width=max(1, int(2*zoom)), fill="black")
-        
-        # 2. ЛЕВЫЙ ХВОСТИК (Г-образный, с правильным спуском)
-        canvas.create_line(cx_left, cy2 + r, cx_left, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        canvas.create_line(cx_left, sy + r * 2, sx - r * 2, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        canvas.create_line(sx - r * 2, sy + r * 2, sx - r * 2, sy + r * 3, width=max(1, int(2*zoom)), fill="black")
-        
-        # 3. ПРАВЫЙ ХВОСТИК (Г-образный, с правильным спуском)
-        canvas.create_line(cx_right, cy2 + r, cx_right, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        canvas.create_line(cx_right, sy + r * 2, sx + r * 2, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        canvas.create_line(sx + r * 2, sy + r * 2, sx + r * 2, sy + r * 3, width=max(1, int(2*zoom)), fill="black")
-        
-        # 4. Рисуем три круга
-        canvas.create_oval(sx-r, cy1-r, sx+r, cy1+r, fill="white", outline="black", width=max(1, int(2*zoom)))
-        canvas.create_oval(cx_left-r, cy2-r, cx_left+r, cy2+r, fill="white", outline="black", width=max(1, int(2*zoom)))
-        canvas.create_oval(cx_right-r, cy2-r, cx_right+r, cy2+r, fill="white", outline="black", width=max(1, int(2*zoom)))
-        
-        # 5. Подпись
-        if self.name:
-            canvas.create_text(sx + r * 3, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
+        lw = max(1, int(2 * zoom))
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        lines, circles = self._primitives()
+        for dx1, dy1, dx2, dy2 in lines:
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        for cdx, cdy, cr in circles:
+            cx, cy = scr(cdx, cdy)
+            r = cr * zoom
+            canvas.create_oval(cx - r, cy - r, cx + r, cy + r,
+                               fill="white", outline="black", width=lw)
+
+        if getattr(self, "rotation", 0) % 360 == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, 3 * self.cell)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
 
     def get_bounding_box(self):
-        r = self.grid_size * 1
-        return (self.x - r, self.y - r, self.x + r, self.y + r)
+        c = self.cell
+        return self._rotated_bbox((-2 * c, -2 * c, 2 * c, 3 * c))
 
 
 # ==========================================
@@ -492,38 +556,51 @@ class ThreeWindingTransformer(Component):
         self.generate_ports()
 
     def generate_ports(self):
-        g = self.grid_size
-        self.ports = {
-            "HV": {"x": self.x, "y": self.y - g * 2, "node_id": f"N_{self.id}_HV"},
-            "LV": {"x": self.x, "y": self.y + g * 2, "node_id": f"N_{self.id}_LV"},
-            "MV": {"x": self.x + g * 2, "y": self.y, "node_id": f"N_{self.id}_MV"},
-            "N":  {"x": self.x - g, "y": self.y - g, "node_id": f"N_{self.id}_N"}
-        }
+        c = self.cell
+        self.ports = {}
+        # Нейтраль — узел подключения без нарисованного отрезка вывода.
+        for name, dx, dy in (("HV", 0, -2 * c), ("LV", 0, 2 * c),
+                             ("MV", 2 * c, 0), ("N", -c, -c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
+    def _primitives(self):
+        c = self.cell
+        lines = [
+            (0, -2 * c, 0, -1.5 * c),
+            (0, 1.5 * c, 0, 2 * c),
+            (1.5 * c, 0, 2 * c, 0),
+        ]
+        circles = [(0, -0.6 * c, c), (0, 0.6 * c, c), (0.8 * c, 0, c)]
+        return lines, circles
 
     def draw(self, canvas, zoom, offset_x, offset_y):
-        sx = self.x * zoom + offset_x
-        sy = self.y * zoom + offset_y
-        r = self.grid_size * zoom 
-        
-        canvas.create_line(sx, sy - r * 2, sx, sy - r * 1.5, width=max(1, int(2*zoom)), fill="black")
-        canvas.create_line(sx, sy + r * 1.5, sx, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        canvas.create_line(sx + r * 1.5, sy, sx + r * 2, sy, width=max(1, int(2*zoom)), fill="black")
-        
-        cy_hv = sy - r * 0.6
-        canvas.create_oval(sx-r, cy_hv-r, sx+r, cy_hv+r, fill="white", outline="black", width=max(1, int(2*zoom)))
-        
-        cy_lv = sy + r * 0.6
-        canvas.create_oval(sx-r, cy_lv-r, sx+r, cy_lv+r, fill="white", outline="black", width=max(1, int(2*zoom)))
-        
-        cx_mv = sx + r * 0.8
-        canvas.create_oval(cx_mv-r, sy-r, cx_mv+r, sy+r, fill="white", outline="black", width=max(1, int(2*zoom)))
-        
-        if self.name:
-            canvas.create_text(sx - r * 2, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
+        lw = max(1, int(2 * zoom))
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        lines, circles = self._primitives()
+        for dx1, dy1, dx2, dy2 in lines:
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        for cdx, cdy, cr in circles:
+            cx, cy = scr(cdx, cdy)
+            r = cr * zoom
+            canvas.create_oval(cx - r, cy - r, cx + r, cy + r,
+                               fill="white", outline="black", width=lw)
+
+        if getattr(self, "rotation", 0) % 360 == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, -2 * self.cell)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
 
     def get_bounding_box(self):
-        r = self.grid_size * 0.8
-        return (self.x - r, self.y - r*2, self.x + r*2, self.y + r*2)
+        c = self.cell
+        return self._rotated_bbox((-c, -2 * c, 2 * c, 2 * c))
 
 
 # ==========================================
@@ -537,49 +614,54 @@ class Autotransformer(Component):
         self.generate_ports()
 
     def generate_ports(self):
-        g = self.grid_size
-        self.ports = {
-            "HV": {"x": self.x, "y": self.y - g * 2, "node_id": f"N_{self.id}_HV"},
-            "LV": {"x": self.x, "y": self.y + g * 2, "node_id": f"N_{self.id}_LV"},
-            "MV": {"x": self.x + g * 2, "y": self.y - g * 0.5, "node_id": f"N_{self.id}_MV"}, 
-            "N":  {"x": self.x - g, "y": self.y - g, "node_id": f"N_{self.id}_N"}
-        }
-        
+        c = self.cell
+        self.ports = {}
+        # Нейтраль — узел подключения без нарисованного отрезка вывода.
+        for name, dx, dy in (("HV", 0, -2 * c), ("LV", 0, 2 * c),
+                             ("MV", 2 * c, -0.5 * c), ("N", -c, -c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
     def draw(self, canvas, zoom, offset_x, offset_y):
-        sx = self.x * zoom + offset_x
-        sy = self.y * zoom + offset_y
-        r = self.grid_size * zoom 
-        
-        cy1 = sy - r * 0.5
-        cy2 = sy + r * 0.5
-        
+        c = self.cell
         line_w = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0) % 360
 
-        arc_radius = r * 1.6537
-        arc_center_x = sx - r * 0.6536
-        arc_center_y = cy1 + r * 0.0191
-        
-        arc_x0 = arc_center_x - arc_radius
-        arc_y0 = arc_center_y - arc_radius
-        arc_x1 = arc_center_x + arc_radius
-        arc_y1 = arc_center_y + arc_radius
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
 
-        canvas.create_arc(arc_x0, arc_y0, arc_x1, arc_y1, 
-                          start=1, extent=66, style="arc", 
+        # Дуга автотрансформатора: центр и радиус неизменны, а начальный угол
+        # сдвигается на угол поворота (экранный Tk-угол).
+        arc_radius = 1.6537 * c
+        acx, acy = scr(-0.6536 * c, -0.4809 * c)
+        r_arc = arc_radius * zoom
+        canvas.create_arc(acx - r_arc, acy - r_arc, acx + r_arc, acy + r_arc,
+                          start=1 - rotation, extent=66, style="arc",
                           width=line_w, outline="black")
-        
-        canvas.create_line(sx, sy + r * 2, sx, cy2 + r, width=line_w, fill="black")
-        canvas.create_line(sx + r, cy1, sx + r * 2, cy1, width=line_w, fill="black")
 
-        canvas.create_oval(sx - r, cy1 - r, sx + r, cy1 + r, fill="white", outline="black", width=line_w)
-        canvas.create_oval(sx - r, cy2 - r, sx + r, cy2 + r, fill="white", outline="black", width=line_w)
-        
-        if self.name:
-            canvas.create_text(sx + r * 2.5, sy, text=self.name, anchor="w", font=("Arial", int(10 * zoom)), fill="black")
+        # Вывод НН и вывод СН — ровно как в исходном символе
+        for dx1, dy1, dx2, dy2 in ((0, 2 * c, 0, 1.5 * c),
+                                   (c, -0.5 * c, 2 * c, -0.5 * c)):
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=line_w, fill="black")
+
+        # Обмотки
+        for dy in (-0.5 * c, 0.5 * c):
+            cx, cy = scr(0, dy)
+            r = c * zoom
+            canvas.create_oval(cx - r, cy - r, cx + r, cy + r,
+                               fill="white", outline="black", width=line_w)
+
+        if rotation == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, 2.5 * c)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
 
     def get_bounding_box(self):
-        r = self.grid_size * 0.8
-        return (self.x - r, self.y - r, self.x + r, self.y + r)
+        c = self.cell
+        return self._rotated_bbox((-c, -2 * c, 2 * c, 2 * c))
 
 
 # ==========================================
@@ -593,35 +675,48 @@ class Reactor(Component):
         self.generate_ports()
 
     def generate_ports(self):
-        g = self.grid_size
-        self.ports = {
-            "top":    {"x": self.x, "y": self.y - g * 2, "node_id": f"N_{self.id}_top"},
-            "bottom": {"x": self.x, "y": self.y + g * 2, "node_id": f"N_{self.id}_bot"}
-        }
+        c = self.cell
+        self.ports = {}
+        for name, dx, dy in (("top", 0, -2 * c), ("bottom", 0, 2 * c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
 
     def draw(self, canvas, zoom, offset_x, offset_y):
-        sx = self.x * zoom + offset_x
-        sy = self.y * zoom + offset_y
-        r = self.grid_size * zoom 
-        
-        canvas.create_line(sx, sy - r * 2, sx, sy - r, width=max(1, int(2*zoom)), fill="black")
-        canvas.create_line(sx, sy + r, sx, sy + r * 2, width=max(1, int(2*zoom)), fill="black")
-        
-        canvas.create_arc(sx-r, sy-r, sx+r, sy+r, 
-                          start=90, extent=270, 
-                          style=tk.ARC, 
-                          outline="black", 
-                          width=max(1, int(2*zoom)))
-        
-        canvas.create_line(sx, sy, sx + r, sy, width=max(1, int(2*zoom)), fill="black")
-        canvas.create_line(sx, sy, sx, sy + r, width=max(1, int(2*zoom)), fill="black")
-        
-        if self.name:
-            canvas.create_text(sx + r + 15*zoom, sy, text=self.name, anchor="w", font=("Arial", int(10*zoom)), fill="black")
+        c = self.cell
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0)
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        # Выводы
+        for dx1, dy1, dx2, dy2 in ((0, -2 * c, 0, -c), (0, c, 0, 2 * c)):
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        # Полуокружность обмотки
+        cx, cy = scr(0, 0)
+        r = c * zoom
+        canvas.create_arc(cx - r, cy - r, cx + r, cy + r,
+                          start=90 - rotation, extent=270,
+                          style=tk.ARC, outline="black", width=lw)
+
+        # Символ реактора: две короткие линии от центра
+        for dx1, dy1, dx2, dy2 in ((0, 0, c, 0), (0, 0, 0, c)):
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        if getattr(self, "rotation", 0) % 360 == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, self.cell + 15)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
 
     def get_bounding_box(self):
-        r = self.grid_size * 0.8
-        return (self.x - r, self.y - r, self.x + r, self.y + r)
+        c = self.cell
+        return self._rotated_bbox((-c, -2 * c, c, 2 * c))
 
 
 # ==========================================
@@ -645,14 +740,14 @@ class Ground(Component):
         return self.x + rdx, self.y + rdy
 
     def generate_ports(self):
-        g = self.grid_size
+        g = self.cell
         wx, wy = self._local_to_world(0, -g)
         self.ports = {
             "top": {"x": wx, "y": wy, "node_id": f"N_{self.id}_top"}
         }
 
     def draw(self, canvas, zoom, offset_x, offset_y):
-        g = self.grid_size
+        g = self.cell
         lw = max(1, int(2 * zoom))
 
         def scr(dx, dy):
@@ -682,7 +777,7 @@ class Ground(Component):
                                font=("Arial", int(10 * zoom)), fill="black")
 
     def get_bounding_box(self):
-        g = self.grid_size
+        g = self.cell
         return (self.x - g, self.y - g, self.x + g, self.y + g)
 
 
@@ -707,14 +802,14 @@ class VoltageTransformer(Component):
         return self.x + rdx, self.y + rdy
 
     def generate_ports(self):
-        g = self.grid_size
+        g = self.cell
         wx, wy = self._local_to_world(0, -g)
         self.ports = {
             "top": {"x": wx, "y": wy, "node_id": f"N_{self.id}_top"}
         }
 
     def draw(self, canvas, zoom, offset_x, offset_y):
-        g = self.grid_size
+        g = self.cell
         lw = max(1, int(2 * zoom))
 
         def scr(dx, dy):
@@ -749,7 +844,7 @@ class VoltageTransformer(Component):
                                font=("Arial", int(10 * zoom)), fill="black")
 
     def get_bounding_box(self):
-        g = self.grid_size
+        g = self.cell
         return (self.x - g, self.y - g, self.x + g, self.y + g)
 
 
@@ -775,7 +870,7 @@ class CurrentTransformer(Component):
         return self.x + rdx, self.y + rdy
 
     def generate_ports(self):
-        g = self.grid_size
+        g = self.cell
         # Два порта: сверху и снизу на 1 клетку от центра
         wx_top, wy_top = self._local_to_world(0, -g)
         wx_bot, wy_bot = self._local_to_world(0, g)
@@ -786,7 +881,7 @@ class CurrentTransformer(Component):
         }
 
     def draw(self, canvas, zoom, offset_x, offset_y):
-        g = self.grid_size
+        g = self.cell
         lw = max(1, int(2 * zoom))
 
         def scr(dx, dy):
@@ -814,9 +909,328 @@ class CurrentTransformer(Component):
                                font=("Arial", int(10 * zoom)), fill="black")
 
     def get_bounding_box(self):
-        g = self.grid_size
+        g = self.cell
         return (self.x - g, self.y - g, self.x + g, self.y + g)
 
+
+
+# ==========================================
+# 16. ОПН (ОГРАНИЧИТЕЛЬ ПЕРЕНАПРЯЖЕНИЙ)
+# ==========================================
+class SurgeArrester(Component):
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "opn"
+        self.rotation = 0
+        self.generate_ports()
+
+    def generate_ports(self):
+        c = self.cell
+        self.ports = {}
+        for name, dx, dy in (("top", 0, -2 * c), ("bottom", 0, 2 * c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        c = self.cell
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0) % 360
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        # Выводы
+        for dx1, dy1, dx2, dy2 in ((0, -2 * c, 0, -c), (0, c, 0, 2 * c)):
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        # Корпус
+        box = [(-0.5 * c, -c), (0.5 * c, -c), (0.5 * c, c), (-0.5 * c, c)]
+        pts = [v for dx, dy in box for v in scr(dx, dy)]
+        canvas.create_polygon(*pts, fill="white", outline="black", width=lw)
+
+        # Диагональ со стрелкой (нелинейный элемент)
+        tipx, tipy = 0.35 * c, -0.6 * c
+        sx0, sy0 = -0.35 * c, 0.6 * c
+        x1, y1 = scr(sx0, sy0)
+        x2, y2 = scr(tipx, tipy)
+        canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        dx, dy = tipx - sx0, tipy - sy0
+        length = math.hypot(dx, dy) or 1.0
+        ux, uy = dx / length, dy / length
+        bx, by = tipx - ux * 0.35 * c, tipy - uy * 0.35 * c
+        px_, py_ = -uy * 0.15 * c, ux * 0.15 * c
+        for ax, ay in ((bx + px_, by + py_), (bx - px_, by - py_)):
+            ax_, ay_ = scr(ax, ay)
+            canvas.create_line(x2, y2, ax_, ay_, width=lw, fill="black")
+
+        if rotation == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, c + 15)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        c = self.cell
+        return self._rotated_bbox((-c, -2 * c, c, 2 * c))
+
+
+# ==========================================
+# 17. КС (КОНДЕНСАТОР СВЯЗИ)
+# ==========================================
+class CouplingCapacitor(Component):
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "coupling_capacitor"
+        self.rotation = 0
+        self.generate_ports()
+
+    def generate_ports(self):
+        c = self.cell
+        self.ports = {}
+        for name, dx, dy in (("top", 0, -2 * c), ("bottom", 0, 2 * c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        c = self.cell
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0) % 360
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        # Выводы и две обкладки
+        for dx1, dy1, dx2, dy2 in ((0, -2 * c, 0, -0.25 * c),
+                                   (0, 0.25 * c, 0, 2 * c),
+                                   (-0.7 * c, -0.25 * c, 0.7 * c, -0.25 * c),
+                                   (-0.7 * c, 0.25 * c, 0.7 * c, 0.25 * c)):
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        if rotation == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, c + 15)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        c = self.cell
+        return self._rotated_bbox((-0.7 * c, -2 * c, 0.7 * c, 2 * c))
+
+
+# ==========================================
+# 18. ВЧЗ (ВЫСОКОЧАСТОТНЫЙ ЗАГРАДИТЕЛЬ)
+# ==========================================
+class LineTrap(Component):
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "line_trap"
+        self.rotation = 0
+        self.generate_ports()
+
+    def generate_ports(self):
+        c = self.cell
+        self.ports = {}
+        for name, dx, dy in (("top", 0, -2 * c), ("bottom", 0, 2 * c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        c = self.cell
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0) % 360
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        # Выводы
+        for dx1, dy1, dx2, dy2 in ((0, -2 * c, 0, -1.2 * c), (0, 1.2 * c, 0, 2 * c)):
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        # Катушка: зигзаг из полуволн
+        points = []
+        steps = 24
+        for i in range(steps + 1):
+            t = i / steps
+            dy = -1.2 * c + 2.4 * c * t
+            dx = 0.35 * c * math.sin(t * math.pi * 4)
+            points.extend(scr(dx, dy))
+        canvas.create_line(*points, width=lw, fill="black", smooth=False)
+
+        if rotation == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, c + 15)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        c = self.cell
+        return self._rotated_bbox((-0.4 * c, -2 * c, 0.4 * c, 2 * c))
+
+
+# ==========================================
+# 19. ФП (ФИЛЬТР ПРИСОЕДИНЕНИЯ)
+# ==========================================
+class ConnectionFilter(Component):
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "connection_filter"
+        self.rotation = 0
+        self.generate_ports()
+
+    def generate_ports(self):
+        c = self.cell
+        self.ports = {}
+        for name, dx, dy in (("top", 0, -2 * c), ("bottom", 0, 2 * c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        c = self.cell
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0) % 360
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        for dx1, dy1, dx2, dy2 in ((0, -2 * c, 0, -0.8 * c), (0, 0.8 * c, 0, 2 * c)):
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        box = [(-0.8 * c, -0.8 * c), (0.8 * c, -0.8 * c),
+               (0.8 * c, 0.8 * c), (-0.8 * c, 0.8 * c)]
+        pts = [v for dx, dy in box for v in scr(dx, dy)]
+        canvas.create_polygon(*pts, fill="white", outline="black", width=lw)
+
+        # Диагональ (условное обозначение фильтра)
+        x1, y1 = scr(-0.45 * c, 0.45 * c)
+        x2, y2 = scr(0.45 * c, -0.45 * c)
+        canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        if rotation == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, c + 15)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        c = self.cell
+        return self._rotated_bbox((-0.8 * c, -2 * c, 0.8 * c, 2 * c))
+
+
+# ==========================================
+# 20. АВ (АВТОМАТИЧЕСКИЙ ВЫКЛЮЧАТЕЛЬ 0,4 кВ)
+# ==========================================
+class AutomaticBreaker(Component):
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "av_breaker"
+        self.rotation = 0
+        self.generate_ports()
+
+    def generate_ports(self):
+        c = self.cell
+        self.ports = {}
+        for name, dx, dy in (("top", 0, -c), ("bottom", 0, c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        c = self.cell
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0) % 360
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        for dx1, dy1, dx2, dy2 in ((0, -c, 0, -0.5 * c), (0, 0.5 * c, 0, c)):
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        box = [(-0.5 * c, -0.5 * c), (0.5 * c, -0.5 * c),
+               (0.5 * c, 0.5 * c), (-0.5 * c, 0.5 * c)]
+        pts = [v for dx, dy in box for v in scr(dx, dy)]
+        canvas.create_polygon(*pts, fill="white", outline="black", width=lw)
+
+        # Косая черта — признак автоматического выключателя
+        x1, y1 = scr(-0.25 * c, 0.3 * c)
+        x2, y2 = scr(0.25 * c, -0.3 * c)
+        canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        if rotation == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, c + 10)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        c = self.cell
+        return self._rotated_bbox((-c, -c, c, c))
+
+
+# ==========================================
+# 21. ПРЕДОХРАНИТЕЛЬ
+# ==========================================
+class Fuse(Component):
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "fuse"
+        self.rotation = 0
+        self.generate_ports()
+
+    def generate_ports(self):
+        c = self.cell
+        self.ports = {}
+        for name, dx, dy in (("top", 0, -2 * c), ("bottom", 0, 2 * c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        c = self.cell
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0) % 360
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        for dx1, dy1, dx2, dy2 in ((0, -2 * c, 0, -0.6 * c),
+                                   (0, 0.6 * c, 0, 2 * c),
+                                   (0, -0.6 * c, 0, 0.6 * c)):
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        box = [(-0.4 * c, -0.6 * c), (0.4 * c, -0.6 * c),
+               (0.4 * c, 0.6 * c), (-0.4 * c, 0.6 * c)]
+        pts = [v for dx, dy in box for v in scr(dx, dy)]
+        canvas.create_polygon(*pts, fill="white", outline="black", width=lw)
+
+        if rotation == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, c + 10)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        c = self.cell
+        return self._rotated_bbox((-0.4 * c, -2 * c, 0.4 * c, 2 * c))
+
+
+COMPONENT_TYPES = (
+    "breaker", "disconnector", "bus", "transformer", "split_transformer",
+    "three_winding_transformer", "autotransformer", "reactor", "line",
+    "voltage_transformer", "current_transformer", "node", "corner",
+    "grounding_switch", "ground", "opn", "coupling_capacitor", "line_trap",
+    "connection_filter", "av_breaker", "fuse",
+)
 
 
 def create_component(comp_type, comp_id, x, y, grid_size=20):
@@ -835,4 +1249,10 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
     elif comp_type == "corner": return Corner(comp_id, x, y, grid_size)
     elif comp_type == "grounding_switch": return GroundingSwitch(comp_id, x, y, grid_size)
     elif comp_type == "ground": return Ground(comp_id, x, y, grid_size)
+    elif comp_type == "opn": return SurgeArrester(comp_id, x, y, grid_size)
+    elif comp_type == "coupling_capacitor": return CouplingCapacitor(comp_id, x, y, grid_size)
+    elif comp_type == "line_trap": return LineTrap(comp_id, x, y, grid_size)
+    elif comp_type == "connection_filter": return ConnectionFilter(comp_id, x, y, grid_size)
+    elif comp_type == "av_breaker": return AutomaticBreaker(comp_id, x, y, grid_size)
+    elif comp_type == "fuse": return Fuse(comp_id, x, y, grid_size)
     else: raise ValueError(f"Неизвестный тип элемента: {comp_type}")
