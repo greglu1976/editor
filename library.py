@@ -1306,6 +1306,11 @@ class Cabinet(Component):
         }
         self.generate_ports()
 
+    def bind_point(self):
+        """Точка привязки шкафа к контейнеру КЭТ — на левой грани по центру."""
+        x1, y1, _x2, y2 = self._rect()
+        return (x1, (y1 + y2) / 2.0)
+
     def row_count(self):
         return max(1, len(self.komplets))
 
@@ -1372,12 +1377,254 @@ class Cabinet(Component):
         return self._rect()
 
 
+# ==========================================
+# 23. КОНТЕЙНЕР КЭТ (привязка шкафов)
+# ==========================================
+CONTAINER_MAX_SLOTS = 14
+
+
+class Container(Component):
+    """Контейнер электротехнический типовой (КЭТ) — вертикальный ряд слотов.
+
+    На схеме КЭТ рисуется вертикально: сверху вниз идут пронумерованные
+    слоты. Каждый слот привязывается к шкафу линией (слот → шкаф), сам шкаф
+    остаётся там, где его поставили, и связывается с контейнером линией.
+    Привязка хранится в контейнере: ``cabinets[i]`` — id шкафа в слоте i
+    (пустая строка — слот свободен), ``slot_labels[i]`` — подпись шкафа
+    в строке слота (обновляется редактором).
+    """
+
+    BODY_W = 250          # ширина корпуса контейнера
+    ROW_H = 46            # высота строки слота
+    TOP_H = 32            # полоса заголовка
+    PAD = 20              # отступ от стенки контейнера
+    MAX_SLOTS = CONTAINER_MAX_SLOTS
+    LABEL_CHARS = 24      # сколько символов подписи влезает в строку
+
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "container"
+        self.container_key = ""
+        self.title = "КЭТ"
+        self.code = "КЭТ"
+        self.size = "20dc"
+        self.slots = 7
+        self.cabinets = [""] * self.slots
+        self.slot_labels = [""] * self.slots
+        self.info = {}
+        self.generate_ports()
+
+    # ---------------------------------------------------------- данные
+    def set_container(self, definition):
+        """Заполняет контейнер по описанию из каталога."""
+        self.container_key = definition.get("key", "")
+        self.code = definition.get("code") or definition.get("name", "КЭТ")
+        self.title = definition.get("name", "КЭТ")
+        self.size = definition.get("size", "20dc")
+        try:
+            self.slots = max(1, min(self.MAX_SLOTS,
+                                    int(definition.get("slots") or 7)))
+        except (TypeError, ValueError):
+            self.slots = 7
+        self.cabinets = [""] * self.slots
+        self.slot_labels = [""] * self.slots
+        self.info = {
+            key: definition.get(key)
+            for key in ("code", "name", "title", "description", "group",
+                        "standard", "standard_title", "architecture", "size",
+                        "size_code", "size_title", "dimensions", "climate",
+                        "ip", "functions", "composition", "source", "note")
+            if definition.get(key) not in (None, "", [])
+        }
+        self.generate_ports()
+
+    def set_slots(self, slots):
+        """Меняет число слотов, сохраняя привязку шкафов и подписи."""
+        slots = max(1, min(self.MAX_SLOTS, int(slots or 1)))
+        self.slots = slots
+        self.cabinets = (list(self.cabinets) + [""] * slots)[:slots]
+        self.slot_labels = (list(self.slot_labels) + [""] * slots)[:slots]
+
+    def slot_count(self):
+        return max(1, min(self.MAX_SLOTS, int(self.slots or 1)))
+
+    def bound_ids(self):
+        return [cabinet_id for cabinet_id in self.cabinets if cabinet_id]
+
+    def bound_count(self):
+        return len(self.bound_ids())
+
+    def free_slot(self):
+        for index in range(self.slot_count()):
+            if not self.cabinets[index]:
+                return index
+        return None
+
+    def slot_of(self, cabinet_id):
+        for index, value in enumerate(self.cabinets):
+            if value == cabinet_id:
+                return index
+        return None
+
+    def bind(self, cabinet_id):
+        """Ставит шкаф в первый свободный слот; возвращает номер слота."""
+        if not cabinet_id:
+            return None
+        index = self.slot_of(cabinet_id)
+        if index is not None:
+            return index
+        index = self.free_slot()
+        if index is None:
+            return None
+        self.cabinets[index] = cabinet_id
+        return index
+
+    def bind_slot(self, cabinet_id, index):
+        """Ставит шкаф в конкретный слот, освобождая его прежние слоты."""
+        index = int(index)
+        if not (0 <= index < self.slot_count()) or not cabinet_id:
+            return None
+        previous = self.slot_of(cabinet_id)
+        if previous == index:
+            return index
+        if previous is not None:
+            self.cabinets[previous] = ""
+        self.cabinets[index] = cabinet_id
+        return index
+
+    def unbind(self, cabinet_id):
+        """Освобождает слот шкафа; нумерация слотов не сдвигается."""
+        index = self.slot_of(cabinet_id)
+        if index is None:
+            return False
+        self.cabinets[index] = ""
+        return True
+
+    def clear_bindings(self):
+        self.cabinets = [""] * self.slot_count()
+        self.slot_labels = [""] * self.slot_count()
+
+    # -------------------------------------------------------- геометрия
+    def _rect(self):
+        width = self.BODY_W + self.PAD * 2
+        height = self.TOP_H + self.slot_count() * self.ROW_H + self.PAD
+        half_w, half_h = width / 2.0, height / 2.0
+        return (self.x - half_w, self.y - half_h,
+                self.x + half_w, self.y + half_h)
+
+    def content_top(self):
+        return self._rect()[1] + self.TOP_H
+
+    def slot_rect(self, index):
+        """Прямоугольник строки слота в мировых координатах."""
+        x1, _y1, x2, _y2 = self._rect()
+        top = self.content_top() + index * self.ROW_H
+        return x1 + 6, top, x2 - 6, top + self.ROW_H
+
+    def slot_center(self, index):
+        """Точка подключения слота — на правой стенке контейнера."""
+        x1, _y1, x2, _y2 = self._rect()
+        center_y = self.content_top() + index * self.ROW_H + self.ROW_H / 2.0
+        return x2, center_y
+
+    def set_slot_label(self, index, text):
+        if 0 <= index < len(self.slot_labels):
+            text = text or ""
+            if len(text) > self.LABEL_CHARS:
+                text = text[:self.LABEL_CHARS - 1].rstrip() + "…"
+            self.slot_labels[index] = text
+
+    def generate_ports(self):
+        # У контейнера нет электрических выводов: слоты связываются со
+        # шкафами отдельными линиями привязки, а не электрическими связями.
+        self.ports = {}
+
+    # -------------------------------------------------------- отрисовка
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        x1, y1, x2, y2 = self._rect()
+        sx1, sy1 = x1 * zoom + offset_x, y1 * zoom + offset_y
+        sx2, sy2 = x2 * zoom + offset_x, y2 * zoom + offset_y
+        lw = max(1, int(2 * zoom))
+
+        # Корпус и внутренние стенки
+        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#eef3f8",
+                                outline="#1f4e79", width=lw,
+                                tags="container_body")
+        inset = 5 * zoom
+        canvas.create_rectangle(sx1 + inset, sy1 + inset, sx2 - inset, sy2 - inset,
+                                fill="#f7fafd", outline="#9db4cc", width=1,
+                                tags="container_body")
+
+        # Заголовок: маркировка, типоразмер, счётчик шкафов
+        header_h = self.TOP_H * zoom
+        canvas.create_rectangle(sx1, sy1, sx2, sy1 + header_h,
+                                fill="#1f4e79", outline="#1f4e79",
+                                tags="container_body")
+        size_code = self.info.get("size_code", "")
+        caption = self.code or "КЭТ"
+        if size_code:
+            caption = "{} · {}".format(caption, size_code)
+        canvas.create_text(sx1 + 8 * zoom, sy1 + header_h / 2.0, text=caption,
+                           anchor="w", font=("Arial", int(8 * zoom), "bold"),
+                           fill="white", tags="container_body")
+        canvas.create_text(sx2 - 8 * zoom, sy1 + header_h / 2.0,
+                           text="{} / {}".format(self.bound_count(),
+                                                 self.slot_count()),
+                           anchor="e", font=("Arial", int(7 * zoom)),
+                           fill="#dce9f7", tags="container_body")
+
+        # Строки слотов сверху вниз
+        font_size = max(1, int(7 * zoom))
+        for index in range(self.slot_count()):
+            left, top, right, bottom = self.slot_rect(index)
+            sl, st = left * zoom + offset_x, top * zoom + offset_y
+            sr, sb = right * zoom + offset_x, bottom * zoom + offset_y
+            cabinet_id = (self.cabinets[index]
+                          if index < len(self.cabinets) else "")
+            label = (self.slot_labels[index]
+                     if index < len(self.slot_labels) else "")
+            if index:
+                canvas.create_line(sl, st, sr, st, fill="#c3d2e0", width=1,
+                                   tags="container_slot")
+            if cabinet_id:
+                canvas.create_rectangle(sl, st, sr, sb, fill="#e6f0e6",
+                                        outline="", tags="container_slot")
+            canvas.create_text(sl + 6 * zoom, (st + sb) / 2.0,
+                               text=str(index + 1), anchor="w",
+                               font=("Arial", font_size),
+                               fill="#1f4e79" if cabinet_id else "#9db4cc",
+                               tags="container_slot")
+            if cabinet_id:
+                text, color = (label or "шкаф"), "black"
+            else:
+                text, color = "свободно", "#9db4cc"
+            canvas.create_text(sl + 22 * zoom, (st + sb) / 2.0,
+                               text=text, anchor="w",
+                               font=("Arial", font_size), fill=color,
+                               tags="container_slot")
+
+            # Точка подключения слота на правой стенке
+            port_x, port_y = self.slot_center(index)
+            px = port_x * zoom + offset_x
+            py = port_y * zoom + offset_y
+            r = max(2.0, 2.6 * zoom)
+            canvas.create_oval(px - r, py - r, px + r, py + r,
+                               fill="#a0522d" if cabinet_id else "white",
+                               outline="#a0522d", width=1,
+                               tags="container_slot")
+
+        self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        return self._rect()
+
+
 COMPONENT_TYPES = (
     "breaker", "disconnector", "bus", "transformer", "split_transformer",
     "three_winding_transformer", "autotransformer", "reactor", "line",
     "voltage_transformer", "current_transformer", "node", "corner",
     "grounding_switch", "ground", "opn", "coupling_capacitor", "line_trap",
-    "connection_filter", "av_breaker", "fuse", "cabinet",
+    "connection_filter", "av_breaker", "fuse", "cabinet", "container",
 )
 
 
@@ -1404,4 +1651,5 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
     elif comp_type == "av_breaker": return AutomaticBreaker(comp_id, x, y, grid_size)
     elif comp_type == "fuse": return Fuse(comp_id, x, y, grid_size)
     elif comp_type == "cabinet": return Cabinet(comp_id, x, y, grid_size)
+    elif comp_type == "container": return Container(comp_id, x, y, grid_size)
     else: raise ValueError(f"Неизвестный тип элемента: {comp_type}")

@@ -10,6 +10,7 @@ import pdfunderlay
 import pdfexport
 import ssdexport
 import cabs
+import containers as ketlib
 
 try:
     import pdf2json
@@ -26,7 +27,7 @@ PREFIX_BY_TYPE = {
     "ground": "G", "voltage_transformer": "TV", "current_transformer": "TA",
     "opn": "ОПН", "coupling_capacitor": "КС", "line_trap": "ВЧЗ",
     "connection_filter": "ФП", "av_breaker": "АВ", "fuse": "ПР",
-    "cabinet": "Ш",
+    "cabinet": "Ш", "container": "КЭТ",
 }
 
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
@@ -240,6 +241,21 @@ def _ri_shield(c):
 def _ri_protlink(c):
     c.create_line(6, 26, 24, 8, width=2, arrow=tk.LAST)
     c.create_oval(22, 4, 28, 10, outline="black", width=1)
+
+
+def _ri_container(c):
+    c.create_rectangle(3, 9, 29, 25, outline="black", width=2)
+    for x in (9, 15, 21):
+        c.create_line(x, 10, x, 24, width=1, fill="#666666")
+    c.create_line(3, 13, 29, 13, width=1)
+    c.create_line(4, 9, 4, 25, width=1, fill="#666666")
+
+
+def _ri_ket_link(c):
+    """Связь КЭТ: точка слота (●) — линия — точка шкафа (□)."""
+    c.create_line(9, 16, 23, 16, width=2)
+    c.create_oval(3, 11, 11, 21, outline="#a0522d", width=2, fill="white")
+    c.create_rectangle(22, 10, 30, 22, outline="#a0522d", width=2, fill="white")
 
 
 def _ri_eye(c):
@@ -456,7 +472,9 @@ class CircuitEditor:
         self.protection_links = []
         self.show_protection = True     # стрелки комплект→узел и ромбы-узлы
         self.show_cabinets = True       # сами шкафы
+        self.show_containers = True     # контейнеры КЭТ (под шкафами)
         self._protection_start = None    # ("komplekt", cabinet_id, port) | ("element", id)
+        self._bind_start = None          # ("slot", container_id, index) | ("cabinet", id, None)
         self._pending_cabinet = None
 
         self.setup_ui()
@@ -525,7 +543,8 @@ class CircuitEditor:
         self._ribbon_tab_buttons = {}
         for name, builder in (("Главная", self._build_ribbon_home),
                               ("Вид", self._build_ribbon_view),
-                              ("Шкафы", self._build_ribbon_cabinets)):
+                              ("Шкафы", self._build_ribbon_cabinets),
+                              ("Контейнеры", self._build_ribbon_containers)):
             self._ribbon_pages[name] = builder(content)
             button = tk.Button(tabbar, text=name, relief=tk.FLAT, bd=0,
                                padx=16, pady=3, font=("Arial", 9),
@@ -588,6 +607,13 @@ class CircuitEditor:
             widget.bind("<Leave>", on_leave)
         return cell
 
+    def _register_tool(self, cell, tool):
+        """Запоминает кнопку инструмента, чтобы подсвечивать активный режим."""
+        if not hasattr(self, "_ribbon_tool_cells"):
+            self._ribbon_tool_cells = {}
+        self._ribbon_tool_cells[tool] = cell
+        return cell
+
     def _ribbon_toggle(self, parent, text, variable, command, icon, width=64):
         def toggle():
             variable.set(not variable.get())
@@ -606,8 +632,10 @@ class CircuitEditor:
 
     def _build_ribbon_home(self, parent):
         page = tk.Frame(parent, bg="#f3f3f3")
-        self._ribbon_group(page, "Инструменты", lambda row: self._ribbon_button(
-            row, "Выбрать/Двигать", lambda: self.set_tool("select"), _ri_select, 76).pack(side=tk.LEFT))
+        self._ribbon_group(page, "Инструменты", lambda row: self._register_tool(
+            self._ribbon_button(row, "Выбрать/Двигать",
+                                lambda: self.set_tool("select"),
+                                _ri_select, 76), "select").pack(side=tk.LEFT))
         self._ribbon_group(page, "История", lambda row: [
             self._ribbon_button(row, "Назад", self.undo_last_action, _ri_undo, 52).pack(side=tk.LEFT),
             self._ribbon_button(row, "Вперёд", self.redo_last_action, _ri_redo, 52).pack(side=tk.LEFT),
@@ -626,8 +654,9 @@ class CircuitEditor:
         ])
         self._ribbon_group(page, "Защита", lambda row: [
             self._ribbon_button(row, "Шкаф…", self.add_cabinet, _ri_shield, 58).pack(side=tk.LEFT),
-            self._ribbon_button(row, "Связь РЗА", lambda: self.set_tool("protection"),
-                                _ri_protlink, 66).pack(side=tk.LEFT),
+            self._register_tool(self._ribbon_button(
+                row, "Связь РЗА", lambda: self.set_tool("protection"),
+                _ri_protlink, 66), "protection").pack(side=tk.LEFT),
         ])
         return page
 
@@ -661,6 +690,9 @@ class CircuitEditor:
             self.show_cabinets_var = tk.BooleanVar(value=True)
             self._ribbon_toggle(row, "Шкафы", self.show_cabinets_var,
                                 self.toggle_cabinets, _ri_shield, 56).pack(side=tk.LEFT)
+            self.show_containers_var = tk.BooleanVar(value=True)
+            self._ribbon_toggle(row, "Контейнеры", self.show_containers_var,
+                                self.toggle_containers, _ri_container, 74).pack(side=tk.LEFT)
             self.show_protection_var = tk.BooleanVar(value=True)
             self._ribbon_toggle(row, "Связи РЗА", self.show_protection_var,
                                 self.toggle_protection, _ri_protlink, 72).pack(side=tk.LEFT)
@@ -1145,6 +1177,1079 @@ class CircuitEditor:
             pass
         dialog.wait_window(dialog)
 
+    # ================= ВКЛАДКА «КОНТЕЙНЕРЫ» И ПРИВЯЗКА ШКАФОВ =================
+    def _build_ribbon_containers(self, parent):
+        page = tk.Frame(parent, bg="#f3f3f3")
+        self._ribbon_group(page, "Каталог", lambda row: [
+            self._ribbon_button(row, "Каталог…", self.open_container_catalog,
+                                _ri_container, 66).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Новый КЭТ", self.create_container_type,
+                                _ri_plus, 72).pack(side=tk.LEFT),
+        ])
+        self._ribbon_group(page, "Размещение", lambda row: [
+            self._ribbon_button(row, "Контейнер…", self.add_container,
+                                _ri_container, 76).pack(side=tk.LEFT),
+        ])
+        self._ribbon_group(page, "Привязка слотов", lambda row: [
+            self._register_tool(self._ribbon_button(
+                row, "Связь КЭТ", lambda: self.set_tool("bind"),
+                _ri_ket_link, 70), "bind").pack(side=tk.LEFT),
+            self._ribbon_button(row, "По составу", self.expand_container_by_composition,
+                                _ri_plus, 66).pack(side=tk.LEFT),
+        ])
+        self._ribbon_group(page, "Данные", lambda row: [
+            self._ribbon_button(row, "Сбросить", self.reset_container_catalog,
+                                _ri_clear, 64).pack(side=tk.LEFT),
+        ])
+        tk.Label(page, text="Связь КЭТ: клик по слоту (● на правой стенке),\n"
+                            "затем по точке □ на левой грани шкафа.\n"
+                            "Клик по линии — отвязать. Слоты сверху вниз: 7 (20’) / 14 (40’).",
+                 bg="#f3f3f3", fg="#808080", font=("Arial", 7),
+                 justify="left").pack(side=tk.LEFT, padx=12)
+        return page
+
+    def _center_dialog(self, dialog):
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = self.root.winfo_rootx() + max(0, (self.root.winfo_width() - width) // 2)
+        y = self.root.winfo_rooty() + max(0, (self.root.winfo_height() - height) // 5)
+        dialog.geometry(f"+{x}+{y}")
+        try:
+            dialog.grab_set()
+        except tk.TclError:
+            pass
+
+    def _pick_from_list(self, title, hint, items, multi=False, width=80,
+                        height=14, accept_text="ОК"):
+        """Простой диалог выбора из списка [(ключ, подпись), …]."""
+        if not items:
+            return []
+        dialog = tk.Toplevel(self.root)
+        dialog.title(title)
+        dialog.transient(self.root)
+        tk.Label(dialog, text=hint, anchor="w", fg="#555555", justify="left",
+                 wraplength=620).pack(fill=tk.X, padx=10, pady=(8, 4))
+        frame = tk.Frame(dialog)
+        frame.pack(fill=tk.BOTH, expand=True, padx=10)
+        listbox = tk.Listbox(frame, width=width,
+                             height=max(3, min(height, len(items))),
+                             activestyle="dotbox",
+                             selectmode=tk.MULTIPLE if multi else tk.BROWSE)
+        scrollbar = tk.Scrollbar(frame, orient="vertical", command=listbox.yview)
+        listbox.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        for _key, label in items:
+            listbox.insert("end", label)
+        if multi:
+            listbox.selection_set(0)
+        else:
+            listbox.selection_set(0)
+            listbox.activate(0)
+        result = {"keys": []}
+
+        def accept(event=None):
+            result["keys"] = [items[index][0] for index in listbox.curselection()]
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=8)
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text=accept_text, width=12,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        listbox.bind("<Double-Button-1>", accept)
+        dialog.bind("<Return>", accept)
+        dialog.bind("<Escape>", cancel)
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+        return result["keys"]
+
+    # ---------- каталог контейнеров ----------
+    def open_container_catalog(self):
+        """Окно каталога КЭТ: список контейнеров и кнопки управления."""
+        window = tk.Toplevel(self.root)
+        window.title("Каталог контейнеров КЭТ")
+        window.transient(self.root)
+
+        header = tk.Label(window, text="", anchor="w", fg="#555555")
+        header.pack(fill=tk.X, padx=10, pady=(8, 4))
+
+        body = tk.Frame(window)
+        body.pack(fill=tk.BOTH, expand=True, padx=10)
+        listbox = tk.Listbox(body, width=64, height=18, activestyle="dotbox",
+                             exportselection=False)
+        scrollbar = tk.Scrollbar(body, orient="vertical", command=listbox.yview)
+        listbox.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        info = tk.Label(window, text="", anchor="nw", justify="left",
+                        fg="#333333", wraplength=760, height=10)
+        info.pack(fill=tk.BOTH, padx=10, pady=(6, 0))
+
+        state = {"containers": []}
+
+        def container_label(container):
+            group = container.get("group")
+            prefix = f"[{group}] " if group else ""
+            code = container.get("code")
+            name = container.get("name", "КЭТ")
+            mark = "" if ketlib.is_builtin(container.get("key")) else " •"
+            text = f"{prefix}{code} — {name}" if code else prefix + name
+            return text + mark
+
+        def refresh():
+            state["containers"] = ketlib.all_containers()
+            listbox.delete(0, "end")
+            for container in state["containers"]:
+                listbox.insert("end", container_label(container))
+            header.config(
+                text=f"Контейнеров в каталоге: {len(state['containers'])} "
+                     f"(встроенных {len(ketlib.CONTAINERS)}, точка • — "
+                     f"пользовательский)")
+            if state["containers"]:
+                listbox.selection_set(0)
+                show_info()
+
+        def selected():
+            selection = listbox.curselection()
+            if not selection:
+                return None
+            return state["containers"][selection[0]]
+
+        def show_info(event=None):
+            container = selected()
+            if container is None:
+                info.config(text="")
+                return
+            lines = []
+            if container.get("description"):
+                lines.append(container["description"])
+            lines.append("Типоразмер: {} ({})".format(
+                container.get("size_title", ""), container.get("dimensions", "")))
+            lines.append("Вместимость: {} шкафов".format(container.get("slots")))
+            lines.append("Климат: {}, степень защиты {}".format(
+                container.get("climate", ""), container.get("ip", "")))
+            if container.get("standard_title"):
+                lines.append("НД: {} ({})".format(container["standard_title"],
+                                                  container.get("standard")))
+            functions = container.get("functions") or []
+            if functions:
+                lines.append("Функции: " + ", ".join(functions))
+            cabinets = container.get("cabinets") or []
+            if cabinets:
+                names = []
+                for key in cabinets:
+                    found = cabs.find_cabinet(key)
+                    names.append((found or {}).get("code") or key)
+                lines.append("Шкафы: " + ", ".join(names))
+            if container.get("note"):
+                lines.append("Примечание: " + container["note"])
+            if container.get("source"):
+                lines.append("Источник: " + container["source"])
+            info.config(text="\n".join(lines))
+
+        def on_new():
+            self.edit_container_type(None)
+            refresh()
+
+        def on_edit(event=None):
+            container = selected()
+            if container is None:
+                return
+            self.edit_container_type(container, container.get("key"))
+            refresh()
+
+        def on_duplicate():
+            container = selected()
+            if container is None:
+                return
+            new_key = ketlib.duplicate_container(container.get("key"))
+            refresh()
+            if new_key is None:
+                return
+            for index, entry in enumerate(state["containers"]):
+                if entry.get("key") == new_key:
+                    listbox.selection_clear(0, "end")
+                    listbox.selection_set(index)
+                    listbox.see(index)
+                    break
+            show_info()
+
+        def on_delete():
+            container = selected()
+            if container is None:
+                return
+            title = container.get("code") or container.get("name")
+            if not messagebox.askyesno(
+                    "Каталог контейнеров",
+                    f"Удалить контейнер «{title}» из каталога?\n"
+                    "Размещённые на схеме контейнеры останутся."):
+                return
+            ketlib.delete_container(container.get("key"))
+            refresh()
+
+        def on_place():
+            container = selected()
+            if container is None:
+                return
+            window.destroy()
+            self._place_container(container, expand=False)
+
+        buttons = tk.Frame(window)
+        buttons.pack(fill=tk.X, padx=10, pady=8)
+        tk.Button(buttons, text="Закрыть", width=10,
+                  command=window.destroy).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Удалить", width=10,
+                  command=on_delete).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="Дублировать", width=12,
+                  command=on_duplicate).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="Изменить", width=10,
+                  command=on_edit).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="Новый", width=10,
+                  command=on_new).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="На схему", width=12,
+                  command=on_place).pack(side=tk.RIGHT, padx=(0, 6))
+
+        listbox.bind("<<ListboxSelect>>", show_info)
+        listbox.bind("<Double-Button-1>", on_edit)
+        window.bind("<Escape>", lambda event: window.destroy())
+        refresh()
+        self._center_dialog(window)
+
+    def create_container_type(self):
+        """Создание нового контейнера в каталоге."""
+        self.edit_container_type(None)
+
+    def reset_container_catalog(self):
+        if not messagebox.askyesno(
+                "Каталог контейнеров",
+                "Удалить все пользовательские контейнеры и правки?\n"
+                "Встроенный каталог из containers.py останется."):
+            return
+        ketlib.reset_user_catalog()
+        messagebox.showinfo(
+            "Каталог контейнеров",
+            "Каталог сброшен к встроенному: {} контейнеров.".format(
+                len(ketlib.all_containers())))
+
+    def edit_container_type(self, definition=None, original_key=None):
+        """Редактор контейнера: поля каталога, типоразмер и состав шкафов."""
+        definition = ketlib.normalize_container(copy.deepcopy(dict(definition or {})))
+        dialog = tk.Toplevel(self.root)
+        dialog.title("КЭТ — " + ("изменение" if original_key else "новый контейнер"))
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+
+        form = tk.Frame(dialog, padx=10, pady=8)
+        form.pack(fill=tk.BOTH, expand=True)
+
+        variables = {}
+        row = 0
+        for key, label, width in (
+                ("code", "Маркировка КЭТ", 26),
+                ("name", "Название (кратко)", 46),
+                ("description", "Назначение", 56),
+                ("functions", "Функции (через запятую)", 56),
+                ("source", "Источник (раздел стандарта)", 40)):
+            tk.Label(form, text=label, anchor="w").grid(row=row, column=0,
+                                                        sticky="w", pady=2)
+            value = definition.get(key, "")
+            if isinstance(value, (list, tuple)):
+                value = ", ".join(str(item) for item in value)
+            variable = tk.StringVar(value=str(value))
+            tk.Entry(form, textvariable=variable, width=width).grid(
+                row=row, column=1, sticky="we", padx=(8, 0), pady=2)
+            variables[key] = variable
+            row += 1
+
+        # --- нормативный документ ---
+        tk.Label(form, text="Нормативный документ", anchor="w").grid(
+            row=row, column=0, sticky="w", pady=2)
+        standard_labels = ["Прочие (без НД)"]
+        standard_keys = [""]
+        for standard_key, standard in ketlib.STANDARDS.items():
+            standard_keys.append(standard_key)
+            standard_labels.append(f'{standard["group"]} — {standard["code"]}')
+        current_key = definition.get("standard_key", "")
+        current_label = (standard_labels[standard_keys.index(current_key)]
+                         if current_key in standard_keys else standard_labels[0])
+        standard_variable = tk.StringVar(value=current_label)
+        tk.OptionMenu(form, standard_variable, *standard_labels).grid(
+            row=row, column=1, sticky="we", padx=(8, 0), pady=2)
+        row += 1
+
+        # --- группа ---
+        tk.Label(form, text="Группа оборудования", anchor="w").grid(
+            row=row, column=0, sticky="w", pady=2)
+        current_group = definition.get("group") or "Прочие"
+        group_labels = list(ketlib.GROUPS)
+        if current_group not in group_labels:
+            group_labels.append(current_group)
+        group_variable = tk.StringVar(value=current_group)
+        tk.OptionMenu(form, group_variable, *group_labels).grid(
+            row=row, column=1, sticky="we", padx=(8, 0), pady=2)
+        row += 1
+
+        # --- типоразмер и вместимость ---
+        size_row = tk.Frame(form)
+        size_row.grid(row=row, column=0, columnspan=2, sticky="we", pady=2)
+        tk.Label(size_row, text="Типоразмер", anchor="w", width=22).pack(side=tk.LEFT)
+        size_labels = [f'{size["code"]} — {size["title"]}'
+                       for size in ketlib.SIZES.values()]
+        size_keys = list(ketlib.SIZES.keys())
+        current_size = definition.get("size") or "20dc"
+        size_variable = tk.StringVar(
+            value=size_labels[size_keys.index(current_size)]
+            if current_size in size_keys else size_labels[0])
+        tk.OptionMenu(size_row, size_variable, *size_labels).pack(
+            side=tk.LEFT, fill=tk.X, expand=True)
+        row += 1
+
+        slots_row = tk.Frame(form)
+        slots_row.grid(row=row, column=0, columnspan=2, sticky="we", pady=2)
+        tk.Label(slots_row, text="Вместимость, шкафов", anchor="w",
+                 width=22).pack(side=tk.LEFT)
+        slots_variable = tk.StringVar(value=str(definition.get("slots") or 7))
+        tk.Spinbox(slots_row, from_=1, to=ketlib.MAX_SLOTS, width=6,
+                   textvariable=slots_variable).pack(side=tk.LEFT)
+        tk.Label(slots_row, text="    20’DC/20’HC — до 7, 40’ — до 14",
+                 fg="#808080", font=("Arial", 8)).pack(side=tk.LEFT)
+        row += 1
+
+        # --- состав шкафов ---
+        tk.Label(form, text="Состав шкафов в контейнере (привязка к каталогу "
+                            "шкафов):", anchor="w").grid(
+            row=row, column=0, columnspan=2, sticky="w", pady=(10, 2))
+        row += 1
+
+        state = {"cabinets": list(definition.get("cabinets") or [])}
+        box = tk.Frame(form)
+        box.grid(row=row, column=0, columnspan=2, sticky="we")
+        row += 1
+
+        left = tk.Frame(box)
+        left.pack(side=tk.LEFT, fill=tk.Y)
+        tk.Label(left, text="В контейнере", anchor="w",
+                 fg="#555555").pack(fill=tk.X)
+        composition_list = tk.Listbox(left, width=44, height=9,
+                                      activestyle="dotbox", exportselection=False)
+        composition_list.pack(fill=tk.BOTH, expand=True)
+        composition_buttons = tk.Frame(left)
+        composition_buttons.pack(fill=tk.X, pady=(4, 0))
+        tk.Button(composition_buttons, text="− Убрать", width=10,
+                  command=lambda: remove_cabinet()).pack(side=tk.LEFT)
+        tk.Button(composition_buttons, text="↑", width=3,
+                  command=lambda: move_cabinet(-1)).pack(side=tk.LEFT, padx=(4, 0))
+        tk.Button(composition_buttons, text="↓", width=3,
+                  command=lambda: move_cabinet(1)).pack(side=tk.LEFT, padx=(2, 0))
+
+        right = tk.Frame(box, padx=10)
+        right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tk.Label(right, text="Каталог шкафов", anchor="w",
+                 fg="#555555").pack(fill=tk.X)
+        catalog_frame = tk.Frame(right)
+        catalog_frame.pack(fill=tk.BOTH, expand=True)
+        catalog_list = tk.Listbox(catalog_frame, width=54, height=9,
+                                  activestyle="dotbox", exportselection=False)
+        catalog_scroll = tk.Scrollbar(catalog_frame, orient="vertical",
+                                      command=catalog_list.yview)
+        catalog_list.configure(yscrollcommand=catalog_scroll.set)
+        catalog_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        catalog_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        tk.Button(right, text="Добавить в контейнер →", width=24,
+                  command=lambda: add_cabinet()).pack(anchor="w", pady=(4, 0))
+
+        tk.Label(form, text="Справочный состав по стандарту (только чтение):",
+                 anchor="w", fg="#555555").grid(row=row, column=0,
+                                                columnspan=2, sticky="w",
+                                                pady=(8, 2))
+        row += 1
+        reference = tk.Text(form, width=96, height=7, wrap="word",
+                            font=("Arial", 8), bg="#f7f7f7")
+        reference.grid(row=row, column=0, columnspan=2, sticky="we")
+        reference.insert("1.0", "\n".join(definition.get("composition") or []))
+        reference.config(state="disabled")
+        row += 1
+
+        error = tk.Label(form, text="", fg="#b00020", anchor="w")
+        error.grid(row=row, column=0, columnspan=2, sticky="w", pady=(4, 0))
+
+        catalog_entries = cabs.all_cabinets()
+
+        def catalog_caption(cabinet):
+            group = cabinet.get("group")
+            prefix = f"[{group}] " if group else ""
+            code = cabinet.get("code")
+            name = cabinet.get("name", "Шкаф")
+            return (prefix + code + " — " + name) if code else prefix + name
+
+        def cabinet_caption(key):
+            found = cabs.find_cabinet(key)
+            if found is None:
+                return f"⚠ {key} — нет в каталоге шкафов"
+            return catalog_caption(found)
+
+        def refresh_composition(select=None):
+            composition_list.delete(0, "end")
+            for key in state["cabinets"]:
+                composition_list.insert("end", cabinet_caption(key))
+            if state["cabinets"]:
+                index = select if select is not None else 0
+                index = max(0, min(index, len(state["cabinets"]) - 1))
+                composition_list.selection_clear(0, "end")
+                composition_list.selection_set(index)
+                composition_list.see(index)
+
+        def add_cabinet(event=None):
+            selection = catalog_list.curselection()
+            if not selection:
+                error.config(text="Выберите шкаф в каталоге.")
+                return
+            key = catalog_entries[selection[0]].get("key")
+            state["cabinets"].append(key)
+            error.config(text="")
+            refresh_composition(len(state["cabinets"]) - 1)
+
+        def remove_cabinet():
+            selection = composition_list.curselection()
+            if not selection:
+                error.config(text="Выберите шкаф в составе контейнера.")
+                return
+            del state["cabinets"][selection[0]]
+            error.config(text="")
+            refresh_composition(max(0, selection[0] - 1) if state["cabinets"] else None)
+
+        def move_cabinet(delta):
+            selection = composition_list.curselection()
+            if not selection:
+                return
+            index = selection[0]
+            target = index + delta
+            if not (0 <= target < len(state["cabinets"])):
+                return
+            state["cabinets"][index], state["cabinets"][target] = (
+                state["cabinets"][target], state["cabinets"][index])
+            refresh_composition(target)
+
+        for cabinet in catalog_entries:
+            catalog_list.insert("end", catalog_caption(cabinet))
+
+        def on_size_change(label):
+            size_key = size_keys[size_labels.index(label)]
+            slots_variable.set(str(ketlib.size_slots(size_key)))
+
+        size_variable.trace_add("write", lambda *args: on_size_change(size_variable.get()))
+
+        def split_list(text):
+            return [item.strip() for item in text.replace(";", ",").split(",")
+                    if item.strip()]
+
+        def accept(event=None):
+            name = variables["name"].get().strip()
+            if not name:
+                error.config(text="Укажите название контейнера.")
+                return
+            try:
+                slots = int(slots_variable.get())
+            except ValueError:
+                error.config(text="Вместимость должна быть числом.")
+                return
+            slots = max(1, min(ketlib.MAX_SLOTS, slots))
+            size_key = size_keys[size_labels.index(size_variable.get())]
+            data = {
+                "key": original_key or "",
+                "standard_key": standard_keys[standard_labels.index(
+                    standard_variable.get())],
+                "code": variables["code"].get().strip(),
+                "name": name,
+                "title": name,
+                "description": variables["description"].get().strip() or name,
+                "group": group_variable.get(),
+                "size": size_key,
+                "slots": slots,
+                "functions": split_list(variables["functions"].get()),
+                "cabinets": list(state["cabinets"]),
+                "composition": list(definition.get("composition") or []),
+                "source": variables["source"].get().strip(),
+            }
+            try:
+                ketlib.save_container(data, original_key)
+            except Exception as exc:
+                error.config(text="Не удалось сохранить: {}".format(exc))
+                return
+            dialog.destroy()
+            messagebox.showinfo("Каталог контейнеров",
+                                "Контейнер сохранён: {}".format(
+                                    data["code"] or data["name"]))
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(0, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Сохранить", width=12,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        dialog.bind("<Escape>", cancel)
+        refresh_composition(0)
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+
+    # ---------- размещение контейнера на схеме ----------
+    def _container_label(self, container):
+        group = container.get("group")
+        prefix = f"[{group}] " if group else ""
+        code = container.get("code")
+        name = container.get("name", "КЭТ")
+        return (prefix + code + " — " + name) if code else prefix + name
+
+    def add_container(self):
+        """Добавляет контейнер из каталога КЭТ в центр видимой области."""
+        choice = self._choose_container()
+        if not choice:
+            return
+        definition, expand = choice
+        self._place_container(definition, expand=expand)
+
+    def _place_container(self, definition, expand=False):
+        width = self.canvas.winfo_width()
+        height = self.canvas.winfo_height()
+        if width < 50:
+            width = 800
+        if height < 50:
+            height = 700
+        wx, wy = self.screen_to_world(width / 2, height / 2)
+        wx, wy = self.snap(wx, wy)
+
+        self.undo_manager.save_state(self.elements, self.connections,
+                                     self.selected_elements, self.protection_links)
+        container = library.create_component(
+            "container", f"KE{uuid.uuid4().hex[:4]}", wx, wy, self.grid_size)
+        container.set_container(definition)
+        container.name = self.get_next_name("КЭТ", "container")
+        self.elements[container.id] = container
+        self.selected_elements = [container.id]
+
+        placed, missing = (0, [])
+        if expand:
+            placed, missing = self._expand_container(container, definition)
+        self._sync_containers()
+        self.current_tool = "select"
+        self.canvas.config(cursor="arrow")
+        self._mark_active_tool()
+        self.redraw_all()
+
+        if expand:
+            text = ("Контейнер размещён, привязано шкафов: {}.".format(placed))
+            if missing:
+                text += ("\nНе найдены в каталоге шкафов: " + ", ".join(missing)
+                         + "\nДобавьте их в каталог на вкладке «Шкафы».")
+            messagebox.showinfo("Контейнеры", text)
+        else:
+            # Сразу включаем «Связь КЭТ»: следующий клик по слоту начнёт привязку
+            self.set_tool("bind")
+            messagebox.showinfo(
+                "Контейнер размещён",
+                "Режим «Связь КЭТ» включён.\n\n"
+                "1. Щёлкните по слоту — точка ● на правой стенке контейнера "
+                "(или по строке слота).\n"
+                "2. Щёлкните по точке □ на левой грани шкафа.\n\n"
+                "Слот соединится со шкафом линией. Клик по линии — отвязать.")
+
+    def _choose_container(self):
+        """Диалог выбора контейнера из каталога; возвращает (описание, флаг состава)."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Контейнер КЭТ")
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+
+        tk.Label(dialog,
+                 text="Типовые контейнеры КЭТ (архитектура II типа). "
+                      "Контейнер привязывает к себе шкафы РЗА:",
+                 anchor="w", fg="#555555").pack(fill=tk.X, padx=10, pady=(8, 4))
+        container_list = ketlib.all_containers()
+        frame = tk.Frame(dialog)
+        frame.pack(fill=tk.BOTH, expand=True, padx=10)
+        listbox = tk.Listbox(frame, width=86,
+                             height=max(3, min(16, len(container_list))),
+                             activestyle="dotbox")
+        scrollbar = tk.Scrollbar(frame, orient="vertical", command=listbox.yview)
+        listbox.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        for container in container_list:
+            listbox.insert("end", self._container_label(container))
+
+        info = tk.Label(dialog, text="", anchor="w", justify="left",
+                        fg="#333333", wraplength=640)
+        info.pack(fill=tk.X, padx=10, pady=6)
+
+        footer = tk.Label(dialog, text="", anchor="w", fg="#808080",
+                          font=("Arial", 7), wraplength=640)
+        footer.pack(fill=tk.X, padx=10, pady=(0, 4))
+
+        expand_variable = tk.BooleanVar(value=False)
+        expand_check = tk.Checkbutton(
+            dialog, text="Разместить шкафы по составу контейнера",
+            variable=expand_variable, anchor="w")
+        expand_check.pack(fill=tk.X, padx=8)
+
+        result = {"value": None, "expand": False}
+
+        def update_info(event=None):
+            selection = listbox.curselection()
+            if not selection:
+                return
+            container = container_list[selection[0]]
+            lines = []
+            if container.get("description"):
+                lines.append(container["description"])
+            lines.append("Типоразмер: {} ({}) · {} шкафов".format(
+                container.get("size_title", ""), container.get("dimensions", ""),
+                container.get("slots")))
+            if container.get("functions"):
+                lines.append("Функции: " + ", ".join(container["functions"]))
+            cabinets = container.get("cabinets") or []
+            if cabinets:
+                names = []
+                for key in cabinets:
+                    found = cabs.find_cabinet(key)
+                    names.append((found or {}).get("code") or key)
+                lines.append("Состав: " + ", ".join(names))
+            info.config(text="\n".join(lines))
+            if cabinets:
+                expand_check.config(
+                    state="normal",
+                    text=f"Разместить шкафы по составу контейнера "
+                         f"({len(cabinets)} шт.)")
+            else:
+                expand_variable.set(False)
+                expand_check.config(
+                    state="disabled",
+                    text="Состав шкафов не задан — привяжите шкафы вручную")
+            footer.config(text="{} · климат {} · {}".format(
+                container.get("standard", ""), container.get("climate", ""),
+                container.get("source", "")))
+
+        listbox.bind("<<ListboxSelect>>", update_info)
+        if container_list:
+            listbox.selection_set(0)
+            update_info()
+
+        def accept(event=None):
+            selection = listbox.curselection()
+            if selection:
+                result["value"] = container_list[selection[0]]
+                result["expand"] = bool(expand_variable.get())
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(4, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Разместить", width=14,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        listbox.bind("<Double-Button-1>", accept)
+        dialog.bind("<Return>", accept)
+        dialog.bind("<Escape>", cancel)
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+        if not result["value"]:
+            return None
+        return result["value"], result["expand"]
+
+    def toggle_containers(self):
+        self.show_containers = self.show_containers_var.get()
+        if not self.show_containers:
+            self._bind_start = None
+            self.selected_elements = [
+                el_id for el_id in self.selected_elements
+                if el_id in self.elements and self.elements[el_id].type != "container"
+            ]
+        self.redraw_all()
+
+    def _containers(self):
+        return [el for el in self.elements.values() if el.type == "container"]
+
+    def _selected_container(self):
+        if len(self.selected_elements) != 1:
+            return None
+        element = self.elements.get(self.selected_elements[0])
+        if element is not None and element.type == "container":
+            return element
+        return None
+
+    def _container_of(self, cabinet_id):
+        """Контейнер, к которому привязан шкаф (или None)."""
+        for container in self._containers():
+            if container.slot_of(cabinet_id) is not None:
+                return container
+        return None
+
+    # ---------- привязка слотов линией ----------
+    def _sync_containers(self, elements=None):
+        """Обновляет подписи слотов и убирает ссылки на удалённые шкафы."""
+        elements = elements if elements is not None else self.elements
+        for container in elements.values():
+            if container.type != "container":
+                continue
+            for index in range(container.slot_count()):
+                cabinet_id = (container.cabinets[index]
+                              if index < len(container.cabinets) else "")
+                cabinet = elements.get(cabinet_id) if cabinet_id else None
+                if cabinet_id and (cabinet is None or cabinet.type != "cabinet"):
+                    container.cabinets[index] = ""
+                    cabinet = None
+                if cabinet is None:
+                    container.set_slot_label(index, "")
+                else:
+                    title = getattr(cabinet, "title", "") or ""
+                    container.set_slot_label(
+                        index, "{} · {}".format(cabinet.name, title)
+                        if title else str(cabinet.name))
+
+    @staticmethod
+    def _cabinet_bind_point(cabinet):
+        """Точка привязки шкафа к контейнеру (левая грань, середина)."""
+        point = getattr(cabinet, "bind_point", None)
+        if callable(point):
+            return point()
+        bx1, by1, _bx2, by2 = cabinet.get_bounding_box()
+        return (bx1, (by1 + by2) / 2.0)
+
+    def _bind_cabinet_at(self, sx, sy):
+        """Шкаф под курсором для привязки: сначала точка, потом корпус."""
+        if not self.show_cabinets:
+            return None
+        tolerance = max(8.0, 14.0 * self.zoom)
+        best, best_dist = None, tolerance
+        for element in self.elements.values():
+            if element.type != "cabinet":
+                continue
+            px, py = self.world_to_screen(*self._cabinet_bind_point(element))
+            dist = math.hypot(sx - px, sy - py)
+            if dist <= best_dist:
+                best, best_dist = element, dist
+        if best is not None:
+            return best
+        element_id = self._element_at(sx, sy)
+        element = self.elements.get(element_id) if element_id else None
+        if element is not None and element.type == "cabinet":
+            return element
+        return None
+
+    def _draw_bind_points(self):
+        """Квадратики привязки на левой грани шкафов (если есть контейнеры)."""
+        if not self.show_containers or not self.show_cabinets:
+            return
+        if not any(el.type == "container" for el in self.elements.values()):
+            return
+        r = max(2.5, 3.2 * self.zoom)
+        width = max(1, int(1.2 * self.zoom))
+        for element in self.elements.values():
+            if element.type != "cabinet":
+                continue
+            px, py = self.world_to_screen(*self._cabinet_bind_point(element))
+            bound = self._container_of(element.id) is not None
+            self.canvas.create_rectangle(px - r, py - r, px + r, py + r,
+                                         fill="#a0522d" if bound else "white",
+                                         outline="#a0522d", width=width,
+                                         tags="bind_point")
+
+    def _slot_at(self, sx, sy):
+        """Ближайший слот контейнера: (id контейнера, номер слота) или None."""
+        if not self.show_containers:
+            return None
+        tolerance = max(8.0, 13.0 * self.zoom)
+        best, best_dist = None, tolerance
+        for container in self._containers():
+            for index in range(container.slot_count()):
+                slot_x, slot_y = container.slot_center(index)
+                px, py = self.world_to_screen(slot_x, slot_y)
+                dist = math.hypot(sx - px, sy - py)
+                if dist <= best_dist:
+                    best, best_dist = (container.id, index), dist
+        if best is not None:
+            return best
+        # Клик по самой строке слота тоже годится: попасть в точку на стенке
+        # при мелком масштабе неудобно.
+        for container in self._containers():
+            for index in range(container.slot_count()):
+                left, top, right, bottom = container.slot_rect(index)
+                rx1, ry1 = self.world_to_screen(left, top)
+                rx2, ry2 = self.world_to_screen(right, bottom)
+                if rx1 <= sx <= rx2 and ry1 <= sy <= ry2:
+                    return (container.id, index)
+        return None
+
+    def _container_link_segment(self, container, index, cabinet):
+        """Отрезок линии привязки в экранных координатах: слот → шкаф."""
+        slot_x, slot_y = container.slot_center(index)
+        end_x, end_y = self._cabinet_bind_point(cabinet)
+        return (self.world_to_screen(slot_x, slot_y),
+                self.world_to_screen(end_x, end_y))
+
+    def _container_link_at(self, sx, sy):
+        """Линия привязки под курсором: (id контейнера, номер слота) или None."""
+        if not self.show_containers:
+            return None
+        tolerance = max(4.0, 5.0 * self.zoom)
+        for container in self._containers():
+            for index in range(container.slot_count()):
+                cabinet_id = (container.cabinets[index]
+                              if index < len(container.cabinets) else "")
+                cabinet = self.elements.get(cabinet_id) if cabinet_id else None
+                if cabinet is None or cabinet.type != "cabinet":
+                    continue
+                (x1, y1), (x2, y2) = self._container_link_segment(
+                    container, index, cabinet)
+                if self._point_segment_distance(sx, sy, x1, y1, x2, y2) <= tolerance:
+                    return (container.id, index)
+        return None
+
+    def _draw_container_links(self):
+        """Линии привязки слот → шкаф и подсветка начатой привязки."""
+        if not self.show_containers:
+            return
+        color = "#a0522d"
+        width = max(1, int(1.5 * self.zoom))
+        radius = max(2.0, 2.5 * self.zoom)
+        for container in self._containers():
+            for index in range(container.slot_count()):
+                cabinet_id = (container.cabinets[index]
+                              if index < len(container.cabinets) else "")
+                cabinet = self.elements.get(cabinet_id) if cabinet_id else None
+                if cabinet is None or cabinet.type != "cabinet":
+                    continue
+                (x1, y1), (x2, y2) = self._container_link_segment(
+                    container, index, cabinet)
+                self.canvas.create_line(x1, y1, x2, y2, fill=color,
+                                        width=width, tags="container_link")
+                self.canvas.create_oval(x1 - radius, y1 - radius,
+                                        x1 + radius, y1 + radius,
+                                        fill=color, outline="white",
+                                        tags="container_link")
+
+        if self._bind_start is not None:
+            kind, first, index = self._bind_start
+            point = None
+            if kind == "slot":
+                container = self.elements.get(first)
+                if container is not None:
+                    point = container.slot_center(index)
+            else:
+                cabinet = self.elements.get(first)
+                if cabinet is not None:
+                    point = (cabinet.x, cabinet.y)
+            if point is not None:
+                px, py = self.world_to_screen(*point)
+                r = max(4.0, 6.0 * self.zoom)
+                self.canvas.create_oval(px - r, py - r, px + r, py + r,
+                                        outline="red", width=2,
+                                        tags="container_link_start")
+
+    def _on_bind_click(self, event):
+        """Клик в режиме «Привязка»: слот ↔ шкаф, клик по линии — отвязка."""
+        if not self.show_containers:
+            messagebox.showinfo(
+                "Контейнеры", "Контейнеры скрыты — включите их на вкладке «Вид».")
+            return
+
+        slot = self._slot_at(event.x, event.y)
+        cabinet = self._bind_cabinet_at(event.x, event.y)
+
+        # Клик по самой линии (не по её концам-точкам) отвязывает шкаф.
+        # Точки слота и шкафа приоритетнее: ими начинают или переносят связь.
+        if slot is None and cabinet is None and self._bind_start is None:
+            link = self._container_link_at(event.x, event.y)
+            if link is not None:
+                container = self.elements.get(link[0])
+                if container is not None:
+                    self.undo_manager.save_state(
+                        self.elements, self.connections, self.selected_elements,
+                        self.protection_links)
+                    container.cabinets[link[1]] = ""
+                    self._sync_containers()
+                    self.redraw_all()
+                return
+
+        if self._bind_start is None:
+            if slot is not None:
+                self._bind_start = ("slot", slot[0], slot[1])
+            elif cabinet is not None:
+                self._bind_start = ("cabinet", cabinet.id, None)
+            self.redraw_all()
+            return
+
+        kind, first, index = self._bind_start
+        if kind == "slot" and cabinet is not None:
+            self._bind_cabinet_slot(first, index, cabinet.id)
+        elif kind == "cabinet" and slot is not None:
+            self._bind_cabinet_slot(slot[0], slot[1], first)
+        elif kind == "slot" and slot is not None:
+            # повторный клик по другому слоту переносит начало привязки
+            self._bind_start = ("slot", slot[0], slot[1])
+            self.redraw_all()
+            return
+        elif kind == "cabinet" and cabinet is not None:
+            self._bind_start = ("cabinet", cabinet.id, None)
+            self.redraw_all()
+            return
+        self._bind_start = None
+        self.redraw_all()
+
+    def _bind_cabinet_slot(self, container_id, index, cabinet_id):
+        """Привязывает шкаф к конкретному слоту контейнера."""
+        container = self.elements.get(container_id)
+        cabinet = self.elements.get(cabinet_id)
+        if container is None or container.type != "container":
+            return
+        if cabinet is None or cabinet.type != "cabinet":
+            return
+        self.undo_manager.save_state(self.elements, self.connections,
+                                     self.selected_elements,
+                                     self.protection_links)
+        # шкаф может быть привязан только к одному контейнеру
+        for other in self._containers():
+            if other.id != container.id:
+                other.unbind(cabinet_id)
+        container.bind_slot(cabinet_id, index)
+        self.selected_elements = [container.id]
+        self._sync_containers()
+        self.redraw_all()
+
+    def _place_beside_slot(self, container, index, cabinet, gap=14.0, dx=160.0):
+        """Ставит шкаф справа от контейнера — напротив его слота."""
+        _slot_x, slot_y = container.slot_center(index)
+        right = container.get_bounding_box()[2]
+        _bx1, by1, _bx2, by2 = cabinet.get_bounding_box()
+        height = by2 - by1
+        x = right + dx + library.Cabinet.WIDTH / 2.0
+        y = slot_y
+
+        spans = []
+        for other_id in container.bound_ids():
+            other = self.elements.get(other_id)
+            if other is None or other.id == cabinet.id:
+                continue
+            bounds = other.get_bounding_box()
+            spans.append((bounds[1], bounds[3]))
+        for _attempt in range(40):
+            clashes = [span for span in spans
+                       if not (y + height / 2.0 + gap <= span[0]
+                               or y - height / 2.0 - gap >= span[1])]
+            if not clashes:
+                break
+            y = max(span[1] for span in clashes) + height / 2.0 + gap
+
+        cabinet.x, cabinet.y = x, y
+        cabinet.generate_ports()
+
+    def _auto_bind_cabinet(self, cabinet, container=None):
+        """Привязывает только что добавленный шкаф к выбранному контейнеру."""
+        if container is None:
+            container = self._selected_container()
+        if container is None:
+            return False
+        index = container.free_slot()
+        if index is None:
+            return False
+        container.bind_slot(cabinet.id, index)
+        self._place_beside_slot(container, index, cabinet)
+        self._sync_containers()
+        return True
+
+    def _container_label_from_element(self, container):
+        title = container.info.get("name") or container.title or "КЭТ"
+        return f"{container.name} — {container.code} — {title}"
+
+    def expand_container_by_composition(self):
+        """Размещает в контейнере шкафы по составу из каталога КЭТ."""
+        target = self._selected_container()
+        if target is None:
+            containers = self._containers()
+            if not containers:
+                messagebox.showinfo(
+                    "Контейнеры",
+                    "На схеме нет контейнеров.\nДобавьте контейнер кнопкой "
+                    "«Контейнер…» на вкладке «Контейнеры».")
+                return
+            keys = self._pick_from_list(
+                "Состав КЭТ",
+                "Для какого контейнера разместить шкафы по составу?",
+                [(el.id, self._container_label_from_element(el))
+                 for el in containers], accept_text="Выбрать")
+            if not keys:
+                return
+            target = self.elements.get(keys[0])
+            if target is None:
+                return
+
+        definition = ketlib.find_container(target.container_key)
+        if definition is None:
+            messagebox.showinfo(
+                "Контейнеры",
+                "Для этого контейнера нет описания в каталоге КЭТ — "
+                "состав шкафов неизвестен.")
+            return
+        cabinets = definition.get("cabinets") or []
+        if not cabinets:
+            messagebox.showinfo(
+                "Контейнеры",
+                f"В каталоге для «{definition.get('code')}» состав шкафов "
+                "не задан.\nПривяжите слоты линиями: инструмент «Привязка».")
+            return
+
+        self.undo_manager.save_state(self.elements, self.connections,
+                                     self.selected_elements, self.protection_links)
+        placed, missing = self._expand_container(target, definition)
+        self._sync_containers()
+        self.selected_elements = [target.id]
+        self.redraw_all()
+
+        text = (f"Контейнер «{target.code}»: привязано шкафов {placed} "
+                f"из {len(cabinets)}.")
+        if missing:
+            text += ("\nНе найдены в каталоге шкафов: "
+                     + ", ".join(missing)
+                     + "\nДобавьте их на вкладке «Шкафы».")
+        messagebox.showinfo("Контейнеры", text)
+
+    def _expand_container(self, container, definition):
+        """Создаёт шкафы по составу контейнера и привязывает их к слотам."""
+        placed = 0
+        missing = []
+        for key in definition.get("cabinets") or []:
+            index = container.free_slot()
+            if index is None:
+                break
+            cabinet_definition = cabs.find_cabinet(key)
+            if cabinet_definition is None:
+                missing.append(key)
+                continue
+            cabinet = library.create_component(
+                "cabinet", f"CA{uuid.uuid4().hex[:4]}",
+                container.x, container.y, self.grid_size)
+            cabinet.set_cabinet(cabinet_definition)
+            cabinet.name = self.get_next_name("Ш", "cabinet")
+            self.elements[cabinet.id] = cabinet
+            container.bind_slot(cabinet.id, index)
+            self._place_beside_slot(container, index, cabinet)
+            placed += 1
+        self._sync_containers()
+        return placed, missing
+
+
     def _zoom_step(self, factor):
         w = self.canvas.winfo_width() or 800
         h = self.canvas.winfo_height() or 700
@@ -1336,7 +2441,12 @@ class CircuitEditor:
         self.redraw_all()
 
     def add_cabinet(self):
-        """Добавляет шкаф из каталога cabs.py в центр видимой области."""
+        """Добавляет шкаф из каталога cabs.py в центр видимой области.
+
+        Если на схеме выбран контейнер, новый шкаф сразу привязывается к нему.
+        """
+        # контейнер запоминаем до выбора шкафа: выделение сменится на шкаф
+        target_container = self._selected_container()
         definition = self._choose_cabinet()
         if not definition:
             return
@@ -1357,10 +2467,14 @@ class CircuitEditor:
         cabinet.name = self.get_next_name("Ш", "cabinet")
         self.elements[cabinet.id] = cabinet
         self.selected_elements = [cabinet.id]
+        # Выбран контейнер — новый шкаф сразу встаёт в его свободный слот
+        bound = self._auto_bind_cabinet(cabinet, target_container)
         self.current_tool = "select"
         self.canvas.config(cursor="arrow")
         self._mark_active_tool()
         self.redraw_all()
+        if bound and target_container is not None:
+            self.selected_elements = [target_container.id]
 
     def _choose_cabinet(self):
         """Диалог выбора шкафа из cabs.py."""
@@ -1607,7 +2721,7 @@ class CircuitEditor:
             return
         node_r = max(3.0, 4.5 * self.zoom)
         for element in self.elements.values():
-            if element.type in ("cabinet", "corner", "node"):
+            if element.type in ("cabinet", "container", "corner", "node"):
                 continue
             x, y = self.world_to_screen(element.x, element.y)
             self.canvas.create_polygon(
@@ -1686,6 +2800,9 @@ class CircuitEditor:
             active = (etype == self.current_tool)
             canvas.config(highlightbackground="#1f4e79" if active else "#b0b0b0",
                           highlightthickness=2 if active else 1)
+        for tool, cell in getattr(self, "_ribbon_tool_cells", {}).items():
+            active = (tool == self.current_tool)
+            cell._label.config(text=("▶ " if active else "") + cell._base_text)
 
     # ================= ПАНОРАМИРОВАНИЕ (средняя кнопка) =================
     def on_pan_start(self, event):
@@ -1762,6 +2879,7 @@ class CircuitEditor:
         self._dragging_label = None
         self._label_drag_changed = False
         self._protection_start = None
+        self._bind_start = None
         if self.selection_rect_id:
             self.canvas.delete(self.selection_rect_id)
             self.selection_rect_id = None
@@ -1934,6 +3052,7 @@ class CircuitEditor:
 
         id_mapping = {}
         new_selected = []
+        pasted_containers = []
         
         prefix_map = {
             "breaker":"Q", "disconnector":"QS", "transformer":"T", 
@@ -1969,6 +3088,16 @@ class CircuitEditor:
                 new_el.info = dict(getattr(el_template, "info", {}))
                 new_el.komplets = copy.deepcopy(
                     getattr(el_template, "komplets", [])[:library.CABINET_MAX_KOMPLETS])
+            if el_template.type == "container":
+                new_el.container_key = getattr(el_template, "container_key", "")
+                new_el.code = getattr(el_template, "code", "КЭТ")
+                new_el.title = getattr(el_template, "title", "КЭТ")
+                new_el.size = getattr(el_template, "size", "20dc")
+                new_el.slots = getattr(el_template, "slots", 7)
+                new_el.info = dict(getattr(el_template, "info", {}))
+                new_el.cabinets = list(getattr(el_template, "cabinets", []))
+                new_el.slot_labels = [""] * new_el.slot_count()
+                pasted_containers.append(new_el)
 
             new_el.generate_ports()
             self.elements[new_id] = new_el
@@ -1994,7 +3123,15 @@ class CircuitEditor:
                 
                 if port_from and port_to:
                     self.create_connection(new_from, new_to, port_from, port_to)
-        
+
+        # Привязка шкафов внутри скопированного контейнера — по новым id
+        for container in pasted_containers:
+            container.cabinets = [id_mapping.get(cabinet_id, "")
+                                  for cabinet_id in container.cabinets]
+            while len(container.cabinets) < container.slot_count():
+                container.cabinets.append("")
+        self._sync_containers()
+
         self.selected_elements = new_selected
         self.redraw_all()
 
@@ -2020,8 +3157,18 @@ class CircuitEditor:
                 c["canvas_id"] = self.canvas.create_line(x1, y1, x2, y2, width=max(1, int(2*self.zoom)), fill="black")
         self.connections = valid_connections
                 
-        # 2. Элементы
+        # 2. Контейнеры КЭТ и линии привязки слотов к шкафам
+        if self.show_containers:
+            self._sync_containers()
+            for el in self.elements.values():
+                if el.type == "container":
+                    el.draw(self.canvas, self.zoom, self.offset_x, self.offset_y)
+            self._draw_container_links()
+
+        # 2а. Остальные элементы
         for el in self.elements.values():
+            if el.type == "container":
+                continue
             if el.type == "cabinet" and not self.show_cabinets:
                 continue
             el.draw(self.canvas, self.zoom, self.offset_x, self.offset_y)
@@ -2079,6 +3226,8 @@ class CircuitEditor:
                 el = self.elements[el_id]
                 if el.type == "cabinet" and not self.show_cabinets:
                     continue
+                if el.type == "container" and not self.show_containers:
+                    continue
                 bx1, by1, bx2, by2 = el.get_bounding_box()
                 
                 sx1, sy1 = self.world_to_screen(bx1, by1)
@@ -2110,6 +3259,9 @@ class CircuitEditor:
                         tags="selection_highlight"
                     )
 
+        # 6. Точки привязки шкафов к контейнерам КЭТ
+        self._draw_bind_points()
+
         # Подложка всегда под сеткой и элементами
         self.canvas.tag_lower("underlay")
 
@@ -2132,7 +3284,13 @@ class CircuitEditor:
 
     def on_hover(self, event):
         self.canvas.delete("port_highlight")
-        
+        self.canvas.delete("bind_hover")
+        self.canvas.delete("bind_preview")
+
+        if self.current_tool == "bind":
+            self._hover_bind(event)
+            return
+
         if self.current_tool == "select":
             cursor = "arrow"
             for el_id in self.selected_elements:
@@ -2157,13 +3315,52 @@ class CircuitEditor:
                         label = {"HV": "ВН", "LV": "НН", "LV1": "НН1", "LV2": "НН2", "MV": "СН", "N": "0"}.get(p_name, p_name)
                         self.canvas.create_text(sx + 10, sy, text=label, anchor="w", font=("Arial", int(10*self.zoom)), fill="blue", tags="port_highlight")
 
+    def _hover_bind(self, event):
+        """Подсветка слота/точки шкафа и «резиновая» линия при привязке."""
+        if not self.show_containers:
+            return
+        r = max(4.0, 6.0 * self.zoom)
+        slot = self._slot_at(event.x, event.y)
+        if slot is not None:
+            container = self.elements.get(slot[0])
+            if container is not None:
+                px, py = self.world_to_screen(*container.slot_center(slot[1]))
+                self.canvas.create_oval(px - r, py - r, px + r, py + r,
+                                        outline="#a0522d", width=2,
+                                        tags="bind_hover")
+        cabinet = self._bind_cabinet_at(event.x, event.y)
+        if cabinet is not None:
+            px, py = self.world_to_screen(*self._cabinet_bind_point(cabinet))
+            self.canvas.create_rectangle(px - r, py - r, px + r, py + r,
+                                         outline="#a0522d", width=2,
+                                         tags="bind_hover")
+        if self._bind_start is None:
+            return
+        kind, first, index = self._bind_start
+        start = None
+        if kind == "slot":
+            container = self.elements.get(first)
+            if container is not None:
+                start = container.slot_center(index)
+        else:
+            element = self.elements.get(first)
+            if element is not None:
+                start = self._cabinet_bind_point(element)
+        if start is not None:
+            sx, sy = self.world_to_screen(*start)
+            self.canvas.create_line(sx, sy, event.x, event.y, fill="#a0522d",
+                                    dash=(4, 3),
+                                    width=max(1, int(1.2 * self.zoom)),
+                                    tags="bind_preview")
+
     # ================= КЛИКИ =================
     def set_tool(self, tool):
         if tool == "delete":
             self.delete_selected()
             return
-        had_protection_start = self._protection_start is not None
+        had_protection_start = self._protection_start is not None or self._bind_start is not None
         self._protection_start = None
+        self._bind_start = None
         self.current_tool = tool
         self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
         self._mark_active_tool()
@@ -2181,21 +3378,33 @@ class CircuitEditor:
         self.redraw_all()
 
     def _element_at(self, sx, sy):
-        """id элемента под курсором (верхний в порядке отрисовки) или None."""
-        for el in reversed(list(self.elements.values())):
-            if el.type == "cabinet" and not self.show_cabinets:
-                continue
-            bx1, by1, bx2, by2 = el.get_bounding_box()
-            sx1, sy1 = self.world_to_screen(bx1, by1)
-            sx2, sy2 = self.world_to_screen(bx2, by2)
-            if sx1 <= sx <= sx2 and sy1 <= sy <= sy2:
-                return el.id
+        """id элемента под курсором (верхний в порядке отрисовки) или None.
+
+        Контейнеры проверяются последними: шкаф, стоящий внутри контейнера,
+        всегда выбирается раньше самого контейнера.
+        """
+        items = list(self.elements.values())
+        groups = ([el for el in items if el.type != "container"],
+                  [el for el in items if el.type == "container"])
+        for group in groups:
+            for el in reversed(group):
+                if el.type == "cabinet" and not self.show_cabinets:
+                    continue
+                if el.type == "container" and not self.show_containers:
+                    continue
+                bx1, by1, bx2, by2 = el.get_bounding_box()
+                sx1, sy1 = self.world_to_screen(bx1, by1)
+                sx2, sy2 = self.world_to_screen(bx2, by2)
+                if sx1 <= sx <= sx2 and sy1 <= sy <= sy2:
+                    return el.id
         return None
 
     def _label_at(self, sx, sy):
         """id элемента, чья подпись под курсором (bbox обновляется при отрисовке)."""
         for el in reversed(list(self.elements.values())):
             if el.type == "cabinet" and not self.show_cabinets:
+                continue
+            if el.type == "container" and not self.show_containers:
                 continue
             box = getattr(el, "_label_bbox", None)
             if box and box[0] <= sx <= box[2] and box[1] <= sy <= box[3]:
@@ -2350,6 +3559,11 @@ class CircuitEditor:
             self._on_protection_click(event)
             return
 
+        # ИНСТРУМЕНТ «ПРИВЯЗКА»: слот контейнера ↔ шкаф (линией)
+        if self.current_tool == "bind":
+            self._on_bind_click(event)
+            return
+
         # ДОБАВЛЕНИЕ НОВЫХ ЭЛЕМЕНТОВ
         tool = self.current_tool
         if tool in library.COMPONENT_TYPES:
@@ -2386,6 +3600,15 @@ class CircuitEditor:
                 clicked_el = el
                 break
         
+        if clicked_el is not None and clicked_el.type == "container":
+            # Двойной клик по контейнеру — сразу режим привязки слотов
+            self.selected_elements = [clicked_el.id]
+            self._show_ribbon_tab("Контейнеры")
+            self.set_tool("bind")
+            self._mark_active_tool()
+            self.redraw_all()
+            return
+
         if clicked_el:
             new_name = simpledialog.askstring("Переименование", f"Введите новое имя для {clicked_el.type}:", initialvalue=clicked_el.name)
             
@@ -2435,7 +3658,7 @@ class CircuitEditor:
                         el.x, el.y = new_x, new_y
                         el.generate_ports()
                         self._drag_changed = True
-            
+
             self.redraw_all()
             return
 
@@ -2554,7 +3777,16 @@ class CircuitEditor:
 
     def delete_element(self, el_id):
         if el_id not in self.elements: return
+        # Контейнер удаляем отдельно: его шкафы остаются на схеме
+        deleted = self.elements.get(el_id)
         del self.elements[el_id]
+        if deleted is not None and deleted.type == "container":
+            deleted.cabinets = [""] * deleted.slot_count()
+        # Удалённый шкаф вынимаем из слота контейнера
+        for container in self._containers():
+            if container.slot_of(el_id) is not None:
+                container.unbind(el_id)
+        self._sync_containers()
         self.connections = [c for c in self.connections if c["from"] != el_id and c["to"] != el_id]
         # Защитные связи удалённого оборудования/шкафа
         self.protection_links = [
@@ -2598,6 +3830,8 @@ class CircuitEditor:
             ys += [0.0, self.underlay["height"] * self.underlay_scale]
         for element in self.elements.values():
             if element.type == "cabinet" and not self.show_cabinets:
+                continue
+            if element.type == "container" and not self.show_containers:
                 continue
             bx1, by1, bx2, by2 = element.get_bounding_box()
             xs += [bx1, bx2]
@@ -2644,10 +3878,40 @@ class CircuitEditor:
                 canvas.create_text(x * scale, y * scale, text=text,
                                    anchor="w", font=("Arial", 6), fill="#8a8a8a")
 
-        for element in self.elements.values():
-            if element.type == "cabinet" and not self.show_cabinets:
-                continue
-            element.draw(canvas, 1.0, 0.0, 0.0)
+        visible = [element for element in self.elements.values()
+                   if not (element.type == "cabinet" and not self.show_cabinets)
+                   and not (element.type == "container" and not self.show_containers)]
+        # Контейнеры и линии привязки слотов — под остальными элементами
+        self._sync_containers()
+        for element in visible:
+            if element.type == "container":
+                element.draw(canvas, 1.0, 0.0, 0.0)
+        if self.show_containers:
+            for container in visible:
+                if container.type != "container":
+                    continue
+                for index in range(container.slot_count()):
+                    cabinet_id = (container.cabinets[index]
+                                  if index < len(container.cabinets) else "")
+                    cabinet = self.elements.get(cabinet_id) if cabinet_id else None
+                    if cabinet is None or cabinet.type != "cabinet":
+                        continue
+                    slot_x, slot_y = container.slot_center(index)
+                    end_x, end_y = self._cabinet_bind_point(cabinet)
+                    canvas.create_line(slot_x, slot_y, end_x, end_y,
+                                       fill="#a0522d", width=1)
+        for element in visible:
+            if element.type != "container":
+                element.draw(canvas, 1.0, 0.0, 0.0)
+        if self.show_containers:
+            for element in visible:
+                if element.type != "cabinet":
+                    continue
+                px, py = self._cabinet_bind_point(element)
+                bound = self._container_of(element.id) is not None
+                canvas.create_rectangle(px - 3, py - 3, px + 3, py + 3,
+                                        fill="#a0522d" if bound else "white",
+                                        outline="#a0522d", width=1)
 
         try:
             document.save(filepath)
@@ -2732,6 +3996,16 @@ class CircuitEditor:
                     "info": dict(getattr(el, "info", {})),
                     "komplets": [dict(komplekt) for komplekt in
                                  getattr(el, "komplets", [])],
+                }
+            if el.type == "container":
+                item["container"] = {
+                    "key": getattr(el, "container_key", ""),
+                    "code": getattr(el, "code", "КЭТ"),
+                    "title": getattr(el, "title", "КЭТ"),
+                    "size": getattr(el, "size", "20dc"),
+                    "slots": el.slot_count(),
+                    "info": dict(getattr(el, "info", {})),
+                    "cabinets": list(getattr(el, "cabinets", [])),
                 }
             data["elements"].append(item)
 
@@ -2857,10 +4131,33 @@ class CircuitEditor:
                 if not isinstance(komplets, list):
                     komplets = library.komplets_from_ieds(cabinet.get("ieds", []))
                 el.komplets = copy.deepcopy(komplets[:library.CABINET_MAX_KOMPLETS])
+            if el.type == "container":
+                self._restore_container(el, item.get("container") or {})
 
             el.generate_ports()
             elements[item["id"]] = el
+
+        # Подписи слотов — после того, как собраны все элементы
+        self._sync_containers(elements)
         return elements
+
+    def _restore_container(self, el, payload):
+        """Восстанавливает контейнер из JSON (поля каталога и привязку шкафов)."""
+        el.container_key = payload.get("key", "")
+        el.code = payload.get("code") or el.code
+        el.title = payload.get("title") or el.title
+        el.size = payload.get("size", el.size)
+        try:
+            el.set_slots(payload.get("slots") or el.slots)
+        except (TypeError, ValueError):
+            pass
+        cabinets = payload.get("cabinets") or []
+        el.cabinets = [str(cabinet_id) for cabinet_id in cabinets
+                       if cabinet_id][:el.slot_count()]
+        while len(el.cabinets) < el.slot_count():
+            el.cabinets.append("")
+        el.slot_labels = [""] * el.slot_count()
+        el.info = dict(payload.get("info") or {})
 
     def _build_protection_links(self, links, id_mapping=None):
         """Проверяет и (при вставке) переназначает защитные связи."""
@@ -2959,6 +4256,7 @@ class CircuitEditor:
 
             id_mapping = {}
             new_selected = []
+            inserted_containers = []
 
             # 2. Вставляем элементы
             for item in data["elements"]:
@@ -2997,6 +4295,9 @@ class CircuitEditor:
                             cabinet.get("ieds", []))
                     new_el.komplets = copy.deepcopy(
                         komplets[:library.CABINET_MAX_KOMPLETS])
+                if new_el.type == "container":
+                    self._restore_container(new_el, item.get("container") or {})
+                    inserted_containers.append(new_el)
 
                 new_el.generate_ports()
                 self.elements[new_id] = new_el
@@ -3020,6 +4321,14 @@ class CircuitEditor:
 
                     if port_from and port_to:
                         self.create_connection(new_from, new_to, port_from, port_to)
+
+            # 3-бис. Привязка шкафов внутри вставленных контейнеров
+            for container in inserted_containers:
+                container.cabinets = [id_mapping.get(cabinet_id, "")
+                                      for cabinet_id in container.cabinets]
+                while len(container.cabinets) < container.slot_count():
+                    container.cabinets.append("")
+            self._sync_containers()
 
             # 3a. Защитные связи внутри вставленного фрагмента
             inserted_links = self._build_protection_links(

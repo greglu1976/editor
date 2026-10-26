@@ -284,8 +284,9 @@ def build_ssd(elements, connections, substation="ПС1", voltage_level="РУ1",
     for element in items.values():
         if element.type in JUNCTION_TYPES:
             continue
-        if element.type == "cabinet":
-            # шкафы РЗА и IED — не силовое оборудование, в SSD не входят
+        if element.type in ("cabinet", "container"):
+            # шкафы РЗА, IED и контейнеры КЭТ — не силовое оборудование,
+            # в SSD не входят
             continue
         if element.type not in SINGLE_LINE_TYPES:
             warnings.append("Элемент «{}» типа «{}» не поддерживается и пропущен.".format(
