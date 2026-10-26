@@ -3018,10 +3018,14 @@ class CircuitEditor:
                     "Аналоговые цепи",
                     "Связь аналоговых цепей заканчивается на комплекте шкафа "
                     "(порт «AI»), трансформаторе тока или напряжения.")
-        else:
-            self._add_analog_link(start_ref, other_ref)
-            self._analog_start = None
+            self.redraw_all()
+            return
+        created = self._add_analog_link(start_ref, other_ref)
+        self._analog_start = None
         self.redraw_all()
+        if created is not None:
+            # сразу предлагаем указать цепи напряжения и тока
+            self.edit_analog_link(created)
 
     def _add_analog_link(self, first_ref, second_ref):
         """Создаёт связь; комплекты — по порядку кликов, ТТ/ТН — источник."""
@@ -3053,18 +3057,73 @@ class CircuitEditor:
             return
         for link in self.analog_links:
             if {link.get("from"), link.get("to")} == {from_ref, to_ref}:
-                return
+                return None
         self._push_undo()
-        self.analog_links.append({"from": from_ref, "to": to_ref})
+        link = {"from": from_ref, "to": to_ref}
+        self.analog_links.append(link)
+        return link
+
+    def _analog_signals_text(self, link):
+        """Подпись связи: цепи напряжения и тока."""
+        parts = []
+        voltage = (link.get("voltage") or "").strip()
+        current = (link.get("current") or "").strip()
+        if voltage:
+            parts.append(voltage)
+        if current:
+            parts.append(current)
+        return " / ".join(parts)
+
+    def _draw_arrowhead(self, x1, y1, x2, y2, color, size, tags):
+        """Треугольная стрелка у конца линии — направление аналоговых цепей."""
+        length = float(x2) - float(x1)
+        height = float(y2) - float(y1)
+        norm = math.hypot(length, height)
+        if norm < 1e-6:
+            return
+        ux, uy = length / norm, height / norm
+        base_x, base_y = x2 - ux * size, y2 - uy * size
+        half = size * 0.45
+        left_x, left_y = base_x - uy * half, base_y + ux * half
+        right_x, right_y = base_x + uy * half, base_y - ux * half
+        self.canvas.create_polygon(x2, y2, left_x, left_y, right_x, right_y,
+                                   fill=color, outline=color, tags=tags)
 
     def _draw_analog_links(self):
-        """Фиолетовые связи, порты «AI» комплектов и начало привязки."""
+        """Порты «AI», фиолетовые связи со стрелкой и подписями цепей."""
         if not self.show_analog:
             return
         color = self.ANALOG_COLOR
         width = max(1, int(1.4 * self.zoom))
-        dot = max(2.0, 2.6 * self.zoom)
 
+        # 1. Порты комплектов — первыми, чтобы стрелка на конце была видна
+        if self.show_cabinets:
+            linked = set()
+            for link in self.analog_links:
+                linked.add(link.get("from"))
+                linked.add(link.get("to"))
+            radius = max(2.5, 3.2 * self.zoom)
+            port_font = max(1, int(6 * self.zoom))
+            for cabinet, index, point in self._analog_ports():
+                if point is None:
+                    continue
+                ref = "{}#{}".format(cabinet.id, index)
+                active = ref in linked
+                px, py = self.world_to_screen(*point)
+                self.canvas.create_oval(
+                    px - radius, py - radius, px + radius, py + radius,
+                    fill=color if active else "white", outline=color,
+                    width=max(1, int(1.2 * self.zoom)), tags="analog_port")
+                if self.current_tool == "analog":
+                    self.canvas.create_text(px - 5 * self.zoom, py, text="AI",
+                                            font=("Arial", port_font),
+                                            fill=color, anchor="e",
+                                            tags="analog_port")
+
+        # 2. Линии со стрелкой и подписью цепей
+        dot = max(2.0, 2.6 * self.zoom)
+        arrow_size = max(7.0, 9.0 * self.zoom)
+        font_size = max(1, int(6 * self.zoom))
         for link in self.analog_links:
             start = self._analog_ref_point(link.get("from"))
             end = self._analog_ref_point(link.get("to"))
@@ -3072,37 +3131,32 @@ class CircuitEditor:
                 continue
             x1, y1 = self.world_to_screen(*start)
             x2, y2 = self.world_to_screen(*end)
-            self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width,
-                                    dash=(6, 3), arrow=tk.LAST,
+            distance = math.hypot(x2 - x1, y2 - y1)
+            if distance < 1e-6:
+                continue
+            ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
+            line_x = x2 - ux * arrow_size * 0.9
+            line_y = y2 - uy * arrow_size * 0.9
+            self.canvas.create_line(x1, y1, line_x, line_y, fill=color,
+                                    width=width, dash=(6, 3),
                                     tags="analog_link")
+            self._draw_arrowhead(x1, y1, x2, y2, color, arrow_size,
+                                 "analog_link")
             self.canvas.create_oval(x1 - dot, y1 - dot, x1 + dot, y1 + dot,
                                     fill=color, outline="white",
                                     tags="analog_link")
+            signals = self._analog_signals_text(link)
+            if signals:
+                mid_x = (x1 + x2) / 2.0
+                mid_y = (y1 + y2) / 2.0
+                self.canvas.create_text(mid_x - uy * 11 * self.zoom,
+                                        mid_y + ux * 11 * self.zoom,
+                                        text=signals, fill=color,
+                                        font=("Arial", font_size),
+                                        anchor="center",
+                                        tags="analog_label")
 
-        if not self.show_cabinets:
-            return
-
-        linked = set()
-        for link in self.analog_links:
-            linked.add(link.get("from"))
-            linked.add(link.get("to"))
-        radius = max(2.5, 3.2 * self.zoom)
-        font_size = max(1, int(6 * self.zoom))
-        for cabinet, index, point in self._analog_ports():
-            if point is None:
-                continue
-            ref = "{}#{}".format(cabinet.id, index)
-            active = ref in linked
-            px, py = self.world_to_screen(*point)
-            self.canvas.create_oval(
-                px - radius, py - radius, px + radius, py + radius,
-                fill=color if active else "white", outline=color,
-                width=max(1, int(1.2 * self.zoom)), tags="analog_port")
-            if self.current_tool == "analog":
-                self.canvas.create_text(px - 5 * self.zoom, py, text="AI",
-                                        font=("Arial", font_size), fill=color,
-                                        anchor="e", tags="analog_port")
-
+        # 3. Подсветка начатой связи
         if self._analog_start is not None:
             kind, element_id, index = self._analog_start
             ref = ("{}#{}".format(element_id, index)
@@ -3147,6 +3201,137 @@ class CircuitEditor:
                                 width=max(1, int(1.2 * self.zoom)),
                                 tags="analog_preview")
 
+    ANALOG_VOLTAGE_PRESETS = ("Ua", "Ub", "Uc", "Uab", "Ubc", "Uca", "3U0",
+                              "Uшон", "Uн", "Uи", "Uф", "Uк")
+    ANALOG_CURRENT_PRESETS = ("Ia", "Ib", "Ic", "3I0")
+
+    def _analog_ref_label(self, ref):
+        """Подпись конца связи для диалога свойств."""
+        element_id, index = self._split_ref(ref)
+        element = self.elements.get(element_id)
+        if element is None:
+            return "—"
+        if index is not None:
+            return "{} · комплект {}".format(element.name, index + 1)
+        kind = {"current_transformer": "ТТ",
+                "voltage_transformer": "ТН",
+                "cabinet": "шкаф"}.get(element.type, element.type)
+        title = getattr(element, "title", "") or ""
+        return "{} ({}{})".format(element.name, kind,
+                                  ", " + title if title and title != kind else "")
+
+    def edit_analog_link(self, link):
+        """Свойства связи аналоговых цепей: цепи напряжения и тока."""
+        if link is None:
+            return
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Аналоговые цепи — свойства связи")
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+
+        tk.Label(dialog, anchor="w", fg="#4a148c",
+                 font=("Arial", 9, "bold"),
+                 text="{}   →   {}".format(
+                     self._analog_ref_label(link.get("from")),
+                     self._analog_ref_label(link.get("to")))).pack(
+            fill=tk.X, padx=10, pady=(8, 0))
+        tk.Label(dialog, anchor="w", fg="#777777", font=("Arial", 7),
+                 text="Стрелка на схеме показывает направление передачи цепей"
+                 ).pack(fill=tk.X, padx=10)
+
+        voltage_var = tk.StringVar(value=link.get("voltage") or "")
+        current_var = tk.StringVar(value=link.get("current") or "")
+
+        form = tk.Frame(dialog, padx=10, pady=4)
+        form.pack(fill=tk.BOTH, expand=True)
+        form.columnconfigure(0, weight=1)
+
+        def add_field(row, title, variable, presets, hint):
+            line = tk.Frame(form)
+            line.grid(row=row, column=0, sticky="we", pady=(8, 0))
+            tk.Label(line, text=title, width=22, anchor="w").pack(side=tk.LEFT)
+            entry = tk.Entry(line, textvariable=variable, width=34)
+            entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            tk.Label(form, text=hint, fg="#999999", font=("Arial", 7),
+                     anchor="w").grid(row=row + 1, column=0, sticky="w",
+                                      padx=(150, 0))
+            buttons = tk.Frame(form)
+            buttons.grid(row=row + 2, column=0, sticky="w", padx=(150, 0),
+                         pady=(2, 0))
+            for position, preset in enumerate(presets):
+                def toggle(name=preset, var=variable):
+                    tokens = [token.strip() for token in
+                              var.get().replace(";", ",").split(",")
+                              if token.strip()]
+                    if name in tokens:
+                        tokens.remove(name)
+                    else:
+                        tokens.append(name)
+                    var.set(", ".join(tokens))
+
+                tk.Button(buttons, text=preset, width=7,
+                          font=("Arial", 8), command=toggle
+                          ).grid(row=position // 6, column=position % 6,
+                                 padx=(0, 2), pady=(0, 2), sticky="w")
+            return entry
+
+        voltage_entry = add_field(
+            0, "Цепи напряжения (U):", voltage_var,
+            self.ANALOG_VOLTAGE_PRESETS,
+            "например: Ua, Ub, Uc · Uab, Ubc, Uca · 3U0 · Uшон · "
+            "Uн, Uи, Uф, Uк")
+        add_field(
+            3, "Цепи тока (I):", current_var, self.ANALOG_CURRENT_PRESETS,
+            "например: Ia, Ib, Ic  ·  3I0")
+
+        result = {"ok": False, "delete": False}
+
+        def accept(event=None):
+            result["ok"] = True
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        def remove():
+            result["delete"] = True
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(6, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Сохранить", width=12,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="Удалить связь", width=14,
+                  command=remove).pack(side=tk.LEFT)
+        dialog.bind("<Return>", accept)
+        dialog.bind("<Escape>", cancel)
+        try:
+            voltage_entry.focus_set()
+        except tk.TclError:
+            pass
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+
+        if result["delete"]:
+            if link in self.analog_links:
+                self._push_undo()
+                self.analog_links.remove(link)
+                self.redraw_all()
+            return
+        if not result["ok"]:
+            return
+        voltage = voltage_var.get().strip()
+        current = current_var.get().strip()
+        if (voltage == (link.get("voltage") or "").strip()
+                and current == (link.get("current") or "").strip()):
+            return
+        self._push_undo()
+        link["voltage"] = voltage
+        link["current"] = current
+        self.redraw_all()
+
     def _build_analog_links(self, links, id_mapping=None):
         """Проверяет и (при вставке) переназначает связи аналоговых цепей."""
         result = []
@@ -3186,7 +3371,12 @@ class CircuitEditor:
                 continue
             if to_index is None and end.type not in self.ANALOG_TARGET_TYPES:
                 continue
-            result.append({"from": from_ref, "to": to_ref})
+            entry = {"from": from_ref, "to": to_ref}
+            for field in ("voltage", "current"):
+                value = link.get(field)
+                if isinstance(value, str) and value.strip():
+                    entry[field] = value.strip()
+            result.append(entry)
         return result
 
     # ================= ПАЛИТРА =================
@@ -4046,6 +4236,12 @@ class CircuitEditor:
         return f"{prefix}{next_num}"
 
     def on_double_click(self, event):
+        # Двойной клик по линии аналоговых цепей — свойства связи (U/I)
+        link = self._analog_link_at(event.x, event.y)
+        if link is not None:
+            self.edit_analog_link(link)
+            return
+
         clicked_el = None
         for el in reversed(list(self.elements.values())):
             bx1, by1, bx2, by2 = el.get_bounding_box()
@@ -4379,9 +4575,30 @@ class CircuitEditor:
                 end = self._analog_ref_point(link.get("to"))
                 if start is None or end is None:
                     continue
-                canvas.create_line(start[0], start[1], end[0], end[1],
+                x1, y1 = start
+                x2, y2 = end
+                distance = math.hypot(x2 - x1, y2 - y1)
+                if distance < 1e-6:
+                    continue
+                ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
+                arrow_size = 9.0
+                canvas.create_line(x1, y1, x2 - ux * arrow_size * 0.9,
+                                   y2 - uy * arrow_size * 0.9,
                                    fill=self.ANALOG_COLOR, width=1,
-                                   arrow=tk.LAST)
+                                   dash=(6, 3))
+                base_x, base_y = x2 - ux * arrow_size, y2 - uy * arrow_size
+                half = arrow_size * 0.45
+                canvas.create_polygon(
+                    x2, y2,
+                    base_x - uy * half, base_y + ux * half,
+                    base_x + uy * half, base_y - ux * half,
+                    fill=self.ANALOG_COLOR, outline=self.ANALOG_COLOR)
+                signals = self._analog_signals_text(link)
+                if signals:
+                    canvas.create_text((x1 + x2) / 2.0 - uy * 11,
+                                       (y1 + y2) / 2.0 + ux * 11,
+                                       text=signals, fill=self.ANALOG_COLOR,
+                                       font=("Arial", 6), anchor="center")
 
         try:
             document.save(filepath)
