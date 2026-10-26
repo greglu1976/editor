@@ -9,6 +9,31 @@ import tkinter as tk
 CELL = 20
 
 
+def draw_earth(canvas, gx, gy, zoom, direction="down"):
+    """Символ заземления: три убывающих штриха (единый для всех элементов).
+
+    Толщина линий и размеры штрихов одинаковы у заземления и у заземляющего
+    разъединителя — символ рисуется этой функцией в обоих местах.
+    """
+    width = max(1, int(3 * zoom))
+    lengths = (10, 6, 2)          # половина длины штриха
+    gaps = (0, 5, 10)             # смещение штриха от точки подключения
+    for half, gap in zip(lengths, gaps):
+        if direction == "down":
+            x1, y1 = gx - half * zoom, gy + gap * zoom
+            x2, y2 = gx + half * zoom, gy + gap * zoom
+        elif direction == "up":
+            x1, y1 = gx - half * zoom, gy - gap * zoom
+            x2, y2 = gx + half * zoom, gy - gap * zoom
+        elif direction == "left":
+            x1, y1 = gx - gap * zoom, gy - half * zoom
+            x2, y2 = gx - gap * zoom, gy + half * zoom
+        else:                      # right
+            x1, y1 = gx + gap * zoom, gy - half * zoom
+            x2, y2 = gx + gap * zoom, gy + half * zoom
+        canvas.create_line(x1, y1, x2, y2, width=width, fill="black")
+
+
 def rotate_point(dx, dy, rotation):
     """Поворот локального вектора (градусы, по часовой стрелке на экране)."""
     rotation %= 360
@@ -463,10 +488,8 @@ class GroundingSwitch(Component):
         r_out = self.cell * zoom
         blade_len = 14 * zoom
         
-        def draw_ground(gx, gy):
-            canvas.create_line(gx - 10*zoom, gy, gx + 10*zoom, gy, width=max(1, int(3*zoom)), fill="black")
-            canvas.create_line(gx - 6*zoom, gy + 5*zoom, gx + 6*zoom, gy + 5*zoom, width=max(1, int(3*zoom)), fill="black")
-            canvas.create_line(gx - 2*zoom, gy + 10*zoom, gx + 2*zoom, gy + 10*zoom, width=max(1, int(3*zoom)), fill="black")
+        def draw_ground(gx, gy, direction="down"):
+            draw_earth(canvas, gx, gy, zoom, direction)
 
         if self.rotation == 0:
             canvas.create_line(sx, sy - r_out, sx, sy - blade_len*0.3, width=max(1, int(2*zoom)), fill="black")
@@ -478,27 +501,19 @@ class GroundingSwitch(Component):
             canvas.create_line(sx, sy + r_out, sx, sy + blade_len*0.3, width=max(1, int(2*zoom)), fill="black")
             canvas.create_line(sx, sy + blade_len*0.3, sx + blade_len*0.6, sy - blade_len*0.3, width=max(1, int(3*zoom)), fill="black")
             canvas.create_line(sx, sy - blade_len*0.3, sx, sy - r_inner, width=max(1, int(2*zoom)), fill="black")
-            canvas.create_line(sx - 10*zoom, sy - r_inner - 2*zoom, sx + 10*zoom, sy - r_inner - 2*zoom, width=max(1, int(3*zoom)), fill="black")
-            canvas.create_line(sx - 6*zoom, sy - r_inner - 7*zoom, sx + 6*zoom, sy - r_inner - 7*zoom, width=max(1, int(3*zoom)), fill="black")
-            canvas.create_line(sx - 2*zoom, sy - r_inner - 12*zoom, sx + 2*zoom, sy - r_inner - 12*zoom, width=max(1, int(3*zoom)), fill="black")
+            draw_ground(sx, sy - r_inner - 2*zoom, "up")
 
         elif self.rotation == 90:
             canvas.create_line(sx + r_out, sy, sx + blade_len*0.3, sy, width=max(1, int(2*zoom)), fill="black")
             canvas.create_line(sx + blade_len*0.3, sy, sx - blade_len*0.3, sy - blade_len*0.6, width=max(1, int(3*zoom)), fill="black")
             canvas.create_line(sx - blade_len*0.3, sy, sx - r_inner, sy, width=max(1, int(2*zoom)), fill="black")
-            gx = sx - r_inner - 5*zoom
-            canvas.create_line(gx, sy - 10*zoom, gx, sy + 10*zoom, width=max(1, int(3*zoom)), fill="black")
-            canvas.create_line(gx - 5*zoom, sy - 6*zoom, gx - 5*zoom, sy + 6*zoom, width=max(1, int(3*zoom)), fill="black")
-            canvas.create_line(gx - 10*zoom, sy - 2*zoom, gx - 10*zoom, sy + 2*zoom, width=max(1, int(3*zoom)), fill="black")
+            draw_ground(sx - r_inner - 5*zoom, sy, "left")
 
         elif self.rotation == 270:
             canvas.create_line(sx - r_out, sy, sx - blade_len*0.3, sy, width=max(1, int(2*zoom)), fill="black")
             canvas.create_line(sx - blade_len*0.3, sy, sx + blade_len*0.3, sy - blade_len*0.6, width=max(1, int(3*zoom)), fill="black")
             canvas.create_line(sx + blade_len*0.3, sy, sx + r_inner, sy, width=max(1, int(2*zoom)), fill="black")
-            gx = sx + r_inner + 5*zoom
-            canvas.create_line(gx, sy - 10*zoom, gx, sy + 10*zoom, width=max(1, int(3*zoom)), fill="black")
-            canvas.create_line(gx + 5*zoom, sy - 6*zoom, gx + 5*zoom, sy + 6*zoom, width=max(1, int(3*zoom)), fill="black")
-            canvas.create_line(gx + 10*zoom, sy - 2*zoom, gx + 10*zoom, sy + 2*zoom, width=max(1, int(3*zoom)), fill="black")
+            draw_ground(sx + r_inner + 5*zoom, sy, "right")
 
         self._label_text(canvas, zoom, offset_x, offset_y,
                          self.x + self.cell + 15, self.y)
@@ -748,6 +763,8 @@ class Reactor(Component):
 # 13. ЗАЗЕМЛЕНИЕ (1 порт)
 # ==========================================
 class Ground(Component):
+    """Заземление: вывод и символ заземления как у заземляющего разъединителя."""
+
     def __init__(self, comp_id, x, y, grid_size=20):
         super().__init__(comp_id, x, y, grid_size)
         self.type = "ground"
@@ -781,19 +798,14 @@ class Ground(Component):
 
         # 1. Вывод от порта к первому штриху
         x1, y1 = scr(0, -g)
-        x2, y2 = scr(0, -g * 0.4)
+        x2, y2 = scr(0, -g * 0.25)
         canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
 
-        # 2. Три штриха
-        strokes = [
-            (-g * 0.8, -g * 0.4, g * 0.8, -g * 0.4),
-            (-g * 0.5,  g * 0.1, g * 0.5,  g * 0.1),
-            (-g * 0.2,  g * 0.6, g * 0.2,  g * 0.6),
-        ]
-        for lx1, ly1, lx2, ly2 in strokes:
-            cx1, cy1 = scr(lx1, ly1)
-            cx2, cy2 = scr(lx2, ly2)
-            canvas.create_line(cx1, cy1, cx2, cy2, width=lw, fill="black")
+        # 2. Символ заземления — тот же, что у заземляющего разъединителя
+        gx, gy = scr(0, -g * 0.25)
+        direction = {0: "down", 180: "up", 90: "left", 270: "right"}.get(
+            getattr(self, "rotation", 0) % 360, "down")
+        draw_earth(canvas, gx, gy, zoom, direction)
 
         # 3. Подпись
         self._draw_name_at(canvas, zoom, offset_x, offset_y, 1.2 * self.cell)
@@ -1101,9 +1113,10 @@ class ConnectionFilter(Component):
         self.generate_ports()
 
     def generate_ports(self):
+        """Порты сверху и снизу — по габариту ТН (полклетки от центра)."""
         c = self.cell
         self.ports = {}
-        for name, dx, dy in (("top", 0, -2 * c), ("bottom", 0, 2 * c)):
+        for name, dx, dy in (("top", 0, -c), ("bottom", 0, c)):
             px, py = self._local_rotated(dx, dy)
             self.ports[name] = {"x": px, "y": py, "node_id": f"N_{self.id}_{name}"}
 
@@ -1116,29 +1129,32 @@ class ConnectionFilter(Component):
             wx, wy = self._local_rotated(dx, dy)
             return wx * zoom + offset_x, wy * zoom + offset_y
 
-        for dx1, dy1, dx2, dy2 in ((0, -2 * c, 0, -0.8 * c), (0, 0.8 * c, 0, 2 * c)):
+        half = 0.5 * c   # корпус как у ТН (20×20 при клетке 20)
+
+        # Выводы: от портов к корпусу
+        for dx1, dy1, dx2, dy2 in ((0, -c, 0, -half), (0, half, 0, c)):
             x1, y1 = scr(dx1, dy1)
             x2, y2 = scr(dx2, dy2)
             canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
 
-        box = [(-0.8 * c, -0.8 * c), (0.8 * c, -0.8 * c),
-               (0.8 * c, 0.8 * c), (-0.8 * c, 0.8 * c)]
+        # Корпус — компактный квадрат в габарите ТН
+        box = [(-half, -half), (half, -half), (half, half), (-half, half)]
         pts = [v for dx, dy in box for v in scr(dx, dy)]
         canvas.create_polygon(*pts, fill="white", outline="black", width=lw)
 
         # Диагональ (условное обозначение фильтра)
-        x1, y1 = scr(-0.45 * c, 0.45 * c)
-        x2, y2 = scr(0.45 * c, -0.45 * c)
+        x1, y1 = scr(-half * 0.85, half * 0.85)
+        x2, y2 = scr(half * 0.85, -half * 0.85)
         canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
 
         if rotation == 0:
-            self._draw_name_at(canvas, zoom, offset_x, offset_y, c + 15)
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, 0.7 * c)
         else:
             self._draw_label(canvas, zoom, offset_x, offset_y)
 
     def get_bounding_box(self):
         c = self.cell
-        return self._rotated_bbox((-0.8 * c, -2 * c, 0.8 * c, 2 * c))
+        return self._rotated_bbox((-c, -c, c, c))
 
 
 # ==========================================
