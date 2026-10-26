@@ -2907,7 +2907,13 @@ class CircuitEditor:
 
     def _on_protection_click(self, event):
         """Клик в режиме «Связь РЗА»: комплект → защитный узел (или наоборот)."""
-        if self._protection_start is None:
+        komplekt = self._komplekt_port_at(event.x, event.y)
+
+        # Линию удаляем только Ctrl+кликом и только когда под курсором
+        # нет порта комплекта или элемента: иначе конец стрелки перекрывал бы
+        # точку, с которой начинают следующую связь.
+        if (self._protection_start is None and komplekt is None
+                and not self._element_at(event.x, event.y)):
             link = self._protection_link_at(event.x, event.y)
             if link is not None:
                 if not self._ctrl_click(event):
@@ -2918,8 +2924,6 @@ class CircuitEditor:
                 self.protection_links.remove(link)
                 self.redraw_all()
                 return
-
-        komplekt = self._komplekt_port_at(event.x, event.y)
         if komplekt is not None:
             cabinet_id, port_name = komplekt
             if self._protection_start is None:
@@ -3023,7 +3027,8 @@ class CircuitEditor:
     # к трансформатору тока/напряжения или к комплекту другого шкафа, где
     # эти цепи резервируются. Электрической связью (connections) не является.
     ANALOG_COLOR = "#7b1fa2"
-    ANALOG_TARGET_TYPES = ("current_transformer", "voltage_transformer")
+    ANALOG_TARGET_TYPES = ("current_transformer", "voltage_transformer",
+                           "bushing_monitor")
 
     def toggle_analog(self):
         self.show_analog = self.show_analog_var.get()
@@ -3087,7 +3092,9 @@ class CircuitEditor:
         """Связь аналоговых цепей под курсором (для удаления кликом)."""
         if not self.show_analog:
             return None
-        tolerance = max(4.0, 5.0 * self.zoom)
+        tolerance = max(6.0, 7.0 * self.zoom)
+        best = None
+        best_distance = None
         for link in self.analog_links:
             start = self._analog_ref_point(link.get("from"))
             end = self._analog_ref_point(link.get("to"))
@@ -3095,9 +3102,11 @@ class CircuitEditor:
                 continue
             x1, y1 = self.world_to_screen(*start)
             x2, y2 = self.world_to_screen(*end)
-            if self._point_segment_distance(sx, sy, x1, y1, x2, y2) <= tolerance:
-                return link
-        return None
+            distance = self._point_segment_distance(sx, sy, x1, y1, x2, y2)
+            if distance <= tolerance and (best_distance is None
+                                          or distance < best_distance):
+                best, best_distance = link, distance
+        return best
 
     def _on_analog_click(self, event):
         """Клик в режиме «Аналоговые цепи»: комплект ↔ ТТ/ТН или комплект."""
@@ -3133,8 +3142,9 @@ class CircuitEditor:
                     messagebox.showinfo(
                         "Аналоговые цепи",
                         "Аналоговые цепи подключаются к комплекту шкафа "
-                        "(порт «AI» на левой грани), трансформатору тока (ТТ) "
-                        "или трансформатору напряжения (ТН).")
+                        "(порт «AI» на левой грани), трансформатору тока (ТТ), "
+                        "трансформатору напряжения (ТН) или к КИВ "
+                        "(узел посередине).")
             self.redraw_all()
             return
 
@@ -3153,7 +3163,8 @@ class CircuitEditor:
                 messagebox.showinfo(
                     "Аналоговые цепи",
                     "Связь аналоговых цепей заканчивается на комплекте шкафа "
-                    "(порт «AI»), трансформаторе тока или напряжения.")
+                    "(порт «AI»), трансформаторе тока или напряжения (ТТ/ТН) "
+                    "либо на КИВ.")
             self.redraw_all()
             return
         created = self._add_analog_link(start_ref, other_ref)
@@ -3175,8 +3186,6 @@ class CircuitEditor:
             return
         first_equipment = first.type in self.ANALOG_TARGET_TYPES
         second_equipment = second.type in self.ANALOG_TARGET_TYPES
-        if first_equipment and second_equipment:
-            return
         # каждый конец — либо порт комплекта, либо ТТ/ТН
         if first_index is None and not first_equipment:
             return
@@ -3191,9 +3200,6 @@ class CircuitEditor:
             from_ref, to_ref = first_ref, second_ref
         if from_ref == to_ref:
             return
-        for link in self.analog_links:
-            if {link.get("from"), link.get("to")} == {from_ref, to_ref}:
-                return None
         self._push_undo()
         link = {"from": from_ref, "to": to_ref}
         self.analog_links.append(link)
@@ -3260,6 +3266,7 @@ class CircuitEditor:
         dot = max(2.0, 2.6 * self.zoom)
         arrow_size = max(7.0, 9.0 * self.zoom)
         font_size = max(1, int(6 * self.zoom))
+        seen_pairs = {}
         for link in self.analog_links:
             start = self._analog_ref_point(link.get("from"))
             end = self._analog_ref_point(link.get("to"))
@@ -3270,7 +3277,19 @@ class CircuitEditor:
             distance = math.hypot(x2 - x1, y2 - y1)
             if distance < 1e-6:
                 continue
+            # между одними узлами может быть несколько связей —
+            # разводим их параллельно, чтобы все были видны
+            pair = tuple(sorted((str(link.get("from")), str(link.get("to")))))
+            index = seen_pairs.get(pair, 0)
+            seen_pairs[pair] = index + 1
             ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
+            if index:
+                side = 1 if index % 2 else -1
+                step = 4.5 * self.zoom * ((index + 1) // 2) * side
+                x1 += -uy * step
+                y1 += ux * step
+                x2 += -uy * step
+                y2 += ux * step
             line_x = x2 - ux * arrow_size * 0.9
             line_y = y2 - uy * arrow_size * 0.9
             self.canvas.create_line(x1, y1, line_x, line_y, fill=color,
@@ -3351,6 +3370,7 @@ class CircuitEditor:
             return "{} · комплект {}".format(element.name, index + 1)
         kind = {"current_transformer": "ТТ",
                 "voltage_transformer": "ТН",
+                "bushing_monitor": "КИВ",
                 "cabinet": "шкаф"}.get(element.type, element.type)
         title = getattr(element, "title", "") or ""
         return "{} ({}{})".format(element.name, kind,
