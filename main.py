@@ -1298,9 +1298,9 @@ class CircuitEditor:
             self._ribbon_button(row, "Сбросить", self.reset_container_catalog,
                                 _ri_clear, 64).pack(side=tk.LEFT),
         ])
-        tk.Label(page, text="Связь КЭТ: клик по слоту (● на правой стенке),\n"
-                            "затем по точке □ на левой грани шкафа.\n"
-                            "Клик по линии — отвязать. Слоты сверху вниз: 7 (20’) / 14 (40’).",
+        tk.Label(page, text="Связь КЭТ: клик по свободному слоту (●), затем по □ шкафа.\n"
+                            "Ctrl+клик по линии или точке — отвязать.\n"
+                            "Слоты сверху вниз: 7 (20’) / 14 (40’).",
                  bg="#f3f3f3", fg="#808080", font=("Arial", 7),
                  justify="left").pack(side=tk.LEFT, padx=12)
         return page
@@ -1894,7 +1894,8 @@ class CircuitEditor:
                 "1. Щёлкните по слоту — точка ● на правой стенке контейнера "
                 "(или по строке слота).\n"
                 "2. Щёлкните по точке □ на левой грани шкафа.\n\n"
-                "Слот соединится со шкафом линией. Клик по линии — отвязать.")
+                "Слот соединится со шкафом линией.\n"
+                "Ctrl+клик по линии или точке — отвязать.")
 
     def _choose_container(self):
         """Диалог выбора контейнера из каталога; возвращает (описание, флаг состава)."""
@@ -2191,6 +2192,57 @@ class CircuitEditor:
                                         outline="red", width=2,
                                         tags="container_link_start")
 
+    @staticmethod
+    def _ctrl_click(event):
+        """Ctrl (Command на macOS) удерживается при клике."""
+        try:
+            state = int(event.state)
+        except (TypeError, ValueError, AttributeError):
+            return False
+        mask = 0x0004
+        if sys.platform == "darwin":
+            mask |= 0x0008 | 0x0010
+        return bool(state & mask)
+
+    def _show_toast(self, text, event=None, duration=2400):
+        """Короткая подсказка на схеме (без модального окна)."""
+        canvas = self.canvas
+        canvas.delete("toast")
+        if getattr(self, "_toast_job", None) is not None:
+            try:
+                self.root.after_cancel(self._toast_job)
+            except Exception:
+                pass
+            self._toast_job = None
+        if event is not None:
+            x, y = event.x + 16, event.y + 20
+        else:
+            x, y = 24, 24
+        item = canvas.create_text(x + 9, y + 7, text=text, anchor="nw",
+                                  font=("Arial", 8), fill="#333333",
+                                  tags="toast")
+        left, top, right, bottom = canvas.bbox(item)
+        frame = canvas.create_rectangle(left - 9, top - 7, right + 9,
+                                        bottom + 7, fill="#fffde7",
+                                        outline="#c8b560", tags="toast")
+        canvas.tag_lower(frame, item)
+        # не даём подсказке уехать за край окна
+        width = canvas.winfo_width()
+        height = canvas.winfo_height()
+        if right + 9 > width:
+            canvas.move("toast", width - (right + 9) - 4, 0)
+        if bottom + 7 > height:
+            canvas.move("toast", 0, height - (bottom + 7) - 4)
+        self._toast_job = self.root.after(duration, self._clear_toast)
+
+    def _clear_toast(self):
+        self.canvas.delete("toast")
+        self._toast_job = None
+
+    def _hint_ctrl_delete(self, title, what, event=None):
+        """Подсказка: удаление связи — только Ctrl+клик."""
+        self._show_toast("Ctrl+клик — {}".format(what), event)
+
     def _on_bind_click(self, event):
         """Клик в режиме «Привязка»: слот ↔ шкаф, клик по линии — отвязка."""
         if not self.show_containers:
@@ -2200,12 +2252,16 @@ class CircuitEditor:
 
         slot = self._slot_at(event.x, event.y)
         cabinet = self._bind_cabinet_at(event.x, event.y)
+        ctrl = self._ctrl_click(event)
 
-        # Клик по самой линии (не по её концам-точкам) отвязывает шкаф.
-        # Точки слота и шкафа приоритетнее: ими начинают или переносят связь.
+        # Отвязка — только Ctrl+клик: по линии или по её концам-точкам.
         if slot is None and cabinet is None and self._bind_start is None:
             link = self._container_link_at(event.x, event.y)
             if link is not None:
+                if not ctrl:
+                    self._hint_ctrl_delete("Контейнеры",
+                                           "отвязать шкаф от слота", event)
+                    return
                 container = self.elements.get(link[0])
                 if container is not None:
                     self._push_undo()
@@ -2214,8 +2270,33 @@ class CircuitEditor:
                     self.redraw_all()
                 return
 
+        if ctrl and self._bind_start is None:
+            # Ctrl+клик по занятому слоту или привязанному шкафу — отвязка
+            if slot is not None:
+                container = self.elements.get(slot[0])
+                if container is not None and container.cabinets[slot[1]]:
+                    self._push_undo()
+                    container.cabinets[slot[1]] = ""
+                    self._sync_containers()
+                    self.redraw_all()
+                    return
+            if cabinet is not None:
+                container = self._container_of(cabinet.id)
+                if container is not None:
+                    self._push_undo()
+                    container.unbind(cabinet.id)
+                    self._sync_containers()
+                    self.redraw_all()
+                    return
+
         if self._bind_start is None:
             if slot is not None:
+                container = self.elements.get(slot[0])
+                if container is not None and container.cabinets[slot[1]]:
+                    # занятый слот: привязку не сдвигаем, удаление — Ctrl+клик
+                    self._hint_ctrl_delete("Контейнеры",
+                                           "отвязать шкаф от слота", event)
+                    return
                 self._bind_start = ("slot", slot[0], slot[1])
             elif cabinet is not None:
                 self._bind_start = ("cabinet", cabinet.id, None)
@@ -2829,6 +2910,10 @@ class CircuitEditor:
         if self._protection_start is None:
             link = self._protection_link_at(event.x, event.y)
             if link is not None:
+                if not self._ctrl_click(event):
+                    self._hint_ctrl_delete("Связь РЗА", "удалить связь РЗА",
+                                           event)
+                    return
                 self._push_undo()
                 self.protection_links.remove(link)
                 self.redraw_all()
@@ -3028,6 +3113,11 @@ class CircuitEditor:
         if self._analog_start is None:
             link = self._analog_link_at(event.x, event.y)
             if link is not None and port is None and equipment is None:
+                if not self._ctrl_click(event):
+                    self._hint_ctrl_delete(
+                        "Аналоговые цепи",
+                        "удалить связь (двойной клик — свойства)", event)
+                    return
                 self._push_undo()
                 self.analog_links.remove(link)
                 self.redraw_all()
