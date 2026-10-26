@@ -34,7 +34,7 @@ PREFIX_BY_TYPE = {
     "ground": "G", "voltage_transformer": "TV", "current_transformer": "TA",
     "opn": "FV", "coupling_capacitor": "CC", "line_trap": "LT",
     "connection_filter": "CF", "av_breaker": "QF", "fuse": "FU",
-    "cabinet": "EL", "container": "EK", "bushing_monitor": "KIV",
+    "cabinet": "EL", "container": "EK", "bushing_monitor": "BSH",
 }
 
 # Названия типов элементов для отчётов и подсказок.
@@ -462,7 +462,7 @@ class SsdOptionsDialog(tk.Toplevel):
 class CircuitEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Редактор электрических схем (Pro)")
+        self.root.title("Редактор электрических схем v15")
         
         self.elements = {}    
         self.connections = [] 
