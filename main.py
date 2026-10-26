@@ -769,15 +769,30 @@ class CircuitEditor:
         header = tk.Label(window, text="", anchor="w", fg="#555555")
         header.pack(fill=tk.X, padx=10, pady=(8, 4))
 
+        filters = tk.Frame(window)
+        filters.pack(fill=tk.X, padx=10, pady=(0, 4))
+        tk.Label(filters, text="Группа:").pack(side=tk.LEFT)
+        all_cabinets = cabs.all_cabinets()
+        groups = sorted({cabinet.get("group") or "Прочие"
+                         for cabinet in all_cabinets})
+        group_variable = tk.StringVar(value="Все группы")
+        tk.OptionMenu(filters, group_variable, "Все группы",
+                      *groups).pack(side=tk.LEFT, padx=(6, 12))
+        tk.Label(filters, text="Поиск:").pack(side=tk.LEFT)
+        search_variable = tk.StringVar()
+        tk.Entry(filters, textvariable=search_variable, width=24).pack(
+            side=tk.LEFT, padx=(6, 0))
+
         frame = tk.Frame(window)
         frame.pack(fill=tk.BOTH, expand=True, padx=10)
-        listbox = tk.Listbox(frame, width=86, height=18, activestyle="dotbox")
+        listbox = tk.Listbox(frame, width=86, height=18, activestyle="dotbox",
+                             exportselection=False)
         scrollbar = tk.Scrollbar(frame, orient="vertical", command=listbox.yview)
         listbox.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        state = {"cabinets": []}
+        state = {"cabinets": [], "visible": []}
 
         def cabinet_label(cabinet):
             group = cabinet.get("group")
@@ -789,17 +804,32 @@ class CircuitEditor:
 
         def refresh():
             state["cabinets"] = cabs.all_cabinets()
-            listbox.delete(0, "end")
+            group = group_variable.get()
+            needle = search_variable.get().strip().lower()
+            visible = []
             for cabinet in state["cabinets"]:
+                if group != "Все группы" and (cabinet.get("group") or "Прочие") != group:
+                    continue
+                if needle:
+                    haystack = " ".join(str(cabinet.get(field, "")) for field in
+                                        ("code", "name", "title", "description",
+                                         "group", "source")).lower()
+                    if needle not in haystack:
+                        continue
+                visible.append(cabinet)
+            state["visible"] = visible
+            listbox.delete(0, "end")
+            for cabinet in visible:
                 listbox.insert("end", cabinet_label(cabinet))
             header.config(text=f"Шкафов в каталоге: {len(state['cabinets'])} "
-                               f"(встроенных {len(cabs.CABINETS)}, точка • — пользовательский)")
+                               f"(показано {len(visible)}; встроенных "
+                               f"{len(cabs.CABINETS)}, точка • — пользовательский)")
 
         def selected():
             selection = listbox.curselection()
             if not selection:
                 return None
-            return state["cabinets"][selection[0]]
+            return state["visible"][selection[0]]
 
         def on_new():
             self.edit_cabinet_type(None)
@@ -820,7 +850,7 @@ class CircuitEditor:
             refresh()
             if new_key is None:
                 return
-            for index, entry in enumerate(state["cabinets"]):
+            for index, entry in enumerate(state["visible"]):
                 if entry.get("key") == new_key:
                     listbox.selection_clear(0, "end")
                     listbox.selection_set(index)
@@ -858,6 +888,8 @@ class CircuitEditor:
 
         listbox.bind("<Double-Button-1>", on_edit)
         window.bind("<Escape>", lambda event: window.destroy())
+        group_variable.trace_add("write", lambda *args: refresh())
+        search_variable.trace_add("write", lambda *args: refresh())
         refresh()
 
         window.update_idletasks()
@@ -1553,6 +1585,19 @@ class CircuitEditor:
         right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         tk.Label(right, text="Каталог шкафов", anchor="w",
                  fg="#555555").pack(fill=tk.X)
+
+        catalog_filter = tk.Frame(right)
+        catalog_filter.pack(fill=tk.X, pady=(0, 2))
+        tk.Label(catalog_filter, text="Группа:", font=("Arial", 8)).pack(side=tk.LEFT)
+        editor_groups = sorted({cabinet.get("group") or "Прочие"
+                                for cabinet in cabs.all_cabinets()})
+        editor_group_variable = tk.StringVar(value="Все группы")
+        tk.OptionMenu(catalog_filter, editor_group_variable, "Все группы",
+                      *editor_groups).pack(side=tk.LEFT, padx=(4, 0))
+        editor_search_variable = tk.StringVar()
+        tk.Entry(catalog_filter, textvariable=editor_search_variable,
+                 width=12).pack(side=tk.LEFT, padx=(6, 0))
+
         catalog_frame = tk.Frame(right)
         catalog_frame.pack(fill=tk.BOTH, expand=True)
         catalog_list = tk.Listbox(catalog_frame, width=54, height=9,
@@ -1611,7 +1656,7 @@ class CircuitEditor:
             if not selection:
                 error.config(text="Выберите шкаф в каталоге.")
                 return
-            key = catalog_entries[selection[0]].get("key")
+            key = state["catalog_visible"][selection[0]].get("key")
             state["cabinets"].append(key)
             error.config(text="")
             refresh_composition(len(state["cabinets"]) - 1)
@@ -1637,8 +1682,31 @@ class CircuitEditor:
                 state["cabinets"][target], state["cabinets"][index])
             refresh_composition(target)
 
-        for cabinet in catalog_entries:
-            catalog_list.insert("end", catalog_caption(cabinet))
+        state["catalog_visible"] = list(catalog_entries)
+
+        def refresh_catalog():
+            """Перестраивает каталог шкафов с учётом группы и поиска."""
+            group = editor_group_variable.get()
+            needle = editor_search_variable.get().strip().lower()
+            visible = []
+            for cabinet in catalog_entries:
+                if group != "Все группы" and (cabinet.get("group") or "Прочие") != group:
+                    continue
+                if needle:
+                    haystack = " ".join(str(cabinet.get(field, "")) for field in
+                                        ("code", "name", "title", "description",
+                                         "group", "source")).lower()
+                    if needle not in haystack:
+                        continue
+                visible.append(cabinet)
+            state["catalog_visible"] = visible
+            catalog_list.delete(0, "end")
+            for cabinet in visible:
+                catalog_list.insert("end", catalog_caption(cabinet))
+
+        editor_group_variable.trace_add("write", lambda *args: refresh_catalog())
+        editor_search_variable.trace_add("write", lambda *args: refresh_catalog())
+        refresh_catalog()
 
         def on_size_change(label):
             size_key = size_keys[size_labels.index(label)]
@@ -2484,14 +2552,27 @@ class CircuitEditor:
         dialog.resizable(False, False)
 
         tk.Label(dialog,
-                 text="Типовые шкафы ШЭТ по СТО ПАО «ФСК ЕЭС» — "
-                      "Т/АТ, СКРМ, ЛЭП, СШ (архитектура II типа):",
+                 text="Типовые шкафы ШЭТ по СТО ПАО «ФСК ЕЭС» — Т/АТ, СКРМ, "
+                      "ЛЭП, СШ, ПА, УПАСК, ПДС, КЭТ (архитектура II типа):",
                  anchor="w", fg="#555555").pack(fill=tk.X, padx=10, pady=(8, 4))
         cabinet_list = cabs.all_cabinets()
+
+        filters = tk.Frame(dialog)
+        filters.pack(fill=tk.X, padx=10, pady=(0, 4))
+        tk.Label(filters, text="Группа:").pack(side=tk.LEFT)
+        groups = sorted({cabinet.get("group") or "Прочие"
+                         for cabinet in cabinet_list})
+        group_variable = tk.StringVar(value="Все группы")
+        tk.OptionMenu(filters, group_variable, "Все группы",
+                      *groups).pack(side=tk.LEFT, padx=(6, 12))
+        tk.Label(filters, text="Поиск:").pack(side=tk.LEFT)
+        search_variable = tk.StringVar()
+        tk.Entry(filters, textvariable=search_variable, width=24).pack(
+            side=tk.LEFT, padx=(6, 0))
+
         frame = tk.Frame(dialog)
         frame.pack(fill=tk.BOTH, expand=True, padx=10)
-        listbox = tk.Listbox(frame, width=78, height=max(3, min(16, len(cabinet_list))),
-                             activestyle="dotbox")
+        listbox = tk.Listbox(frame, width=78, height=16, activestyle="dotbox")
         scrollbar = tk.Scrollbar(frame, orient="vertical", command=listbox.yview)
         listbox.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -2504,8 +2585,7 @@ class CircuitEditor:
             name = cabinet.get("name", "Шкаф")
             return f"{prefix}{code} — {name}" if code else prefix + name
 
-        for cabinet in cabinet_list:
-            listbox.insert("end", cabinet_label(cabinet))
+        state = {"visible": list(cabinet_list)}
 
         info = tk.Label(dialog, text="", anchor="w", justify="left",
                         fg="#333333", wraplength=620)
@@ -2521,7 +2601,7 @@ class CircuitEditor:
             selection = listbox.curselection()
             if not selection:
                 return
-            cabinet = cabinet_list[selection[0]]
+            cabinet = state["visible"][selection[0]]
             lines = []
             if cabinet.get("description"):
                 lines.append(cabinet["description"])
@@ -2563,15 +2643,44 @@ class CircuitEditor:
                                    "порты {}".format(cabs.STANDARD["dimensions"],
                                                      ", ".join(cabs.STANDARD["ports"])))
 
+        def refresh_list(select=0):
+            """Перестраивает список с учётом группы и строки поиска."""
+            group = group_variable.get()
+            needle = search_variable.get().strip().lower()
+            visible = []
+            for cabinet in cabinet_list:
+                if group != "Все группы" and (cabinet.get("group") or "Прочие") != group:
+                    continue
+                if needle:
+                    haystack = " ".join(str(cabinet.get(field, "")) for field in
+                                        ("code", "name", "title", "description",
+                                         "group", "source")).lower()
+                    if needle not in haystack:
+                        continue
+                visible.append(cabinet)
+            state["visible"] = visible
+            listbox.delete(0, "end")
+            for cabinet in visible:
+                listbox.insert("end", cabinet_label(cabinet))
+            if visible:
+                index = max(0, min(select, len(visible) - 1))
+                listbox.selection_set(index)
+                listbox.activate(index)
+                listbox.see(index)
+                update_info()
+            else:
+                info.config(text="Ничего не найдено — измените группу или запрос.")
+                footer.config(text="")
+
         listbox.bind("<<ListboxSelect>>", update_info)
-        if cabinet_list:
-            listbox.selection_set(0)
-            update_info()
+        group_variable.trace_add("write", lambda *args: refresh_list(0))
+        search_variable.trace_add("write", lambda *args: refresh_list(0))
+        refresh_list(0)
 
         def accept(event=None):
             selection = listbox.curselection()
             if selection:
-                result["value"] = cabinet_list[selection[0]]
+                result["value"] = state["visible"][selection[0]]
             dialog.destroy()
 
         def cancel(event=None):
