@@ -18,16 +18,18 @@ except Exception:  # подписи в подложке необязательн
     pdf2json = None
 
 
-# Префиксы имён по типу элемента — единый источник для добавления, копирования и вставки.
+# Префиксы обозначений по типу элемента — единый источник для добавления,
+# копирования, вставки из файла и развёртывания состава КЭТ.
+# Все обозначения — латиницей: шкафы «EL», контейнеры «EK».
 PREFIX_BY_TYPE = {
     "breaker": "Q", "disconnector": "QS", "transformer": "T",
     "split_transformer": "T", "three_winding_transformer": "T",
     "autotransformer": "AT", "reactor": "R", "line": "W",
     "bus": "BB", "node": "N", "corner": "C", "grounding_switch": "QSG",
     "ground": "G", "voltage_transformer": "TV", "current_transformer": "TA",
-    "opn": "ОПН", "coupling_capacitor": "КС", "line_trap": "ВЧЗ",
-    "connection_filter": "ФП", "av_breaker": "АВ", "fuse": "ПР",
-    "cabinet": "Ш", "container": "КЭТ",
+    "opn": "FV", "coupling_capacitor": "CC", "line_trap": "LT",
+    "connection_filter": "CF", "av_breaker": "QF", "fuse": "FU",
+    "cabinet": "EL", "container": "EK",
 }
 
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
@@ -1801,7 +1803,8 @@ class CircuitEditor:
         container = library.create_component(
             "container", f"KE{uuid.uuid4().hex[:4]}", wx, wy, self.grid_size)
         container.set_container(definition)
-        container.name = self.get_next_name("КЭТ", "container")
+        container.name = self.get_next_name(
+            PREFIX_BY_TYPE["container"], "container")
         self.elements[container.id] = container
         self.selected_elements = [container.id]
 
@@ -2309,7 +2312,8 @@ class CircuitEditor:
                 "cabinet", f"CA{uuid.uuid4().hex[:4]}",
                 container.x, container.y, self.grid_size)
             cabinet.set_cabinet(cabinet_definition)
-            cabinet.name = self.get_next_name("Ш", "cabinet")
+            cabinet.name = self.get_next_name(
+                PREFIX_BY_TYPE["cabinet"], "cabinet")
             self.elements[cabinet.id] = cabinet
             container.bind_slot(cabinet.id, index)
             self._place_beside_slot(container, index, cabinet)
@@ -2532,7 +2536,8 @@ class CircuitEditor:
         cabinet = library.create_component("cabinet", f"CA{uuid.uuid4().hex[:4]}",
                                            wx, wy, self.grid_size)
         cabinet.set_cabinet(definition)
-        cabinet.name = self.get_next_name("Ш", "cabinet")
+        cabinet.name = self.get_next_name(
+            PREFIX_BY_TYPE["cabinet"], "cabinet")
         self.elements[cabinet.id] = cabinet
         self.selected_elements = [cabinet.id]
         # Выбран контейнер — новый шкаф сразу встаёт в его свободный слот
@@ -3163,14 +3168,6 @@ class CircuitEditor:
         new_selected = []
         pasted_containers = []
         
-        prefix_map = {
-            "breaker":"Q", "disconnector":"QS", "transformer":"T", 
-            "split_transformer":"T", "three_winding_transformer":"T",
-            "autotransformer":"AT", "reactor":"R", "line":"W", 
-            "bus":"BB", "node":"N", "corner":"C", "grounding_switch":"QSG",
-            "ground":"G", "voltage_transformer":"TV", "current_transformer":"TA"
-        }
-        
         for old_id, el_template in self.clipboard.items():
             new_id = f"{el_template.type[:2].upper()}{str(uuid.uuid4())[:4]}"
             
@@ -3182,9 +3179,7 @@ class CircuitEditor:
             )
             
             new_el.name = self.get_next_name(
-                prefix_map.get(el_template.type, "EL"),
-                el_template.type
-            )
+                PREFIX_BY_TYPE.get(el_template.type, "EL"), el_template.type)
             
             if hasattr(el_template, 'rotation'): new_el.rotation = el_template.rotation
             if hasattr(el_template, 'orientation'): new_el.orientation = el_template.orientation
