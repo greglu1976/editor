@@ -112,13 +112,15 @@ class UndoManager:
         self.redo_stack = []   # Стек для повтора
         self.max_history = 50
 
-    def save_state(self, elements, connections, selected_elements, protection_links=None):
+    def save_state(self, elements, connections, selected_elements,
+                   protection_links=None, analog_links=None):
         """Сохраняет состояние и очищает стек redo (т.к. создана новая ветка)"""
         state = {
             "elements": copy.deepcopy(elements),
             "connections": copy.deepcopy(connections),
             "selected_elements": list(selected_elements),
             "protection": copy.deepcopy(protection_links or []),
+            "analog": copy.deepcopy(analog_links or []),
         }
         self.push_state(state)
 
@@ -238,6 +240,12 @@ def _ri_shield(c):
                      outline="black", fill="white", width=2)
     c.create_line(16, 11, 16, 21, width=2)
     c.create_line(11, 16, 21, 16, width=2)
+
+
+def _ri_analog(c):
+    """Аналоговые цепи: стрелка с синусоидой, фиолетовая."""
+    c.create_line(5, 16, 27, 16, width=2, fill="#7b1fa2", arrow=tk.LAST)
+    c.create_text(16, 8, text="~", font=("Arial", 11, "bold"), fill="#7b1fa2")
 
 
 def _ri_protlink(c):
@@ -472,11 +480,15 @@ class CircuitEditor:
 
         # Защита: шкафы РЗА, комплекты, защитные узлы оборудования и связи комплект→узел
         self.protection_links = []
+        self.analog_links = []          # [{"from": "id#комплект", "to": ref}]
+        self.show_analog = True         # линии аналоговых цепей и порты «AI»
+        self._analog_start = None       # ("komplekt", id, index) | ("equipment", id, None)
         self.show_protection = True     # стрелки комплект→узел и ромбы-узлы
         self.show_cabinets = True       # сами шкафы
         self.show_containers = True     # контейнеры КЭТ (под шкафами)
         self._protection_start = None    # ("komplekt", cabinet_id, port) | ("element", id)
         self._bind_start = None          # ("slot", container_id, index) | ("cabinet", id, None)
+        self._analog_start = None        # начало связи аналоговых цепей
         self._pending_cabinet = None
 
         self.setup_ui()
@@ -659,6 +671,9 @@ class CircuitEditor:
             self._register_tool(self._ribbon_button(
                 row, "Связь РЗА", lambda: self.set_tool("protection"),
                 _ri_protlink, 66), "protection").pack(side=tk.LEFT),
+            self._register_tool(self._ribbon_button(
+                row, "Аналог. цепи", lambda: self.set_tool("analog"),
+                _ri_analog, 74), "analog").pack(side=tk.LEFT),
         ])
         return page
 
@@ -698,6 +713,9 @@ class CircuitEditor:
             self.show_protection_var = tk.BooleanVar(value=True)
             self._ribbon_toggle(row, "Связи РЗА", self.show_protection_var,
                                 self.toggle_protection, _ri_protlink, 72).pack(side=tk.LEFT)
+            self.show_analog_var = tk.BooleanVar(value=True)
+            self._ribbon_toggle(row, "Аналог. цепи", self.show_analog_var,
+                                self.toggle_analog, _ri_analog, 74).pack(side=tk.LEFT)
 
         self._ribbon_group(page, "Защита", build_protection)
 
@@ -1798,8 +1816,7 @@ class CircuitEditor:
         wx, wy = self.screen_to_world(width / 2, height / 2)
         wx, wy = self.snap(wx, wy)
 
-        self.undo_manager.save_state(self.elements, self.connections,
-                                     self.selected_elements, self.protection_links)
+        self._push_undo()
         container = library.create_component(
             "container", f"KE{uuid.uuid4().hex[:4]}", wx, wy, self.grid_size)
         container.set_container(definition)
@@ -2146,9 +2163,7 @@ class CircuitEditor:
             if link is not None:
                 container = self.elements.get(link[0])
                 if container is not None:
-                    self.undo_manager.save_state(
-                        self.elements, self.connections, self.selected_elements,
-                        self.protection_links)
+                    self._push_undo()
                     container.cabinets[link[1]] = ""
                     self._sync_containers()
                     self.redraw_all()
@@ -2187,9 +2202,7 @@ class CircuitEditor:
             return
         if cabinet is None or cabinet.type != "cabinet":
             return
-        self.undo_manager.save_state(self.elements, self.connections,
-                                     self.selected_elements,
-                                     self.protection_links)
+        self._push_undo()
         # шкаф может быть привязан только к одному контейнеру
         for other in self._containers():
             if other.id != container.id:
@@ -2281,8 +2294,7 @@ class CircuitEditor:
                 "не задан.\nПривяжите слоты линиями: инструмент «Привязка».")
             return
 
-        self.undo_manager.save_state(self.elements, self.connections,
-                                     self.selected_elements, self.protection_links)
+        self._push_undo()
         placed, missing = self._expand_container(target, definition)
         self._sync_containers()
         self.selected_elements = [target.id]
@@ -2531,8 +2543,7 @@ class CircuitEditor:
         wx, wy = self.screen_to_world(width / 2, height / 2)
         wx, wy = self.snap(wx, wy)
 
-        self.undo_manager.save_state(self.elements, self.connections,
-                                     self.selected_elements, self.protection_links)
+        self._push_undo()
         cabinet = library.create_component("cabinet", f"CA{uuid.uuid4().hex[:4]}",
                                            wx, wy, self.grid_size)
         cabinet.set_cabinet(definition)
@@ -2773,8 +2784,7 @@ class CircuitEditor:
         if self._protection_start is None:
             link = self._protection_link_at(event.x, event.y)
             if link is not None:
-                self.undo_manager.save_state(self.elements, self.connections,
-                                             self.selected_elements, self.protection_links)
+                self._push_undo()
                 self.protection_links.remove(link)
                 self.redraw_all()
                 return
@@ -2825,8 +2835,7 @@ class CircuitEditor:
         for link in self.protection_links:
             if self._link_ref(link) == komplekt_ref and link["element"] == element_id:
                 return
-        self.undo_manager.save_state(self.elements, self.connections,
-                                     self.selected_elements, self.protection_links)
+        self._push_undo()
         self.protection_links.append({"komplekt": komplekt_ref, "element": element_id})
 
     def _draw_protection(self):
@@ -2877,7 +2886,311 @@ class CircuitEditor:
                     self.canvas.create_oval(px - r, py - r, px + r, py + r,
                                             outline="red", width=2, tags="protection_start")
 
+    # ================= АНАЛОГОВЫЕ ЦЕПИ (КОМПЛЕКТ ↔ ТТ/ТН ИЛИ КОМПЛЕКТ) =========
+    # Связь аналоговых цепей — направленная: у каждого комплекта шкафа есть
+    # порт «AI» на левой грани, от него фиолетовая линия со стрелкой идёт
+    # к трансформатору тока/напряжения или к комплекту другого шкафа, где
+    # эти цепи резервируются. Электрической связью (connections) не является.
+    ANALOG_COLOR = "#7b1fa2"
+    ANALOG_TARGET_TYPES = ("current_transformer", "voltage_transformer")
+
+    def toggle_analog(self):
+        self.show_analog = self.show_analog_var.get()
+        if not self.show_analog:
+            self._analog_start = None
+        self.redraw_all()
+
+    @staticmethod
+    def _split_ref(ref):
+        """«id#3» → (id, 3); «id» → (id, None)."""
+        element_id, sep, index = str(ref or "").partition("#")
+        if sep and index.isdigit():
+            return element_id, int(index)
+        return element_id, None
+
+    def _analog_ref_point(self, ref):
+        """Мировая точка конца связи: порт комплекта или центр ТТ/ТН."""
+        element_id, index = self._split_ref(ref)
+        element = self.elements.get(element_id)
+        if element is None:
+            return None
+        if index is not None and element.type == "cabinet":
+            point = getattr(element, "analog_point", None)
+            if callable(point):
+                return point(index)
+        return (element.x, element.y)
+
+    def _analog_ports(self):
+        """Порты аналоговых цепей всех комплектов: (шкаф, номер, точка)."""
+        for element in self.elements.values():
+            if element.type != "cabinet":
+                continue
+            for index in range(len(getattr(element, "komplets", []))):
+                yield element, index, self._analog_ref_point(
+                    "{}#{}".format(element.id, index))
+
+    def _analog_port_at(self, sx, sy):
+        """Ближайший порт «AI» комплекта: (id шкафа, номер комплекта)."""
+        if not self.show_cabinets:
+            return None
+        tolerance = max(8.0, 12.0 * self.zoom)
+        best, best_dist = None, tolerance
+        for cabinet, index, point in self._analog_ports():
+            if point is None:
+                continue
+            px, py = self.world_to_screen(*point)
+            dist = math.hypot(sx - px, sy - py)
+            if dist <= best_dist:
+                best, best_dist = (cabinet.id, index), dist
+        return best
+
+    def _analog_equipment_at(self, sx, sy):
+        """ТТ или ТН под курсором — источник аналоговых цепей."""
+        element_id = self._element_at(sx, sy)
+        element = self.elements.get(element_id) if element_id else None
+        if element is not None and element.type in self.ANALOG_TARGET_TYPES:
+            return element
+        return None
+
+    def _analog_link_at(self, sx, sy):
+        """Связь аналоговых цепей под курсором (для удаления кликом)."""
+        if not self.show_analog:
+            return None
+        tolerance = max(4.0, 5.0 * self.zoom)
+        for link in self.analog_links:
+            start = self._analog_ref_point(link.get("from"))
+            end = self._analog_ref_point(link.get("to"))
+            if start is None or end is None:
+                continue
+            x1, y1 = self.world_to_screen(*start)
+            x2, y2 = self.world_to_screen(*end)
+            if self._point_segment_distance(sx, sy, x1, y1, x2, y2) <= tolerance:
+                return link
+        return None
+
+    def _on_analog_click(self, event):
+        """Клик в режиме «Аналоговые цепи»: комплект ↔ ТТ/ТН или комплект."""
+        if not self.show_analog:
+            messagebox.showinfo(
+                "Аналоговые цепи",
+                "Линии аналоговых цепей скрыты — включите их на вкладке «Вид».")
+            return
+
+        port = self._analog_port_at(event.x, event.y)
+        equipment = self._analog_equipment_at(event.x, event.y)
+
+        if self._analog_start is None:
+            link = self._analog_link_at(event.x, event.y)
+            if link is not None and port is None and equipment is None:
+                self._push_undo()
+                self.analog_links.remove(link)
+                self.redraw_all()
+                return
+            if port is not None:
+                self._analog_start = ("komplekt", port[0], port[1])
+            elif equipment is not None:
+                self._analog_start = ("equipment", equipment.id, None)
+            else:
+                element_id = self._element_at(event.x, event.y)
+                element = self.elements.get(element_id) if element_id else None
+                if element is not None:
+                    messagebox.showinfo(
+                        "Аналоговые цепи",
+                        "Аналоговые цепи подключаются к комплекту шкафа "
+                        "(порт «AI» на левой грани), трансформатору тока (ТТ) "
+                        "или трансформатору напряжения (ТН).")
+            self.redraw_all()
+            return
+
+        kind, first_id, first_index = self._analog_start
+        start_ref = ("{}#{}".format(first_id, first_index)
+                     if kind == "komplekt" else first_id)
+        other_ref = None
+        if port is not None:
+            other_ref = "{}#{}".format(port[0], port[1])
+        elif equipment is not None:
+            other_ref = equipment.id
+        if other_ref is None:
+            # второй клик мимо порта/ТТ-ТН — отменяем начатую связь
+            self._analog_start = None
+            if self._element_at(event.x, event.y):
+                messagebox.showinfo(
+                    "Аналоговые цепи",
+                    "Связь аналоговых цепей заканчивается на комплекте шкафа "
+                    "(порт «AI»), трансформаторе тока или напряжения.")
+        else:
+            self._add_analog_link(start_ref, other_ref)
+            self._analog_start = None
+        self.redraw_all()
+
+    def _add_analog_link(self, first_ref, second_ref):
+        """Создаёт связь; комплекты — по порядку кликов, ТТ/ТН — источник."""
+        first_id, first_index = self._split_ref(first_ref)
+        second_id, second_index = self._split_ref(second_ref)
+        first = self.elements.get(first_id)
+        second = self.elements.get(second_id)
+        if first is None or second is None:
+            return
+        if first_id == second_id and first_index == second_index:
+            return
+        first_equipment = first.type in self.ANALOG_TARGET_TYPES
+        second_equipment = second.type in self.ANALOG_TARGET_TYPES
+        if first_equipment and second_equipment:
+            return
+        # каждый конец — либо порт комплекта, либо ТТ/ТН
+        if first_index is None and not first_equipment:
+            return
+        if second_index is None and not second_equipment:
+            return
+        if first_equipment:
+            # аналоговые цепи идут от ТТ/ТН к комплекту
+            from_ref, to_ref = first_ref, second_ref
+        elif second_equipment:
+            from_ref, to_ref = second_ref, first_ref
+        else:
+            from_ref, to_ref = first_ref, second_ref
+        if from_ref == to_ref:
+            return
+        for link in self.analog_links:
+            if {link.get("from"), link.get("to")} == {from_ref, to_ref}:
+                return
+        self._push_undo()
+        self.analog_links.append({"from": from_ref, "to": to_ref})
+
+    def _draw_analog_links(self):
+        """Фиолетовые связи, порты «AI» комплектов и начало привязки."""
+        if not self.show_analog:
+            return
+        color = self.ANALOG_COLOR
+        width = max(1, int(1.4 * self.zoom))
+        dot = max(2.0, 2.6 * self.zoom)
+
+        for link in self.analog_links:
+            start = self._analog_ref_point(link.get("from"))
+            end = self._analog_ref_point(link.get("to"))
+            if start is None or end is None:
+                continue
+            x1, y1 = self.world_to_screen(*start)
+            x2, y2 = self.world_to_screen(*end)
+            self.canvas.create_line(x1, y1, x2, y2, fill=color, width=width,
+                                    dash=(6, 3), arrow=tk.LAST,
+                                    tags="analog_link")
+            self.canvas.create_oval(x1 - dot, y1 - dot, x1 + dot, y1 + dot,
+                                    fill=color, outline="white",
+                                    tags="analog_link")
+
+        if not self.show_cabinets:
+            return
+
+        linked = set()
+        for link in self.analog_links:
+            linked.add(link.get("from"))
+            linked.add(link.get("to"))
+        radius = max(2.5, 3.2 * self.zoom)
+        font_size = max(1, int(6 * self.zoom))
+        for cabinet, index, point in self._analog_ports():
+            if point is None:
+                continue
+            ref = "{}#{}".format(cabinet.id, index)
+            active = ref in linked
+            px, py = self.world_to_screen(*point)
+            self.canvas.create_oval(
+                px - radius, py - radius, px + radius, py + radius,
+                fill=color if active else "white", outline=color,
+                width=max(1, int(1.2 * self.zoom)), tags="analog_port")
+            if self.current_tool == "analog":
+                self.canvas.create_text(px - 5 * self.zoom, py, text="AI",
+                                        font=("Arial", font_size), fill=color,
+                                        anchor="e", tags="analog_port")
+
+        if self._analog_start is not None:
+            kind, element_id, index = self._analog_start
+            ref = ("{}#{}".format(element_id, index)
+                   if kind == "komplekt" else element_id)
+            point = self._analog_ref_point(ref)
+            if point is not None:
+                px, py = self.world_to_screen(*point)
+                r = max(4.0, 6.0 * self.zoom)
+                self.canvas.create_oval(px - r, py - r, px + r, py + r,
+                                        outline="red", width=2,
+                                        tags="analog_start")
+
+    def _hover_analog(self, event):
+        """Подсветка порта/ТТ-ТН и «резиновая» линия при создании связи."""
+        if not self.show_analog:
+            return
+        r = max(4.0, 6.0 * self.zoom)
+        port = self._analog_port_at(event.x, event.y)
+        if port is not None:
+            point = self._analog_ref_point("{}#{}".format(port[0], port[1]))
+            px, py = self.world_to_screen(*point)
+            self.canvas.create_oval(px - r, py - r, px + r, py + r,
+                                    outline=self.ANALOG_COLOR, width=2,
+                                    tags="analog_hover")
+        equipment = self._analog_equipment_at(event.x, event.y)
+        if equipment is not None:
+            px, py = self.world_to_screen(equipment.x, equipment.y)
+            self.canvas.create_oval(px - r, py - r, px + r, py + r,
+                                    outline=self.ANALOG_COLOR, width=2,
+                                    tags="analog_hover")
+        if self._analog_start is None:
+            return
+        kind, element_id, index = self._analog_start
+        ref = ("{}#{}".format(element_id, index)
+               if kind == "komplekt" else element_id)
+        point = self._analog_ref_point(ref)
+        if point is None:
+            return
+        sx, sy = self.world_to_screen(*point)
+        self.canvas.create_line(sx, sy, event.x, event.y,
+                                fill=self.ANALOG_COLOR, dash=(6, 3),
+                                width=max(1, int(1.2 * self.zoom)),
+                                tags="analog_preview")
+
+    def _build_analog_links(self, links, id_mapping=None):
+        """Проверяет и (при вставке) переназначает связи аналоговых цепей."""
+        result = []
+        for link in links or []:
+            if not isinstance(link, dict):
+                continue
+            from_ref = str(link.get("from") or "")
+            to_ref = str(link.get("to") or "")
+            if id_mapping is not None:
+                from_id, from_index = self._split_ref(from_ref)
+                to_id, to_index = self._split_ref(to_ref)
+                from_id = id_mapping.get(from_id, "")
+                to_id = id_mapping.get(to_id, "")
+                if not from_id or not to_id:
+                    continue
+                from_ref = (from_id if from_index is None
+                            else "{}#{}".format(from_id, from_index))
+                to_ref = (to_id if to_index is None
+                          else "{}#{}".format(to_id, to_index))
+            from_id, from_index = self._split_ref(from_ref)
+            to_id, to_index = self._split_ref(to_ref)
+            start = self.elements.get(from_id)
+            end = self.elements.get(to_id)
+            if start is None or end is None:
+                continue
+            if from_id == to_id and from_index == to_index:
+                continue
+            if from_index is not None and (
+                    start.type != "cabinet"
+                    or from_index >= len(getattr(start, "komplets", []))):
+                continue
+            if to_index is not None and (
+                    end.type != "cabinet"
+                    or to_index >= len(getattr(end, "komplets", []))):
+                continue
+            if from_index is None and start.type not in self.ANALOG_TARGET_TYPES:
+                continue
+            if to_index is None and end.type not in self.ANALOG_TARGET_TYPES:
+                continue
+            result.append({"from": from_ref, "to": to_ref})
+        return result
+
     # ================= ПАЛИТРА =================
+
     def _scroll_palette(self, event):
         self.palette_canvas.yview_scroll(int(-event.delta / 120), "units")
 
@@ -2994,6 +3307,7 @@ class CircuitEditor:
         self._label_drag_changed = False
         self._protection_start = None
         self._bind_start = None
+        self._analog_start = None
         if self.selection_rect_id:
             self.canvas.delete(self.selection_rect_id)
             self.selection_rect_id = None
@@ -3005,10 +3319,17 @@ class CircuitEditor:
         self.elements = state["elements"]
         self.connections = state["connections"]
         self.protection_links = state.get("protection", [])
+        self.analog_links = state.get("analog", [])
         self._reset_transient()
         self.selected_elements = list(state["selected_elements"])
 
         self.redraw_all()
+
+    def _push_undo(self):
+        """Снимок состояния для отмены: элементы, связи, РЗА и аналоговые цепи."""
+        self.undo_manager.save_state(self.elements, self.connections,
+                                     self.selected_elements,
+                                     self.protection_links, self.analog_links)
 
     def _capture_state(self):
         return {
@@ -3016,6 +3337,7 @@ class CircuitEditor:
             "connections": copy.deepcopy(self.connections),
             "selected_elements": list(self.selected_elements),
             "protection": copy.deepcopy(self.protection_links),
+            "analog": copy.deepcopy(self.analog_links),
         }
 
     def undo_last_action(self, event=None):
@@ -3099,7 +3421,7 @@ class CircuitEditor:
         self.redraw_all()
 
     def rotate_selected(self, event):
-        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+        self._push_undo()
         
         for el_id in list(self.selected_elements):
             if el_id in self.elements:
@@ -3141,11 +3463,18 @@ class CircuitEditor:
                 conn_copy["canvas_id"] = None
                 self.clipboard_connections.append(conn_copy)
 
+        self.clipboard_analog = []
+        for link in self.analog_links:
+            first = self._split_ref(link.get("from"))[0]
+            second = self._split_ref(link.get("to"))[0]
+            if first in selected_set and second in selected_set:
+                self.clipboard_analog.append(dict(link))
+
     def paste_selection(self, event=None):
         if self.clipboard is None:
             return
         
-        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+        self._push_undo()
             
         w = self.canvas.winfo_width() or 800
         h = self.canvas.winfo_height() or 700
@@ -3236,6 +3565,11 @@ class CircuitEditor:
                 container.cabinets.append("")
         self._sync_containers()
 
+        # Аналоговые цепи внутри вставленного фрагмента
+        self.analog_links.extend(
+            self._build_analog_links(getattr(self, "clipboard_analog", []),
+                                     id_mapping))
+
         self.selected_elements = new_selected
         self.redraw_all()
 
@@ -3320,6 +3654,9 @@ class CircuitEditor:
         # 4a. Защитные узлы и стрелки комплект → узел
         self._draw_protection()
 
+        # 4б. Аналоговые цепи: комплект → ТТ/ТН (или комплект), фиолетовым
+        self._draw_analog_links()
+
         # 5. Рамка выделения
         highlight_color = "wheat4"
         highlight_width = max(1, int(2 * self.zoom))
@@ -3390,9 +3727,15 @@ class CircuitEditor:
         self.canvas.delete("port_highlight")
         self.canvas.delete("bind_hover")
         self.canvas.delete("bind_preview")
+        self.canvas.delete("analog_hover")
+        self.canvas.delete("analog_preview")
 
         if self.current_tool == "bind":
             self._hover_bind(event)
+            return
+
+        if self.current_tool == "analog":
+            self._hover_analog(event)
             return
 
         if self.current_tool == "select":
@@ -3462,9 +3805,12 @@ class CircuitEditor:
         if tool == "delete":
             self.delete_selected()
             return
-        had_protection_start = self._protection_start is not None or self._bind_start is not None
+        had_protection_start = (self._protection_start is not None
+                                or self._bind_start is not None
+                                or self._analog_start is not None)
         self._protection_start = None
         self._bind_start = None
+        self._analog_start = None
         self.current_tool = tool
         self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
         self._mark_active_tool()
@@ -3475,7 +3821,7 @@ class CircuitEditor:
         """Удаляет выделенные элементы (и все их связи) одним действием."""
         if not self.selected_elements:
             return
-        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+        self._push_undo()
         for el_id in list(self.selected_elements):
             self.delete_element(el_id)
         self._reset_transient()
@@ -3585,7 +3931,7 @@ class CircuitEditor:
             if clicked_el is None:
                 conn_to_delete = self._connection_at(event.x, event.y)
                 if conn_to_delete is not None:
-                    self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+                    self._push_undo()
                     self.connections.remove(conn_to_delete)
                     self.redraw_all()
                     return
@@ -3651,7 +3997,7 @@ class CircuitEditor:
                 else:
                     start_id, start_port = self.link_start
                     if best_port_el != start_id:
-                        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+                        self._push_undo()
                         self.create_connection(start_id, best_port_el, start_port, best_port_name)
                     self.canvas.delete("link_start")
                     self.link_start = None
@@ -3668,10 +4014,15 @@ class CircuitEditor:
             self._on_bind_click(event)
             return
 
+        # ИНСТРУМЕНТ «АНАЛОГОВЫЕ ЦЕПИ»: комплект ↔ ТТ/ТН или комплект
+        if self.current_tool == "analog":
+            self._on_analog_click(event)
+            return
+
         # ДОБАВЛЕНИЕ НОВЫХ ЭЛЕМЕНТОВ
         tool = self.current_tool
         if tool in library.COMPONENT_TYPES:
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+            self._push_undo()
             self.add_element(tool, wx, wy)
 
     def get_next_name(self, prefix, el_type=None):
@@ -3725,7 +4076,7 @@ class CircuitEditor:
                         messagebox.showerror("Ошибка", f"Элемент с именем '{new_name}' уже существует на схеме!\nИмена должны быть уникальными.")
                         return
                 
-                self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+                self._push_undo()
                 clicked_el.name = new_name
                 self.redraw_all()
 
@@ -3863,7 +4214,7 @@ class CircuitEditor:
     def on_right_click(self, event):
         clicked_el = self._element_at(event.x, event.y)
         if clicked_el:
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+            self._push_undo()
             self.delete_element(clicked_el)
             if clicked_el in self.selected_elements:
                 self.selected_elements.remove(clicked_el)
@@ -3898,6 +4249,12 @@ class CircuitEditor:
             if link["element"] != el_id
             and self._link_ref(link).split("#")[0] != el_id
         ]
+        # Аналоговые цепи удалённого шкафа/ТТ/ТН
+        self.analog_links = [
+            link for link in self.analog_links
+            if self._split_ref(link.get("from"))[0] != el_id
+            and self._split_ref(link.get("to"))[0] != el_id
+        ]
 
     def create_connection(self, id1, id2, port1, port2):
         for c in self.connections:
@@ -3911,7 +4268,7 @@ class CircuitEditor:
 
     def clear_all(self):
         if messagebox.askyesno("Очистить", "Удалить всю схему?"):
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+            self._push_undo()
             self.elements = {}
             self.connections = []
             self._reset_transient()
@@ -4016,6 +4373,15 @@ class CircuitEditor:
                 canvas.create_rectangle(px - 3, py - 3, px + 3, py + 3,
                                         fill="#a0522d" if bound else "white",
                                         outline="#a0522d", width=1)
+        if self.show_analog:
+            for link in self.analog_links:
+                start = self._analog_ref_point(link.get("from"))
+                end = self._analog_ref_point(link.get("to"))
+                if start is None or end is None:
+                    continue
+                canvas.create_line(start[0], start[1], end[0], end[1],
+                                   fill=self.ANALOG_COLOR, width=1,
+                                   arrow=tk.LAST)
 
         try:
             document.save(filepath)
@@ -4140,6 +4506,8 @@ class CircuitEditor:
             }
         if self.protection_links:
             data["protection_links"] = [dict(link) for link in self.protection_links]
+        if self.analog_links:
+            data["analog_links"] = [dict(link) for link in self.analog_links]
         data["view"] = {
             "zoom": round(self.zoom, 4),
             "offset_x": round(self.offset_x, 2),
@@ -4183,11 +4551,13 @@ class CircuitEditor:
             messagebox.showerror("Ошибка", f"Не удалось загрузить схему:\n{e}")
             return
 
-        self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+        self._push_undo()
         self.elements = elements
         self.connections = connections
         self.protection_links = self._build_protection_links(
             data.get("protection_links", []))
+        self.analog_links = self._build_analog_links(
+            data.get("analog_links", []))
         self._reset_transient()
 
         underlay_info = data.get("underlay")
@@ -4339,7 +4709,7 @@ class CircuitEditor:
                 return
 
             # Состояние сохраняем ДО вставки, иначе Undo возвращал уже вставленную схему
-            self.undo_manager.save_state(self.elements, self.connections, self.selected_elements, self.protection_links)
+            self._push_undo()
 
             # 1. Вычисляем смещение
             xs = [el["x"] for el in data["elements"]]
@@ -4433,6 +4803,17 @@ class CircuitEditor:
                 while len(container.cabinets) < container.slot_count():
                     container.cabinets.append("")
             self._sync_containers()
+
+            # 3-бис. Аналоговые цепи внутри вставленного фрагмента
+            inserted_analog = self._build_analog_links(
+                data.get("analog_links", []), id_mapping)
+            existing_analog = {(link["from"], link["to"])
+                               for link in self.analog_links}
+            for link in inserted_analog:
+                key = (link["from"], link["to"])
+                if key not in existing_analog:
+                    self.analog_links.append(link)
+                    existing_analog.add(key)
 
             # 3a. Защитные связи внутри вставленного фрагмента
             inserted_links = self._build_protection_links(

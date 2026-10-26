@@ -1307,9 +1307,15 @@ class Cabinet(Component):
         self.generate_ports()
 
     def bind_point(self):
-        """Точка привязки шкафа к контейнеру КЭТ — на левой грани по центру."""
-        x1, y1, _x2, y2 = self._rect()
-        return (x1, (y1 + y2) / 2.0)
+        """Точка привязки шкафа к контейнеру КЭТ — на левой грани у заголовка."""
+        x1, y1, _x2, _y2 = self._rect()
+        return (x1, y1 + 10)
+
+    def analog_point(self, index=0):
+        """Порт аналоговых цепей комплекта — на левой грани напротив комплекта."""
+        x1, _y1, _x2, _y2 = self._rect()
+        _cx, cy = self._komplekt_center(max(0, int(index)))
+        return (x1, cy)
 
     def row_count(self):
         return max(1, len(self.komplets))
