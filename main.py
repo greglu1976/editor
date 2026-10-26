@@ -1,16 +1,21 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog
 import json
+import re
+import sys
+import subprocess
 import uuid
 import math
 import copy
 import os
+from datetime import datetime
 import library
 import pdfunderlay
 import pdfexport
 import ssdexport
 import cabs
 import containers as ketlib
+import docxreport
 
 try:
     import pdf2json
@@ -30,6 +35,34 @@ PREFIX_BY_TYPE = {
     "opn": "FV", "coupling_capacitor": "CC", "line_trap": "LT",
     "connection_filter": "CF", "av_breaker": "QF", "fuse": "FU",
     "cabinet": "EL", "container": "EK", "bushing_monitor": "KIV",
+}
+
+# Названия типов элементов для отчётов и подсказок.
+ELEMENT_TYPE_TITLES = {
+    "breaker": "Выключатель",
+    "disconnector": "Разъединитель",
+    "bus": "Сборные шины",
+    "transformer": "Трансформатор",
+    "split_transformer": "Трансформатор с расщеплением обмоток",
+    "three_winding_transformer": "Трёхобмоточный трансформатор",
+    "autotransformer": "Автотрансформатор",
+    "reactor": "Реактор",
+    "line": "ЛЭП",
+    "voltage_transformer": "Трансформатор напряжения",
+    "current_transformer": "Трансформатор тока",
+    "opn": "ОПН",
+    "coupling_capacitor": "Конденсатор связи",
+    "line_trap": "ВЧ-заградитель",
+    "connection_filter": "Фильтр присоединения",
+    "av_breaker": "Автоматический выключатель 0,4 кВ",
+    "fuse": "Предохранитель",
+    "grounding_switch": "Заземляющий разъединитель",
+    "ground": "Заземление",
+    "bushing_monitor": "КИВ — контроль изоляции вводов",
+    "cabinet": "Шкаф РЗА",
+    "container": "Контейнер КЭТ",
+    "corner": "Уголок",
+    "node": "Узел",
 }
 
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
@@ -241,6 +274,16 @@ def _ri_shield(c):
                      outline="black", fill="white", width=2)
     c.create_line(16, 11, 16, 21, width=2)
     c.create_line(11, 16, 21, 16, width=2)
+
+
+def _ri_report(c):
+    """Отчёт: страница с таблицей."""
+    c.create_rectangle(8, 4, 25, 28, outline="black", width=2)
+    c.create_line(11, 9, 22, 9, width=1, fill="#666666")
+    c.create_rectangle(11, 13, 22, 26, outline="black", width=1)
+    for y in (16, 19.5, 23):
+        c.create_line(11, y, 22, y, width=1, fill="#666666")
+    c.create_line(15, 13, 15, 26, width=1, fill="#666666")
 
 
 def _ri_analog(c):
@@ -559,7 +602,8 @@ class CircuitEditor:
         for name, builder in (("Главная", self._build_ribbon_home),
                               ("Вид", self._build_ribbon_view),
                               ("Шкафы", self._build_ribbon_cabinets),
-                              ("Контейнеры", self._build_ribbon_containers)):
+                              ("Контейнеры", self._build_ribbon_containers),
+                              ("Отчёты", self._build_ribbon_reports)):
             self._ribbon_pages[name] = builder(content)
             button = tk.Button(tabbar, text=name, relief=tk.FLAT, bd=0,
                                padx=16, pady=3, font=("Arial", 9),
@@ -4473,6 +4517,256 @@ class CircuitEditor:
             self.clipboard = None
             self.clipboard_connections = []
             self.redraw_all()
+
+    # ================= ОТЧЁТЫ =================
+    def _build_ribbon_reports(self, parent):
+        page = tk.Frame(parent, bg="#f3f3f3")
+        self._ribbon_group(page, "Схема", lambda row: [
+            self._ribbon_button(row, "По схеме", self.report_by_scheme,
+                                _ri_report, 76).pack(side=tk.LEFT),
+        ])
+        tk.Label(page, text="Формирует документ Word (.docx) с ведомостями:\n"
+                            "шкафы РЗА, контейнеры КЭТ, типы шкафов,\n"
+                            "аналоговые цепи и первичное оборудование.",
+                 bg="#f3f3f3", fg="#808080", font=("Arial", 7),
+                 justify="left").pack(side=tk.LEFT, padx=12)
+        return page
+
+    @staticmethod
+    def _natural_key(text):
+        """Ключ сортировки: EL2 раньше EL10."""
+        parts = re.split(r"(\d+)", str(text or ""))
+        return [int(part) if part.isdigit() else part.lower() for part in parts]
+
+    def _report_cabinet_type(self, cabinet):
+        """Код и наименование типа шкафа по каталогу."""
+        definition = cabs.find_cabinet(getattr(cabinet, "cabinet_key", ""))
+        if definition:
+            return (definition.get("code") or "—",
+                    definition.get("name") or definition.get("title") or "—",
+                    definition.get("group") or "—")
+        return (getattr(cabinet, "title", "") or "—",
+                getattr(cabinet, "title", "") or "—", "—")
+
+    def _collect_scheme_report(self):
+        """Готовит данные для отчёта по схеме."""
+        cabinets = sorted((el for el in self.elements.values()
+                           if el.type == "cabinet"),
+                          key=lambda el: self._natural_key(el.name))
+        containers = sorted((el for el in self.elements.values()
+                             if el.type == "container"),
+                            key=lambda el: self._natural_key(el.name))
+        equipment = [el for el in self.elements.values()
+                     if el.type not in ("cabinet", "container", "node", "corner")]
+        equipment.sort(key=lambda el: self._natural_key(el.name))
+
+        total_komplets = sum(len(getattr(el, "komplets", [])) for el in cabinets)
+        total_ieds = sum(len(komplekt.get("ieds") or [])
+                         for el in cabinets
+                         for komplekt in getattr(el, "komplets", []))
+        bound = sum(len(container.bound_ids()) for container in containers)
+
+        # --- шкафы ---
+        cabinet_rows = []
+        type_totals = {}
+        for index, cabinet in enumerate(cabinets, 1):
+            code, name, group = self._report_cabinet_type(cabinet)
+            container = self._container_of(cabinet.id)
+            if container is not None:
+                slot = container.slot_of(cabinet.id) or 0
+                place = "{} · слот {}".format(container.name, slot + 1)
+            else:
+                place = "—"
+            cabinet_rows.append([
+                str(index), cabinet.name or "—", code, name, group,
+                str(len(getattr(cabinet, "komplets", []))),
+                str(sum(len(k.get("ieds") or []) for k in
+                        getattr(cabinet, "komplets", []))),
+                place,
+            ])
+            entry = type_totals.setdefault(code, {"name": name, "names": []})
+            entry["names"].append(cabinet.name or "—")
+
+        # --- контейнеры ---
+        container_rows = []
+        for index, container in enumerate(containers, 1):
+            info = getattr(container, "info", {}) or {}
+            bound_names = [self.elements[cabinet_id].name
+                           for cabinet_id in container.bound_ids()
+                           if cabinet_id in self.elements]
+            container_rows.append([
+                str(index), container.name or "—",
+                getattr(container, "code", "—") or "—",
+                info.get("name") or getattr(container, "title", "—"),
+                info.get("size_code") or "—",
+                str(container.slot_count()),
+                str(len(bound_names)),
+                ", ".join(bound_names) if bound_names else "—",
+            ])
+
+        # --- сводная ведомость по типам ---
+        type_rows = []
+        for number, (code, entry) in enumerate(
+                sorted(type_totals.items(),
+                       key=lambda item: (-len(item[1]["names"]),
+                                         self._natural_key(item[0]))), 1):
+            type_rows.append([
+                str(number), code, entry["name"], str(len(entry["names"])),
+                ", ".join(entry["names"]),
+            ])
+
+        # --- аналоговые цепи ---
+        analog_rows = []
+        for index, link in enumerate(self.analog_links, 1):
+            analog_rows.append([
+                str(index),
+                self._analog_ref_label(link.get("from")),
+                self._analog_ref_label(link.get("to")),
+                link.get("voltage") or "—",
+                link.get("current") or "—",
+            ])
+
+        # --- первичное оборудование ---
+        by_type = {}
+        for element in equipment:
+            by_type.setdefault(element.type, []).append(element.name or "—")
+        equipment_rows = []
+        for number, (etype, names) in enumerate(
+                sorted(by_type.items(),
+                       key=lambda item: (-len(item[1]),
+                                         self._natural_key(item[0]))), 1):
+            equipment_rows.append([
+                str(number),
+                ELEMENT_TYPE_TITLES.get(etype, etype),
+                str(len(names)),
+                ", ".join(sorted(names, key=self._natural_key)),
+            ])
+
+        now = datetime.now().strftime("%d.%m.%Y %H:%M")
+        report = {
+            "title": "Отчёт по схеме",
+            "subtitle": [
+                "Сформирован: {}".format(now),
+                "Источник: текущая схема редактора",
+            ],
+            "sections": [
+                {
+                    "title": "1. Сводка по схеме",
+                    "header": ["Показатель", "Значение"],
+                    "rows": [
+                        ["Шкафов РЗА (EL)", str(len(cabinets))],
+                        ["Контейнеров КЭТ (EK)", str(len(containers))],
+                        ["Шкафов привязано к контейнерам", str(bound)],
+                        ["Комплектов РЗА в шкафах", str(total_komplets)],
+                        ["Устройств ИЭУ в шкафах", str(total_ieds)],
+                        ["Связей РЗА (комплект ↔ оборудование)",
+                         str(len(self.protection_links))],
+                        ["Аналоговых цепей (комплект ↔ ТТ/ТН или комплект)",
+                         str(len(self.analog_links))],
+                        ["Единиц первичного оборудования", str(len(equipment))],
+                        ["Всего элементов на схеме", str(len(self.elements))],
+                    ],
+                    "widths": [6200, 3438],
+                    "aligns": ["left", "center"],
+                },
+                {
+                    "title": "2. Ведомость шкафов РЗА",
+                    "header": ["№", "Обозначение", "Тип ШЭТ", "Наименование",
+                               "Группа", "Компл.", "ИЭУ", "Контейнер"],
+                    "rows": cabinet_rows,
+                    "widths": [500, 1100, 1300, 2900, 1000, 800, 700, 1338],
+                    "aligns": ["center", "center", "center", "left", "left",
+                               "center", "center", "left"],
+                },
+                {
+                    "title": "3. Ведомость контейнеров КЭТ",
+                    "header": ["№", "Обозначение", "Тип КЭТ", "Наименование",
+                               "Типоразмер", "Слотов", "Шкафов", "Состав"],
+                    "rows": container_rows,
+                    "widths": [500, 1100, 1000, 3000, 1000, 800, 800, 1438],
+                    "aligns": ["center", "center", "center", "left", "center",
+                               "center", "center", "left"],
+                },
+                {
+                    "title": "4. Сводная ведомость типов шкафов",
+                    "header": ["№", "Тип ШЭТ", "Наименование", "Количество",
+                               "Обозначения на схеме"],
+                    "rows": type_rows,
+                    "widths": [500, 1400, 3300, 1000, 3438],
+                    "aligns": ["center", "center", "left", "center", "left"],
+                },
+                {
+                    "title": "5. Ведомость аналоговых цепей",
+                    "header": ["№", "Откуда", "Куда", "Цепи напряжения (U)",
+                               "Цепи тока (I)"],
+                    "rows": analog_rows,
+                    "widths": [500, 2400, 2400, 2169, 2169],
+                    "aligns": ["center", "left", "left", "left", "left"],
+                },
+                {
+                    "title": "6. Ведомость первичного оборудования",
+                    "header": ["№", "Тип оборудования", "Количество",
+                               "Обозначения на схеме"],
+                    "rows": equipment_rows,
+                    "widths": [500, 2600, 1200, 5338],
+                    "aligns": ["center", "left", "center", "left"],
+                },
+            ],
+            "footer": [
+                "Отчёт сформирован автоматически редактором схем."
+                " Ведомости отражают текущее состояние схемы.",
+            ],
+        }
+        return report
+
+    @staticmethod
+    def _open_document(path):
+        """Открывает документ приложением системы (если возможно)."""
+        try:
+            if os.name == "nt":
+                os.startfile(path)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", path])
+            else:
+                subprocess.Popen(["xdg-open", path],
+                                 stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+            return True
+        except Exception:
+            return False
+
+    def report_by_scheme(self):
+        """Отчёт по схеме в формате DOCX."""
+        if not self.elements:
+            messagebox.showinfo("Отчёты", "Схема пуста — нечего выгружать.")
+            return
+        default_name = "Отчёт по схеме {}.docx".format(
+            datetime.now().strftime("%d.%m.%Y"))
+        path = filedialog.asksaveasfilename(
+            title="Сохранить отчёт по схеме",
+            defaultextension=".docx",
+            initialfile=default_name,
+            filetypes=[("Документ Word", "*.docx")])
+        if not path:
+            return
+        try:
+            report = self._collect_scheme_report()
+            docxreport.build_scheme_report(path, report)
+        except Exception as error:
+            messagebox.showerror(
+                "Отчёты",
+                "Не удалось сформировать отчёт:\n{}".format(error))
+            return
+        cabinets = len([el for el in self.elements.values()
+                        if el.type == "cabinet"])
+        containers = len([el for el in self.elements.values()
+                          if el.type == "container"])
+        if messagebox.askyesno(
+                "Отчёты",
+                "Отчёт сохранён:\n{}\n\nШкафов: {} · контейнеров: {} · "
+                "аналоговых цепей: {}\n\nОткрыть документ?".format(
+                    path, cabinets, containers, len(self.analog_links))):
+            self._open_document(path)
 
     # ================= ЭКСПОРТ PDF =================
     def export_pdf(self, event=None):
