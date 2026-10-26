@@ -1,0 +1,1069 @@
+{
+    "elements": [
+        {
+            "id": "BU4793",
+            "type": "bus",
+            "name": "BB1",
+            "x": 460,
+            "y": 260,
+            "length": 260,
+            "label": [
+                -269.3,
+                7.5
+            ]
+        },
+        {
+            "id": "DI00ba",
+            "type": "disconnector",
+            "name": "QS1",
+            "x": 240,
+            "y": 300,
+            "rotation": 0
+        },
+        {
+            "id": "GR4d07",
+            "type": "grounding_switch",
+            "name": "QSG2",
+            "x": 260,
+            "y": 340,
+            "rotation": 270,
+            "label": [
+                -17.3,
+                -16.9
+            ]
+        },
+        {
+            "id": "BRbfcd",
+            "type": "breaker",
+            "name": "Q1",
+            "x": 240,
+            "y": 380,
+            "rotation": 0
+        },
+        {
+            "id": "CU436b",
+            "type": "current_transformer",
+            "name": "TA1",
+            "x": 240,
+            "y": 430,
+            "rotation": 0
+        },
+        {
+            "id": "DI5dad",
+            "type": "disconnector",
+            "name": "QS2",
+            "x": 240,
+            "y": 510,
+            "rotation": 0
+        },
+        {
+            "id": "GRfe0b",
+            "type": "grounding_switch",
+            "name": "QSG3",
+            "x": 260,
+            "y": 470,
+            "rotation": 270
+        },
+        {
+            "id": "GR9fbd",
+            "type": "grounding_switch",
+            "name": "QSG4",
+            "x": 260,
+            "y": 550,
+            "rotation": 270
+        },
+        {
+            "id": "NOe057",
+            "type": "node",
+            "name": "N1",
+            "x": 240,
+            "y": 580
+        },
+        {
+            "id": "DIcb66",
+            "type": "disconnector",
+            "name": "QS3",
+            "x": 240,
+            "y": 650,
+            "rotation": 0
+        },
+        {
+            "id": "GRa716",
+            "type": "grounding_switch",
+            "name": "QSG5",
+            "x": 260,
+            "y": 610,
+            "rotation": 270
+        },
+        {
+            "id": "GRef17",
+            "type": "grounding_switch",
+            "name": "QSG6",
+            "x": 260,
+            "y": 690,
+            "rotation": 270
+        },
+        {
+            "id": "CUbd2b",
+            "type": "current_transformer",
+            "name": "TA2",
+            "x": 240,
+            "y": 720,
+            "rotation": 0
+        },
+        {
+            "id": "BR5b83",
+            "type": "breaker",
+            "name": "Q2",
+            "x": 240,
+            "y": 770,
+            "rotation": 0
+        },
+        {
+            "id": "DI5e1b",
+            "type": "disconnector",
+            "name": "QS4",
+            "x": 240,
+            "y": 850,
+            "rotation": 0
+        },
+        {
+            "id": "GR7cde",
+            "type": "grounding_switch",
+            "name": "QSG7",
+            "x": 260,
+            "y": 810,
+            "rotation": 270
+        },
+        {
+            "id": "GR06a2",
+            "type": "grounding_switch",
+            "name": "QSG8",
+            "x": 260,
+            "y": 890,
+            "rotation": 270
+        },
+        {
+            "id": "LIcc3b",
+            "type": "line",
+            "name": "W1",
+            "x": 130,
+            "y": 0,
+            "rotation": 0
+        },
+        {
+            "id": "CO19cf",
+            "type": "corner",
+            "name": "C1",
+            "x": 130,
+            "y": 580,
+            "orientation": "top_right"
+        },
+        {
+            "id": "CU4f88",
+            "type": "current_transformer",
+            "name": "TA3",
+            "x": 130,
+            "y": 480,
+            "rotation": 0
+        },
+        {
+            "id": "VOf2b7",
+            "type": "voltage_transformer",
+            "name": "TV1",
+            "x": 110,
+            "y": 210,
+            "rotation": 90,
+            "label": [
+                -33.1,
+                -45.4
+            ]
+        },
+        {
+            "id": "VO71b2",
+            "type": "voltage_transformer",
+            "name": "TV2",
+            "x": 110,
+            "y": 20,
+            "rotation": 90,
+            "label": [
+                -16.7,
+                0.0
+            ]
+        },
+        {
+            "id": "GR87e8",
+            "type": "grounding_switch",
+            "name": "QSG9",
+            "x": 150,
+            "y": 130,
+            "rotation": 270
+        },
+        {
+            "id": "DI97ab",
+            "type": "disconnector",
+            "name": "QS5",
+            "x": 130,
+            "y": 170,
+            "rotation": 0
+        },
+        {
+            "id": "LI1a9b",
+            "type": "line_trap",
+            "name": "ВЧЗ1",
+            "x": 130,
+            "y": 80,
+            "rotation": 0
+        },
+        {
+            "id": "BU870d",
+            "type": "bus",
+            "name": "BB2",
+            "x": 450,
+            "y": 920,
+            "length": 250,
+            "label": [
+                -257.9,
+                5.7
+            ]
+        },
+        {
+            "id": "DI5db0",
+            "type": "disconnector",
+            "name": "QS6",
+            "x": 640,
+            "y": 300,
+            "rotation": 0
+        },
+        {
+            "id": "GR431c",
+            "type": "grounding_switch",
+            "name": "QSG10",
+            "x": 660,
+            "y": 340,
+            "rotation": 270
+        },
+        {
+            "id": "BR3aaa",
+            "type": "breaker",
+            "name": "Q3",
+            "x": 640,
+            "y": 380,
+            "rotation": 0
+        },
+        {
+            "id": "CUb9f0",
+            "type": "current_transformer",
+            "name": "TA4",
+            "x": 640,
+            "y": 430,
+            "rotation": 0
+        },
+        {
+            "id": "DId2f8",
+            "type": "disconnector",
+            "name": "QS7",
+            "x": 640,
+            "y": 510,
+            "rotation": 0
+        },
+        {
+            "id": "GR4cb3",
+            "type": "grounding_switch",
+            "name": "QSG11",
+            "x": 660,
+            "y": 470,
+            "rotation": 270
+        },
+        {
+            "id": "GR0fb8",
+            "type": "grounding_switch",
+            "name": "QSG12",
+            "x": 660,
+            "y": 550,
+            "rotation": 270
+        },
+        {
+            "id": "NOefca",
+            "type": "node",
+            "name": "N2",
+            "x": 640,
+            "y": 580
+        },
+        {
+            "id": "DIc3c6",
+            "type": "disconnector",
+            "name": "QS8",
+            "x": 640,
+            "y": 650,
+            "rotation": 0
+        },
+        {
+            "id": "GR527b",
+            "type": "grounding_switch",
+            "name": "QSG13",
+            "x": 660,
+            "y": 610,
+            "rotation": 270
+        },
+        {
+            "id": "GRc846",
+            "type": "grounding_switch",
+            "name": "QSG14",
+            "x": 660,
+            "y": 690,
+            "rotation": 270
+        },
+        {
+            "id": "CUfd12",
+            "type": "current_transformer",
+            "name": "TA5",
+            "x": 640,
+            "y": 720,
+            "rotation": 0
+        },
+        {
+            "id": "BR41d7",
+            "type": "breaker",
+            "name": "Q4",
+            "x": 640,
+            "y": 770,
+            "rotation": 0
+        },
+        {
+            "id": "DIc178",
+            "type": "disconnector",
+            "name": "QS9",
+            "x": 640,
+            "y": 850,
+            "rotation": 0
+        },
+        {
+            "id": "GR8fa4",
+            "type": "grounding_switch",
+            "name": "QSG15",
+            "x": 660,
+            "y": 810,
+            "rotation": 270
+        },
+        {
+            "id": "GRc19a",
+            "type": "grounding_switch",
+            "name": "QSG16",
+            "x": 660,
+            "y": 890,
+            "rotation": 270
+        },
+        {
+            "id": "LIb7e6",
+            "type": "line",
+            "name": "W2",
+            "x": 530,
+            "y": 0,
+            "rotation": 0
+        },
+        {
+            "id": "CO0900",
+            "type": "corner",
+            "name": "C2",
+            "x": 530,
+            "y": 580,
+            "orientation": "top_right"
+        },
+        {
+            "id": "CU5f5c",
+            "type": "current_transformer",
+            "name": "TA6",
+            "x": 530,
+            "y": 480,
+            "rotation": 0
+        },
+        {
+            "id": "VO2e6a",
+            "type": "voltage_transformer",
+            "name": "TV3",
+            "x": 510,
+            "y": 210,
+            "rotation": 90,
+            "label": [
+                -32.7,
+                -48.1
+            ]
+        },
+        {
+            "id": "VO226c",
+            "type": "voltage_transformer",
+            "name": "TV4",
+            "x": 510,
+            "y": 20,
+            "rotation": 90,
+            "label": [
+                -21.0,
+                0.0
+            ]
+        },
+        {
+            "id": "GR7eb8",
+            "type": "grounding_switch",
+            "name": "QSG17",
+            "x": 550,
+            "y": 130,
+            "rotation": 270
+        },
+        {
+            "id": "DI74ae",
+            "type": "disconnector",
+            "name": "QS10",
+            "x": 530,
+            "y": 170,
+            "rotation": 0
+        },
+        {
+            "id": "LI7601",
+            "type": "line_trap",
+            "name": "EL1",
+            "x": 530,
+            "y": 80,
+            "rotation": 0
+        },
+        {
+            "id": "VO27e0",
+            "type": "voltage_transformer",
+            "name": "TV5",
+            "x": 340,
+            "y": 380,
+            "rotation": 0
+        },
+        {
+            "id": "GR3196",
+            "type": "grounding_switch",
+            "name": "QSG18",
+            "x": 360,
+            "y": 340,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DIccd0",
+            "type": "disconnector",
+            "name": "QS11",
+            "x": 340,
+            "y": 300,
+            "rotation": 0
+        },
+        {
+            "id": "GR58e1",
+            "type": "grounding_switch",
+            "name": "QSG19",
+            "x": 260,
+            "y": 1010,
+            "rotation": 270
+        },
+        {
+            "id": "DIc794",
+            "type": "disconnector",
+            "name": "QS12",
+            "x": 240,
+            "y": 970,
+            "rotation": 0
+        },
+        {
+            "id": "CU3b72",
+            "type": "current_transformer",
+            "name": "TA7",
+            "x": 240,
+            "y": 1050,
+            "rotation": 0
+        },
+        {
+            "id": "AU5550",
+            "type": "autotransformer",
+            "name": "AT1",
+            "x": 240,
+            "y": 1130,
+            "rotation": 0
+        },
+        {
+            "id": "GR8545",
+            "type": "grounding_switch",
+            "name": "QSG20",
+            "x": 500,
+            "y": 1010,
+            "rotation": 270
+        },
+        {
+            "id": "DIe215",
+            "type": "disconnector",
+            "name": "QS13",
+            "x": 480,
+            "y": 970,
+            "rotation": 0
+        },
+        {
+            "id": "CUb42a",
+            "type": "current_transformer",
+            "name": "TA8",
+            "x": 480,
+            "y": 1050,
+            "rotation": 0
+        },
+        {
+            "id": "AU0d93",
+            "type": "autotransformer",
+            "name": "AT2",
+            "x": 480,
+            "y": 1130,
+            "rotation": 0
+        },
+        {
+            "id": "VO5c5a",
+            "type": "voltage_transformer",
+            "name": "TV6",
+            "x": 640,
+            "y": 1050,
+            "rotation": 0
+        },
+        {
+            "id": "GR7740",
+            "type": "grounding_switch",
+            "name": "QSG21",
+            "x": 660,
+            "y": 1010,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DIff5f",
+            "type": "disconnector",
+            "name": "QS14",
+            "x": 640,
+            "y": 970,
+            "rotation": 0
+        }
+    ],
+    "connections": [
+        {
+            "node_from": "N_DI00ba_bot",
+            "node_to": "N_GR4d07_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI00ba",
+            "element_to": "GR4d07"
+        },
+        {
+            "node_from": "N_GR4d07_left",
+            "node_to": "N_BRbfcd_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR4d07",
+            "element_to": "BRbfcd"
+        },
+        {
+            "node_from": "N_BRbfcd_bot",
+            "node_to": "N_CU436b_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BRbfcd",
+            "element_to": "CU436b"
+        },
+        {
+            "node_from": "N_DI5dad_top",
+            "node_to": "N_GRfe0b_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI5dad",
+            "element_to": "GRfe0b"
+        },
+        {
+            "node_from": "N_DI5dad_bot",
+            "node_to": "N_GR9fbd_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI5dad",
+            "element_to": "GR9fbd"
+        },
+        {
+            "node_from": "N_CU436b_bot",
+            "node_to": "N_GRfe0b_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "CU436b",
+            "element_to": "GRfe0b"
+        },
+        {
+            "node_from": "N_DIcb66_top",
+            "node_to": "N_GRa716_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIcb66",
+            "element_to": "GRa716"
+        },
+        {
+            "node_from": "N_DIcb66_bot",
+            "node_to": "N_GRef17_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIcb66",
+            "element_to": "GRef17"
+        },
+        {
+            "node_from": "N_GR9fbd_left",
+            "node_to": "NOe057",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR9fbd",
+            "element_to": "NOe057"
+        },
+        {
+            "node_from": "NOe057",
+            "node_to": "N_GRa716_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NOe057",
+            "element_to": "GRa716"
+        },
+        {
+            "node_from": "N_DI5e1b_top",
+            "node_to": "N_GR7cde_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI5e1b",
+            "element_to": "GR7cde"
+        },
+        {
+            "node_from": "N_DI5e1b_bot",
+            "node_to": "N_GR06a2_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI5e1b",
+            "element_to": "GR06a2"
+        },
+        {
+            "node_from": "N_GRef17_left",
+            "node_to": "N_CUbd2b_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRef17",
+            "element_to": "CUbd2b"
+        },
+        {
+            "node_from": "N_CUbd2b_bot",
+            "node_to": "N_BR5b83_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CUbd2b",
+            "element_to": "BR5b83"
+        },
+        {
+            "node_from": "N_BR5b83_bot",
+            "node_to": "N_GR7cde_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "BR5b83",
+            "element_to": "GR7cde"
+        },
+        {
+            "node_from": "N_CO19cf_right",
+            "node_to": "NOe057",
+            "port_from": "right",
+            "port_to": "center",
+            "element_from": "CO19cf",
+            "element_to": "NOe057"
+        },
+        {
+            "node_from": "N_CU4f88_bot",
+            "node_to": "N_CO19cf_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU4f88",
+            "element_to": "CO19cf"
+        },
+        {
+            "node_from": "N_VOf2b7_top",
+            "node_to": "N_CU4f88_top",
+            "port_from": "top",
+            "port_to": "top",
+            "element_from": "VOf2b7",
+            "element_to": "CU4f88"
+        },
+        {
+            "node_from": "N_DI97ab_top",
+            "node_to": "N_GR87e8_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI97ab",
+            "element_to": "GR87e8"
+        },
+        {
+            "node_from": "N_DI97ab_bot",
+            "node_to": "N_VOf2b7_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "DI97ab",
+            "element_to": "VOf2b7"
+        },
+        {
+            "node_from": "N_BU4793_p_2",
+            "node_to": "N_DI00ba_top",
+            "port_from": "p_2",
+            "port_to": "top",
+            "element_from": "BU4793",
+            "element_to": "DI00ba"
+        },
+        {
+            "node_from": "N_LIcc3b_out",
+            "node_to": "N_VO71b2_top",
+            "port_from": "out",
+            "port_to": "top",
+            "element_from": "LIcc3b",
+            "element_to": "VO71b2"
+        },
+        {
+            "node_from": "N_VO71b2_top",
+            "node_to": "N_LI1a9b_top",
+            "port_from": "top",
+            "port_to": "top",
+            "element_from": "VO71b2",
+            "element_to": "LI1a9b"
+        },
+        {
+            "node_from": "N_LI1a9b_bottom",
+            "node_to": "N_GR87e8_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "LI1a9b",
+            "element_to": "GR87e8"
+        },
+        {
+            "node_from": "N_GR06a2_left",
+            "node_to": "N_BU870d_p_2",
+            "port_from": "left",
+            "port_to": "p_2",
+            "element_from": "GR06a2",
+            "element_to": "BU870d"
+        },
+        {
+            "node_from": "N_DI5db0_bot",
+            "node_to": "N_GR431c_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI5db0",
+            "element_to": "GR431c"
+        },
+        {
+            "node_from": "N_GR431c_left",
+            "node_to": "N_BR3aaa_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR431c",
+            "element_to": "BR3aaa"
+        },
+        {
+            "node_from": "N_BR3aaa_bot",
+            "node_to": "N_CUb9f0_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BR3aaa",
+            "element_to": "CUb9f0"
+        },
+        {
+            "node_from": "N_DId2f8_top",
+            "node_to": "N_GR4cb3_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DId2f8",
+            "element_to": "GR4cb3"
+        },
+        {
+            "node_from": "N_DId2f8_bot",
+            "node_to": "N_GR0fb8_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DId2f8",
+            "element_to": "GR0fb8"
+        },
+        {
+            "node_from": "N_CUb9f0_bot",
+            "node_to": "N_GR4cb3_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "CUb9f0",
+            "element_to": "GR4cb3"
+        },
+        {
+            "node_from": "N_DIc3c6_top",
+            "node_to": "N_GR527b_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIc3c6",
+            "element_to": "GR527b"
+        },
+        {
+            "node_from": "N_DIc3c6_bot",
+            "node_to": "N_GRc846_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIc3c6",
+            "element_to": "GRc846"
+        },
+        {
+            "node_from": "N_GR0fb8_left",
+            "node_to": "NOefca",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR0fb8",
+            "element_to": "NOefca"
+        },
+        {
+            "node_from": "NOefca",
+            "node_to": "N_GR527b_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NOefca",
+            "element_to": "GR527b"
+        },
+        {
+            "node_from": "N_DIc178_top",
+            "node_to": "N_GR8fa4_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIc178",
+            "element_to": "GR8fa4"
+        },
+        {
+            "node_from": "N_DIc178_bot",
+            "node_to": "N_GRc19a_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIc178",
+            "element_to": "GRc19a"
+        },
+        {
+            "node_from": "N_GRc846_left",
+            "node_to": "N_CUfd12_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRc846",
+            "element_to": "CUfd12"
+        },
+        {
+            "node_from": "N_CUfd12_bot",
+            "node_to": "N_BR41d7_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CUfd12",
+            "element_to": "BR41d7"
+        },
+        {
+            "node_from": "N_BR41d7_bot",
+            "node_to": "N_GR8fa4_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "BR41d7",
+            "element_to": "GR8fa4"
+        },
+        {
+            "node_from": "N_CO0900_right",
+            "node_to": "NOefca",
+            "port_from": "right",
+            "port_to": "center",
+            "element_from": "CO0900",
+            "element_to": "NOefca"
+        },
+        {
+            "node_from": "N_CU5f5c_bot",
+            "node_to": "N_CO0900_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU5f5c",
+            "element_to": "CO0900"
+        },
+        {
+            "node_from": "N_VO2e6a_top",
+            "node_to": "N_CU5f5c_top",
+            "port_from": "top",
+            "port_to": "top",
+            "element_from": "VO2e6a",
+            "element_to": "CU5f5c"
+        },
+        {
+            "node_from": "N_DI74ae_top",
+            "node_to": "N_GR7eb8_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI74ae",
+            "element_to": "GR7eb8"
+        },
+        {
+            "node_from": "N_DI74ae_bot",
+            "node_to": "N_VO2e6a_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "DI74ae",
+            "element_to": "VO2e6a"
+        },
+        {
+            "node_from": "N_LIb7e6_out",
+            "node_to": "N_VO226c_top",
+            "port_from": "out",
+            "port_to": "top",
+            "element_from": "LIb7e6",
+            "element_to": "VO226c"
+        },
+        {
+            "node_from": "N_VO226c_top",
+            "node_to": "N_LI7601_top",
+            "port_from": "top",
+            "port_to": "top",
+            "element_from": "VO226c",
+            "element_to": "LI7601"
+        },
+        {
+            "node_from": "N_LI7601_bottom",
+            "node_to": "N_GR7eb8_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "LI7601",
+            "element_to": "GR7eb8"
+        },
+        {
+            "node_from": "N_DIccd0_bot",
+            "node_to": "N_GR3196_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIccd0",
+            "element_to": "GR3196"
+        },
+        {
+            "node_from": "N_GR3196_left",
+            "node_to": "N_VO27e0_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR3196",
+            "element_to": "VO27e0"
+        },
+        {
+            "node_from": "N_DIc794_bot",
+            "node_to": "N_GR58e1_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIc794",
+            "element_to": "GR58e1"
+        },
+        {
+            "node_from": "N_BU870d_p_2",
+            "node_to": "N_DIc794_top",
+            "port_from": "p_2",
+            "port_to": "top",
+            "element_from": "BU870d",
+            "element_to": "DIc794"
+        },
+        {
+            "node_from": "N_GR58e1_left",
+            "node_to": "N_CU3b72_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR58e1",
+            "element_to": "CU3b72"
+        },
+        {
+            "node_from": "N_CU3b72_bot",
+            "node_to": "N_AU5550_HV",
+            "port_from": "bottom",
+            "port_to": "HV",
+            "element_from": "CU3b72",
+            "element_to": "AU5550"
+        },
+        {
+            "node_from": "N_BU4793_p_21",
+            "node_to": "N_DI5db0_top",
+            "port_from": "p_21",
+            "port_to": "top",
+            "element_from": "BU4793",
+            "element_to": "DI5db0"
+        },
+        {
+            "node_from": "N_BU4793_p_7",
+            "node_to": "N_DIccd0_top",
+            "port_from": "p_7",
+            "port_to": "top",
+            "element_from": "BU4793",
+            "element_to": "DIccd0"
+        },
+        {
+            "node_from": "N_DIe215_bot",
+            "node_to": "N_GR8545_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIe215",
+            "element_to": "GR8545"
+        },
+        {
+            "node_from": "N_GR8545_left",
+            "node_to": "N_CUb42a_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR8545",
+            "element_to": "CUb42a"
+        },
+        {
+            "node_from": "N_CUb42a_bot",
+            "node_to": "N_AU0d93_HV",
+            "port_from": "bottom",
+            "port_to": "HV",
+            "element_from": "CUb42a",
+            "element_to": "AU0d93"
+        },
+        {
+            "node_from": "N_DIe215_top",
+            "node_to": "N_BU4793_p_13",
+            "port_from": "top",
+            "port_to": "p_13",
+            "element_from": "DIe215",
+            "element_to": "BU4793"
+        },
+        {
+            "node_from": "N_GRc19a_left",
+            "node_to": "N_BU870d_p_22",
+            "port_from": "left",
+            "port_to": "p_22",
+            "element_from": "GRc19a",
+            "element_to": "BU870d"
+        },
+        {
+            "node_from": "N_DIff5f_bot",
+            "node_to": "N_GR7740_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIff5f",
+            "element_to": "GR7740"
+        },
+        {
+            "node_from": "N_GR7740_left",
+            "node_to": "N_VO5c5a_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR7740",
+            "element_to": "VO5c5a"
+        },
+        {
+            "node_from": "N_BU870d_p_22",
+            "node_to": "N_DIff5f_top",
+            "port_from": "p_22",
+            "port_to": "top",
+            "element_from": "BU870d",
+            "element_to": "DIff5f"
+        }
+    ],
+    "view": {
+        "zoom": 0.5894,
+        "offset_x": 715.52,
+        "offset_y": 191.4
+    }
+}
