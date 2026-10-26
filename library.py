@@ -1625,12 +1625,102 @@ class Container(Component):
         return self._rect()
 
 
+# ==========================================
+# 24. КИВ — КОНТРОЛЬ ИЗОЛЯЦИИ ВВОДОВ
+# ==========================================
+class BushingMonitor(Component):
+    """КИВ — контроль изоляции вводов (датчик на вводе оборудования).
+
+    Два вывода — сверху и снизу (включается в первичную цепь последовательно),
+    посередине — узел подключения РЗА: к нему идут защитные связи от комплекта
+    шкафа. Графически повторяет типовое обозначение: вертикальный вывод с
+    залитыми узлами сверху и снизу, слоистые скобки изоляции по бокам и узел
+    РЗА в центре.
+    """
+
+    HALF_H = 1.5          # половина высоты в клетках (компактный символ)
+    NODE_R = 0.18         # радиус верхнего/нижнего узла
+    RZA_R = 0.27          # радиус узла подключения РЗА
+    RZA_COLOR = "#1f4e79"
+
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "bushing_monitor"
+        self.rotation = 0
+        self.generate_ports()
+
+    def half_height(self):
+        return self.HALF_H * self.cell
+
+    def generate_ports(self):
+        half = self.half_height()
+        self.ports = {}
+        for name, dy in (("top", -half), ("bottom", half)):
+            px, py = self._local_rotated(0, dy)
+            self.ports[name] = {"x": px, "y": py,
+                                "node_id": f"N_{self.id}_{name}"}
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        g = self.cell
+        half = self.half_height()
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0) % 360
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        # 1. Центральный вывод сверху вниз
+        x1, y1 = scr(0, -half)
+        x2, y2 = scr(0, half)
+        canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        # 2. Слои изоляции — три пары симметричных скоб
+        for offset, bracket_half in ((0.38 * g, 1.05 * g),
+                                     (0.68 * g, 0.70 * g),
+                                     (0.98 * g, 0.42 * g)):
+            for side in (-1, 1):
+                bx = side * offset
+                bx1, by1 = scr(bx, -bracket_half)
+                bx2, by2 = scr(bx, bracket_half)
+                canvas.create_line(bx1, by1, bx2, by2, width=lw, fill="black")
+                for dy in (-bracket_half, bracket_half):
+                    sx1, sy1 = scr(bx, dy)
+                    sx2, sy2 = scr(bx - side * 0.18 * g, dy)
+                    canvas.create_line(sx1, sy1, sx2, sy2, width=lw, fill="black")
+
+        # 3. Узлы сверху и снизу
+        r = self.NODE_R * g * zoom
+        for dy in (-half, half):
+            cx, cy = scr(0, dy)
+            canvas.create_oval(cx - r, cy - r, cx + r, cy + r,
+                               fill="black", outline="black")
+
+        # 4. Узел подключения РЗА посередине
+        rr = self.RZA_R * g * zoom
+        cx, cy = scr(0, 0)
+        canvas.create_oval(cx - rr, cy - rr, cx + rr, cy + rr,
+                           fill=self.RZA_COLOR, outline="white", width=lw)
+
+        if rotation == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, 1.9 * g)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        g = self.cell
+        half = self.half_height()
+        return self._rotated_bbox((-1.16 * g, -half - 0.2 * g,
+                                   1.16 * g, half + 0.2 * g))
+
+
 COMPONENT_TYPES = (
     "breaker", "disconnector", "bus", "transformer", "split_transformer",
     "three_winding_transformer", "autotransformer", "reactor", "line",
     "voltage_transformer", "current_transformer", "node", "corner",
     "grounding_switch", "ground", "opn", "coupling_capacitor", "line_trap",
     "connection_filter", "av_breaker", "fuse", "cabinet", "container",
+    "bushing_monitor",
 )
 
 
@@ -1658,4 +1748,5 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
     elif comp_type == "fuse": return Fuse(comp_id, x, y, grid_size)
     elif comp_type == "cabinet": return Cabinet(comp_id, x, y, grid_size)
     elif comp_type == "container": return Container(comp_id, x, y, grid_size)
+    elif comp_type == "bushing_monitor": return BushingMonitor(comp_id, x, y, grid_size)
     else: raise ValueError(f"Неизвестный тип элемента: {comp_type}")

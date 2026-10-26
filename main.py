@@ -29,7 +29,7 @@ PREFIX_BY_TYPE = {
     "ground": "G", "voltage_transformer": "TV", "current_transformer": "TA",
     "opn": "FV", "coupling_capacitor": "CC", "line_trap": "LT",
     "connection_filter": "CF", "av_breaker": "QF", "fuse": "FU",
-    "cabinet": "EL", "container": "EK",
+    "cabinet": "EL", "container": "EK", "bushing_monitor": "KIV",
 }
 
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
@@ -55,6 +55,7 @@ PALETTE_ITEMS = [
     ("Заземляющий разъединитель", "grounding_switch"),
     ("Заземление", "ground"),
     ("Узел", "node"),
+    ("КИВ — контроль изоляции вводов", "bushing_monitor"),
 ]
 
 
@@ -2844,7 +2845,8 @@ class CircuitEditor:
             return
         node_r = max(3.0, 4.5 * self.zoom)
         for element in self.elements.values():
-            if element.type in ("cabinet", "container", "corner", "node"):
+            if element.type in ("cabinet", "container", "corner", "node",
+                                "bushing_monitor"):
                 continue
             x, y = self.world_to_screen(element.x, element.y)
             self.canvas.create_polygon(
