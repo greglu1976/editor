@@ -1730,13 +1730,76 @@ class BushingMonitor(Component):
                                    1.16 * g, half + 0.2 * g))
 
 
+# ==========================================
+# 25. БСК (БАТАРЕЯ СТАТИЧЕСКИХ КОНДЕНСАТОРОВ)
+# ==========================================
+class CapacitorBattery(Component):
+    """БСК — батарея статических конденсаторов (2 порта, габарит как у реактора).
+
+    Две последовательные секции конденсаторов: четыре обкладки, выводы сверху
+    и снизу — узлы подключения к первичной схеме.
+    """
+
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "capacitor_battery"
+        self.rotation = 0
+        self.generate_ports()
+
+    def generate_ports(self):
+        c = self.cell
+        self.ports = {}
+        for name, dx, dy in (("top", 0, -2 * c), ("bottom", 0, 2 * c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py,
+                                "node_id": f"N_{self.id}_{name}"}
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        c = self.cell
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0) % 360
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        plate_half = c           # половина длины обкладки
+        segments = [
+            # выводы к обкладкам
+            ((0, -2 * c), (0, -0.55 * c)),
+            ((0, 0.55 * c), (0, 2 * c)),
+            # перемычка между секциями
+            ((0, -0.25 * c), (0, 0.25 * c)),
+            # обкладки первой секции
+            ((-plate_half, -0.55 * c), (plate_half, -0.55 * c)),
+            ((-plate_half, -0.25 * c), (plate_half, -0.25 * c)),
+            # обкладки второй секции
+            ((-plate_half, 0.25 * c), (plate_half, 0.25 * c)),
+            ((-plate_half, 0.55 * c), (plate_half, 0.55 * c)),
+        ]
+        for (dx1, dy1), (dx2, dy2) in segments:
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        if rotation == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y, c + 15)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        """Габарит как у реактора: 40 × 80 px при клетке 20."""
+        c = self.cell
+        return self._rotated_bbox((-c, -2 * c, c, 2 * c))
+
+
 COMPONENT_TYPES = (
     "breaker", "disconnector", "bus", "transformer", "split_transformer",
     "three_winding_transformer", "autotransformer", "reactor", "line",
     "voltage_transformer", "current_transformer", "node", "corner",
     "grounding_switch", "ground", "opn", "coupling_capacitor", "line_trap",
     "connection_filter", "av_breaker", "fuse", "cabinet", "container",
-    "bushing_monitor",
+    "bushing_monitor", "capacitor_battery",
 )
 
 
@@ -1765,4 +1828,5 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
     elif comp_type == "cabinet": return Cabinet(comp_id, x, y, grid_size)
     elif comp_type == "container": return Container(comp_id, x, y, grid_size)
     elif comp_type == "bushing_monitor": return BushingMonitor(comp_id, x, y, grid_size)
+    elif comp_type == "capacitor_battery": return CapacitorBattery(comp_id, x, y, grid_size)
     else: raise ValueError(f"Неизвестный тип элемента: {comp_type}")

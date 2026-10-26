@@ -35,6 +35,7 @@ PREFIX_BY_TYPE = {
     "opn": "FV", "coupling_capacitor": "CC", "line_trap": "LT",
     "connection_filter": "CF", "av_breaker": "QF", "fuse": "FU",
     "cabinet": "EL", "container": "EK", "bushing_monitor": "BSH",
+    "capacitor_battery": "BSK",
 }
 
 # Названия типов элементов для отчётов и подсказок.
@@ -59,6 +60,7 @@ ELEMENT_TYPE_TITLES = {
     "grounding_switch": "Заземляющий разъединитель",
     "ground": "Заземление",
     "bushing_monitor": "КИВ — контроль изоляции вводов",
+    "capacitor_battery": "БСК — батарея статических конденсаторов",
     "cabinet": "Шкаф РЗА",
     "container": "Контейнер КЭТ",
     "corner": "Уголок",
@@ -89,6 +91,7 @@ PALETTE_ITEMS = [
     ("Заземление", "ground"),
     ("Узел", "node"),
     ("КИВ — контроль изоляции вводов", "bushing_monitor"),
+    ("БСК — батарея статических конденсаторов", "capacitor_battery"),
 ]
 
 
