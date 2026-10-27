@@ -477,7 +477,7 @@ class SsdOptionsDialog(tk.Toplevel):
 class CircuitEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Редактор электрических схем v16")
+        self.root.title("Редактор электрических схем v17")
         
         self.elements = {}    
         self.connections = [] 
