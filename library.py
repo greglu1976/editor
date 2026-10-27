@@ -3,6 +3,8 @@
 import math
 import tkinter as tk
 
+import komplekts
+
 # Базовая единица геометрии элементов в мировых координатах.
 # Не зависит от шага сетки: изменение шага меняет только привязку и вид сетки,
 # но не размеры и пропорции элементов схемы.
@@ -1276,12 +1278,20 @@ def komplets_from_ieds(ieds):
     return komplets
 
 
+def normalize_komplets(komplets, default_kind=None, cabinet=None):
+    """Нормализует комплекты шкафа схемы (старые записи тоже)."""
+    return komplekts.normalize_komplets(
+        (komplets or [])[:CABINET_MAX_KOMPLETS], default_kind, cabinet)
+
+
 class Cabinet(Component):
     """Шкаф РЗА: до 7 комплектов, в каждом — 0..N устройств ИЭУ.
 
     Комплект — подключаемая единица: у него свой порт на правой грани
     (komplekt0..komplekt6), к которому идут защитные связи. Комплект может
-    быть и без ИЭУ — привязка к оборудованию всё равно работает.
+    быть и без ИЭУ — привязка к оборудованию всё равно работает. У комплекта
+    есть вид (типовой / нетиповой / прочий), ссылка на типовой шкаф каталога
+    и испытательные блоки по напряжению и току.
     """
 
     WIDTH = 190
@@ -1305,13 +1315,8 @@ class Cabinet(Component):
         komplets = definition.get("komplets")
         if not isinstance(komplets, list):
             komplets = komplets_from_ieds(definition.get("ieds", []))
-        self.komplets = []
-        for index, komplekt in enumerate(komplets[:self.MAX_KOMPLETS]):
-            entry = dict(komplekt)
-            entry.setdefault("name", "Комплект {}".format(index + 1))
-            entry["functions"] = list(entry.get("functions", []))
-            entry["ieds"] = [dict(ied) for ied in entry.get("ieds", [])]
-            self.komplets.append(entry)
+        self.komplets = normalize_komplets(
+            komplets, komplekts.cabinet_kit_kind(definition), definition)
         self.info = {
             key: definition.get(key)
             for key in ("code", "name", "title", "description", "voltage",
@@ -1377,9 +1382,17 @@ class Cabinet(Component):
             canvas.create_rectangle(sx1 + 5 * zoom, by1, sx2 - 5 * zoom, by2,
                                     fill="white", outline="#8a9bb0", width=1,
                                     tags="cabinet_body")
-            ieds = komplekt.get("ieds", [])
-            suffix = " · {} ИЭУ".format(len(ieds)) if ieds else ""
+            ieds = komplekts.effective_ieds(komplekt)
+            if ieds:
+                suffix = " · {} ИЭУ".format(len(ieds))
+            elif komplekt.get("has_ied"):
+                suffix = ""          # ИЭУ есть, но устройства не перечислены
+            else:
+                suffix = " · без ИЭУ"
             name = komplekt.get("name") or "Комплект {}".format(index + 1)
+            blocks = komplekts.test_blocks_summary(komplekt)
+            if blocks:
+                suffix += " · БИ " + blocks
             canvas.create_text(sx1 + 9 * zoom, (by1 + by2) / 2.0,
                                text=name + suffix,
                                anchor="w", font=("Arial", int(7 * zoom)),

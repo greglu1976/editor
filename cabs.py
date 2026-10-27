@@ -21,14 +21,23 @@
         "source": "раздел СТО",
         "komplets": [
             {"name": "Комплект 1", "type": "МП РЗА",
+             "kind": "typical | custom | other",
              "functions": ["ДЗТ", "..."], "desc": "...",
-             "ieds": [{"name": "ИЭУ1", "type": "МП РЗА", "desc": "..."}]},
+             "has_ied": True,
+             "ieds": [{"name": "ИЭУ1", "type": "МП РЗА", "desc": "..."}],
+             "test_blocks": {
+                 "voltage": {"count": 2, "circuits": ["Ua", "Ub", "Uc"]},
+                 "current": {"count": 1, "circuits": ["Ia", "Ib", "Ic"]},
+             }},
         ],
     }
 
 Комплектов в шкафу — от 1 до MAX_KOMPLETS (7). Комплект — подключаемая
 единица: у него свой порт, к которому идут защитные связи; ИЭУ внутри
-комплекта может не быть.
+комплекта может не быть. У комплекта есть вид (типовой — из типового шкафа,
+нетиповой, прочий), функции, признак наличия ИЭУ и испытательные блоки по
+напряжению и току. Комплекты ведутся также в отдельном каталоге
+(komplekts.py), а в шкафу хранится их копия.
 
 Каталог содержит типовые шкафы ШЭТ по четырём стандартам ПАО «ФСК ЕЭС»
 (архитектура II типа, введены 26.12.2019):
@@ -46,6 +55,8 @@ import json
 import os
 import re
 import uuid
+
+import komplekts
 
 _COMMON_STANDARD = {
     "organization": "ПАО «ФСК ЕЭС»",
@@ -2336,16 +2347,13 @@ USER_CATALOG_PATH = os.path.join(
 
 def normalize_cabinet(cabinet):
     """Приводит шкаф к формату комплектов (старое поле ieds → komplets)."""
+    # Типовой шкаф (есть стандарт) порождает типовые комплекты,
+    # произвольный — нетиповые.
+    default_kind = "typical" if cabinet.get("standard_key") else "custom"
     komplets = cabinet.get("komplets")
     if isinstance(komplets, list):
-        result = []
-        for index, komplekt in enumerate(komplets[:MAX_KOMPLETS]):
-            entry = dict(komplekt)
-            entry.setdefault("name", "Комплект {}".format(index + 1))
-            entry["functions"] = list(entry.get("functions", []))
-            entry["ieds"] = [dict(ied) for ied in entry.get("ieds", [])]
-            result.append(entry)
-        cabinet["komplets"] = result
+        cabinet["komplets"] = komplekts.normalize_komplets(
+            komplets[:MAX_KOMPLETS], default_kind, cabinet)
         return cabinet
 
     # Старый формат: список ИЭУ прямо в шкафу — каждый ИЭУ становится комплектом
@@ -2362,7 +2370,8 @@ def normalize_cabinet(cabinet):
                 "desc": ied.get("desc", ""),
             }],
         })
-    cabinet["komplets"] = result
+    cabinet["komplets"] = komplekts.normalize_komplets(
+        result, default_kind, cabinet)
     return cabinet
 
 
