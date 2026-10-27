@@ -5,7 +5,7 @@
             "type": "bus",
             "name": "BB1",
             "x": 460,
-            "y": 260,
+            "y": 240,
             "length": 260,
             "label": [
                 -269.3,
@@ -545,6 +545,22 @@
             "x": 640,
             "y": 970,
             "rotation": 0
+        },
+        {
+            "id": "GRead9",
+            "type": "grounding_switch",
+            "name": "QSG22",
+            "x": 260,
+            "y": 260,
+            "rotation": 270
+        },
+        {
+            "id": "GR1aba",
+            "type": "grounding_switch",
+            "name": "QSG23",
+            "x": 660,
+            "y": 260,
+            "rotation": 270
         }
     ],
     "connections": [
@@ -707,14 +723,6 @@
             "port_to": "top",
             "element_from": "DI97ab",
             "element_to": "VOf2b7"
-        },
-        {
-            "node_from": "N_BU4793_p_2",
-            "node_to": "N_DI00ba_top",
-            "port_from": "p_2",
-            "port_to": "top",
-            "element_from": "BU4793",
-            "element_to": "DI00ba"
         },
         {
             "node_from": "N_LIcc3b_out",
@@ -981,14 +989,6 @@
             "element_to": "AU5550"
         },
         {
-            "node_from": "N_BU4793_p_21",
-            "node_to": "N_DI5db0_top",
-            "port_from": "p_21",
-            "port_to": "top",
-            "element_from": "BU4793",
-            "element_to": "DI5db0"
-        },
-        {
             "node_from": "N_BU4793_p_7",
             "node_to": "N_DIccd0_top",
             "port_from": "p_7",
@@ -1059,11 +1059,43 @@
             "port_to": "top",
             "element_from": "BU870d",
             "element_to": "DIff5f"
+        },
+        {
+            "node_from": "N_BU4793_p_2",
+            "node_to": "N_GRead9_left",
+            "port_from": "p_2",
+            "port_to": "left",
+            "element_from": "BU4793",
+            "element_to": "GRead9"
+        },
+        {
+            "node_from": "N_GRead9_left",
+            "node_to": "N_DI00ba_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRead9",
+            "element_to": "DI00ba"
+        },
+        {
+            "node_from": "N_BU4793_p_21",
+            "node_to": "N_GR1aba_left",
+            "port_from": "p_21",
+            "port_to": "left",
+            "element_from": "BU4793",
+            "element_to": "GR1aba"
+        },
+        {
+            "node_from": "N_GR1aba_left",
+            "node_to": "N_DI5db0_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR1aba",
+            "element_to": "DI5db0"
         }
     ],
     "view": {
-        "zoom": 0.5894,
-        "offset_x": 715.52,
-        "offset_y": 191.4
+        "zoom": 1.3212,
+        "offset_x": 649.62,
+        "offset_y": -310.16
     }
 }

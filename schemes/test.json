@@ -566,8 +566,8 @@
             "id": "CAa1a3",
             "type": "cabinet",
             "name": "EL4",
-            "x": -60,
-            "y": 1060,
+            "x": -120,
+            "y": 1390,
             "cabinet": {
                 "key": "shet-410-01-1",
                 "title": "ШЭТ 410.01-1",
@@ -637,8 +637,8 @@
             "id": "KE7fb8",
             "type": "container",
             "name": "EK1",
-            "x": -670,
-            "y": 1070,
+            "x": -700,
+            "y": 840,
             "container": {
                 "key": "ket-6-2-ii",
                 "code": "КЭТ 6-2-II",
@@ -699,8 +699,8 @@
             "id": "CA9914",
             "type": "cabinet",
             "name": "EL7",
-            "x": 0,
-            "y": 910,
+            "x": -40,
+            "y": 830,
             "cabinet": {
                 "key": "шэт-311-01-1-копия",
                 "title": "ШЭТ 311.21-1",
@@ -1710,8 +1710,8 @@
             "id": "CAd84b",
             "type": "cabinet",
             "name": "EL9",
-            "x": 1120,
-            "y": 1480,
+            "x": 510,
+            "y": 1670,
             "cabinet": {
                 "key": "shet-cn-2-1",
                 "title": "ШЭТ ЦН.2-1",
@@ -3157,19 +3157,23 @@
         {
             "from": "VO6638",
             "to": "CAd84b#0",
-            "voltage": "Ua, Ub, Uc, Uн, Uи, Uф, Uк",
-            "current": ""
+            "voltage": "Ua, Ub, Uc, Uн, Uи, Uф, Uк"
         },
         {
             "from": "VO3dca",
             "to": "CAd84b#0",
+            "voltage": "Ua, Ub, Uc, Uн, Uи, Uф, Uк"
+        },
+        {
+            "from": "CAd84b#0",
+            "to": "CAa1a3#1",
             "voltage": "Ua, Ub, Uc, Uн, Uи, Uф, Uк",
             "current": ""
         }
     ],
     "view": {
-        "zoom": 0.5525,
-        "offset_x": 636.8,
-        "offset_y": 52.45
+        "zoom": 0.8375,
+        "offset_x": 843.21,
+        "offset_y": -356.41
     }
 }
