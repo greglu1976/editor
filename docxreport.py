@@ -336,3 +336,78 @@ def build_scheme_report(path, report):
     for line in report.get("footer") or []:
         builder.paragraph(line, size=8, color="808080", space_after=40)
     return builder.save(path)
+
+
+def build_selection_report(path, report):
+    """Отчёт по выделенному элементу (шкаф или контейнер).
+
+    report = {
+        "title": "Отчёт по шкафу EL1",
+        "subtitle": ["Сформирован: …"],
+        "sections": [
+            # пары «показатель — значение»
+            {"title": "1. Общие сведения",
+             "rows": [["Обозначение", "EL1"], ...]},
+
+            # таблица с произвольными колонками
+            {"title": "2. Шкафы в контейнере",
+             "header": ["Слот", "Шкаф", ...],
+             "rows": [[...]],
+             "widths": [...], "aligns": [...]},
+
+            # блоки: каждый — заголовок и свои пары
+            {"title": "3. Комплекты",
+             "blocks": [
+                 {"head": "Комплект 1 — Типовой · используется",
+                  "note": "…",
+                  "rows": [["Функции", "ДЗТ, ГЗ Т"], ...]},
+             ]},
+        ],
+        "footer": ["…"],
+    }
+    """
+    builder = DocxBuilder(landscape=report.get("landscape", False))
+    builder.title(report.get("title", "Отчёт"))
+    for line in report.get("subtitle") or []:
+        builder.subtitle(line)
+
+    for section in report.get("sections") or []:
+        builder.heading(section.get("title", ""))
+        if section.get("note"):
+            builder.paragraph(section["note"], size=9, color="666666")
+
+        rows = section.get("rows") or []
+        blocks = section.get("blocks") or []
+        header = section.get("header")
+
+        if header:
+            builder.table(header=header, rows=rows,
+                          widths=section.get("widths"),
+                          aligns=section.get("aligns"),
+                          font_size=section.get("font_size", 9))
+        elif rows:
+            builder.table(header=section.get("header") or ["Показатель",
+                                                           "Значение"],
+                          rows=rows,
+                          widths=section.get("widths") or [3200, 6438],
+                          aligns=section.get("aligns") or ["left", "left"],
+                          font_size=section.get("font_size", 9))
+
+        for block in blocks:
+            head = block.get("head")
+            if head:
+                builder.paragraph(head, bold=True, size=10, space_after=40)
+            if block.get("note"):
+                builder.paragraph(block["note"], size=8, color="666666")
+            block_rows = block.get("rows") or []
+            if block_rows:
+                builder.table(header=["Параметр", "Значение"],
+                              rows=block_rows, widths=[3200, 6438],
+                              aligns=["left", "left"], font_size=9)
+
+        if not (header or rows or blocks):
+            builder.paragraph("Нет данных.", size=10, color="808080")
+
+    for line in report.get("footer") or []:
+        builder.paragraph(line, size=8, color="808080", space_after=40)
+    return builder.save(path)

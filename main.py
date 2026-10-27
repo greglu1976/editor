@@ -5616,9 +5616,14 @@ class CircuitEditor:
             self._ribbon_button(row, "По схеме", self.report_by_scheme,
                                 _ri_report, 76).pack(side=tk.LEFT),
         ])
-        tk.Label(page, text="Формирует документ Word (.docx) с ведомостями:\n"
-                            "шкафы РЗА, контейнеры КЭТ, типы шкафов,\n"
-                            "аналоговые цепи и первичное оборудование.",
+        self._ribbon_group(page, "Выделение", lambda row: [
+            self._ribbon_button(row, "По выделению", self.report_by_selection,
+                                _ri_report, 92).pack(side=tk.LEFT),
+        ])
+        tk.Label(page, text="«По схеме» — документ Word со всеми ведомостями.\n"
+                            "«По выделению» — отчёт по выбранному шкафу:\n"
+                            "используемые и неиспользуемые комплекты,\n"
+                            "а по контейнеру — все шкафы в нём.",
                  bg="#f3f3f3", fg="#808080", font=("Arial", 7),
                  justify="left").pack(side=tk.LEFT, padx=12)
         return page
@@ -5853,6 +5858,507 @@ class CircuitEditor:
             return True
         except Exception:
             return False
+
+    # ================= ОТЧЁТ ПО ВЫДЕЛЕННОМУ ЭЛЕМЕНТУ =========================
+    # Шкаф  → используемые и неиспользуемые комплекты.
+    # КЭТ   → все шкафы в контейнере и их комплекты.
+
+    def _selection_report_target(self):
+        """Шкаф или контейнер из выделения: (элемент, ошибка)."""
+        selected = [self.elements[el_id] for el_id in self.selected_elements
+                    if el_id in self.elements]
+        if not selected:
+            return None, "Сначала выделите шкаф или контейнер на схеме."
+        cabinets = [el for el in selected if el.type == "cabinet"]
+        containers = [el for el in selected if el.type == "container"]
+        if len(selected) == 1:
+            element = selected[0]
+            if element.type in ("cabinet", "container"):
+                return element, None
+            return None, ("Отчёт по выделению строится для шкафа РЗА или "
+                          "контейнера КЭТ.\nВыделен элемент «{}».".format(
+                              ELEMENT_TYPE_TITLES.get(element.type,
+                                                      element.type)))
+        if len(cabinets) == 1 and not containers:
+            return cabinets[0], None
+        if len(containers) == 1 and not cabinets:
+            return containers[0], None
+        return None, ("Выделено элементов: {}.\nВыделите ровно один шкаф "
+                      "или один контейнер.".format(len(selected)))
+
+    def _komplekt_links(self, cabinet, index):
+        """Связи комплекта: (защищаемые элементы, аналоговые цепи)."""
+        ref = "{}#{}".format(cabinet.id, index)
+        protections = []
+        for link in self.protection_links:
+            if self._link_ref(link) != ref:
+                continue
+            element = self.elements.get(link.get("element"))
+            if element is not None:
+                name = element.name or element.id
+                title = ELEMENT_TYPE_TITLES.get(element.type, "")
+                protections.append("{} ({})".format(name, title) if title else name)
+        analogs = []
+        for link in self.analog_links:
+            other = None
+            if link.get("from") == ref:
+                other = link.get("to")
+            elif link.get("to") == ref:
+                other = link.get("from")
+            if other is None:
+                continue
+            signals = self._analog_signals_text(link)
+            analogs.append(self._report_ref_label(other)
+                           + (" · " + signals if signals else ""))
+        return protections, analogs
+
+    def _report_ref_label(self, ref):
+        """Подпись конца связи для отчёта: «T1 · комплект 1 (Трансформатор)»."""
+        element_id, index = self._split_ref(ref)
+        element = self.elements.get(element_id)
+        if element is None:
+            return "— (элемент удалён)"
+        name = element.name or element.id
+        if index is not None:
+            kit_name = ""
+            kits = getattr(element, "komplets", []) or []
+            if 0 <= index < len(kits):
+                kit_name = kits[index].get("name") or ""
+            return "{} · комплект {}{}".format(
+                name, index + 1, " «{}»".format(kit_name) if kit_name else "")
+        title = (ELEMENT_TYPE_TITLES.get(element.type)
+                 or getattr(element, "title", "") or element.type)
+        return "{} ({})".format(name, title)
+
+    def _komplekt_report_rows(self, kit, index):
+        """Пары «параметр — значение» для одного комплекта."""
+        ieds = komplekts.effective_ieds(kit)
+        rows = [
+            ["Комплект", kit.get("name") or "Комплект {}".format(index + 1)],
+            ["Вид", komplekts.kind_title(kit)],
+        ]
+        if kit.get("type"):
+            rows.append(["Тип устройства", str(kit["type"])])
+        if kit.get("kind") == "typical":
+            rows.append(["Типовой шкаф", komplekts.cabinet_ref_text(kit)])
+        rows.append(["Функции", ", ".join(kit.get("functions") or []) or "—"])
+        rows.append(["ИЭУ", ", ".join(ied.get("name") or "ИЭУ" for ied in ieds)
+                     if ieds else "нет"])
+        rows.append(["Испытательные блоки", komplekts.test_blocks_text(kit)])
+        if kit.get("desc"):
+            rows.append(["Описание", str(kit["desc"])])
+        return rows
+
+    def _cabinet_report(self, cabinet):
+        """Отчёт по шкафу: используемые и неиспользуемые комплекты."""
+        code, name, group = self._report_cabinet_type(cabinet)
+        info = getattr(cabinet, "info", {}) or {}
+        container = self._container_of(cabinet.id)
+        if container is not None:
+            slot = container.slot_of(cabinet.id)
+            place = "{} · слот {}".format(
+                container.name or getattr(container, "code", "") or "КЭТ",
+                (slot or 0) + 1)
+        else:
+            place = "не привязан к контейнеру"
+
+        kits = list(getattr(cabinet, "komplets", []))
+        used, unused = [], []
+        for index, kit in enumerate(kits):
+            protections, analogs = self._komplekt_links(cabinet, index)
+            if protections or analogs:
+                used.append((index, kit, protections, analogs))
+            else:
+                unused.append((index, kit))
+
+        ied_count = sum(len(komplekts.effective_ieds(kit)) for kit in kits)
+
+        general = [
+            ["Обозначение", cabinet.name or "—"],
+            ["Тип (шифр)", code],
+            ["Наименование типа", name],
+            ["Группа", group],
+            ["Контейнер КЭТ", place],
+            ["Напряжение", info.get("voltage") or "—"],
+            ["Защищаемый элемент", info.get("protected") or "—"],
+            ["Управляет", ", ".join(info.get("controlled") or []) or "—"],
+        ]
+        if info.get("its_functions"):
+            general.append(["Функции ИТС",
+                            ", ".join(info["its_functions"])])
+        if info.get("standard_title") or info.get("standard"):
+            general.append(["Стандарт",
+                            info.get("standard_title") or info.get("standard")])
+        if info.get("goose") is not None:
+            general.append(["GOOSE", "да" if info["goose"] else "нет"])
+        general += [
+            ["Комплектов в шкафу", str(len(kits))],
+            ["Устройств ИЭУ", str(ied_count)],
+        ]
+
+        total = [
+            ["Всего комплектов", str(len(kits))],
+            ["Используется", str(len(used))],
+            ["Не используется", str(len(unused))],
+        ]
+
+        used_blocks = []
+        for index, kit, protections, analogs in used:
+            head = "Комплект {} — «{}» · {}".format(
+                index + 1, kit.get("name") or "без названия",
+                komplekts.kind_title(kit))
+            rows = [
+                ["Функции", ", ".join(kit.get("functions") or []) or "—"],
+                ["ИЭУ", ", ".join(ied.get("name") or "ИЭУ"
+                                  for ied in komplekts.effective_ieds(kit))
+                 or "нет"],
+                ["Защищаемые элементы", "; ".join(protections) or "—"],
+                ["Аналоговые цепи", "; ".join(analogs) or "—"],
+            ]
+            used_blocks.append({"head": head, "rows": rows})
+
+        unused_blocks = []
+        for index, kit in unused:
+            head = "Комплект {} — «{}» · {}".format(
+                index + 1, kit.get("name") or "без названия",
+                komplekts.kind_title(kit))
+            unused_blocks.append({
+                "head": head,
+                "note": "Связей с оборудованием нет.",
+                "rows": self._komplekt_report_rows(kit, index)[3:],
+            })
+
+        sections = [
+            {"title": "1. Общие сведения", "rows": general},
+            {"title": "2. Сводка по комплектам", "rows": total},
+        ]
+        if used_blocks:
+            sections.append({"title": "3. Используемые комплекты",
+                             "blocks": used_blocks})
+        else:
+            sections.append({
+                "title": "3. Используемые комплекты",
+                "note": "Ни один комплект шкафа не подключён к оборудованию "
+                        "защитными связями или аналоговыми цепями."})
+        if unused_blocks:
+            sections.append({"title": "4. Неиспользуемые комплекты",
+                             "blocks": unused_blocks})
+        else:
+            sections.append({
+                "title": "4. Неиспользуемые комплекты",
+                "note": "Все комплекты шкафа используются (свободных нет)."})
+
+        return {
+            "title": "Отчёт по шкафу {}".format(
+                cabinet.name or cabinet.id),
+            "subtitle": [
+                "Сформирован: {}".format(
+                    datetime.now().strftime("%d.%m.%Y %H:%M")),
+                "Тип: {} — {}".format(code, name),
+            ],
+            "sections": sections,
+            "footer": [
+                "Используемым считается комплект, у которого есть хотя бы "
+                "одна связь: защита → оборудование или аналоговые цепи.",
+            ],
+        }
+
+    def _cabinet_kits_brief(self, cabinet):
+        """Краткое описание комплектов шкафа для отчёта по контейнеру."""
+        used, unused = [], []
+        for index, kit in enumerate(getattr(cabinet, "komplets", [])):
+            protections, analogs = self._komplekt_links(cabinet, index)
+            title = kit.get("name") or "Комплект {}".format(index + 1)
+            functions = ", ".join(kit.get("functions") or [])
+            label = "Комплект {}. «{}»".format(index + 1, title)
+            if functions:
+                label += " ({})".format(functions)
+            if protections or analogs:
+                targets = "; ".join(protections + analogs)
+                used.append("{} → {}".format(label, targets))
+            else:
+                unused.append(label)
+        return used, unused
+
+    def _container_report(self, container):
+        """Отчёт по контейнеру: все шкафы в нём и их комплекты."""
+        info = getattr(container, "info", {}) or {}
+        cabinets = [self.elements[cabinet_id]
+                    for cabinet_id in container.bound_ids()
+                    if cabinet_id in self.elements]
+
+        slots = container.slot_count()
+        general = [
+            ["Обозначение", container.name or getattr(container, "code", "")
+             or "—"],
+            ["Код", getattr(container, "code", "") or "—"],
+            ["Наименование", info.get("name") or
+             getattr(container, "title", "") or "—"],
+            ["Типоразмер", info.get("size_code") or
+             info.get("size") or getattr(container, "size", "") or "—"],
+            ["Слотов", str(slots)],
+            ["Шкафов привязано", str(len(cabinets))],
+            ["Свободных слотов", str(max(0, slots - len(cabinets)))],
+        ]
+        for key, label in (("dimensions", "Габариты"), ("climate", "Климат"),
+                           ("ip", "Степень защиты"), ("group", "Группа")):
+            if info.get(key):
+                general.append([label, str(info[key])])
+        if info.get("standard_title") or info.get("standard"):
+            general.append(["Стандарт",
+                            info.get("standard_title") or info.get("standard")])
+        if info.get("description"):
+            general.append(["Назначение", str(info["description"])])
+
+        total_komplets = sum(len(getattr(el, "komplets", [])) for el in cabinets)
+        total_used = 0
+        for cabinet in cabinets:
+            for index in range(len(getattr(cabinet, "komplets", []))):
+                protections, analogs = self._komplekt_links(cabinet, index)
+                if protections or analogs:
+                    total_used += 1
+        general += [
+            ["Комплектов в шкафах", str(total_komplets)],
+            ["Из них используется", str(total_used)],
+        ]
+
+        cabinet_rows = []
+        for slot in range(slots):
+            cabinet_id = container.cabinets[slot] if slot < len(container.cabinets) else ""
+            cabinet = self.elements.get(cabinet_id) if cabinet_id else None
+            if cabinet is None:
+                cabinet_rows.append([str(slot + 1), "— свободен —", "—", "—",
+                                     "—", "—", "—"])
+                continue
+            code, name, _group = self._report_cabinet_type(cabinet)
+            kits = list(getattr(cabinet, "komplets", []))
+            used_count = 0
+            for index in range(len(kits)):
+                protections, analogs = self._komplekt_links(cabinet, index)
+                if protections or analogs:
+                    used_count += 1
+            cabinet_rows.append([
+                str(slot + 1),
+                cabinet.name or cabinet.id,
+                code,
+                name,
+                str(len(kits)),
+                str(used_count),
+                str(len(kits) - used_count),
+            ])
+
+        blocks = []
+        for slot in range(slots):
+            cabinet_id = container.cabinets[slot] if slot < len(container.cabinets) else ""
+            cabinet = self.elements.get(cabinet_id) if cabinet_id else None
+            if cabinet is None:
+                continue
+            code, name, _group = self._report_cabinet_type(cabinet)
+            used, unused = self._cabinet_kits_brief(cabinet)
+            rows = [
+                ["Слот", str(slot + 1)],
+                ["Тип шкафа", "{} — {}".format(code, name)],
+                ["Комплектов", str(len(getattr(cabinet, "komplets", [])))],
+                ["Используются", "; ".join(used) or "—"],
+                ["Не используются", "; ".join(unused) or "—"],
+            ]
+            blocks.append({"head": "{} · слот {}".format(
+                               cabinet.name or cabinet.id, slot + 1),
+                           "rows": rows})
+
+        sections = [
+            {"title": "1. Общие сведения о контейнере", "rows": general},
+            {
+                "title": "2. Шкафы в контейнере",
+                "header": ["Слот", "Шкаф", "Шифр", "Наименование",
+                           "Комплектов", "Использ.", "Свободно"],
+                "rows": cabinet_rows,
+                "widths": [600, 1200, 1400, 3200, 1100, 1000, 1100],
+                "aligns": ["center", "left", "left", "left",
+                           "center", "center", "center"],
+            },
+        ]
+        if blocks:
+            sections.append({"title": "3. Комплекты шкафов", "blocks": blocks})
+        else:
+            sections.append({
+                "title": "3. Комплекты шкафов",
+                "note": "К контейнеру не привязано ни одного шкафа."})
+
+        return {
+            "title": "Отчёт по контейнеру {}".format(
+                container.name or getattr(container, "code", "")
+                or container.id),
+            "subtitle": [
+                "Сформирован: {}".format(
+                    datetime.now().strftime("%d.%m.%Y %H:%M")),
+                "Шкафов в контейнере: {} из {}".format(len(cabinets), slots),
+            ],
+            "sections": sections,
+            "footer": [
+                "«Используются» — комплекты со связями защиты или "
+                "аналоговых цепей; остальные комплекты свободны.",
+            ],
+        }
+
+    @staticmethod
+    def _report_filename(stem):
+        """Имя файла отчёта: без запрещённых символов, с датой."""
+        safe = re.sub(r'[\\/:*?"<>|]+', "-", str(stem or "Отчёт")).strip()
+        safe = re.sub(r"\s+", " ", safe).strip(" -") or "Отчёт"
+        return "{} {}.docx".format(safe, datetime.now().strftime("%d.%m.%Y"))
+
+    def _report_to_text(self, report):
+        """Текст отчёта для окна предпросмотра (моноширинный шрифт)."""
+        lines = [report.get("title", "Отчёт"), "=" * 60]
+        for line in report.get("subtitle") or []:
+            lines.append(line)
+        lines.append("")
+
+        for section in report.get("sections") or []:
+            text = section.get("title") or ""
+            lines.append(text)
+            lines.append("-" * max(20, min(60, len(text))))
+            if section.get("note"):
+                lines.append("  " + str(section["note"]))
+                lines.append("")
+
+            rows = section.get("rows") or []
+            blocks = section.get("blocks") or []
+            header = section.get("header")
+
+            if header:
+                table = [list(header)] + [list(row) for row in rows]
+                columns = len(header)
+                widths = [0] * columns
+                for row in table:
+                    for index in range(columns):
+                        value = str(row[index]) if index < len(row) else ""
+                        widths[index] = min(34, max(widths[index], len(value)))
+                for number, row in enumerate(table):
+                    cells = []
+                    for index in range(columns):
+                        value = str(row[index]) if index < len(row) else ""
+                        if len(value) > widths[index]:
+                            value = value[:widths[index] - 1] + "…"
+                        cells.append(value.ljust(widths[index]))
+                    lines.append("  " + " | ".join(cells).rstrip())
+                    if number == 0:
+                        lines.append("  " + "-+-".join("-" * w for w in widths))
+            elif rows:
+                label_w = min(28, max((len(str(row[0])) for row in rows),
+                                      default=0))
+                for row in rows:
+                    label = str(row[0]) if row else ""
+                    value = str(row[1]) if len(row) > 1 else ""
+                    lines.append("  " + label.ljust(label_w) + " : " + value)
+
+            for block in blocks:
+                lines.append("")
+                if block.get("head"):
+                    lines.append("  " + str(block["head"]))
+                if block.get("note"):
+                    lines.append("    " + str(block["note"]))
+                block_rows = block.get("rows") or []
+                label_w = min(24, max((len(str(row[0])) for row in block_rows),
+                                      default=0))
+                for row in block_rows:
+                    label = str(row[0]) if row else ""
+                    value = str(row[1]) if len(row) > 1 else ""
+                    lines.append("    " + label.ljust(label_w) + " : " + value)
+            lines.append("")
+
+        for line in report.get("footer") or []:
+            lines.append("")
+            lines.append(str(line))
+        return "\n".join(lines)
+
+    def _show_report_window(self, report, default_name):
+        """Окно предпросмотра отчёта с сохранением в Word."""
+        window = tk.Toplevel(self.root)
+        window.title(report.get("title", "Отчёт"))
+        window.transient(self.root)
+        width, height = 940, 620
+        window.geometry("{}x{}".format(width, height))
+        window.minsize(560, 360)
+        x = self.root.winfo_rootx() + max(0, (self.root.winfo_width() - width) // 2)
+        y = self.root.winfo_rooty() + max(0, (self.root.winfo_height() - height) // 4)
+        window.geometry("+{}+{}".format(x, y))
+
+        body = tk.Frame(window)
+        body.pack(fill=tk.BOTH, expand=True, padx=8, pady=(8, 0))
+        text = tk.Text(body, wrap="none", font=("Courier New", 9),
+                       bg="#fdfdf7", relief="solid", bd=1)
+        yscroll = tk.Scrollbar(body, orient=tk.VERTICAL, command=text.yview)
+        xscroll = tk.Scrollbar(window, orient=tk.HORIZONTAL, command=text.xview)
+        text.config(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
+        yscroll.pack(side=tk.RIGHT, fill=tk.Y)
+        text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        text.insert("1.0", self._report_to_text(report))
+        text.config(state="disabled")
+        xscroll.pack(fill=tk.X, padx=8, pady=(0, 4))
+
+        buttons = tk.Frame(window)
+        buttons.pack(fill=tk.X, padx=8, pady=6)
+
+        def save_docx():
+            path = filedialog.asksaveasfilename(
+                parent=window, title="Сохранить отчёт",
+                defaultextension=".docx", initialfile=default_name,
+                filetypes=[("Документ Word", "*.docx")])
+            if not path:
+                return
+            try:
+                docxreport.build_selection_report(path, report)
+            except Exception as error:
+                messagebox.showerror("Отчёты",
+                                     "Не удалось сохранить отчёт:\n{}".format(error),
+                                     parent=window)
+                return
+            if messagebox.askyesno("Отчёты",
+                                   "Отчёт сохранён:\n{}\n\nОткрыть документ?"
+                                   .format(path), parent=window):
+                self._open_document(path)
+
+        def copy_text():
+            window.clipboard_clear()
+            window.clipboard_append(self._report_to_text(report))
+            copy_button.config(text="✓ Скопировано")
+
+        tk.Button(buttons, text="Сохранить в Word…", width=20,
+                  command=save_docx).pack(side=tk.LEFT)
+        copy_button = tk.Button(buttons, text="Копировать текст", width=18,
+                                command=copy_text)
+        copy_button.pack(side=tk.LEFT, padx=8)
+        tk.Button(buttons, text="Закрыть", width=12,
+                  command=window.destroy).pack(side=tk.RIGHT)
+        text.focus_set()
+        window.bind("<Escape>", lambda event: window.destroy())
+        window.grab_set()
+
+    def report_by_selection(self):
+        """Отчёт по выделенному шкафу или контейнеру."""
+        target, error = self._selection_report_target()
+        if target is None:
+            messagebox.showinfo("Отчёты", error)
+            return
+        try:
+            if target.type == "cabinet":
+                report = self._cabinet_report(target)
+                label = target.name or target.id
+                kind_label = "шкафу"
+            else:
+                report = self._container_report(target)
+                label = (target.name or getattr(target, "code", "")
+                         or target.id)
+                kind_label = "контейнеру"
+            default_name = self._report_filename(
+                "Отчёт по {} {}".format(kind_label, label))
+        except Exception as error:
+            messagebox.showerror(
+                "Отчёты", "Не удалось сформировать отчёт:\n{}".format(error))
+            return
+        self._show_report_window(report, default_name)
 
     def report_by_scheme(self):
         """Отчёт по схеме в формате DOCX."""
