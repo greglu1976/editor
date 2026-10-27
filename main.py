@@ -550,6 +550,11 @@ class CircuitEditor:
         self._analog_start = None        # начало связи аналоговых цепей
         self._pending_cabinet = None
 
+        # Всплывающие подсказки на схеме: шкафы и комплекты
+        self._canvas_tooltip = None
+        self._canvas_tooltip_target = None
+        self._canvas_tooltip_after = None
+
         self.setup_ui()
         self.draw_grid()
         self.bind_events()
@@ -4456,6 +4461,7 @@ class CircuitEditor:
         if event.num == 4 or event.delta > 0: factor = 1.1
         elif event.num == 5 or event.delta < 0: factor = 0.9
         else: return
+        self._hide_canvas_tooltip()
         mx = (event.x - self.offset_x) / self.zoom
         my = (event.y - self.offset_y) / self.zoom
         new_zoom = self.zoom * factor
@@ -4833,6 +4839,16 @@ class CircuitEditor:
         self.canvas.delete("analog_hover")
         self.canvas.delete("analog_preview")
 
+        # Всплывающие подсказки: шкафы и комплекты (не мешают во время
+        # перетаскивания и панорамирования)
+        dragging = bool(getattr(self, "dragging_group", None)
+                        or getattr(self, "resizing_element", None)
+                        or getattr(self, "_dragging_label", None))
+        if self._pan_active or dragging:
+            self._update_canvas_tooltip(event, force_hide=True)
+        else:
+            self._update_canvas_tooltip(event)
+
         if self.current_tool == "bind":
             self._hover_bind(event)
             return
@@ -4964,6 +4980,142 @@ class CircuitEditor:
                 return el.id
         return None
 
+    # ================= ВСПЛЫВАЮЩИЕ ПОДСКАЗКИ: ШКАФЫ И КОМПЛЕКТЫ ===============
+    def _komplekt_at(self, sx, sy):
+        """(id шкафа, номер комплекта) под курсором или None.
+
+        Строго в пределах строки комплекта (без заголовка и поля вокруг).
+        """
+        if not self.show_cabinets:
+            return None
+        wx, wy = self.screen_to_world(sx, sy)
+        for el in self.elements.values():
+            if el.type != "cabinet":
+                continue
+            x1, y1, x2, _y2 = el._rect()
+            if not (x1 <= wx <= x2):
+                continue
+            row_h = el.ROW_H
+            if wy <= y1 + el.TOP_H:
+                continue  # заголовок шкафа, а не комплект
+            for index in range(len(el.komplets)):
+                cy = y1 + el.TOP_H + index * row_h + row_h / 2.0
+                if cy - row_h / 2.0 <= wy <= cy + row_h / 2.0:
+                    return (el.id, index)
+        return None
+
+    def _cabinet_tooltip_text(self, el):
+        """Текст подсказки на шкафу: название, напряжение, защищаемое."""
+        lines = [el.title or el.name]
+        info = getattr(el, "info", {}) or {}
+        for key, prefix in (("voltage", "Напряжение: "),
+                            ("protected", "Защищаемый элемент: "),
+                            ("description", "")):
+            value = info.get(key)
+            if value:
+                lines.append(prefix + str(value))
+        its = info.get("its_functions")
+        if its:
+            text = ", ".join(its) if isinstance(its, (list, tuple)) else str(its)
+            lines.append("ИТС: " + text)
+        controlled = info.get("controlled")
+        if controlled:
+            text = ", ".join(controlled) if isinstance(controlled, (list, tuple)) else str(controlled)
+            lines.append("Управляет: " + text)
+        goose = info.get("goose")
+        if goose is not None:
+            lines.append("GOOSE: {}".format("да" if goose else "нет"))
+        return "\n".join(lines)
+
+    def _komplekt_tooltip_text(self, el, index):
+        """Текст подсказки на комплекте: функции и устройства."""
+        komplekt = el.komplets[index]
+        lines = [komplekt.get("name") or "Комплект {}".format(index + 1)]
+        if komplekt.get("type"):
+            lines.append(komplekt["type"])
+        functions = komplekt.get("functions") or []
+        if functions:
+            lines.append("Функции: " + ", ".join(functions))
+        if komplekt.get("desc"):
+            lines.append(str(komplekt["desc"]))
+        ieds = komplekts.effective_ieds(komplekt)
+        if ieds:
+            lines.append("ИЭУ: " + ", ".join(
+                (ied.get("name") or "") for ied in ieds if ied.get("name")))
+        blocks = komplekts.test_blocks_text(komplekt)
+        if blocks != "—":
+            lines.append("Испытательные блоки: " + blocks)
+        return "\n".join(lines)
+
+    def _update_canvas_tooltip(self, event, force_hide=False):
+        """Показывает/скрывает подсказку на шкафу или комплекте."""
+        target = None
+        text = None
+        if force_hide:
+            pass
+        elif self.current_tool in ("select", "connect"):
+            hit = self._komplekt_at(event.x, event.y)
+            if hit is not None:
+                el = self.elements.get(hit[0])
+                if el is not None:
+                    target, text = ("komplekt", hit[0], hit[1]), \
+                        self._komplekt_tooltip_text(el, hit[1])
+            else:
+                el_id = self._element_at(event.x, event.y)
+                el = self.elements.get(el_id) if el_id else None
+                if el is not None and el.type == "cabinet":
+                    target, text = ("cabinet", el.id), self._cabinet_tooltip_text(el)
+
+        if target != self._canvas_tooltip_target:
+            self._hide_canvas_tooltip()
+            self._canvas_tooltip_target = target
+            if target is None:
+                return
+            # отложенный показ: не мелькаем при быстром проходе мимо
+            self._canvas_tooltip_after = self.canvas.after(450, self._show_canvas_tooltip)
+
+    def _show_canvas_tooltip(self):
+        self._canvas_tooltip_after = None
+        if self._canvas_tooltip_target is None:
+            return
+        kind, el_id, index = self._canvas_tooltip_target
+        el = self.elements.get(el_id)
+        if el is None:
+            self._hide_canvas_tooltip()
+            return
+        if kind == "komplekt" and index >= len(el.komplets):
+            self._hide_canvas_tooltip()
+            return
+        text = (self._komplekt_tooltip_text(el, index) if kind == "komplekt"
+                else self._cabinet_tooltip_text(el))
+        if self._canvas_tooltip is not None:
+            self._canvas_tooltip.destroy()
+        x = self.canvas.winfo_rootx() + self.canvas.winfo_pointerx() + 16
+        y = self.canvas.winfo_rooty() + self.canvas.winfo_pointery() + 18
+        self._canvas_tooltip = tk.Toplevel(self.root)
+        self._canvas_tooltip.wm_overrideredirect(True)
+        self._canvas_tooltip.wm_attributes("-topmost", True)
+        self._canvas_tooltip.wm_geometry("+{}+{}".format(x, y))
+        label = tk.Label(self._canvas_tooltip, text=text, justify=tk.LEFT,
+                         bg="#ffffe0", fg="black", relief="solid", bd=1,
+                         padx=8, pady=4, font=("Arial", 9))
+        label.pack()
+
+    def _hide_canvas_tooltip(self):
+        if self._canvas_tooltip_after is not None:
+            try:
+                self.canvas.after_cancel(self._canvas_tooltip_after)
+            except (tk.TclError, RuntimeError):
+                pass
+            self._canvas_tooltip_after = None
+        if self._canvas_tooltip is not None:
+            try:
+                self._canvas_tooltip.destroy()
+            except (tk.TclError, RuntimeError):
+                pass
+            self._canvas_tooltip = None
+        self._canvas_tooltip_target = None
+
     @staticmethod
     def _point_segment_distance(px, py, x1, y1, x2, y2):
         dx, dy = x2 - x1, y2 - y1
@@ -4999,6 +5151,7 @@ class CircuitEditor:
 
     def on_left_click(self, event):
         self.canvas.focus_set()
+        self._hide_canvas_tooltip()
         wx, wy = self.screen_to_world(event.x, event.y)
         wx, wy = self.snap(wx, wy)
 
