@@ -4341,6 +4341,7 @@ class CircuitEditor:
 
     # ================= ПАНОРАМИРОВАНИЕ (средняя кнопка) =================
     def on_pan_start(self, event):
+        self._hide_canvas_tooltip()
         self._pan_active = True
         self._pan_last = (event.x, event.y)
         self.canvas.config(cursor="fleur")
@@ -4684,6 +4685,9 @@ class CircuitEditor:
 
     # ================= ПЕРЕРИСОВКА =================
     def redraw_all(self):
+        # подсказка привязана к экранным координатам элемента — после
+        # перерисовки/зума/сдвига она устаревает
+        self._hide_canvas_tooltip()
         self.canvas.delete("all")
         self._draw_underlay()
         self.draw_grid()
@@ -4989,7 +4993,8 @@ class CircuitEditor:
         if not self.show_cabinets:
             return None
         wx, wy = self.screen_to_world(sx, sy)
-        for el in self.elements.values():
+        # сверху вниз по порядку отрисовки: при наложении выигрывает верхний
+        for el in reversed(list(self.elements.values())):
             if el.type != "cabinet":
                 continue
             x1, y1, x2, _y2 = el._rect()
@@ -5050,7 +5055,6 @@ class CircuitEditor:
     def _update_canvas_tooltip(self, event, force_hide=False):
         """Показывает/скрывает подсказку на шкафу или комплекте."""
         target = None
-        text = None
         if force_hide:
             pass
         elif self.current_tool in ("select", "connect"):
@@ -5058,13 +5062,12 @@ class CircuitEditor:
             if hit is not None:
                 el = self.elements.get(hit[0])
                 if el is not None:
-                    target, text = ("komplekt", hit[0], hit[1]), \
-                        self._komplekt_tooltip_text(el, hit[1])
+                    target = ("komplekt", hit[0], hit[1])
             else:
                 el_id = self._element_at(event.x, event.y)
                 el = self.elements.get(el_id) if el_id else None
                 if el is not None and el.type == "cabinet":
-                    target, text = ("cabinet", el.id), self._cabinet_tooltip_text(el)
+                    target = ("cabinet", el.id, None)
 
         if target != self._canvas_tooltip_target:
             self._hide_canvas_tooltip()
@@ -5074,7 +5077,37 @@ class CircuitEditor:
             # отложенный показ: не мелькаем при быстром проходе мимо
             self._canvas_tooltip_after = self.canvas.after(450, self._show_canvas_tooltip)
 
+    def _tooltip_anchor_screen(self, target):
+        """Прямоугольник привязки подсказки в экранных координатах.
+
+        Для шкафа — весь габарит, для комплекта — его строка (чтобы подсказка
+        вставала напротив конкретного комплекта, а не у курсора).
+        """
+        kind, el_id, index = target
+        el = self.elements.get(el_id)
+        if el is None:
+            return None
+        x1, y1, x2, y2 = el.get_bounding_box()
+        sx1, sy1 = self.world_to_screen(x1, y1)
+        sx2, sy2 = self.world_to_screen(x2, y2)
+        if kind == "komplekt" and index is not None:
+            row_h = getattr(el, "ROW_H", 0)
+            cy = y1 + getattr(el, "TOP_H", 0) + index * row_h + row_h / 2.0
+            _, scy = self.world_to_screen(el.x, cy)
+            half = (row_h / 2.0) * self.zoom
+            return sx1, scy - half, sx2, scy + half
+        return sx1, sy1, sx2, sy2
+
+    def _tooltip_wraplength(self):
+        """Ширина строки подсказки: длинные списки функций переносятся."""
+        return max(220, int(330 * min(max(self.zoom, 0.6), 1.6)))
+
     def _show_canvas_tooltip(self):
+        if self._canvas_tooltip_after is not None:
+            try:
+                self.canvas.after_cancel(self._canvas_tooltip_after)
+            except (tk.TclError, RuntimeError):
+                pass
         self._canvas_tooltip_after = None
         if self._canvas_tooltip_target is None:
             return
@@ -5086,20 +5119,57 @@ class CircuitEditor:
         if kind == "komplekt" and index >= len(el.komplets):
             self._hide_canvas_tooltip()
             return
+        anchor = self._tooltip_anchor_screen(self._canvas_tooltip_target)
+        if anchor is None:
+            self._hide_canvas_tooltip()
+            return
         text = (self._komplekt_tooltip_text(el, index) if kind == "komplekt"
                 else self._cabinet_tooltip_text(el))
         if self._canvas_tooltip is not None:
             self._canvas_tooltip.destroy()
-        x = self.canvas.winfo_rootx() + self.canvas.winfo_pointerx() + 16
-        y = self.canvas.winfo_rooty() + self.canvas.winfo_pointery() + 18
         self._canvas_tooltip = tk.Toplevel(self.root)
         self._canvas_tooltip.wm_overrideredirect(True)
         self._canvas_tooltip.wm_attributes("-topmost", True)
-        self._canvas_tooltip.wm_geometry("+{}+{}".format(x, y))
         label = tk.Label(self._canvas_tooltip, text=text, justify=tk.LEFT,
+                         wraplength=self._tooltip_wraplength(),
                          bg="#ffffe0", fg="black", relief="solid", bd=1,
                          padx=8, pady=4, font=("Arial", 9))
         label.pack()
+        # размер известен только после укладки — иначе не выбрать сторону
+        self._canvas_tooltip.update_idletasks()
+        tip_w = self._canvas_tooltip.winfo_reqwidth()
+        tip_h = self._canvas_tooltip.winfo_reqheight()
+        x, y = self._place_tooltip(anchor, tip_w, tip_h)
+        self._canvas_tooltip.wm_geometry("+{}+{}".format(x, y))
+
+    def _place_tooltip(self, anchor, tip_w, tip_h):
+        """Ставит подсказку рядом с элементом: справа, иначе слева/снизу.
+
+        anchor — координаты полотна (те же, что у world_to_screen), поэтому
+        границы окна тоже берём в координатах полотна, а в экранные
+        переводим только на последнем шаге.
+        """
+        sx1, sy1, sx2, sy2 = anchor
+        gap = max(6, int(10 * self.zoom))
+        cw = self.canvas.winfo_width()
+        ch = self.canvas.winfo_height()
+
+        # по умолчанию — справа от шкафа, по центру комплекта
+        x = sx2 + gap
+        if x + tip_w > cw - 4:
+            x = sx1 - gap - tip_w          # не влезло справа — слева
+        if x < 4:
+            x = 4
+        if x + tip_w > cw - 4:             # шире полотна — прижимаем к краю
+            x = max(4, cw - 4 - tip_w)
+
+        y = (sy1 + sy2) / 2.0 - tip_h / 2.0
+        if y + tip_h > ch - 4:
+            y = ch - 4 - tip_h
+        if y < 4:
+            y = 4
+        return (int(self.canvas.winfo_rootx() + x),
+                int(self.canvas.winfo_rooty() + y))
 
     def _hide_canvas_tooltip(self):
         if self._canvas_tooltip_after is not None:
@@ -5474,6 +5544,7 @@ class CircuitEditor:
             self.redraw_all()
 
     def on_right_click(self, event):
+        self._hide_canvas_tooltip()
         clicked_el = self._element_at(event.x, event.y)
         if clicked_el:
             self._push_undo()
