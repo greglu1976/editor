@@ -864,6 +864,12 @@ class CircuitEditor:
         group_variable = tk.StringVar(value="Все группы")
         tk.OptionMenu(filters, group_variable, "Все группы",
                       *groups).pack(side=tk.LEFT, padx=(6, 12))
+        all_tags = sorted({tag for cabinet in all_cabinets
+                           for tag in cabs.cabinet_tags(cabinet)})
+        tk.Label(filters, text="Тег:").pack(side=tk.LEFT)
+        tag_variable = tk.StringVar(value="Все теги")
+        tk.OptionMenu(filters, tag_variable, "Все теги",
+                      *all_tags).pack(side=tk.LEFT, padx=(6, 12))
         tk.Label(filters, text="Поиск:").pack(side=tk.LEFT)
         search_variable = tk.StringVar()
         tk.Entry(filters, textvariable=search_variable, width=24).pack(
@@ -886,20 +892,27 @@ class CircuitEditor:
             code = cabinet.get("code")
             name = cabinet.get("name", "Шкаф")
             mark = "" if cabs.is_builtin(cabinet.get("key")) else " •"
-            return f"{prefix}{code} — {name}{mark}" if code else prefix + name + mark
+            tags = cabs.cabinet_tags(cabinet)
+            suffix = " — " + ", ".join(tags) if tags else ""
+            return (f"{prefix}{code} — {name}{mark}{suffix}" if code
+                    else prefix + name + mark + suffix)
 
         def refresh():
             state["cabinets"] = cabs.all_cabinets()
             group = group_variable.get()
+            tag = tag_variable.get()
             needle = search_variable.get().strip().lower()
             visible = []
             for cabinet in state["cabinets"]:
                 if group != "Все группы" and (cabinet.get("group") or "Прочие") != group:
                     continue
+                if tag != "Все теги" and tag not in cabs.cabinet_tags(cabinet):
+                    continue
                 if needle:
                     haystack = " ".join(str(cabinet.get(field, "")) for field in
                                         ("code", "name", "title", "description",
                                          "group", "source")).lower()
+                    haystack += " " + " ".join(cabs.cabinet_tags(cabinet)).lower()
                     if needle not in haystack:
                         continue
                 visible.append(cabinet)
@@ -907,9 +920,12 @@ class CircuitEditor:
             listbox.delete(0, "end")
             for cabinet in visible:
                 listbox.insert("end", cabinet_label(cabinet))
+            tagged = sum(1 for cabinet in state["cabinets"]
+                         if cabs.cabinet_tags(cabinet))
             header.config(text=f"Шкафов в каталоге: {len(state['cabinets'])} "
                                f"(показано {len(visible)}; встроенных "
-                               f"{len(cabs.CABINETS)}, точка • — пользовательский)")
+                               f"{len(cabs.CABINETS)}, с тегами {tagged}; "
+                               f"точка • — пользовательский)")
 
         def selected():
             selection = listbox.curselection()
@@ -975,6 +991,7 @@ class CircuitEditor:
         listbox.bind("<Double-Button-1>", on_edit)
         window.bind("<Escape>", lambda event: window.destroy())
         group_variable.trace_add("write", lambda *args: refresh())
+        tag_variable.trace_add("write", lambda *args: refresh())
         search_variable.trace_add("write", lambda *args: refresh())
         refresh()
 
@@ -1038,6 +1055,12 @@ class CircuitEditor:
         kind_variable = tk.StringVar(value="Все виды")
         tk.OptionMenu(filters, kind_variable, "Все виды",
                       *komplekts.KINDS.values()).pack(side=tk.LEFT, padx=(6, 12))
+        all_tags = sorted({tag for kit in komplekts.all_komplekts()
+                           for tag in komplekts.tags_of(kit)})
+        tk.Label(filters, text="Тег:").pack(side=tk.LEFT)
+        tag_variable = tk.StringVar(value="Все теги")
+        tk.OptionMenu(filters, tag_variable, "Все теги",
+                      *all_tags).pack(side=tk.LEFT, padx=(6, 12))
         tk.Label(filters, text="Поиск:").pack(side=tk.LEFT)
         search_variable = tk.StringVar()
         tk.Entry(filters, textvariable=search_variable, width=26).pack(
@@ -1086,16 +1109,21 @@ class CircuitEditor:
                              komplekts.test_blocks_text(kit))
             if kit.get("desc"):
                 lines.append("Примечание: " + kit["desc"])
+            if komplekts.tags_of(kit):
+                lines.append("Теги: " + komplekts.tags_text(kit))
             return "\n".join(lines)
 
         def refresh(select_key=None):
             state["kits"] = komplekts.all_komplekts()
             kind_label = kind_variable.get()
             kind = kind_by_label.get(kind_label)
+            tag = tag_variable.get()
             needle = search_variable.get().strip().lower()
             visible = []
             for kit in state["kits"]:
                 if kind and kit.get("kind") != kind:
+                    continue
+                if tag != "Все теги" and tag not in komplekts.tags_of(kit):
                     continue
                 if needle:
                     haystack = " ".join([
@@ -1105,6 +1133,7 @@ class CircuitEditor:
                         ", ".join(kit.get("functions") or []),
                         ", ".join(ied.get("name") or ""
                                   for ied in kit.get("ieds") or []),
+                        komplekts.tags_text(kit, " "),
                     ]).lower()
                     if needle not in haystack:
                         continue
@@ -1205,6 +1234,7 @@ class CircuitEditor:
         listbox.bind("<Double-Button-1>", on_edit)
         window.bind("<Escape>", lambda event: window.destroy())
         kind_variable.trace_add("write", lambda *args: refresh())
+        tag_variable.trace_add("write", lambda *args: refresh())
         search_variable.trace_add("write", lambda *args: refresh())
         refresh()
 
@@ -1270,6 +1300,12 @@ class CircuitEditor:
         kind_variable = tk.StringVar(value="Все виды")
         tk.OptionMenu(filters, kind_variable, "Все виды",
                       *komplekts.KINDS.values()).pack(side=tk.LEFT, padx=(6, 12))
+        all_tags = sorted({tag for kit in komplekts.all_komplekts()
+                           for tag in komplekts.tags_of(kit)})
+        tk.Label(filters, text="Тег:").pack(side=tk.LEFT)
+        tag_variable = tk.StringVar(value="Все теги")
+        tk.OptionMenu(filters, tag_variable, "Все теги",
+                      *all_tags).pack(side=tk.LEFT, padx=(6, 12))
         tk.Label(filters, text="Поиск:").pack(side=tk.LEFT)
         search_variable = tk.StringVar()
         tk.Entry(filters, textvariable=search_variable, width=22).pack(
@@ -1305,14 +1341,19 @@ class CircuitEditor:
                              komplekts.test_blocks_text(kit))
             if kit.get("desc"):
                 lines.append("Примечание: " + kit["desc"])
+            if komplekts.tags_of(kit):
+                lines.append("Теги: " + komplekts.tags_text(kit))
             return "\n".join(lines)
 
         def refresh():
             kind = kind_by_label.get(kind_variable.get())
+            tag = tag_variable.get()
             needle = search_variable.get().strip().lower()
             visible = []
             for kit in kits:
                 if kind and kit.get("kind") != kind:
+                    continue
+                if tag != "Все теги" and tag not in komplekts.tags_of(kit):
                     continue
                 if needle:
                     haystack = " ".join([
@@ -1320,6 +1361,7 @@ class CircuitEditor:
                         ", ".join(kit.get("functions") or []),
                         kit.get("cabinet_code") or "",
                         kit.get("cabinet_name") or "",
+                        komplekts.tags_text(kit, " "),
                     ]).lower()
                     if needle not in haystack:
                         continue
@@ -1360,6 +1402,7 @@ class CircuitEditor:
         dialog.bind("<Return>", accept)
         dialog.bind("<Escape>", lambda event: dialog.destroy())
         kind_variable.trace_add("write", lambda *args: refresh())
+        tag_variable.trace_add("write", lambda *args: refresh())
         search_variable.trace_add("write", lambda *args: refresh())
         refresh()
 
@@ -1447,6 +1490,11 @@ class CircuitEditor:
 
         desc_var = tk.StringVar(value=data["desc"])
         add_line("Примечание", tk.Entry(form, textvariable=desc_var, width=50))
+
+        tags_var = tk.StringVar(
+            value=", ".join(data.get("tags") or []))
+        add_line("Теги (через запятую)",
+                 tk.Entry(form, textvariable=tags_var, width=50))
 
         has_ied_var = tk.BooleanVar(value=data["has_ied"])
         tk.Checkbutton(form, text="Есть ИЭУ в комплекте",
@@ -1694,6 +1742,7 @@ class CircuitEditor:
                 "cabinet_code": cabinet_code if kind == "typical" else "",
                 "cabinet_name": cabinet_name if kind == "typical" else "",
                 "cabinet_group": cabinet_group if kind == "typical" else "",
+                "tags": komplekts.split_list(tags_var.get()),
             }
             result["value"] = komplekts.normalize_komplekt(entry)
             dialog.destroy()
@@ -1780,6 +1829,7 @@ class CircuitEditor:
             ("its_functions", "Функции ИТС (через запятую)", 56),
             ("applicability", "Применимость", 56),
             ("source", "Источник (раздел СТО)", 34),
+            ("tags", "Теги (через запятую)", 40),
         )
         variables = {}
         row = 0
@@ -1890,6 +1940,8 @@ class CircuitEditor:
                              komplekts.test_blocks_text(kit))
             if kit.get("desc"):
                 lines.append("Примечание: " + kit["desc"])
+            if komplekts.tags_of(kit):
+                lines.append("Теги: " + komplekts.tags_text(kit))
             return "\n".join(lines)
 
         def refresh_komplekts(select=None):
@@ -1995,6 +2047,7 @@ class CircuitEditor:
                 "its_functions": split_list(variables["its_functions"].get()),
                 "applicability": variables["applicability"].get().strip(),
                 "source": variables["source"].get().strip(),
+                "tags": split_list(variables["tags"].get()),
                 "goose": True,
                 "komplets": cleaned,
             }
@@ -3464,6 +3517,12 @@ class CircuitEditor:
         group_variable = tk.StringVar(value="Все группы")
         tk.OptionMenu(filters, group_variable, "Все группы",
                       *groups).pack(side=tk.LEFT, padx=(6, 12))
+        all_tags = sorted({tag for cabinet in cabinet_list
+                           for tag in cabs.cabinet_tags(cabinet)})
+        tk.Label(filters, text="Тег:").pack(side=tk.LEFT)
+        tag_variable = tk.StringVar(value="Все теги")
+        tk.OptionMenu(filters, tag_variable, "Все теги",
+                      *all_tags).pack(side=tk.LEFT, padx=(6, 12))
         tk.Label(filters, text="Поиск:").pack(side=tk.LEFT)
         search_variable = tk.StringVar()
         tk.Entry(filters, textvariable=search_variable, width=24).pack(
@@ -3482,7 +3541,10 @@ class CircuitEditor:
             prefix = f"[{group}] " if group else ""
             code = cabinet.get("code")
             name = cabinet.get("name", "Шкаф")
-            return f"{prefix}{code} — {name}" if code else prefix + name
+            tags = cabs.cabinet_tags(cabinet)
+            suffix = " — " + ", ".join(tags) if tags else ""
+            return (f"{prefix}{code} — {name}{suffix}" if code
+                    else prefix + name + suffix)
 
         state = {"visible": list(cabinet_list)}
 
@@ -3535,6 +3597,8 @@ class CircuitEditor:
                 lines.append(f'Применимость: {cabinet["applicability"]}')
             if cabinet.get("source"):
                 lines.append(f'Источник: {cabinet["source"]}')
+            if cabs.cabinet_tags(cabinet):
+                lines.append("Теги: " + ", ".join(cabs.cabinet_tags(cabinet)))
             info.config(text="\n".join(lines))
 
             standard = cabs.standard_for(cabinet)
@@ -3548,17 +3612,21 @@ class CircuitEditor:
                                                      ", ".join(cabs.STANDARD["ports"])))
 
         def refresh_list(select=0):
-            """Перестраивает список с учётом группы и строки поиска."""
+            """Перестраивает список с учётом группы, тега и строки поиска."""
             group = group_variable.get()
+            tag = tag_variable.get()
             needle = search_variable.get().strip().lower()
             visible = []
             for cabinet in cabinet_list:
                 if group != "Все группы" and (cabinet.get("group") or "Прочие") != group:
                     continue
+                if tag != "Все теги" and tag not in cabs.cabinet_tags(cabinet):
+                    continue
                 if needle:
                     haystack = " ".join(str(cabinet.get(field, "")) for field in
                                         ("code", "name", "title", "description",
                                          "group", "source")).lower()
+                    haystack += " " + " ".join(cabs.cabinet_tags(cabinet)).lower()
                     if needle not in haystack:
                         continue
                 visible.append(cabinet)
@@ -3578,6 +3646,7 @@ class CircuitEditor:
 
         listbox.bind("<<ListboxSelect>>", update_info)
         group_variable.trace_add("write", lambda *args: refresh_list(0))
+        tag_variable.trace_add("write", lambda *args: refresh_list(0))
         search_variable.trace_add("write", lambda *args: refresh_list(0))
         refresh_list(0)
 

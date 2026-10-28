@@ -19,6 +19,7 @@
         "its_functions": ["функции ИТС"],
         "applicability": "применимость по типовым схемам",
         "source": "раздел СТО",
+        "tags": ["произвольные метки, например «Невыпущенные СТО»"],
         "komplets": [
             {"name": "Комплект 1", "type": "МП РЗА",
              "kind": "typical | custom | other",
@@ -132,8 +133,66 @@ STANDARDS.update({
         "Типовые шкафы противоаварийной автоматики. Архитектура I типа"),
 })
 
+#: Тег шкафов и комплектов из ещё не выпущенных (проектных) редакций СТО.
+TAG_UNRELEASED = komplekts.TAG_UNRELEASED
+
+
+def _draft_standard(group, title):
+    """Стандарт, который ещё не выпущен (проект редакции 2, 2023 г.)."""
+    standard = dict(_COMMON_STANDARD)
+    standard.update({
+        "group": group,
+        "code": "СТО (проект, ред. 2)",
+        "title": title,
+        "date": "2023 (проект)",
+        "edition": "Редакция 2",
+        "released": False,
+        "tags": [TAG_UNRELEASED],
+    })
+    return standard
+
+
+#: Проекты СТО раздела 4.16 (редакция 2). Шкафы по ним помечены тегом
+#: «Невыпущенные СТО»: приказ и дата введения в стандартах не заполнены.
+STANDARDS.update({
+    "sch2": _draft_standard(
+        "СШ",
+        "Типовые шкафы ШЭТ РЗА сборных шин, ошиновок и шинных аппаратов "
+        "6–750 кВ. Архитектура II типа"),
+    "lep2": _draft_standard(
+        "ЛЭП",
+        "Типовые шкафы ШЭТ РЗА ЛЭП 110–750 кВ. Архитектура II типа"),
+    "skrm2": _draft_standard(
+        "СКРМ",
+        "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных "
+        "реакторов и батарей статических конденсаторов 110–750 кВ. "
+        "Архитектура II типа"),
+    "tat2": _draft_standard(
+        "Т/АТ",
+        "Типовые шкафы ШЭТ РЗА (авто)трансформаторов 110–750 кВ. "
+        "Архитектура II типа"),
+})
+
 #: Первый стандарт каталога (Т/АТ) — оставлен для обратной совместимости.
 STANDARD = STANDARDS["tat"]
+
+
+def cabinet_tags(cabinet):
+    """Теги шкафа (например, «Невыпущенные СТО»)."""
+    return komplekts.tags_of(cabinet)
+
+
+def all_tags():
+    """Все теги, встречающиеся в каталоге шкафов (по алфавиту)."""
+    user = _read_user_catalog()
+    tags = set()
+    for cabinet in CABINETS:
+        tags.update(cabinet_tags(cabinet))
+    for cabinet in user["custom"]:
+        tags.update(cabinet_tags(cabinet))
+    for cabinet in user["overrides"].values():
+        tags.update(cabinet_tags(cabinet))
+    return sorted(tags)
 
 
 def standard_for(cabinet):
@@ -2347,6 +2406,12 @@ USER_CATALOG_PATH = os.path.join(
 
 def normalize_cabinet(cabinet):
     """Приводит шкаф к формату комплектов (старое поле ieds → komplets)."""
+    # Теги: строка «а; б» или список → список строк (пустой — не храним).
+    tags = komplekts.tags_of(cabinet)
+    if tags:
+        cabinet["tags"] = tags
+    else:
+        cabinet.pop("tags", None)
     # Типовой шкаф (есть стандарт) порождает типовые комплекты,
     # произвольный — нетиповые.
     default_kind = "typical" if cabinet.get("standard_key") else "custom"

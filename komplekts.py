@@ -30,6 +30,7 @@
         },
         "cabinet_key": "ключ типового шкафа (только для типовых)",
         "cabinet_index": 0,             # номер комплекта в шкафу-источнике
+        "tags": ["метки, например «Невыпущенные СТО»"],
     }
 
 Пользовательский каталог хранится в ``komplekts.json`` рядом с этим файлом::
@@ -67,12 +68,28 @@ USER_CATALOG_PATH = os.path.join(
 
 #: Поля, которые можно править у типового комплекта (остальное — из шкафа).
 _OVERRIDABLE = ("name", "type", "functions", "desc", "has_ied", "ieds",
-                "test_blocks")
+                "test_blocks", "tags")
+
+#: Тег шкафов и комплектов из ещё не выпущенных (проектных) СТО.
+TAG_UNRELEASED = "Невыпущенные СТО"
 
 
 # ---------------------------------------------------------------------------
 # Нормализация
 # ---------------------------------------------------------------------------
+def tags_of(entry):
+    """Список тегов записи: строка «а, б» или список → список строк."""
+    if not entry:
+        return []
+    return split_list(entry.get("tags"))
+
+
+def tags_text(entry, separator=", "):
+    """Подпись тегов записи («—», если тегов нет)."""
+    tags = tags_of(entry)
+    return separator.join(tags) if tags else "—"
+
+
 def split_list(value):
     """«Ua, Ub; Uc» или список → список строк без пустых элементов."""
     if value is None:
@@ -140,6 +157,11 @@ def normalize_komplekt(definition, default_kind=None):
         else bool(ieds)
 
     entry["test_blocks"] = normalize_test_blocks(entry.get("test_blocks"))
+    tags = tags_of(entry)
+    if tags:
+        entry["tags"] = tags
+    else:
+        entry.pop("tags", None)
     entry["cabinet_key"] = str(entry.get("cabinet_key") or "")
     try:
         entry["cabinet_index"] = max(0, int(entry.get("cabinet_index") or 0))
@@ -222,6 +244,9 @@ def kit_label(entry):
     parts.append("{} ИЭУ".format(count) if count else "без ИЭУ")
     if has_test_blocks(entry):
         parts.append("БИ " + test_blocks_text(entry, compact=True))
+    tags = tags_of(entry)
+    if tags:
+        parts.append(", ".join(tags))
     return " · ".join(parts)
 
 
@@ -295,6 +320,7 @@ def kit_from_cabinet(cabinet, index, kind=None):
         "cabinet_code": cabinet.get("code") or "",
         "cabinet_name": cabinet.get("name") or cabinet.get("title") or "",
         "cabinet_group": cabinet.get("group") or "",
+        "tags": tags_of(komplekt) or tags_of(cabinet),
     })
 
 
