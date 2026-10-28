@@ -30,7 +30,8 @@ except Exception:  # подписи в подложке необязательн
 PREFIX_BY_TYPE = {
     "breaker": "Q", "disconnector": "QS", "transformer": "T",
     "split_transformer": "T", "three_winding_transformer": "T",
-    "autotransformer": "AT", "reactor": "R", "line": "W",
+    "autotransformer": "AT", "reactor": "R", "double_reactor": "R",
+    "line": "W",
     "bus": "BB", "node": "N", "corner": "C", "grounding_switch": "QSG",
     "ground": "G", "voltage_transformer": "TV", "current_transformer": "TA",
     "opn": "FV", "coupling_capacitor": "CC", "line_trap": "LT",
@@ -49,6 +50,7 @@ ELEMENT_TYPE_TITLES = {
     "three_winding_transformer": "Трёхобмоточный трансформатор",
     "autotransformer": "Автотрансформатор",
     "reactor": "Реактор",
+    "double_reactor": "Двойной реактор",
     "line": "ЛЭП",
     "voltage_transformer": "Трансформатор напряжения",
     "current_transformer": "Трансформатор тока",
@@ -78,6 +80,7 @@ PALETTE_ITEMS = [
     ("Трёхобмоточный трансформатор", "three_winding_transformer"),
     ("Автотрансформатор", "autotransformer"),
     ("Реактор", "reactor"),
+    ("Двойной реактор", "double_reactor"),
     ("ЛЭП", "line"),
     ("ТН — трансформатор напряжения", "voltage_transformer"),
     ("ТТ — трансформатор тока", "current_transformer"),
@@ -477,7 +480,7 @@ class SsdOptionsDialog(tk.Toplevel):
 class CircuitEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Редактор электрических схем v17")
+        self.root.title("Редактор электрических схем v18.1")
         
         self.elements = {}    
         self.connections = [] 

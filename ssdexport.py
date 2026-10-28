@@ -48,6 +48,7 @@ CONDUCTING_EQUIPMENT_TYPES = {
     "opn": "SAR",                      # ограничитель перенапряжений
     "coupling_capacitor": "CAP",       # конденсатор связи
     "reactor": "REA",                  # реактор
+    "double_reactor": "REA",           # двойной (сдвоенный) реактор
     "line": "LIN",                     # ЛЭП
     "line_trap": "ELT",                # ВЧ-заградитель (расширение SCL)
     "connection_filter": "ECF",        # фильтр присоединения (расширение SCL)

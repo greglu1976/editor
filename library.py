@@ -1806,9 +1806,104 @@ class CapacitorBattery(Component):
         return self._rotated_bbox((-c, -2 * c, c, 2 * c))
 
 
+# ==========================================
+# 26. ДВОЙНОЙ РЕАКТОР (обмотка с отводом, 3 порта)
+# ==========================================
+class DoubleReactor(Component):
+    """Двойной (сдвоенный) реактор — обмотка-окружность с отводом от середины.
+
+    Ориентация «ногами вниз»: обмотка нарисована почти полной окружностью
+    радиусом в одну клетку с разрывом 29° снизу. Концы обмотки уходят вверх
+    перемычками к среднему уровню символа, оттуда два вывода-ветви идут вниз
+    («left» и «right»), а от середины обмотки вверх выходит отвод «tap» —
+    общая точка двух ветвей.
+
+    Пропорции сняты с doublereactor.pdf и привязаны к сетке 10 px: все три
+    вывода лежат в узлах кратно шагу сетки (x = ±30, y = +20 и −30 при
+    клетке 20), поэтому провода стыкуются с элементом без ручной подгонки.
+    """
+
+    # Углы дуги заданы для ориентации «разрыв снизу» (экранные углы Tk).
+    ARC_START = 284.48      # начало дуги, экранный угол Tk
+    ARC_EXTENT = 331.04     # дуга почти полная: разрыв 28.96° снизу
+    END_X = 0.25            # |x| концов обмотки (sin половины разрыва)
+    END_Y = 0.9682          # y концов обмотки (cos половины разрыва)
+    BAR_Y = 0.0             # уровень горизонтальных перемычек (ось узлов)
+    PORT_X = 1.5            # |x| выводов-ветвей: 30 px — узел сетки 10 px
+    PORT_Y = 1.0            # y выводов-ветвей: 20 px — узел сетки 10 px
+    TAP_Y = -1.5            # y вывода отвода: −30 px — узел сетки 10 px
+
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "double_reactor"
+        self.rotation = 0
+        self.generate_ports()
+
+    def generate_ports(self):
+        c = self.cell
+        self.ports = {}
+        for name, dx, dy in (("left", -self.PORT_X * c, self.PORT_Y * c),
+                             ("right", self.PORT_X * c, self.PORT_Y * c),
+                             ("tap", 0, self.TAP_Y * c)):
+            px, py = self._local_rotated(dx, dy)
+            self.ports[name] = {"x": px, "y": py,
+                                "node_id": f"N_{self.id}_{name}"}
+
+    def _primitives(self):
+        """Отрезки обмотки (локальные координаты, ось Y вниз)."""
+        c = self.cell
+        ex, ey = self.END_X * c, self.END_Y * c
+        by = self.BAR_Y * c
+        px, py = self.PORT_X * c, self.PORT_Y * c
+        segments = []
+        for sign in (-1, 1):
+            segments += [
+                (sign * ex, ey, sign * ex, by),   # перемычка от конца обмотки
+                (sign * ex, by, sign * px, by),   # перемычка к выводу
+                (sign * px, by, sign * px, py),   # вывод-ветвь (вниз)
+            ]
+        segments.append((0, -c, 0, self.TAP_Y * c))   # отвод от середины
+        return segments
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        c = self.cell
+        lw = max(1, int(2 * zoom))
+        rotation = getattr(self, "rotation", 0)
+
+        def scr(dx, dy):
+            wx, wy = self._local_rotated(dx, dy)
+            return wx * zoom + offset_x, wy * zoom + offset_y
+
+        for dx1, dy1, dx2, dy2 in self._primitives():
+            x1, y1 = scr(dx1, dy1)
+            x2, y2 = scr(dx2, dy2)
+            canvas.create_line(x1, y1, x2, y2, width=lw, fill="black")
+
+        # Обмотка: дуга, начальный угол сдвигается на угол поворота.
+        cx, cy = scr(0, 0)
+        r = c * zoom
+        canvas.create_arc(cx - r, cy - r, cx + r, cy + r,
+                          start=self.ARC_START - rotation,
+                          extent=self.ARC_EXTENT,
+                          style=tk.ARC, outline="black", width=lw)
+
+        if rotation % 360 == 0:
+            self._draw_name_at(canvas, zoom, offset_x, offset_y,
+                               self.PORT_X * c + 12, -0.5 * c)
+        else:
+            self._draw_label(canvas, zoom, offset_x, offset_y)
+
+    def get_bounding_box(self):
+        """Габарит символа: 60 × 50 px при клетке 20."""
+        c = self.cell
+        return self._rotated_bbox((-self.PORT_X * c, self.TAP_Y * c,
+                                   self.PORT_X * c, self.PORT_Y * c))
+
+
 COMPONENT_TYPES = (
     "breaker", "disconnector", "bus", "transformer", "split_transformer",
-    "three_winding_transformer", "autotransformer", "reactor", "line",
+    "three_winding_transformer", "autotransformer", "reactor",
+    "double_reactor", "line",
     "voltage_transformer", "current_transformer", "node", "corner",
     "grounding_switch", "ground", "opn", "coupling_capacitor", "line_trap",
     "connection_filter", "av_breaker", "fuse", "cabinet", "container",
@@ -1825,6 +1920,7 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
     elif comp_type == "three_winding_transformer": return ThreeWindingTransformer(comp_id, x, y, grid_size)
     elif comp_type == "autotransformer": return Autotransformer(comp_id, x, y, grid_size)
     elif comp_type == "reactor": return Reactor(comp_id, x, y, grid_size)
+    elif comp_type == "double_reactor": return DoubleReactor(comp_id, x, y, grid_size)
     elif comp_type == "voltage_transformer": return VoltageTransformer(comp_id, x, y, grid_size)
     elif comp_type == "current_transformer": return CurrentTransformer(comp_id, x, y, grid_size)
     elif comp_type == "node": return Node(comp_id, x, y, grid_size)
