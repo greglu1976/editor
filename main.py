@@ -102,6 +102,29 @@ UNBOUND_IGNORED_PORTS = {
 # попадает в отчёт, только если у него нет ни одного соединения.
 UNBOUND_CONNECTOR_TYPES = ("bus", "node", "corner")
 
+# Кириллица → похожие латинские буквы. Обозначения на схеме латинские
+# (EL7, EK1, Q1, AT1), а с русской раскладки их набирают как «ЕЛ7», «ЕК1»,
+# «АТ1» — поиск по схеме сверяет обе строки в одном алфавите.
+SEARCH_HOMOGLYPHS = {
+    "а": "a", "в": "b", "е": "e", "ё": "e", "к": "k", "л": "l", "м": "m",
+    "н": "h", "о": "o", "п": "n", "р": "p", "с": "c", "т": "t", "у": "y",
+    "х": "x", "э": "e", "і": "i", "ј": "j", "ѕ": "s", "ԁ": "d", "ԛ": "q",
+    "ԝ": "w",
+}
+SEARCH_HOMOGLYPH_TABLE = str.maketrans(SEARCH_HOMOGLYPHS)
+
+# ЙЦУКЕН → QWERTY по позициям клавиш: «EL7», набранное с русской
+# раскладкой, даёт «УД7» — такие запросы тоже находятся (только если
+# обычный поиск ничего не дал, чтобы не добавлять лишних совпадений).
+SEARCH_LAYOUT = {
+    "й": "q", "ц": "w", "у": "e", "к": "r", "е": "t", "н": "y", "г": "u",
+    "ш": "i", "щ": "o", "з": "p", "х": "[", "ъ": "]", "ф": "a", "ы": "s",
+    "в": "d", "а": "f", "п": "g", "р": "h", "о": "j", "л": "k", "д": "l",
+    "ж": ";", "э": "'", "я": "z", "ч": "x", "с": "c", "м": "v", "и": "b",
+    "т": "n", "ь": "m", "б": ",", "ю": ".", "ё": "`",
+}
+SEARCH_LAYOUT_TABLE = str.maketrans(SEARCH_LAYOUT)
+
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
 PALETTE_ITEMS = [
     ("Выключатель", "breaker"),
@@ -331,6 +354,12 @@ def _ri_unbound(c):
                      width=2)
     c.create_line(16, 11, 16, 20, width=2, fill="black")
     c.create_line(16, 23, 16, 25, width=2, fill="black")
+
+
+def _ri_find(c):
+    """Поиск: лупа с ручкой."""
+    c.create_oval(6, 5, 21, 20, outline="black", width=2)
+    c.create_line(19, 19, 27, 27, width=3, fill="black")
 
 
 def _ri_analog(c):
@@ -598,6 +627,15 @@ class CircuitEditor:
         self._canvas_tooltip_target = None
         self._canvas_tooltip_after = None
 
+        # Поиск по схеме: панель внизу окна, результаты и текущее совпадение
+        self._search_bar = None
+        self._search_entry = None
+        self._search_status = None
+        self._search_var = None
+        self._search_results = []
+        self._search_index = -1
+        self._search_layout = False
+
         self.setup_ui()
         self.draw_grid()
         self.bind_events()
@@ -609,6 +647,7 @@ class CircuitEditor:
         palette_wrap = tk.Frame(self.root, width=200, bg="#f0f0f0")
         palette_wrap.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
         palette_wrap.pack_propagate(False)
+        self._palette_wrap = palette_wrap
 
         self.palette_canvas = tk.Canvas(palette_wrap, width=188, bg="#f0f0f0",
                                         highlightthickness=0, takefocus=False)
@@ -640,12 +679,16 @@ class CircuitEditor:
                   command=lambda: self.set_tool("connect")).pack(pady=2)
         tk.Button(palette, text="Удалить выбранное", width=18,
                   command=lambda: self.set_tool("delete")).pack(pady=2)
-        tk.Label(palette, text="Подсказка: наведите на иконку\nСредняя кнопка мыши — панорама",
+        tk.Label(palette, text="Подсказка: наведите на иконку\n"
+                              "Средняя кнопка мыши — панорама\n"
+                              "Ctrl+F — поиск по схеме",
                  bg="#f0f0f0", fg="#8a8a8a", font=("Arial", 7), justify="left").pack(anchor="w", padx=4, pady=(10, 0))
 
         self.canvas = tk.Canvas(self.root, bg="white", width=800, height=700,
                                 takefocus=True, highlightthickness=0)
         self.canvas.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+
+        self._build_search_bar()
 
         self._bind_palette_wheel(palette)
 
@@ -755,10 +798,15 @@ class CircuitEditor:
 
     def _build_ribbon_home(self, parent):
         page = tk.Frame(parent, bg="#f3f3f3")
-        self._ribbon_group(page, "Инструменты", lambda row: self._register_tool(
-            self._ribbon_button(row, "Выбрать/Двигать",
-                                lambda: self.set_tool("select"),
-                                _ri_select, 76), "select").pack(side=tk.LEFT))
+
+        def build_tools(row):
+            self._register_tool(self._ribbon_button(
+                row, "Выбрать/Двигать", lambda: self.set_tool("select"),
+                _ri_select, 76), "select").pack(side=tk.LEFT)
+            self._ribbon_button(row, "Поиск", self.open_search,
+                                _ri_find, 56).pack(side=tk.LEFT)
+
+        self._ribbon_group(page, "Инструменты", build_tools)
         self._ribbon_group(page, "История", lambda row: [
             self._ribbon_button(row, "Назад", self.undo_last_action, _ri_undo, 52).pack(side=tk.LEFT),
             self._ribbon_button(row, "Вперёд", self.redo_last_action, _ri_redo, 52).pack(side=tk.LEFT),
@@ -4509,6 +4557,9 @@ class CircuitEditor:
         self.root.bind("<Control-y>", self.redo_last_action)
         self.root.bind("<Control-Shift-Z>", self.redo_last_action)
         self.root.bind("<Control-Shift-S>", self.export_ssd)
+        # Поиск по схеме: Ctrl+F открывает панель, Esc в поле — закрывает
+        self.root.bind("<Control-f>", self.open_search)
+        self.root.bind("<Control-F>", self.open_search)
 
     # ================= ОТМЕНА / ПОВТОР =================
     def _reset_transient(self):
@@ -4794,6 +4845,7 @@ class CircuitEditor:
 
         self.selected_elements = new_selected
         self.redraw_all()
+        self._refresh_search()
 
     # ================= ПЕРЕРИСОВКА =================
     def redraw_all(self):
@@ -4927,6 +4979,9 @@ class CircuitEditor:
 
         # 6. Точки привязки шкафов к контейнерам КЭТ
         self._draw_bind_points()
+
+        # 7. Подсветка совпадений поиска (Ctrl+F)
+        self._draw_search_highlights()
 
         # Подложка всегда под сеткой и элементами
         self.canvas.tag_lower("underlay")
@@ -5720,6 +5775,369 @@ class CircuitEditor:
             self.clipboard = None
             self.clipboard_connections = []
             self.redraw_all()
+            self._refresh_search()
+
+    # ================= ПОИСК ПО СХЕМЕ (Ctrl+F) =================
+    # Панель внизу окна: строка поиска, переход по совпадениям ◀ ▶ и счётчик.
+    # Ищутся обозначения и типы элементов; для шкафов дополнительно шифр,
+    # наименование, группа, напряжение, защищаемый элемент, функции ИТС и
+    # каждый комплект (название, функции, ИЭУ, описание); для контейнеров —
+    # код, наименование, типоразмер, группа и назначение. Совпадения
+    # подсвечиваются на схеме, текущее — сплошной рамкой; переход центрирует
+    # элемент в видимой области и выделяет его.
+
+    HIGHLIGHT_CURRENT = "#e65100"
+    HIGHLIGHT_OTHER = "#ffb74d"
+
+    @staticmethod
+    def _text_key(text):
+        """Ключ сравнения: без регистра и пробелов, кириллица → латиница."""
+        value = re.sub(r"\s+", "", str(text or "")).casefold()
+        return value.translate(SEARCH_HOMOGLYPH_TABLE)
+
+    @staticmethod
+    def _layout_key(text):
+        """Ключ для запроса, набранного в русской раскладке (УД7 → el7)."""
+        value = re.sub(r"\s+", "", str(text or "")).casefold()
+        return value.translate(SEARCH_LAYOUT_TABLE).translate(
+            SEARCH_HOMOGLYPH_TABLE)
+
+    def _build_search_bar(self):
+        """Создаёт панель поиска (скрыта до Ctrl+F или кнопки «Поиск»)."""
+        bar = tk.Frame(self.root, bg="#f3f3f3", bd=1, relief=tk.SOLID)
+        tk.Label(bar, text="Поиск по схеме:", bg="#f3f3f3",
+                 font=("Arial", 9)).pack(side=tk.LEFT, padx=(8, 6), pady=5)
+
+        self._search_var = tk.StringVar()
+        entry = tk.Entry(bar, textvariable=self._search_var, width=32,
+                         font=("Arial", 10))
+        entry.pack(side=tk.LEFT, pady=5)
+        entry.bind("<KeyRelease>", self._on_search_key)
+        entry.bind("<Return>", self._on_search_next)
+        entry.bind("<KP_Enter>", self._on_search_next)
+        entry.bind("<Shift-Return>", self._on_search_prev)
+        entry.bind("<Down>", self._on_search_next)
+        entry.bind("<Up>", self._on_search_prev)
+        entry.bind("<Escape>", self._on_search_escape)
+        entry.bind("<<Paste>>", self._on_search_paste)
+        entry.bind("<<Cut>>", self._on_search_paste)
+        self._search_entry = entry
+
+        tk.Button(bar, text="◀", width=3, font=("Arial", 9),
+                  command=lambda: self._search_step(-1)).pack(
+                      side=tk.LEFT, padx=(6, 0))
+        tk.Button(bar, text="▶", width=3, font=("Arial", 9),
+                  command=lambda: self._search_step(1)).pack(side=tk.LEFT)
+
+        self._search_status = tk.Label(bar, text="", bg="#f3f3f3",
+                                       fg="#1f4e79", font=("Arial", 9),
+                                       anchor="w")
+        self._search_status.pack(side=tk.LEFT, padx=10, fill=tk.X,
+                                 expand=True)
+        tk.Button(bar, text="Закрыть", width=10,
+                  command=self.close_search).pack(side=tk.RIGHT, padx=8)
+
+        self._search_bar = bar
+        self._update_search_status()
+
+    def open_search(self, event=None):
+        """Открывает панель поиска и ставит курсор в поле (Ctrl+F)."""
+        if self._search_bar is None:
+            self._build_search_bar()
+        if not self._search_bar.winfo_manager():
+            # before=палитра: панель встаёт полосой в самый низ окна,
+            # а не «прилипает» к правому краю после полотна
+            self._search_bar.pack(side=tk.BOTTOM, fill=tk.X,
+                                  before=getattr(self, "_palette_wrap", None))
+        self._search_entry.focus_set()
+        self._search_entry.selection_range(0, tk.END)
+        self._search_entry.icursor(tk.END)
+        if self._search_var.get().strip():
+            self._apply_search(self._search_var.get(), keep_index=True)
+        return "break"
+
+    def close_search(self):
+        """Закрывает панель, снимает подсветку и возвращает фокус схеме."""
+        if self._search_bar is not None:
+            self._search_bar.pack_forget()
+        if self._search_var is not None:
+            self._search_var.set("")
+        self._search_results = []
+        self._search_index = -1
+        self._search_layout = False
+        self._update_search_status()
+        self.canvas.focus_set()
+        self.redraw_all()
+
+    # ---------- обработка клавиш в поле ----------
+    def _on_search_key(self, event=None):
+        """Ввод в поле: пересобирает результаты, не переходя к ним."""
+        if event is not None and event.keysym in (
+                "Return", "KP_Enter", "Escape", "Up", "Down",
+                "Tab", "ISO_Left_Tab"):
+            return None
+        self._apply_search(self._search_var.get())
+        return None
+
+    def _on_search_next(self, event=None):
+        self._search_step(1)
+        return "break"
+
+    def _on_search_prev(self, event=None):
+        self._search_step(-1)
+        return "break"
+
+    def _on_search_escape(self, event=None):
+        # «break» — чтобы Escape не дошёл до общего снятия выделения
+        self.close_search()
+        return "break"
+
+    def _on_search_paste(self, event=None):
+        """Вставка/вырезание: строка меняется уже после обработки события."""
+        self.root.after_idle(
+            lambda: self._apply_search(self._search_var.get()))
+        return None
+
+    # ---------- данные поиска ----------
+    def _search_entries(self):
+        """Объекты поиска: элемент, шкаф с комплектами, контейнер."""
+        entries = []
+        for element in self.elements.values():
+            title = self._element_ref_text(element)
+            kind = ELEMENT_TYPE_TITLES.get(element.type, element.type)
+            fields = [("обозначение", title), ("id", element.id),
+                      ("тип", kind)]
+            note = kind
+
+            if element.type == "cabinet":
+                info = getattr(element, "info", {}) or {}
+                code, name, group = self._report_cabinet_type(element)
+                fields += [
+                    ("шифр", code),
+                    ("наименование", name),
+                    ("группа", group),
+                    ("напряжение", info.get("voltage")),
+                    ("защищаемый элемент", info.get("protected")),
+                    ("управляет", ", ".join(info.get("controlled") or [])),
+                    ("функции ИТС",
+                     ", ".join(info.get("its_functions") or [])),
+                ]
+                container = self._container_of(element.id)
+                if container is not None:
+                    note = "{} · {}".format(
+                        kind, container.name or getattr(container, "code", "")
+                        or "КЭТ")
+                else:
+                    note = "{} · вне контейнера".format(kind)
+                entries.append({"element": element, "title": title,
+                                "note": note, "fields": fields})
+                for index, kit in enumerate(
+                        getattr(element, "komplets", [])):
+                    kit_name = kit.get("name") or "без названия"
+                    kit_fields = [
+                        ("комплект", kit_name),
+                        ("функции комплекта",
+                         ", ".join(kit.get("functions") or [])),
+                        ("ИЭУ", ", ".join(ied.get("name") or ""
+                                          for ied in
+                                          komplekts.effective_ieds(kit))),
+                        ("описание комплекта", kit.get("desc")),
+                    ]
+                    entries.append({
+                        "element": element, "title": title,
+                        "note": "комплект {} «{}»".format(index + 1, kit_name),
+                        "fields": kit_fields,
+                    })
+                continue
+
+            if element.type == "container":
+                info = getattr(element, "info", {}) or {}
+                fields += [
+                    ("код", getattr(element, "code", "")),
+                    ("наименование",
+                     info.get("name") or getattr(element, "title", "")),
+                    ("типоразмер",
+                     info.get("size_code") or getattr(element, "size", "")),
+                    ("группа", info.get("group")),
+                    ("назначение", info.get("description")),
+                ]
+                note = "Контейнер КЭТ · {}".format(
+                    getattr(element, "code", "") or "—")
+
+            entries.append({"element": element, "title": title,
+                            "note": note, "fields": fields})
+
+        entries.sort(key=lambda item: (self._natural_key(item["title"]),
+                                       item["note"]))
+        return entries
+
+    def _search_matches(self, query):
+        """Все совпадения по строке поиска (точные и с начала — выше)."""
+        needle = self._text_key(query)
+        if not needle:
+            return []
+        results = []
+        for entry in self._search_entries():
+            best = None
+            for label, value in entry["fields"]:
+                haystack = self._text_key(value)
+                if needle not in haystack:
+                    continue
+                score = (0 if haystack == needle
+                         else 1 if haystack.startswith(needle) else 2)
+                if best is None or score < best[0]:
+                    best = (score, label)
+                if score == 0:
+                    break
+            if best is not None:
+                result = dict(entry)
+                result["score"] = best[0]
+                result["match"] = best[1]
+                results.append(result)
+        # Стабильная сортировка: внутри группы — порядок по обозначению
+        results.sort(key=lambda item: item["score"])
+        return results
+
+    def _apply_search(self, query, keep_index=False):
+        """Пересобирает совпадения по строке и обновляет подсветку."""
+        results = self._search_matches(query)
+        layout_only = False
+        if not results:
+            layout_query = self._layout_key(query)
+            if layout_query and layout_query != self._text_key(query):
+                results = self._search_matches(layout_query)
+                layout_only = bool(results)
+        self._search_layout = layout_only
+        self._search_results = results
+        if not results:
+            self._search_index = -1
+        elif not (keep_index and 0 <= self._search_index < len(results)):
+            self._search_index = -1
+        self._update_search_status()
+        self.redraw_all()
+
+    def _search_step(self, direction):
+        """Переход к следующему (1) или предыдущему (−1) совпадению."""
+        if not self._search_results and (self._search_var is not None
+                                         and self._search_var.get().strip()):
+            self._apply_search(self._search_var.get(), keep_index=True)
+        total = len(self._search_results)
+        if not total:
+            self._update_search_status()
+            return
+        if self._search_index < 0:
+            index = 0 if direction >= 0 else total - 1
+        else:
+            index = (self._search_index + direction) % total
+        self._search_index = index
+        self._update_search_status()
+        self._focus_search_result(self._search_results[index])
+
+    def _focus_search_result(self, result):
+        """Центрирует элемент совпадения, выделяет его и подсвечивает."""
+        element = result.get("element")
+        if element is None or element.id not in self.elements:
+            return
+        # Скрытую категорию включаем, иначе переход «в пустоту»
+        if element.type == "cabinet" and not self.show_cabinets:
+            self.show_cabinets = True
+            if getattr(self, "show_cabinets_var", None) is not None:
+                self.show_cabinets_var.set(True)
+            self._refresh_ribbon_toggles()
+        if element.type == "container" and not self.show_containers:
+            self.show_containers = True
+            if getattr(self, "show_containers_var", None) is not None:
+                self.show_containers_var.set(True)
+            self._refresh_ribbon_toggles()
+
+        bx1, by1, bx2, by2 = element.get_bounding_box()
+        width = self.canvas.winfo_width() or 800
+        height = self.canvas.winfo_height() or 700
+        # Если элемент не помещается в половину кадра — уменьшаем масштаб
+        fit = min(width / max(1.0, (bx2 - bx1) * 2.0),
+                  height / max(1.0, (by2 - by1) * 2.0))
+        if fit < self.zoom:
+            self.zoom = max(0.2, fit)
+            if hasattr(self, "zoom_label"):
+                self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
+
+        self.offset_x = width / 2.0 - (bx1 + bx2) / 2.0 * self.zoom
+        self.offset_y = height / 2.0 - (by1 + by2) / 2.0 * self.zoom
+        self.selected_elements = [element.id]
+        self.redraw_all()
+
+    def _update_search_status(self):
+        """Подсказка и счётчик в панели поиска."""
+        if self._search_status is None:
+            return
+        total = len(self._search_results)
+        query = (self._search_var.get() if self._search_var else "").strip()
+        note = (" · запрос набран в другой раскладке"
+                if getattr(self, "_search_layout", False) else "")
+        if not query:
+            text = ("Введите обозначение, тип, шифр шкафа, код контейнера "
+                    "или функцию комплекта")
+        elif not total:
+            text = "Ничего не найдено"
+        elif self._search_index < 0:
+            text = "Совпадений: {}{} · Enter — перейти к первому".format(
+                total, note)
+        else:
+            result = self._search_results[self._search_index]
+            text = "{} из {} — {} · {} (совпадение: {}){}".format(
+                self._search_index + 1, total, result["title"],
+                result["note"], result["match"], note)
+        self._search_status.config(text=text)
+
+    def _prune_search_results(self):
+        """Убирает из результатов элементы, которых уже нет на схеме."""
+        if not self._search_results:
+            return False
+        alive = [result for result in self._search_results
+                 if result.get("element") is not None
+                 and result["element"].id in self.elements]
+        if len(alive) == len(self._search_results):
+            return False
+        self._search_results = alive
+        self._search_index = min(self._search_index, len(alive) - 1)
+        return True
+
+    def _refresh_search(self):
+        """Пересчитывает результаты после загрузки, вставки или очистки."""
+        if self._search_var is None or not self._search_var.get().strip():
+            self._search_results = []
+            self._search_index = -1
+            self._update_search_status()
+            return
+        self._apply_search(self._search_var.get(), keep_index=True)
+
+    def _draw_search_highlights(self):
+        """Рамки всех совпадений; текущее — сплошной, остальные — пунктиром."""
+        if self._prune_search_results():
+            self._update_search_status()
+        if not self._search_results:
+            return
+        for number, result in enumerate(self._search_results):
+            element = result.get("element")
+            if element is None or element.id not in self.elements:
+                continue
+            if element.type == "cabinet" and not self.show_cabinets:
+                continue
+            if element.type == "container" and not self.show_containers:
+                continue
+            bx1, by1, bx2, by2 = element.get_bounding_box()
+            sx1, sy1 = self.world_to_screen(bx1, by1)
+            sx2, sy2 = self.world_to_screen(bx2, by2)
+            margin = max(2.0, 3.0 * self.zoom)
+            current = number == self._search_index
+            self.canvas.create_rectangle(
+                sx1 - margin, sy1 - margin, sx2 + margin, sy2 + margin,
+                outline=(self.HIGHLIGHT_CURRENT if current
+                         else self.HIGHLIGHT_OTHER),
+                width=max(1, int((3 if current else 1.5) * self.zoom)),
+                dash=() if current else (3, 3),
+                tags="search_highlight")
+        self.canvas.tag_raise("search_highlight")
 
     # ================= ОТЧЁТЫ =================
     def _build_ribbon_reports(self, parent):
@@ -7159,6 +7577,7 @@ class CircuitEditor:
         self.redraw_all()
         if hasattr(self, "zoom_label"):
             self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
+        self._refresh_search()
         messagebox.showinfo("Успех", "Схема загружена!")
 
     @staticmethod
@@ -7426,6 +7845,7 @@ class CircuitEditor:
             # 4. Выделяем вставленное
             self.selected_elements = new_selected
             self.redraw_all()
+            self._refresh_search()
             messagebox.showinfo("Успех", f"Вставлено {len(new_selected)} элементов.")
             
         except json.JSONDecodeError:
