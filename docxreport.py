@@ -28,6 +28,11 @@ REL_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
 PORTRAIT_WIDTH = 9638
 LANDSCAPE_WIDTH = 14570
 
+#: Идентификаторы связей дополнительных частей (rId1 — styles.xml).
+STYLES_REL_ID = "rId1"
+HEADER_REL_ID = "rId2"
+FOOTER_REL_ID = "rId3"
+
 
 def _run(text, bold=False, size=None, color=None, italic=False):
     """Элемент w:r с текстом."""
@@ -46,9 +51,11 @@ def _run(text, bold=False, size=None, color=None, italic=False):
 
 
 def _paragraph(text, bold=False, size=None, align=None, space_after=0,
-               space_before=0, color=None, italic=False):
+               space_before=0, color=None, italic=False, style=None):
     """Абзац w:p с одним текстовым фрагментом."""
     props = []
+    if style:
+        props.append('<w:pStyle w:val="{}"/>'.format(style))
     if align:
         props.append('<w:jc w:val="{}"/>'.format(align))
     props.append('<w:spacing w:before="{}" w:after="{}"/>'
@@ -56,6 +63,19 @@ def _paragraph(text, bold=False, size=None, align=None, space_after=0,
     ppr = "<w:pPr>{}</w:pPr>".format("".join(props))
     return "<w:p>{}{}</w:p>".format(
         ppr, _run(text, bold=bold, size=size, color=color, italic=italic))
+
+
+def _page_number_paragraph(align="center"):
+    """Абзац с полем PAGE — номер страницы в колонтитуле."""
+    return (
+        '<w:p><w:pPr><w:jc w:val="{}"/></w:pPr>'
+        '<w:r><w:fldChar w:fldCharType="begin"/></w:r>'
+        '<w:r><w:instrText xml:space="preserve"> PAGE </w:instrText></w:r>'
+        '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+        '<w:r><w:t>1</w:t></w:r>'
+        '<w:r><w:fldChar w:fldCharType="end"/></w:r>'
+        '</w:p>'
+    ).format(align)
 
 
 class DocxBuilder:
@@ -66,6 +86,9 @@ class DocxBuilder:
         self.text_width = LANDSCAPE_WIDTH if landscape else PORTRAIT_WIDTH
         self.body = []
         self.title_text = ""
+        self.header_text = None
+        self.header_page_numbers = False
+        self.footer_text = None
 
     # ------------------------------------------------------------- текст
     def title(self, text):
@@ -80,9 +103,30 @@ class DocxBuilder:
         return self
 
     def heading(self, text, level=1):
-        size = 13 if level == 1 else 11
+        """Заголовок со стилем «Заголовок N» — работает навигация Word."""
+        level = max(1, min(3, int(level)))
+        size = 13 if level == 1 else 11 if level == 2 else 10
         self.body.append(_paragraph(text, bold=True, size=size,
-                                    space_before=240, space_after=120))
+                                    style="Heading{}".format(level),
+                                    space_before=240 if level == 1 else 180,
+                                    space_after=120))
+        return self
+
+    def caption(self, text):
+        """Подпись таблицы: «Таблица 1 – …» (как в форме отчёта)."""
+        self.body.append(_paragraph(text, size=10, space_before=120,
+                                    space_after=60))
+        return self
+
+    def header(self, text=None, page_numbers=False):
+        """Верхний колонтитул: текст и/или номер страницы."""
+        self.header_text = text
+        self.header_page_numbers = bool(page_numbers)
+        return self
+
+    def footer(self, text=None):
+        """Нижний колонтитул."""
+        self.footer_text = text
         return self
 
     def paragraph(self, text, bold=False, size=10, align=None, color=None,
@@ -161,14 +205,26 @@ class DocxBuilder:
         )
 
     # --------------------------------------------------------------- файл
+    def _section_refs(self):
+        """Ссылки sectPr на колонтитулы (если они заданы)."""
+        refs = []
+        if self.header_text or self.header_page_numbers:
+            refs.append('<w:headerReference w:type="default" r:id="{}"/>'
+                        .format(HEADER_REL_ID))
+        if self.footer_text:
+            refs.append('<w:footerReference w:type="default" r:id="{}"/>'
+                        .format(FOOTER_REL_ID))
+        return "".join(refs)
+
     def document_xml(self):
         section = (
-            '<w:sectPr>'
+            '<w:sectPr>{}'
             '<w:pgSz w:w="{}" w:h="{}"{} />'
             '<w:pgMar w:top="1134" w:right="1134" w:bottom="1134" '
             'w:left="1134" w:header="708" w:footer="708" w:gutter="0"/>'
             '</w:sectPr>'
-        ).format(16838 if self.landscape else 11906,
+        ).format(self._section_refs(),
+                 16838 if self.landscape else 11906,
                  11906 if self.landscape else 16838,
                  ' w:orient="landscape"' if self.landscape else "")
         return (
@@ -193,6 +249,24 @@ class DocxBuilder:
             'w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>'
             '<w:style w:type="paragraph" w:default="1" w:styleId="Normal">'
             '<w:name w:val="Normal"/><w:qFormat/></w:style>'
+            '<w:style w:type="paragraph" w:styleId="Heading1">'
+            '<w:name w:val="heading 1"/><w:basedOn w:val="Normal"/>'
+            '<w:next w:val="Normal"/><w:qFormat/>'
+            '<w:pPr><w:keepNext/><w:outlineLvl w:val="0"/></w:pPr>'
+            '<w:rPr><w:b/><w:sz w:val="26"/><w:szCs w:val="26"/></w:rPr>'
+            '</w:style>'
+            '<w:style w:type="paragraph" w:styleId="Heading2">'
+            '<w:name w:val="heading 2"/><w:basedOn w:val="Normal"/>'
+            '<w:next w:val="Normal"/><w:qFormat/>'
+            '<w:pPr><w:keepNext/><w:outlineLvl w:val="1"/></w:pPr>'
+            '<w:rPr><w:b/><w:sz w:val="22"/><w:szCs w:val="22"/></w:rPr>'
+            '</w:style>'
+            '<w:style w:type="paragraph" w:styleId="Heading3">'
+            '<w:name w:val="heading 3"/><w:basedOn w:val="Normal"/>'
+            '<w:next w:val="Normal"/><w:qFormat/>'
+            '<w:pPr><w:keepNext/><w:outlineLvl w:val="2"/></w:pPr>'
+            '<w:rPr><w:b/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr>'
+            '</w:style>'
             '<w:style w:type="table" w:styleId="TableGrid">'
             '<w:name w:val="Table Grid"/><w:basedOn w:val="TableNormal"/>'
             '<w:tblPr><w:tblBorders>'
@@ -244,9 +318,40 @@ class DocxBuilder:
             '</Properties>'
         )
 
+    def has_header(self):
+        """Нужен ли файл верхнего колонтитула."""
+        return bool(self.header_text) or self.header_page_numbers
+
+    def has_footer(self):
+        """Нужен ли файл нижнего колонтитула."""
+        return bool(self.footer_text)
+
+    def header_xml(self):
+        """Часть word/header1.xml: текст и/или номер страницы."""
+        parts = []
+        if self.header_text:
+            parts.append(_paragraph(self.header_text, size=9, align="center",
+                                    color="666666"))
+        if self.header_page_numbers:
+            parts.append(_page_number_paragraph())
+        return self._part_xml("hdr", "".join(parts))
+
+    def footer_xml(self):
+        """Часть word/footer1.xml."""
+        return self._part_xml("ftr",
+                              _paragraph(self.footer_text or "", size=9,
+                                         align="center", color="666666"))
+
     @staticmethod
-    def _content_types_xml():
+    def _part_xml(tag, body):
         return (
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<w:{} xmlns:w="{}" xmlns:r="{}">{}</w:{}>'
+            .format(tag, W_NS, R_NS, body, tag)
+        )
+
+    def _content_types_xml(self):
+        parts = [
             '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             '<Types xmlns="http://schemas.openxmlformats.org/package/2006/'
             'content-types">'
@@ -258,12 +363,25 @@ class DocxBuilder:
             'main+xml"/>'
             '<Override PartName="/word/styles.xml" ContentType="application/'
             'vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+        ]
+        if self.has_header():
+            parts.append(
+                '<Override PartName="/word/header1.xml" ContentType='
+                '"application/vnd.openxmlformats-officedocument.'
+                'wordprocessingml.header+xml"/>')
+        if self.has_footer():
+            parts.append(
+                '<Override PartName="/word/footer1.xml" ContentType='
+                '"application/vnd.openxmlformats-officedocument.'
+                'wordprocessingml.footer+xml"/>')
+        parts += [
             '<Override PartName="/docProps/core.xml" ContentType="application/'
             'vnd.openxmlformats-package.core-properties+xml"/>'
             '<Override PartName="/docProps/app.xml" ContentType="application/'
             'vnd.openxmlformats-officedocument.extended-properties+xml"/>'
-            '</Types>'
-        )
+            '</Types>',
+        ]
+        return "".join(parts)
 
     def save(self, path):
         """Записывает .docx по указанному пути."""
@@ -281,13 +399,25 @@ class DocxBuilder:
             'Target="docProps/app.xml"/>'
             '</Relationships>'
         ).format(REL_NS)
-        document_rels = (
+        rel_parts = [
             '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            '<Relationships xmlns="{}">'
-            '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/'
-            'officeDocument/2006/relationships/styles" Target="styles.xml"/>'
-            '</Relationships>'
-        ).format(REL_NS)
+            '<Relationships xmlns="{}">'.format(REL_NS),
+            '<Relationship Id="{}" Type="http://schemas.openxmlformats.org/'
+            'officeDocument/2006/relationships/styles" '
+            'Target="styles.xml"/>'.format(STYLES_REL_ID),
+        ]
+        if self.has_header():
+            rel_parts.append(
+                '<Relationship Id="{}" Type="http://schemas.openxmlformats.'
+                'org/officeDocument/2006/relationships/header" '
+                'Target="header1.xml"/>'.format(HEADER_REL_ID))
+        if self.has_footer():
+            rel_parts.append(
+                '<Relationship Id="{}" Type="http://schemas.openxmlformats.'
+                'org/officeDocument/2006/relationships/footer" '
+                'Target="footer1.xml"/>'.format(FOOTER_REL_ID))
+        rel_parts.append('</Relationships>')
+        document_rels = "".join(rel_parts)
 
         target_dir = os.path.dirname(os.path.abspath(path))
         if target_dir and not os.path.isdir(target_dir):
@@ -298,6 +428,10 @@ class DocxBuilder:
             archive.writestr("_rels/.rels", root_rels)
             archive.writestr("word/document.xml", self.document_xml())
             archive.writestr("word/styles.xml", self.styles_xml())
+            if self.has_header():
+                archive.writestr("word/header1.xml", self.header_xml())
+            if self.has_footer():
+                archive.writestr("word/footer1.xml", self.footer_xml())
             archive.writestr("word/_rels/document.xml.rels", document_rels)
             archive.writestr("docProps/core.xml", self._core_xml())
             archive.writestr("docProps/app.xml", self._app_xml())
@@ -410,4 +544,49 @@ def build_selection_report(path, report):
 
     for line in report.get("footer") or []:
         builder.paragraph(line, size=8, color="808080", space_after=40)
+    return builder.save(path)
+
+
+def build_nir_report(path, report):
+    """Отчёт по форме НИР: последовательность блоков документа.
+
+    Форма (файл «Форма отчета.docx») — это заголовки разделов, абзацы,
+    подписи таблиц «Таблица N – …» и сами таблицы, поэтому документ
+    собирается списком блоков:
+
+    report = {
+        "title": "Отчет по НИР",
+        "footer": "Отчет по НИР",     # нижний колонтитул как в форме
+        "blocks": [
+            {"kind": "heading", "text": "Шкафы", "level": 1},
+            {"kind": "paragraph", "text": "…"},
+            {"kind": "caption", "text": "Таблица 1 – Перечень шкафов"},
+            {"kind": "table", "header": [...], "rows": [[...]],
+             "widths": [...], "aligns": [...], "font_size": 8,
+             "empty_text": ""},
+        ],
+    }
+    """
+    builder = DocxBuilder(landscape=report.get("landscape", False))
+    builder.header(page_numbers=True)
+    if report.get("footer"):
+        builder.footer(report["footer"])
+
+    for block in report.get("blocks") or []:
+        kind = block.get("kind")
+        if kind == "heading":
+            builder.heading(block.get("text") or "",
+                            level=int(block.get("level", 1)))
+        elif kind == "caption":
+            builder.caption(block.get("text") or "")
+        elif kind == "table":
+            builder.table(header=block.get("header") or [],
+                          rows=block.get("rows") or [],
+                          widths=block.get("widths"),
+                          aligns=block.get("aligns"),
+                          font_size=block.get("font_size", 9),
+                          empty_text=block.get("empty_text", "—"))
+        else:
+            builder.paragraph(block.get("text") or "",
+                              size=block.get("font_size", 10))
     return builder.save(path)

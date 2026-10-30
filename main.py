@@ -356,6 +356,16 @@ def _ri_unbound(c):
     c.create_line(16, 23, 16, 25, width=2, fill="black")
 
 
+def _ri_nir(c):
+    """Отчёт по НИР: страница документа с пометкой «НИР»."""
+    c.create_polygon(7, 3, 20, 3, 26, 9, 26, 29, 7, 29,
+                     outline="black", fill="white", width=2)
+    c.create_line(20, 3, 20, 9, 26, 9, width=1)
+    for y in (13, 17, 21):
+        c.create_line(10, y, 23, y, width=1, fill="#666666")
+    c.create_text(16, 25, text="НИР", font=("Arial", 6, "bold"))
+
+
 def _ri_find(c):
     """Поиск: лупа с ручкой."""
     c.create_oval(6, 5, 21, 20, outline="black", width=2)
@@ -6154,12 +6164,16 @@ class CircuitEditor:
             self._ribbon_button(row, "Непривязанные", self.report_unbound,
                                 _ri_unbound, 104).pack(side=tk.LEFT),
         ])
+        self._ribbon_group(page, "НИР", lambda row: [
+            self._ribbon_button(row, "Отчёт по НИР", self.report_nir,
+                                _ri_nir, 96).pack(side=tk.LEFT),
+        ])
         tk.Label(page, text="«По схеме» — документ Word со всеми ведомостями.\n"
-                            "«По выделению» — отчёт по выбранному шкафу:\n"
-                            "используемые и неиспользуемые комплекты,\n"
-                            "а по контейнеру — все шкафы в нём.\n"
+                            "«По выделению» — отчёт по шкафу или контейнеру.\n"
                             "«Непривязанные» — пустые контейнеры, комплекты\n"
-                            "без связей и элементы со свободными выводами.",
+                            "без связей, элементы со свободными выводами.\n"
+                            "«Отчёт по НИР» — документ по форме: шкафы и их\n"
+                            "функции ИЭУ, спецификация одного контейнера.",
                  bg="#f3f3f3", fg="#808080", font=("Arial", 7),
                  justify="left").pack(side=tk.LEFT, padx=12)
         return page
@@ -7048,6 +7062,222 @@ class CircuitEditor:
             ],
         }
 
+    # ================= ОТЧЁТ ПО НИР =================
+    # Документ строится по форме «Форма отчета.docx»: раздел «Шкафы»
+    # (общие положения, перечень шкафов и таблица функций ИЭУ по каждому
+    # шкафу) и раздел «Контейнеры» (спецификация контейнера). Отчёт
+    # делается либо по одному контейнеру с его шкафами, либо по схеме без
+    # контейнеров: два и более контейнеров не допускаются.
+
+    @staticmethod
+    def _nir_kit_text(kit):
+        """Графа «Комплект»: откуда взят комплект шкафа."""
+        kind = kit.get("kind")
+        if kind == "typical":
+            reference = (kit.get("cabinet_code") or kit.get("cabinet_name")
+                         or "").strip()
+            if reference:
+                return "В составе типового шкафа {}".format(reference)
+            return "Типовой комплект"
+        if kind == "other":
+            return "Нетиповой комплект"
+        return "Добавленный комплект"
+
+    @staticmethod
+    def _nir_device_text(kit):
+        """Графа «Устройство»: ИЭУ комплекта."""
+        return ", ".join(ied.get("name") or "ИЭУ"
+                         for ied in komplekts.effective_ieds(kit)) or "—"
+
+    def _nir_cabinet_fields(self, cabinet):
+        """Шифр, наименование и стандарт шкафа для отчёта по НИР."""
+        code, name, _group = self._report_cabinet_type(cabinet)
+        if not code or code == "—":
+            code = cabinet.name or cabinet.id
+        if not name or name == "—":
+            name = cabinet.name or cabinet.id
+        info = getattr(cabinet, "info", {}) or {}
+        standard = (info.get("standard") or "").strip() or "Нетиповой"
+        return code, name, standard
+
+    def _nir_cabinet_heading(self, cabinet):
+        """Заголовок подраздела шкафа: «Шкаф <шифр> <наименование>»."""
+        code, name, _standard = self._nir_cabinet_fields(cabinet)
+        text = code if name == code else "{} {}".format(code, name)
+        if text.casefold().startswith(("шкаф", "ящик")):
+            return text
+        return "Шкаф {}".format(text)
+
+    def _nir_kit_rows(self, cabinet):
+        """Таблица функций шкафа: устройство, комплект, функции."""
+        rows = []
+        for kit in getattr(cabinet, "komplets", []):
+            rows.append([
+                self._nir_device_text(kit),
+                self._nir_kit_text(kit),
+                ", ".join(kit.get("functions") or []) or "—",
+            ])
+        return rows
+
+    def _nir_functions_text(self, cabinet):
+        """Функции шкафа одной строкой: «ИЭУ 1: …; ИЭУ 2: …»."""
+        parts = []
+        for kit in getattr(cabinet, "komplets", []):
+            functions = ", ".join(kit.get("functions") or [])
+            if not functions:
+                continue
+            devices = self._nir_device_text(kit)
+            if devices and devices != "—":
+                parts.append("{}: {}".format(devices, functions))
+            else:
+                parts.append(functions)
+        return "; ".join(parts) or "—"
+
+    def _nir_target(self):
+        """Что описывает отчёт: (контейнер, шкафы, ошибка)."""
+        containers = sorted(
+            (el for el in self.elements.values() if el.type == "container"),
+            key=lambda el: self._natural_key(
+                el.name or getattr(el, "code", "") or el.id))
+        if len(containers) > 1:
+            return None, [], (
+                "Отчёт по НИР строится либо по одному контейнеру с его "
+                "шкафами,\nлибо по схеме без контейнеров.\n"
+                "Сейчас на схеме контейнеров: {}.\n"
+                "Оставьте один контейнер и повторите.".format(
+                    len(containers)))
+        container = containers[0] if containers else None
+        if container is not None:
+            cabinets = []
+            for cabinet_id in container.bound_ids():
+                cabinet = self.elements.get(cabinet_id)
+                if cabinet is not None and cabinet.type == "cabinet":
+                    cabinets.append(cabinet)
+            if not cabinets:
+                return None, [], (
+                    "К контейнеру «{}» не привязано ни одного шкафа — "
+                    "отчёт по НИР строить не из чего.".format(
+                        container.name or getattr(container, "code", "")
+                        or "КЭТ"))
+            return container, cabinets, None
+        cabinets = sorted(
+            (el for el in self.elements.values() if el.type == "cabinet"),
+            key=lambda el: (self._natural_key(
+                self._nir_cabinet_fields(el)[0]), self._natural_key(el.name)))
+        if not cabinets:
+            return None, [], ("На схеме нет шкафов РЗА — отчёт по НИР "
+                              "строить не из чего.")
+        return None, cabinets, None
+
+    def _collect_nir_report(self):
+        """Данные отчёта по НИР: (отчёт, ошибка)."""
+        container, cabinets, error = self._nir_target()
+        if error:
+            return None, error
+
+        blocks = [
+            {"kind": "heading", "text": "Шкафы", "level": 1},
+            {"kind": "heading", "text": "Общие положения", "level": 2},
+            {"kind": "paragraph", "text": (
+                "Полный перечень шкафов контейнера приведен в таблице."
+                if container is not None else
+                "Полный перечень шкафов приведен в таблице.")},
+        ]
+
+        table_number = 1
+        blocks.append({"kind": "caption",
+                       "text": "Таблица {} – Перечень шкафов".format(
+                           table_number)})
+        overview_rows = []
+        for cabinet in cabinets:
+            code, _name, standard = self._nir_cabinet_fields(cabinet)
+            overview_rows.append([code, standard, ""])
+        blocks.append({
+            "kind": "table",
+            "header": ["Шкаф", "Стандарт", "Примечание"],
+            "rows": overview_rows,
+            "widths": [3400, 3600, 2638],
+            "aligns": ["left", "left", "left"],
+            "empty_text": "",
+        })
+
+        for cabinet in cabinets:
+            code = self._nir_cabinet_fields(cabinet)[0]
+            table_number += 1
+            blocks.append({"kind": "heading", "level": 2,
+                           "text": self._nir_cabinet_heading(cabinet)})
+            blocks.append({"kind": "paragraph",
+                           "text": "Реализуемые функции ИЭУ шкафа "
+                                   "представлены в таблице {}.".format(
+                                       table_number)})
+            blocks.append({"kind": "caption",
+                           "text": "Таблица {} – Функции в составе ИЭУ "
+                                   "шкафа {}".format(table_number, code)})
+            blocks.append({
+                "kind": "table",
+                "header": ["Устройство", "Комплект",
+                           "Реализуемые функции"],
+                "rows": self._nir_kit_rows(cabinet),
+                "widths": [1500, 2900, 5238],
+                "aligns": ["left", "left", "left"],
+                "font_size": 8,
+            })
+
+        if container is not None:
+            code = (getattr(container, "code", "") or "").strip() or "КЭТ"
+            info = getattr(container, "info", {}) or {}
+            title = (info.get("name")
+                     or getattr(container, "title", "") or "").strip()
+            table_number += 1
+            blocks.append({"kind": "heading", "text": "Контейнеры",
+                           "level": 1})
+            blocks.append({"kind": "heading", "level": 2,
+                           "text": "Контейнер типа {} {}".format(
+                               code, title).strip()})
+            blocks.append({"kind": "heading", "text": "Спецификация",
+                           "level": 3})
+            blocks.append({"kind": "paragraph",
+                           "text": "Шкафы и ящики РЗА в составе контейнера "
+                                   "{} представлены в таблице {}.".format(
+                                       code, table_number)})
+            blocks.append({"kind": "caption",
+                           "text": "Таблица {} – Шкафы и ящики в составе "
+                                   "контейнера {}".format(table_number, code)})
+            specification_rows = []
+            for cabinet in cabinets:
+                cab_code, cab_name, standard = self._nir_cabinet_fields(
+                    cabinet)
+                type_text = cab_code
+                if standard == "Нетиповой":
+                    type_text = "{} (нетиповой)".format(cab_code)
+                specification_rows.append([
+                    cab_name, type_text, self._nir_functions_text(cabinet)])
+            blocks.append({
+                "kind": "table",
+                "header": ["Состав оборудования", "Тип ШЭТ",
+                           "Реализуемые функции"],
+                "rows": specification_rows,
+                "widths": [3100, 1700, 4838],
+                "aligns": ["left", "left", "left"],
+                "font_size": 8,
+            })
+
+        return {
+            "title": "Отчет по НИР",
+            "format": "blocks",
+            "footer": "Отчет по НИР",
+            "blocks": blocks,
+        }, None
+
+    def report_nir(self):
+        """Отчёт по НИР по форме «Форма отчета.docx»."""
+        report, error = self._collect_nir_report()
+        if report is None:
+            messagebox.showinfo("Отчет по НИР", error)
+            return
+        self._show_report_window(report,
+                                 self._report_filename("Отчет по НИР"))
+
     def report_unbound(self):
         """Отчёт по непривязанным элементам схемы."""
         if not self.elements:
@@ -7070,8 +7300,64 @@ class CircuitEditor:
         safe = re.sub(r"\s+", " ", safe).strip(" -") or "Отчёт"
         return "{} {}.docx".format(safe, datetime.now().strftime("%d.%m.%Y"))
 
+    @staticmethod
+    def _table_text(header, rows):
+        """Строки таблицы для моноширинного предпросмотра."""
+        table = [list(header)] + [list(row) for row in rows]
+        columns = len(header)
+        widths = [0] * columns
+        for row in table:
+            for index in range(columns):
+                value = str(row[index]) if index < len(row) else ""
+                widths[index] = min(34, max(widths[index], len(value)))
+        lines = []
+        for number, row in enumerate(table):
+            cells = []
+            for index in range(columns):
+                value = str(row[index]) if index < len(row) else ""
+                if len(value) > widths[index]:
+                    value = value[:widths[index] - 1] + "…"
+                cells.append(value.ljust(widths[index]))
+            lines.append("  " + " | ".join(cells).rstrip())
+            if number == 0:
+                lines.append("  " + "-+-".join("-" * w for w in widths))
+        return lines
+
+    def _blocks_report_to_text(self, report):
+        """Текст документа по форме: заголовки, абзацы, подписи, таблицы."""
+        lines = [report.get("title", "Отчёт"), "=" * 60, ""]
+        for block in report.get("blocks") or []:
+            kind = block.get("kind")
+            if kind == "heading":
+                text = block.get("text") or ""
+                level = int(block.get("level", 1))
+                indent = "  " * (level - 1)
+                lines.append(indent + text)
+                lines.append(indent + "-" * max(
+                    12 if level > 1 else 20, min(60 - 4 * (level - 1),
+                                                len(text))))
+                lines.append("")
+            elif kind == "caption":
+                lines.append("  " + (block.get("text") or ""))
+            elif kind == "table":
+                header = block.get("header") or []
+                if header:
+                    lines.extend(self._table_text(header,
+                                                  block.get("rows") or []))
+                lines.append("")
+            else:
+                text = block.get("text") or ""
+                if text:
+                    lines.append("  " + text)
+        if report.get("footer"):
+            lines.append("")
+            lines.append(str(report["footer"]))
+        return "\n".join(lines)
+
     def _report_to_text(self, report):
         """Текст отчёта для окна предпросмотра (моноширинный шрифт)."""
+        if report.get("format") == "blocks":
+            return self._blocks_report_to_text(report)
         lines = [report.get("title", "Отчёт"), "=" * 60]
         for line in report.get("subtitle") or []:
             lines.append(line)
@@ -7090,23 +7376,7 @@ class CircuitEditor:
             header = section.get("header")
 
             if header:
-                table = [list(header)] + [list(row) for row in rows]
-                columns = len(header)
-                widths = [0] * columns
-                for row in table:
-                    for index in range(columns):
-                        value = str(row[index]) if index < len(row) else ""
-                        widths[index] = min(34, max(widths[index], len(value)))
-                for number, row in enumerate(table):
-                    cells = []
-                    for index in range(columns):
-                        value = str(row[index]) if index < len(row) else ""
-                        if len(value) > widths[index]:
-                            value = value[:widths[index] - 1] + "…"
-                        cells.append(value.ljust(widths[index]))
-                    lines.append("  " + " | ".join(cells).rstrip())
-                    if number == 0:
-                        lines.append("  " + "-+-".join("-" * w for w in widths))
+                lines.extend(self._table_text(header, rows))
             elif rows:
                 label_w = min(28, max((len(str(row[0])) for row in rows),
                                       default=0))
@@ -7171,7 +7441,10 @@ class CircuitEditor:
             if not path:
                 return
             try:
-                docxreport.build_selection_report(path, report)
+                if report.get("format") == "blocks":
+                    docxreport.build_nir_report(path, report)
+                else:
+                    docxreport.build_selection_report(path, report)
             except Exception as error:
                 messagebox.showerror("Отчёты",
                                      "Не удалось сохранить отчёт:\n{}".format(error),
