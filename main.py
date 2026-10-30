@@ -70,6 +70,9 @@ ELEMENT_TYPE_TITLES = {
     "node": "Узел",
 }
 
+#: Название программы: идёт в заголовок окна после имени чертежа.
+APP_TITLE = "Редактор электрических схем v19"
+
 # Подписи выводов (портов) элементов — для отчёта по непривязанным элементам.
 PORT_TITLES = {
     "HV": "ВН", "LV": "НН", "MV": "СН", "LV1": "НН1", "LV2": "НН2",
@@ -207,6 +210,7 @@ class UndoManager:
         self.history = []      # Стек для отмены
         self.redo_stack = []   # Стек для повтора
         self.max_history = 50
+        self.on_change = None  # вызывается после записи состояния
 
     def save_state(self, elements, connections, selected_elements,
                    protection_links=None, analog_links=None):
@@ -230,6 +234,8 @@ class UndoManager:
 
         # Очищаем redo, так как мы сделали новое действие
         self.redo_stack.clear()
+        if self.on_change is not None:
+            self.on_change()
 
     def undo(self, current_state):
         if not self.history:
@@ -298,6 +304,14 @@ def _ri_save(c):
     c.create_rectangle(6, 5, 26, 27, outline="black", width=2)
     c.create_rectangle(10, 5, 22, 13, outline="black", width=1)
     c.create_rectangle(9, 18, 23, 27, outline="black", width=1)
+
+
+def _ri_save_as(c):
+    """Сохранить как: страница с карандашом."""
+    c.create_polygon(4, 4, 15, 4, 19, 8, 19, 28, 4, 28,
+                     outline="black", fill="white", width=2)
+    c.create_line(15, 4, 15, 8, 19, 8, width=1)
+    c.create_line(7, 25, 8, 20, 17, 11, 20, 14, 11, 23, 7, 25, width=2)
 
 
 def _ri_load(c):
@@ -580,8 +594,13 @@ class SsdOptionsDialog(tk.Toplevel):
 class CircuitEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Редактор электрических схем v19")
+        self.root.title(APP_TITLE)
         
+        # Текущий файл чертежа и признак несохранённых изменений
+        # (звёздочка в заголовке окна)
+        self.current_path = None
+        self.is_modified = False
+
         self.elements = {}    
         self.connections = [] 
         
@@ -621,8 +640,9 @@ class CircuitEditor:
         self.resizing_element = None
         self.resize_handle = None
         
-        # Менеджер отмены/повтора
+        # Менеджер отмены/повтора: любая запись состояния — это изменение схемы
         self.undo_manager = UndoManager()
+        self.undo_manager.on_change = self._mark_modified
 
         self.grid_size = 10
         self.grid_color = "#e0e0e0"
@@ -670,6 +690,8 @@ class CircuitEditor:
         self.setup_ui()
         self.draw_grid()
         self.bind_events()
+        self._update_title()
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def setup_ui(self):
         self._build_ribbon()
@@ -852,6 +874,8 @@ class CircuitEditor:
         ])
         self._ribbon_group(page, "Файл", lambda row: [
             self._ribbon_button(row, "Сохранить", self.save_json, _ri_save, 62).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Сохранить как", self.save_json_as,
+                                _ri_save_as, 78).pack(side=tk.LEFT),
             self._ribbon_button(row, "Загрузить", self.load_json, _ri_load, 62).pack(side=tk.LEFT),
             self._ribbon_button(row, "Из файла", self.insert_from_json, _ri_insert, 60).pack(side=tk.LEFT),
             self._ribbon_button(row, "Очистить", self.clear_all, _ri_clear, 60).pack(side=tk.LEFT),
@@ -3421,6 +3445,7 @@ class CircuitEditor:
         self.underlay_scale = max(0.2, min(5.0, value))
         self.underlay_spin.delete(0, "end")
         self.underlay_spin.insert(0, f"{self.underlay_scale:g}")
+        self._mark_modified()
         self.redraw_all()
 
     def _read_underlay(self, filepath):
@@ -3468,6 +3493,7 @@ class CircuitEditor:
         else:
             # окно ещё не разложено — подгоним при первом Configure
             self.redraw_all()
+        self._mark_modified()
         messagebox.showinfo(
             "Подложка",
             f"Загружено: {os.path.basename(filepath)}\n"
@@ -3540,6 +3566,7 @@ class CircuitEditor:
         if self.underlay is None:
             return
         self.underlay = None
+        self._mark_modified()
         self.redraw_all()
 
     def _draw_underlay(self):
@@ -4595,6 +4622,9 @@ class CircuitEditor:
         # Поиск по схеме: Ctrl+F открывает панель, Esc в поле — закрывает
         self.root.bind("<Control-f>", self.open_search)
         self.root.bind("<Control-F>", self.open_search)
+        # Файл: Ctrl+S — сохранить (Ctrl+Shift+S занят экспортом в SSD)
+        self.root.bind("<Control-s>", self.save_json)
+        self.root.bind("<Control-S>", self.save_json)
 
     # ================= ОТМЕНА / ПОВТОР =================
     def _reset_transient(self):
@@ -4631,6 +4661,7 @@ class CircuitEditor:
         self.selected_elements = list(state["selected_elements"])
 
         self.redraw_all()
+        self._mark_modified()
 
     def _push_undo(self):
         """Снимок состояния для отмены: элементы, связи, РЗА и аналоговые цепи."""
@@ -5809,6 +5840,11 @@ class CircuitEditor:
             self._reset_transient()
             self.clipboard = None
             self.clipboard_connections = []
+            # Пустое полотно — новый чертёж: путь к прежнему файлу не держим,
+            # иначе «Сохранить» затрёт его пустой схемой
+            self.current_path = None
+            self.is_modified = True
+            self._update_title()
             self.redraw_all()
             self._refresh_search()
 
@@ -7749,7 +7785,69 @@ class CircuitEditor:
         messagebox.showinfo("SSD", message)
 
     # ================= СОХРАНЕНИЕ / ЗАГРУЗКА =================
-    def save_json(self):
+    # Заголовок окна показывает имя чертежа; звёздочка — есть несохранённые
+    # изменения. При закрытии программы и при загрузке другой схемы
+    # программа спрашивает, сохранить ли изменения.
+
+    def _drawing_name(self):
+        """Имя чертежа для заголовка окна и сообщений."""
+        if self.current_path:
+            return os.path.basename(self.current_path)
+        return "Без имени"
+
+    def _update_title(self):
+        """Заголовок окна: имя чертежа, звёздочка изменений, имя программы."""
+        mark = "*" if self.is_modified else ""
+        self.root.title("{}{} — {}".format(self._drawing_name(), mark,
+                                           APP_TITLE))
+
+    def _mark_modified(self):
+        """Помечает схему как изменённую (ставит «*» в заголовке)."""
+        if self.is_modified:
+            return
+        self.is_modified = True
+        self._update_title()
+
+    def _mark_saved(self, path=None):
+        """Снимает отметку изменений после сохранения или загрузки."""
+        if path:
+            self.current_path = path
+        self.is_modified = False
+        self._update_title()
+
+    def _confirm_unsaved(self, question):
+        """Спрашивает о несохранённых изменениях.
+
+        True — можно продолжать: изменений нет, пользователь отказался
+        сохранять или сохранение прошло успешно.
+        """
+        if not self.is_modified:
+            return True
+        answer = messagebox.askyesnocancel(
+            "Несохранённые изменения",
+            "Схема «{}» изменена.\nСохранить изменения {}?".format(
+                self._drawing_name(), question))
+        if answer is None:      # «Отмена»
+            return False
+        if not answer:          # «Нет» — продолжить без сохранения
+            return True
+        return bool(self.save_json())   # «Да» — сохранить
+
+    def on_close(self):
+        """Закрытие окна: при несохранённых изменениях спросить о сохранении."""
+        if not self._confirm_unsaved("перед закрытием"):
+            return
+        self.root.destroy()
+
+    def save_json(self, event=None):
+        """Сохранить: в текущий файл, а если его нет — спросить путь."""
+        return self._write_scheme(save_as=False)
+
+    def save_json_as(self, event=None):
+        """Сохранить как: всегда спрашивать новый путь к файлу."""
+        return self._write_scheme(save_as=True)
+
+    def _write_scheme(self, save_as=False):
         data = {"elements": [], "connections": []}
 
         for el in self.elements.values():
@@ -7824,25 +7922,42 @@ class CircuitEditor:
             "offset_y": round(self.offset_y, 2),
         }
 
-        filepath = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")])
-        if filepath:
-            # путь к подложке храним относительно файла схемы, чтобы папку можно было переносить
-            if "underlay" in data:
-                try:
-                    base = os.path.dirname(os.path.abspath(filepath))
-                    data["underlay"]["path"] = os.path.relpath(
-                        data["underlay"]["path"], base)
-                except ValueError:
-                    pass
+        filepath = None if save_as else self.current_path
+        if not filepath:
+            filepath = filedialog.asksaveasfilename(
+                title="Сохранить как" if save_as else "Сохранить схему",
+                defaultextension=".json",
+                initialfile=os.path.basename(self.current_path or "схема.json"),
+                filetypes=[("JSON files", "*.json")])
+            if not filepath:
+                return False
+
+        # путь к подложке храним относительно файла схемы, чтобы папку можно было переносить
+        if "underlay" in data:
             try:
-                with open(filepath, 'w', encoding='utf-8') as f:
-                    json.dump(data, f, ensure_ascii=False, indent=4)
-                messagebox.showinfo("Успех", "Схема сохранена!")
-            except OSError as e:
-                messagebox.showerror("Ошибка", f"Не удалось сохранить файл:\n{e}")
+                base = os.path.dirname(os.path.abspath(filepath))
+                data["underlay"]["path"] = os.path.relpath(
+                    data["underlay"]["path"], base)
+            except ValueError:
+                pass
+        try:
+            with open(filepath, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+        except OSError as e:
+            messagebox.showerror("Ошибка",
+                                 f"Не удалось сохранить файл:\n{e}")
+            return False
+
+        self._mark_saved(filepath)
+        messagebox.showinfo("Сохранение",
+                            "Схема сохранена:\n{}".format(filepath))
+        return True
 
     def load_json(self):
-        filepath = filedialog.askopenfilename(filetypes=[("JSON files", "*.json")])
+        if not self._confirm_unsaved("перед загрузкой другой схемы"):
+            return
+        filepath = filedialog.askopenfilename(
+            title="Открыть схему", filetypes=[("JSON files", "*.json")])
         if not filepath:
             return
         try:
@@ -7888,7 +8003,9 @@ class CircuitEditor:
         if hasattr(self, "zoom_label"):
             self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
         self._refresh_search()
-        messagebox.showinfo("Успех", "Схема загружена!")
+        self._mark_saved(filepath)
+        messagebox.showinfo("Загрузка", "Схема загружена:\n{}".format(
+            filepath))
 
     @staticmethod
     def _cabinet_payload_meta(payload):
