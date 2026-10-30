@@ -252,6 +252,27 @@ def _ri_select(c):
                      fill="black")
 
 
+def _ri_connect(c):
+    """Связать элементы: два узла и провод между ними."""
+    c.create_line(8, 24, 24, 8, width=2)
+    c.create_oval(2, 19, 11, 28, outline="black", width=2, fill="white")
+    c.create_oval(21, 4, 30, 13, outline="black", width=2, fill="white")
+
+
+def _ri_delete(c):
+    """Удалить выбранное: элемент с крестом."""
+    c.create_rectangle(3, 6, 18, 26, outline="black", width=2)
+    c.create_line(20, 18, 28, 26, width=2, fill="black")
+    c.create_line(28, 18, 20, 26, width=2, fill="black")
+
+
+def _ri_rotate(c):
+    """Вращать: круговая стрелка."""
+    c.create_arc(6, 9, 26, 29, start=45, extent=275, style=tk.ARC,
+                 outline="black", width=2)
+    c.create_polygon(24, 3, 29, 10, 20, 12, fill="black", outline="black")
+
+
 def _ri_undo(c):
     c.create_line(24, 16, 12, 16, width=2, fill="black")
     c.create_polygon(6, 16, 14, 10, 14, 22, fill="black")
@@ -685,13 +706,10 @@ class CircuitEditor:
             self._tool_icons[etype] = icon
 
         tk.Frame(palette, height=2, bg="gray").pack(fill=tk.X, pady=6)
-        tk.Button(palette, text="Связать элементы", width=18,
-                  command=lambda: self.set_tool("connect")).pack(pady=2)
-        tk.Button(palette, text="Удалить выбранное", width=18,
-                  command=lambda: self.set_tool("delete")).pack(pady=2)
-        tk.Label(palette, text="Подсказка: наведите на иконку\n"
-                              "Средняя кнопка мыши — панорама\n"
-                              "Ctrl+F — поиск по схеме",
+        tk.Label(palette, text="Связать, удалить и повернуть —\n"
+                              "на вкладке «Главная», панель «Инструменты».\n"
+                              "Средняя кнопка мыши — панорама.\n"
+                              "Ctrl+F — поиск, R — вращение",
                  bg="#f0f0f0", fg="#8a8a8a", font=("Arial", 7), justify="left").pack(anchor="w", padx=4, pady=(10, 0))
 
         self.canvas = tk.Canvas(self.root, bg="white", width=800, height=700,
@@ -742,7 +760,7 @@ class CircuitEditor:
 
     def _ribbon_group(self, parent, title, build_row):
         group = tk.Frame(parent, bg="#f3f3f3")
-        group.pack(side=tk.LEFT, fill=tk.Y, padx=6, pady=2)
+        group.pack(side=tk.LEFT, fill=tk.Y, padx=4, pady=2)
         row = tk.Frame(group, bg="#f3f3f3")
         row.pack(side=tk.TOP)
         build_row(row)
@@ -755,14 +773,14 @@ class CircuitEditor:
         cell = tk.Frame(parent, bg="#f3f3f3", cursor="hand2")
         canvas = tk.Canvas(cell, width=32, height=32, bg="#f3f3f3",
                            highlightthickness=0, takefocus=False)
-        canvas.pack(pady=(4, 0), padx=6)
+        canvas.pack(pady=(4, 0), padx=4)
         try:
             icon(canvas)
         except Exception:
             pass
         label = tk.Label(cell, text=text, bg="#f3f3f3", font=("Arial", 8),
                          justify="center")
-        label.pack(padx=3, pady=(1, 4))
+        label.pack(padx=2, pady=(1, 4))
         cell._label = label
         cell._base_text = text
 
@@ -811,8 +829,15 @@ class CircuitEditor:
 
         def build_tools(row):
             self._register_tool(self._ribbon_button(
-                row, "Выбрать/Двигать", lambda: self.set_tool("select"),
-                _ri_select, 76), "select").pack(side=tk.LEFT)
+                row, "Выбрать", lambda: self.set_tool("select"),
+                _ri_select, 64), "select").pack(side=tk.LEFT)
+            self._register_tool(self._ribbon_button(
+                row, "Связать", lambda: self.set_tool("connect"),
+                _ri_connect, 68), "connect").pack(side=tk.LEFT)
+            self._ribbon_button(row, "Удалить", self.delete_selected,
+                                _ri_delete, 62).pack(side=tk.LEFT)
+            self._ribbon_button(row, "Вращать", self.rotate_selected,
+                                _ri_rotate, 62).pack(side=tk.LEFT)
             self._ribbon_button(row, "Поиск", self.open_search,
                                 _ri_find, 56).pack(side=tk.LEFT)
 
@@ -4703,7 +4728,7 @@ class CircuitEditor:
         self.grid_spin.insert(0, str(self.grid_size))
         self.redraw_all()
 
-    def rotate_selected(self, event):
+    def rotate_selected(self, event=None):
         self._push_undo()
         
         for el_id in list(self.selected_elements):
