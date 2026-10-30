@@ -172,7 +172,7 @@
             "type": "line",
             "name": "W4",
             "x": 1460,
-            "y": -10,
+            "y": 10,
             "rotation": 0
         },
         {
@@ -224,7 +224,7 @@
             "type": "line",
             "name": "W5",
             "x": 1250,
-            "y": -10,
+            "y": 10,
             "rotation": 0
         },
         {
@@ -498,7 +498,7 @@
             "type": "line",
             "name": "W6",
             "x": 1860,
-            "y": -10,
+            "y": 10,
             "rotation": 0
         },
         {
@@ -550,7 +550,7 @@
             "type": "line",
             "name": "W7",
             "x": 1650,
-            "y": -10,
+            "y": 10,
             "rotation": 0
         },
         {
@@ -824,7 +824,7 @@
             "type": "line",
             "name": "W8",
             "x": 2260,
-            "y": -10,
+            "y": 10,
             "rotation": 0
         },
         {
@@ -876,7 +876,7 @@
             "type": "line",
             "name": "W9",
             "x": 2050,
-            "y": -10,
+            "y": 10,
             "rotation": 0
         },
         {
@@ -1165,6 +1165,54 @@
             "x": 1750,
             "y": 1250,
             "rotation": 270
+        },
+        {
+            "id": "COf6ab",
+            "type": "connection_filter",
+            "name": "CF1",
+            "x": 1270,
+            "y": 20,
+            "rotation": 90
+        },
+        {
+            "id": "CO0df2",
+            "type": "connection_filter",
+            "name": "CF2",
+            "x": 1480,
+            "y": 20,
+            "rotation": 90
+        },
+        {
+            "id": "CO6126",
+            "type": "connection_filter",
+            "name": "CF3",
+            "x": 1670,
+            "y": 20,
+            "rotation": 90
+        },
+        {
+            "id": "COcda2",
+            "type": "connection_filter",
+            "name": "CF4",
+            "x": 1880,
+            "y": 20,
+            "rotation": 90
+        },
+        {
+            "id": "CO743b",
+            "type": "connection_filter",
+            "name": "CF5",
+            "x": 2070,
+            "y": 20,
+            "rotation": 90
+        },
+        {
+            "id": "COc693",
+            "type": "connection_filter",
+            "name": "CF6",
+            "x": 2280,
+            "y": 20,
+            "rotation": 90
         }
     ],
     "connections": [
@@ -1367,22 +1415,6 @@
             "port_to": "left",
             "element_from": "LI683a",
             "element_to": "GRf051"
-        },
-        {
-            "node_from": "N_LIc3d9_out",
-            "node_to": "N_LI683a_top",
-            "port_from": "out",
-            "port_to": "top",
-            "element_from": "LIc3d9",
-            "element_to": "LI683a"
-        },
-        {
-            "node_from": "N_LI0ebe_out",
-            "node_to": "N_LI29e8_top",
-            "port_from": "out",
-            "port_to": "top",
-            "element_from": "LI0ebe",
-            "element_to": "LI29e8"
         },
         {
             "node_from": "N_BR9b8a_bot",
@@ -1673,22 +1705,6 @@
             "element_to": "GR0400"
         },
         {
-            "node_from": "N_LIa67d_out",
-            "node_to": "N_LI2cc2_top",
-            "port_from": "out",
-            "port_to": "top",
-            "element_from": "LIa67d",
-            "element_to": "LI2cc2"
-        },
-        {
-            "node_from": "N_LIf927_out",
-            "node_to": "N_LI5c24_top",
-            "port_from": "out",
-            "port_to": "top",
-            "element_from": "LIf927",
-            "element_to": "LI5c24"
-        },
-        {
             "node_from": "N_BR31cf_bot",
             "node_to": "N_CU47ef_top",
             "port_from": "bottom",
@@ -1977,22 +1993,6 @@
             "element_to": "GRd4d5"
         },
         {
-            "node_from": "N_LI93a6_out",
-            "node_to": "N_LI66c0_top",
-            "port_from": "out",
-            "port_to": "top",
-            "element_from": "LI93a6",
-            "element_to": "LI66c0"
-        },
-        {
-            "node_from": "N_LIec7d_out",
-            "node_to": "N_LId6d9_top",
-            "port_from": "out",
-            "port_to": "top",
-            "element_from": "LIec7d",
-            "element_to": "LId6d9"
-        },
-        {
             "node_from": "N_BRdb8f_bot",
             "node_to": "N_CUc83d_top",
             "port_from": "bottom",
@@ -2271,11 +2271,107 @@
             "port_to": "center",
             "element_from": "GRaf06",
             "element_to": "BU76ee"
+        },
+        {
+            "node_from": "N_LIc3d9_out",
+            "node_to": "N_COf6ab_bottom",
+            "port_from": "out",
+            "port_to": "bottom",
+            "element_from": "LIc3d9",
+            "element_to": "COf6ab"
+        },
+        {
+            "node_from": "N_COf6ab_bottom",
+            "node_to": "N_LI683a_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "COf6ab",
+            "element_to": "LI683a"
+        },
+        {
+            "node_from": "N_CO0df2_bottom",
+            "node_to": "N_LI29e8_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CO0df2",
+            "element_to": "LI29e8"
+        },
+        {
+            "node_from": "N_CO6126_bottom",
+            "node_to": "N_LI2cc2_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CO6126",
+            "element_to": "LI2cc2"
+        },
+        {
+            "node_from": "N_COcda2_bottom",
+            "node_to": "N_LI5c24_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "COcda2",
+            "element_to": "LI5c24"
+        },
+        {
+            "node_from": "N_CO743b_bottom",
+            "node_to": "N_LI66c0_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CO743b",
+            "element_to": "LI66c0"
+        },
+        {
+            "node_from": "N_COc693_bottom",
+            "node_to": "N_LId6d9_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "COc693",
+            "element_to": "LId6d9"
+        },
+        {
+            "node_from": "N_LI0ebe_out",
+            "node_to": "N_CO0df2_bottom",
+            "port_from": "out",
+            "port_to": "bottom",
+            "element_from": "LI0ebe",
+            "element_to": "CO0df2"
+        },
+        {
+            "node_from": "N_LIa67d_out",
+            "node_to": "N_CO6126_bottom",
+            "port_from": "out",
+            "port_to": "bottom",
+            "element_from": "LIa67d",
+            "element_to": "CO6126"
+        },
+        {
+            "node_from": "N_LIf927_out",
+            "node_to": "N_COcda2_bottom",
+            "port_from": "out",
+            "port_to": "bottom",
+            "element_from": "LIf927",
+            "element_to": "COcda2"
+        },
+        {
+            "node_from": "N_LI93a6_out",
+            "node_to": "N_CO743b_bottom",
+            "port_from": "out",
+            "port_to": "bottom",
+            "element_from": "LI93a6",
+            "element_to": "CO743b"
+        },
+        {
+            "node_from": "N_LIec7d_out",
+            "node_to": "N_COc693_bottom",
+            "port_from": "out",
+            "port_to": "bottom",
+            "element_from": "LIec7d",
+            "element_to": "COc693"
         }
     ],
     "view": {
-        "zoom": 0.7962,
-        "offset_x": -343.22,
-        "offset_y": -91.95
+        "zoom": 0.5036,
+        "offset_x": -132.13,
+        "offset_y": 336.83
     }
 }

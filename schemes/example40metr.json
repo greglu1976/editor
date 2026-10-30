@@ -1,0 +1,3966 @@
+{
+    "elements": [
+        {
+            "id": "VO5c5a",
+            "type": "voltage_transformer",
+            "name": "TV6",
+            "x": 2750,
+            "y": 1450,
+            "rotation": 0
+        },
+        {
+            "id": "GR7740",
+            "type": "grounding_switch",
+            "name": "QSG21",
+            "x": 2770,
+            "y": 1410,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DIff5f",
+            "type": "disconnector",
+            "name": "QS14",
+            "x": 2750,
+            "y": 1370,
+            "rotation": 0
+        },
+        {
+            "id": "DI029f",
+            "type": "disconnector",
+            "name": "QS35",
+            "x": 3330,
+            "y": 300,
+            "rotation": 0
+        },
+        {
+            "id": "GR0f2b",
+            "type": "grounding_switch",
+            "name": "QSG53",
+            "x": 3350,
+            "y": 340,
+            "rotation": 270,
+            "label": [
+                -17.3,
+                -16.9
+            ]
+        },
+        {
+            "id": "BRa8bd",
+            "type": "breaker",
+            "name": "Q10",
+            "x": 3330,
+            "y": 380,
+            "rotation": 0
+        },
+        {
+            "id": "CUdd74",
+            "type": "current_transformer",
+            "name": "TA23",
+            "x": 3330,
+            "y": 430,
+            "rotation": 0
+        },
+        {
+            "id": "DI03fc",
+            "type": "disconnector",
+            "name": "QS36",
+            "x": 3330,
+            "y": 510,
+            "rotation": 0
+        },
+        {
+            "id": "GR04f6",
+            "type": "grounding_switch",
+            "name": "QSG54",
+            "x": 3350,
+            "y": 470,
+            "rotation": 270
+        },
+        {
+            "id": "GR3dff",
+            "type": "grounding_switch",
+            "name": "QSG55",
+            "x": 3350,
+            "y": 550,
+            "rotation": 270
+        },
+        {
+            "id": "NO05c8",
+            "type": "node",
+            "name": "N7",
+            "x": 3330,
+            "y": 580
+        },
+        {
+            "id": "DI102a",
+            "type": "disconnector",
+            "name": "QS37",
+            "x": 3330,
+            "y": 650,
+            "rotation": 0
+        },
+        {
+            "id": "GRa96c",
+            "type": "grounding_switch",
+            "name": "QSG56",
+            "x": 3350,
+            "y": 610,
+            "rotation": 270
+        },
+        {
+            "id": "GR793e",
+            "type": "grounding_switch",
+            "name": "QSG57",
+            "x": 3350,
+            "y": 690,
+            "rotation": 270
+        },
+        {
+            "id": "CU7807",
+            "type": "current_transformer",
+            "name": "TA24",
+            "x": 3330,
+            "y": 720,
+            "rotation": 0
+        },
+        {
+            "id": "BRdb8f",
+            "type": "breaker",
+            "name": "Q11",
+            "x": 3330,
+            "y": 770,
+            "rotation": 0
+        },
+        {
+            "id": "LIec7d",
+            "type": "line",
+            "name": "W8",
+            "x": 3450,
+            "y": -100,
+            "rotation": 0
+        },
+        {
+            "id": "CUa504",
+            "type": "current_transformer",
+            "name": "TA25",
+            "x": 3450,
+            "y": 480,
+            "rotation": 0
+        },
+        {
+            "id": "VOf9c1",
+            "type": "voltage_transformer",
+            "name": "TV12",
+            "x": 3430,
+            "y": 90,
+            "rotation": 90,
+            "label": [
+                -33.1,
+                -45.4
+            ]
+        },
+        {
+            "id": "GRf05a",
+            "type": "grounding_switch",
+            "name": "QSG58",
+            "x": 3470,
+            "y": 10,
+            "rotation": 270
+        },
+        {
+            "id": "DIa75b",
+            "type": "disconnector",
+            "name": "QS38",
+            "x": 3450,
+            "y": 50,
+            "rotation": 0
+        },
+        {
+            "id": "LId6d9",
+            "type": "line_trap",
+            "name": "LT6",
+            "x": 3450,
+            "y": -40,
+            "rotation": 0
+        },
+        {
+            "id": "LI93a6",
+            "type": "line",
+            "name": "W9",
+            "x": 3250,
+            "y": -100,
+            "rotation": 0
+        },
+        {
+            "id": "CU0bb5",
+            "type": "current_transformer",
+            "name": "TA26",
+            "x": 3250,
+            "y": 480,
+            "rotation": 0
+        },
+        {
+            "id": "VO9c65",
+            "type": "voltage_transformer",
+            "name": "TV13",
+            "x": 3230,
+            "y": 90,
+            "rotation": 90,
+            "label": [
+                -33.1,
+                -45.4
+            ]
+        },
+        {
+            "id": "GRd4d5",
+            "type": "grounding_switch",
+            "name": "QSG59",
+            "x": 3270,
+            "y": 10,
+            "rotation": 270
+        },
+        {
+            "id": "DI0df2",
+            "type": "disconnector",
+            "name": "QS39",
+            "x": 3250,
+            "y": 50,
+            "rotation": 0
+        },
+        {
+            "id": "LI66c0",
+            "type": "line_trap",
+            "name": "LT7",
+            "x": 3250,
+            "y": -40,
+            "rotation": 0
+        },
+        {
+            "id": "CUc83d",
+            "type": "current_transformer",
+            "name": "TA27",
+            "x": 3330,
+            "y": 820,
+            "rotation": 0,
+            "label": [
+                0.0,
+                0.5
+            ]
+        },
+        {
+            "id": "DI722f",
+            "type": "disconnector",
+            "name": "QS40",
+            "x": 3330,
+            "y": 900,
+            "rotation": 0
+        },
+        {
+            "id": "GR97e8",
+            "type": "grounding_switch",
+            "name": "QSG60",
+            "x": 3350,
+            "y": 860,
+            "rotation": 270
+        },
+        {
+            "id": "GRfeeb",
+            "type": "grounding_switch",
+            "name": "QSG61",
+            "x": 3350,
+            "y": 940,
+            "rotation": 270
+        },
+        {
+            "id": "NO1723",
+            "type": "node",
+            "name": "N8",
+            "x": 3330,
+            "y": 970
+        },
+        {
+            "id": "DI1765",
+            "type": "disconnector",
+            "name": "QS41",
+            "x": 3330,
+            "y": 1040,
+            "rotation": 0
+        },
+        {
+            "id": "GR80e3",
+            "type": "grounding_switch",
+            "name": "QSG62",
+            "x": 3350,
+            "y": 1000,
+            "rotation": 270
+        },
+        {
+            "id": "GR784c",
+            "type": "grounding_switch",
+            "name": "QSG63",
+            "x": 3350,
+            "y": 1080,
+            "rotation": 270
+        },
+        {
+            "id": "CU9982",
+            "type": "current_transformer",
+            "name": "TA28",
+            "x": 3330,
+            "y": 1110,
+            "rotation": 0
+        },
+        {
+            "id": "BR999e",
+            "type": "breaker",
+            "name": "Q12",
+            "x": 3330,
+            "y": 1160,
+            "rotation": 0
+        },
+        {
+            "id": "GR17c9",
+            "type": "grounding_switch",
+            "name": "QSG64",
+            "x": 3350,
+            "y": 1200,
+            "rotation": 270
+        },
+        {
+            "id": "DI88bb",
+            "type": "disconnector",
+            "name": "QS42",
+            "x": 3330,
+            "y": 1240,
+            "rotation": 0
+        },
+        {
+            "id": "GR1e8a",
+            "type": "grounding_switch",
+            "name": "QSG65",
+            "x": 2770,
+            "y": 1330,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "GRffc2",
+            "type": "grounding_switch",
+            "name": "QSG68",
+            "x": 2480,
+            "y": 1580,
+            "rotation": 270
+        },
+        {
+            "id": "DI377e",
+            "type": "disconnector",
+            "name": "QS44",
+            "x": 2460,
+            "y": 1540,
+            "rotation": 0
+        },
+        {
+            "id": "CU02d2",
+            "type": "current_transformer",
+            "name": "TA29",
+            "x": 2460,
+            "y": 1690,
+            "rotation": 0
+        },
+        {
+            "id": "AU44ad",
+            "type": "autotransformer",
+            "name": "AT2",
+            "x": 2460,
+            "y": 1760,
+            "rotation": 0
+        },
+        {
+            "id": "CO743b",
+            "type": "connection_filter",
+            "name": "CF5",
+            "x": 3270,
+            "y": -90,
+            "rotation": 90
+        },
+        {
+            "id": "COc693",
+            "type": "connection_filter",
+            "name": "CF6",
+            "x": 3470,
+            "y": -90,
+            "rotation": 90
+        },
+        {
+            "id": "NO0960",
+            "type": "node",
+            "name": "N10",
+            "x": 3250,
+            "y": 970
+        },
+        {
+            "id": "NO8dbe",
+            "type": "node",
+            "name": "N11",
+            "x": 3450,
+            "y": 580
+        },
+        {
+            "id": "GRa4d5",
+            "type": "grounding_switch",
+            "name": "QSG71",
+            "x": 3270,
+            "y": 1090,
+            "rotation": 270,
+            "label": [
+                -105.6,
+                -2.0
+            ]
+        },
+        {
+            "id": "DI15d1",
+            "type": "disconnector",
+            "name": "QS45",
+            "x": 3250,
+            "y": 1050,
+            "rotation": 0
+        },
+        {
+            "id": "CU34f6",
+            "type": "current_transformer",
+            "name": "TA30",
+            "x": 3250,
+            "y": 1170,
+            "rotation": 0
+        },
+        {
+            "id": "REfdbe",
+            "type": "reactor",
+            "name": "R1",
+            "x": 3250,
+            "y": 1560,
+            "rotation": 0
+        },
+        {
+            "id": "GR02ff",
+            "type": "grounding_switch",
+            "name": "QSG72",
+            "x": 3270,
+            "y": 1200,
+            "rotation": 270,
+            "label": [
+                -114.8,
+                -2.6
+            ]
+        },
+        {
+            "id": "BR4349",
+            "type": "breaker",
+            "name": "Q13",
+            "x": 3250,
+            "y": 1120,
+            "rotation": 0
+        },
+        {
+            "id": "CUce29",
+            "type": "current_transformer",
+            "name": "TA31",
+            "x": 3250,
+            "y": 1490,
+            "rotation": 0
+        },
+        {
+            "id": "GRad39",
+            "type": "ground",
+            "name": "G1",
+            "x": 3250,
+            "y": 1630,
+            "rotation": 0
+        },
+        {
+            "id": "DIc347",
+            "type": "disconnector",
+            "name": "QS46",
+            "x": 2550,
+            "y": 300,
+            "rotation": 0
+        },
+        {
+            "id": "GR660c",
+            "type": "grounding_switch",
+            "name": "QSG73",
+            "x": 2570,
+            "y": 340,
+            "rotation": 270,
+            "label": [
+                -17.3,
+                -16.9
+            ]
+        },
+        {
+            "id": "BR7635",
+            "type": "breaker",
+            "name": "Q14",
+            "x": 2550,
+            "y": 380,
+            "rotation": 0
+        },
+        {
+            "id": "CU447c",
+            "type": "current_transformer",
+            "name": "TA32",
+            "x": 2550,
+            "y": 430,
+            "rotation": 0
+        },
+        {
+            "id": "DI22a5",
+            "type": "disconnector",
+            "name": "QS47",
+            "x": 2550,
+            "y": 510,
+            "rotation": 0
+        },
+        {
+            "id": "GR79fa",
+            "type": "grounding_switch",
+            "name": "QSG74",
+            "x": 2570,
+            "y": 470,
+            "rotation": 270
+        },
+        {
+            "id": "GR76a1",
+            "type": "grounding_switch",
+            "name": "QSG75",
+            "x": 2570,
+            "y": 550,
+            "rotation": 270
+        },
+        {
+            "id": "NO37de",
+            "type": "node",
+            "name": "N12",
+            "x": 2550,
+            "y": 580
+        },
+        {
+            "id": "DIcaed",
+            "type": "disconnector",
+            "name": "QS48",
+            "x": 2550,
+            "y": 650,
+            "rotation": 0
+        },
+        {
+            "id": "GR2f93",
+            "type": "grounding_switch",
+            "name": "QSG76",
+            "x": 2570,
+            "y": 610,
+            "rotation": 270
+        },
+        {
+            "id": "GRec55",
+            "type": "grounding_switch",
+            "name": "QSG77",
+            "x": 2570,
+            "y": 690,
+            "rotation": 270
+        },
+        {
+            "id": "CU27c4",
+            "type": "current_transformer",
+            "name": "TA33",
+            "x": 2550,
+            "y": 720,
+            "rotation": 0
+        },
+        {
+            "id": "BR21cc",
+            "type": "breaker",
+            "name": "Q15",
+            "x": 2550,
+            "y": 770,
+            "rotation": 0
+        },
+        {
+            "id": "CUff71",
+            "type": "current_transformer",
+            "name": "TA34",
+            "x": 2680,
+            "y": 480,
+            "rotation": 0
+        },
+        {
+            "id": "CUdb08",
+            "type": "current_transformer",
+            "name": "TA36",
+            "x": 2550,
+            "y": 820,
+            "rotation": 0,
+            "label": [
+                0.0,
+                0.5
+            ]
+        },
+        {
+            "id": "DI8b74",
+            "type": "disconnector",
+            "name": "QS49",
+            "x": 2550,
+            "y": 900,
+            "rotation": 0
+        },
+        {
+            "id": "GR2b08",
+            "type": "grounding_switch",
+            "name": "QSG78",
+            "x": 2570,
+            "y": 860,
+            "rotation": 270
+        },
+        {
+            "id": "GR44cf",
+            "type": "grounding_switch",
+            "name": "QSG79",
+            "x": 2570,
+            "y": 940,
+            "rotation": 270
+        },
+        {
+            "id": "NO5dd7",
+            "type": "node",
+            "name": "N13",
+            "x": 2550,
+            "y": 970
+        },
+        {
+            "id": "DI7772",
+            "type": "disconnector",
+            "name": "QS50",
+            "x": 2550,
+            "y": 1040,
+            "rotation": 0
+        },
+        {
+            "id": "GRbc2c",
+            "type": "grounding_switch",
+            "name": "QSG80",
+            "x": 2570,
+            "y": 1000,
+            "rotation": 270
+        },
+        {
+            "id": "GRbd2e",
+            "type": "grounding_switch",
+            "name": "QSG81",
+            "x": 2570,
+            "y": 1080,
+            "rotation": 270
+        },
+        {
+            "id": "CUc0dd",
+            "type": "current_transformer",
+            "name": "TA37",
+            "x": 2550,
+            "y": 1110,
+            "rotation": 0
+        },
+        {
+            "id": "BR4252",
+            "type": "breaker",
+            "name": "Q16",
+            "x": 2550,
+            "y": 1160,
+            "rotation": 0
+        },
+        {
+            "id": "GR8255",
+            "type": "grounding_switch",
+            "name": "QSG82",
+            "x": 2570,
+            "y": 1200,
+            "rotation": 270
+        },
+        {
+            "id": "DIf4e9",
+            "type": "disconnector",
+            "name": "QS51",
+            "x": 2550,
+            "y": 1240,
+            "rotation": 0
+        },
+        {
+            "id": "NO7f6b",
+            "type": "node",
+            "name": "N14",
+            "x": 2460,
+            "y": 970
+        },
+        {
+            "id": "NO6f58",
+            "type": "node",
+            "name": "N15",
+            "x": 2680,
+            "y": 580
+        },
+        {
+            "id": "GRe706",
+            "type": "grounding_switch",
+            "name": "QSG83",
+            "x": 3470,
+            "y": 1090,
+            "rotation": 270
+        },
+        {
+            "id": "DI8813",
+            "type": "disconnector",
+            "name": "QS52",
+            "x": 3450,
+            "y": 1050,
+            "rotation": 0
+        },
+        {
+            "id": "CU27bb",
+            "type": "current_transformer",
+            "name": "TA38",
+            "x": 3450,
+            "y": 1170,
+            "rotation": 0
+        },
+        {
+            "id": "RE61c1",
+            "type": "reactor",
+            "name": "R2",
+            "x": 3450,
+            "y": 1560,
+            "rotation": 0
+        },
+        {
+            "id": "GR556b",
+            "type": "grounding_switch",
+            "name": "QSG84",
+            "x": 3470,
+            "y": 1200,
+            "rotation": 270
+        },
+        {
+            "id": "BRd499",
+            "type": "breaker",
+            "name": "Q17",
+            "x": 3450,
+            "y": 1120,
+            "rotation": 0
+        },
+        {
+            "id": "CU0739",
+            "type": "current_transformer",
+            "name": "TA39",
+            "x": 3450,
+            "y": 1490,
+            "rotation": 0
+        },
+        {
+            "id": "GRbe4a",
+            "type": "ground",
+            "name": "G2",
+            "x": 3450,
+            "y": 1630,
+            "rotation": 0
+        },
+        {
+            "id": "LI09c3",
+            "type": "line",
+            "name": "W10",
+            "x": 2680,
+            "y": -100,
+            "rotation": 0
+        },
+        {
+            "id": "VO67ac",
+            "type": "voltage_transformer",
+            "name": "TV15",
+            "x": 2660,
+            "y": 90,
+            "rotation": 90,
+            "label": [
+                -33.1,
+                -45.4
+            ]
+        },
+        {
+            "id": "GR655e",
+            "type": "grounding_switch",
+            "name": "QSG85",
+            "x": 2700,
+            "y": 10,
+            "rotation": 270
+        },
+        {
+            "id": "DI0dc3",
+            "type": "disconnector",
+            "name": "QS53",
+            "x": 2680,
+            "y": 50,
+            "rotation": 0
+        },
+        {
+            "id": "LI6d1c",
+            "type": "line_trap",
+            "name": "LT8",
+            "x": 2680,
+            "y": -40,
+            "rotation": 0
+        },
+        {
+            "id": "COef14",
+            "type": "connection_filter",
+            "name": "CF7",
+            "x": 2700,
+            "y": -90,
+            "rotation": 90,
+            "label": [
+                -17.9,
+                -20.4
+            ]
+        },
+        {
+            "id": "CA386b",
+            "type": "cabinet",
+            "name": "EL1",
+            "x": 2480,
+            "y": -260,
+            "cabinet": {
+                "key": "shet-321-02-1",
+                "title": "ШЭТ 321.02-1",
+                "info": {
+                    "code": "ШЭТ 321.02-1",
+                    "name": "ДЗЛ + СЗ ЛЭП 330–750 кВ",
+                    "title": "Дифференциальная защита ЛЭП 330-750 кВ с комплектом ступенчатых защит и обменом разрешающими сигналами, УРОВ, АУВ",
+                    "description": "Шкаф защит ЛЭП 330–750 кВ (ДЗЛ + СЗ), УРОВ, АУВ",
+                    "voltage": "330–750 кВ",
+                    "architecture": "II тип",
+                    "protected": "ЛЭП 330–750 кВ",
+                    "controlled": [
+                        "Выключатель В1",
+                        "Выключатель В2"
+                    ],
+                    "its_functions": [
+                        "ДЗЛ+СЗ РС",
+                        "ТЗО",
+                        "ЗНР",
+                        "ОМП",
+                        "УРОВ В1",
+                        "ОАПВ В1",
+                        "ТАПВ В1",
+                        "УТАПВ В1",
+                        "АУВ В1",
+                        "УРОВ В2",
+                        "ОАПВ В2",
+                        "ТАПВ В2",
+                        "УТАПВ В2",
+                        "АУВ В2",
+                        "РАС"
+                    ],
+                    "applicability": "Все типы РУ 330–750 кВ; ЛС по цифровому каналу защиты",
+                    "source": "разд. 5.7, табл. 5.7.1",
+                    "standard": "СТО 56947007-33.040.20.283-2019",
+                    "standard_title": "Типовые шкафы ШЭТ РЗА ЛЭП 110-750 кВ. Архитектура II типа",
+                    "group": "ЛЭП",
+                    "goose": true
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДЗЛ",
+                            "СЗ (ДЗ",
+                            "ТНЗНП",
+                            "МТЗ",
+                            "МФТО",
+                            "ОУ",
+                            "АУ",
+                            "БНН",
+                            "БК)",
+                            "ЛС",
+                            "ИПФ",
+                            "ТЗО",
+                            "ЗНР",
+                            "ОМП",
+                            "РАС",
+                            "УРОВ В1",
+                            "ОАПВ В1",
+                            "ТАПВ В1",
+                            "УТАПВ В1",
+                            "ПАВ В1",
+                            "КСН В1",
+                            "ЗНФ В1",
+                            "АУВ В1",
+                            "УРОВ В2",
+                            "ОАПВ В2",
+                            "ТАПВ В2",
+                            "УТАПВ В2",
+                            "ПАВ В2",
+                            "КСН В2",
+                            "ЗНФ В2",
+                            "АУВ В2"
+                        ],
+                        "desc": "ДЗЛ и ступенчатые защиты ЛЭП, УРОВ и АУВ выключателей В1/В2",
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": "ДЗЛ и ступенчатые защиты ЛЭП, УРОВ и АУВ выключателей В1/В2"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-321-02-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 321.02-1",
+                        "cabinet_name": "ДЗЛ + СЗ ЛЭП 330–750 кВ",
+                        "cabinet_group": "ЛЭП",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CAdcc4",
+            "type": "cabinet",
+            "name": "EL2",
+            "x": 2480,
+            "y": -190,
+            "cabinet": {
+                "key": "shet-321-03-1",
+                "title": "ШЭТ 321.03-1",
+                "info": {
+                    "code": "ШЭТ 321.03-1",
+                    "name": "КСЗ ЛЭП 330–750 кВ",
+                    "title": "Комплект ступенчатых защит ЛЭП 330-750 кВ с обменом разрешающими сигналами, УРОВ, АУВ",
+                    "description": "Шкаф ступенчатых защит ЛЭП 330–750 кВ (КСЗ), УРОВ, АУВ",
+                    "voltage": "330–750 кВ",
+                    "architecture": "II тип",
+                    "protected": "ЛЭП 330–750 кВ",
+                    "controlled": [
+                        "Выключатель В1",
+                        "Выключатель В2"
+                    ],
+                    "its_functions": [
+                        "КСЗ РС",
+                        "ТЗО",
+                        "ЗНР",
+                        "ОМП",
+                        "УРОВ В1",
+                        "ОАПВ В1",
+                        "ТАПВ В1",
+                        "УТАПВ В1",
+                        "АУВ В1",
+                        "УРОВ В2",
+                        "ОАПВ В2",
+                        "ТАПВ В2",
+                        "УТАПВ В2",
+                        "АУВ В2",
+                        "РАС"
+                    ],
+                    "applicability": "Все типы РУ 330–750 кВ; ЛС по цифровому каналу защиты",
+                    "source": "разд. 5.8, табл. 5.8.1",
+                    "standard": "СТО 56947007-33.040.20.283-2019",
+                    "standard_title": "Типовые шкафы ШЭТ РЗА ЛЭП 110-750 кВ. Архитектура II типа",
+                    "group": "ЛЭП",
+                    "goose": true
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "СЗ (ДЗ",
+                            "ТНЗНП",
+                            "МТЗ",
+                            "МФТО",
+                            "ОУ",
+                            "АУ",
+                            "БНН",
+                            "БК)",
+                            "ЛС",
+                            "ИПФ",
+                            "ТЗО",
+                            "ЗНР",
+                            "ОМП",
+                            "РАС",
+                            "УРОВ В1",
+                            "ОАПВ В1",
+                            "ТАПВ В1",
+                            "УТАПВ В1",
+                            "ПАВ В1",
+                            "КСН В1",
+                            "ЗНФ В1",
+                            "АУВ В1",
+                            "УРОВ В2",
+                            "ОАПВ В2",
+                            "ТАПВ В2",
+                            "УТАПВ В2",
+                            "ПАВ В2",
+                            "КСН В2",
+                            "ЗНФ В2",
+                            "АУВ В2"
+                        ],
+                        "desc": "Ступенчатые защиты ЛЭП, УРОВ и АУВ выключателей В1/В2",
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": "Ступенчатые защиты ЛЭП, УРОВ и АУВ выключателей В1/В2"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-321-03-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 321.03-1",
+                        "cabinet_name": "КСЗ ЛЭП 330–750 кВ",
+                        "cabinet_group": "ЛЭП",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "VOfc49",
+            "type": "voltage_transformer",
+            "name": "TV16",
+            "x": 2650,
+            "y": -90,
+            "rotation": 90,
+            "label": [
+                -33.1,
+                -45.4
+            ]
+        },
+        {
+            "id": "CA70c6",
+            "type": "cabinet",
+            "name": "EL3",
+            "x": 2480,
+            "y": -120,
+            "cabinet": {
+                "key": "ket-cn-3",
+                "title": "ШЭТ ЦН.3",
+                "info": {
+                    "code": "ШЭТ ЦН.3",
+                    "name": "Цепи напряжения двух ТН",
+                    "title": "Шкаф организации цепей напряжения двух ТН с резервированием от двух источников",
+                    "description": "Шкаф организации цепей напряжения двух ТН с резервированием от двух источников",
+                    "voltage": "—",
+                    "architecture": "II тип",
+                    "protected": "",
+                    "controlled": [],
+                    "its_functions": [
+                        "ЦН двух ТН",
+                        "распределение цепей переменного напряжения",
+                        "переключение цепей напряжения"
+                    ],
+                    "applicability": "Внутренняя установка, архитектуры I и II типа; КЭТ СЗАУ всех типов",
+                    "source": "СТО 56947007-33.040.20.307-2020, п. 14.6",
+                    "standard": "СТО 56947007-33.040.20.307-2020",
+                    "standard_title": "Корпоративные шкафы вторичной коммутации (ВК): шкафы зажимов измерительных трансформаторов, промежуточных согласующих трансформаторов, организации цепей напряжения, перевода на обходной выключатель",
+                    "group": "ВК"
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "ЦН",
+                        "functions": [
+                            "ЦН двух ТН",
+                            "ручное и дистанционное переключение на резервный ТН"
+                        ],
+                        "desc": "Распределение цепей переменного напряжения устройств РЗА и АСУ ТП",
+                        "ieds": [],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": false,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "ket-cn-3",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ ЦН.3",
+                        "cabinet_name": "Цепи напряжения двух ТН",
+                        "cabinet_group": "ВК",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CAbbab",
+            "type": "cabinet",
+            "name": "EL5",
+            "x": 2480,
+            "y": -460,
+            "cabinet": {
+                "key": "upa-cs-32-32-1",
+                "title": "ШЭТ ЦС-32/32-1",
+                "info": {
+                    "code": "ШЭТ ЦС-32/32-1",
+                    "name": "Приёмопередатчик УПАСК ЦС 32/32",
+                    "title": "Приёмопередатчик УПАСК ЦС 32/32",
+                    "description": "ШЭТ ЦС-32/32-1: приёмопередатчик УПАСК цифровыми сигналами, 32 передаваемых и 32 принимаемых команды",
+                    "voltage": "—",
+                    "architecture": "II тип",
+                    "protected": "",
+                    "controlled": [],
+                    "its_functions": [
+                        "приём 32 команд",
+                        "передача 32 команд цифровыми сигналами"
+                    ],
+                    "applicability": "ПС архитектуры II типа (исполнение -2 — III тип)",
+                    "source": "п. 7.18, таблица типов",
+                    "standard": "СТО 56947007-33.040.20.288-2019",
+                    "standard_title": "Типовые шкафы УПАСК (устройств передачи аварийных сигналов и команд)",
+                    "group": "УПАСК"
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "УПАСК",
+                        "functions": [
+                            "приём 32 команд",
+                            "передача 32 команд цифровыми сигналами"
+                        ],
+                        "desc": "ШЭТ ЦС-32/32-1: приёмопередатчик УПАСК цифровыми сигналами, 32 передаваемых и 32 принимаемых команды",
+                        "ieds": [
+                            {
+                                "name": "УПАСК",
+                                "type": "УПАСК",
+                                "desc": "Приёмопередатчик УПАСК ЦС 32/32"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "upa-cs-32-32-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ ЦС-32/32-1",
+                        "cabinet_name": "Приёмопередатчик УПАСК ЦС 32/32",
+                        "cabinet_group": "УПАСК",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CAd8df",
+            "type": "cabinet",
+            "name": "EL6",
+            "x": 2260,
+            "y": 1590,
+            "cabinet": {
+                "key": "шэт-311-01-1-копия",
+                "title": "ШЭТ 311.21-1",
+                "info": {
+                    "code": "ШЭТ 311.21-1",
+                    "name": "Основные защиты АТ 330–750 кВ и ошиновки",
+                    "title": "Комплект основных защит автотрансформатора 330-750 кВ и ошиновки 6-35 кВ, УРОВ, АУВ",
+                    "description": "Комплект основных защит автотрансформатора 330-750 кВ и ошиновки 6-35 кВ, УРОВ, АУВ",
+                    "voltage": "330–750 кВ",
+                    "protected": "Автотрансформатор 330-750 кВ, ошиновка 6-35 кВ автотрансформатора",
+                    "controlled": [
+                        "Выключатель СН АТ"
+                    ],
+                    "its_functions": [
+                        "ДЗТ",
+                        "ГЗ АТ",
+                        "ГЗ РПН АТ",
+                        "ТЗ АТ",
+                        "ГЗ ЛРТ",
+                        "ТЗ ЛРТ",
+                        "КИВ ВН (СН)",
+                        "МТЗ НН/U",
+                        "КИ НН",
+                        "ЗП ВН",
+                        "ЗП НН",
+                        "ЗП ОО",
+                        "ТК ЗДЗ",
+                        "УРОВ",
+                        "АПВ",
+                        "КСН",
+                        "АУВ",
+                        "РАС"
+                    ],
+                    "applicability": "АТ 330–750 кВ: два выключателя на ВН (схемы РУ №6Н, 7, 17), два выключателя на СН 220 кВ — ДЗТ 1 комплект, ДЗО НН, КИВ ВН",
+                    "source": "разд. 5.7, табл. 5.7.1",
+                    "group": "Прочие",
+                    "goose": true
+                },
+                "komplets": [
+                    {
+                        "key": "",
+                        "kind": "typical",
+                        "name": "Комплект 1",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДЗТ",
+                            "ГЗ АТ",
+                            "ТЗ АТ",
+                            "ГЗ ЛРТ",
+                            "ТЗ ЛРТ",
+                            "ГЗ РПН",
+                            "КИВ",
+                            "МТЗ/U НН",
+                            "КИ НН",
+                            "БНН НН",
+                            "ЗП ВН",
+                            "ЗП ОО",
+                            "ЗП НН",
+                            "КОН АТ",
+                            "ТК ЗДЗ",
+                            "ПО УРОВ НН",
+                            "РТПО",
+                            "УРОВ СН",
+                            "АПВ СН",
+                            "КСН СН",
+                            "АУВ СН",
+                            "РАС"
+                        ],
+                        "desc": "Основные защиты АТ 330–750 кВ, АУВ выключателя СН",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": "Основные защиты АТ 330–750 кВ, АУВ выключателя СН"
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-311-02-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 311.02-1",
+                        "cabinet_name": "Основные защиты АТ 330–750 кВ",
+                        "cabinet_group": "Т/АТ",
+                        "source": "cabinet_entry"
+                    },
+                    {
+                        "key": "",
+                        "kind": "typical",
+                        "name": "Комплект 2",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДЗТ",
+                            "ГЗ АТ",
+                            "ТЗ АТ",
+                            "ГЗ ЛРТ",
+                            "ТЗ ЛРТ",
+                            "ГЗ РПН",
+                            "КИВ",
+                            "МТЗ/U НН",
+                            "КИ НН",
+                            "БНН НН",
+                            "ЗП ВН",
+                            "ЗП ОО",
+                            "ЗП НН",
+                            "КОН АТ",
+                            "ТК ЗДЗ",
+                            "ПО УРОВ НН",
+                            "РТПО",
+                            "УРОВ СН",
+                            "АПВ СН",
+                            "КСН СН",
+                            "АУВ СН",
+                            "РАС"
+                        ],
+                        "desc": "Основные защиты АТ 330–750 кВ, АУВ выключателя СН",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": "Основные защиты АТ 330–750 кВ, АУВ выключателя СН"
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-311-02-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 311.02-1",
+                        "cabinet_name": "Основные защиты АТ 330–750 кВ",
+                        "cabinet_group": "Т/АТ",
+                        "source": "cabinet_entry"
+                    },
+                    {
+                        "key": "typ:shet-311-01-1:1",
+                        "kind": "typical",
+                        "name": "Комплект 3",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДЗО НН",
+                            "РАС"
+                        ],
+                        "desc": "Дифференциальная защита ошиновки НН",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ИЭУ2",
+                                "type": "МП РЗА",
+                                "desc": "Дифференциальная защита ошиновки НН"
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-311-01-1",
+                        "cabinet_index": 1,
+                        "cabinet_code": "ШЭТ 311.01-1",
+                        "cabinet_name": "Основные защиты АТ 330–750 кВ и ошиновки",
+                        "cabinet_group": "Т/АТ",
+                        "source": "cabinet_entry"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "VO2323",
+            "type": "voltage_transformer",
+            "name": "TV23",
+            "x": 3990,
+            "y": 1610,
+            "rotation": 0
+        },
+        {
+            "id": "GR173f",
+            "type": "grounding_switch",
+            "name": "QSG111",
+            "x": 4010,
+            "y": 1570,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DIba2e",
+            "type": "disconnector",
+            "name": "QS71",
+            "x": 3990,
+            "y": 1530,
+            "rotation": 0
+        },
+        {
+            "id": "GR17f5",
+            "type": "grounding_switch",
+            "name": "QSG112",
+            "x": 4010,
+            "y": 1490,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "BU73b9",
+            "type": "bus",
+            "name": "BB5",
+            "x": 4060,
+            "y": 1410,
+            "length": 90,
+            "label": [
+                -124.2,
+                10.9
+            ]
+        },
+        {
+            "id": "BU84de",
+            "type": "bus",
+            "name": "BB6",
+            "x": 4060,
+            "y": 1450,
+            "length": 90,
+            "label": [
+                -122.0,
+                13.6
+            ]
+        },
+        {
+            "id": "GR9a98",
+            "type": "grounding_switch",
+            "name": "QSG116",
+            "x": 4010,
+            "y": 1130,
+            "rotation": 270
+        },
+        {
+            "id": "DI895f",
+            "type": "disconnector",
+            "name": "QS74",
+            "x": 3990,
+            "y": 1170,
+            "rotation": 0
+        },
+        {
+            "id": "GR9dcf",
+            "type": "grounding_switch",
+            "name": "QSG117",
+            "x": 4010,
+            "y": 1200,
+            "rotation": 270
+        },
+        {
+            "id": "CU80ac",
+            "type": "current_transformer",
+            "name": "TA52",
+            "x": 3990,
+            "y": 1230,
+            "rotation": 0
+        },
+        {
+            "id": "BRd051",
+            "type": "breaker",
+            "name": "Q25",
+            "x": 3990,
+            "y": 1280,
+            "rotation": 0
+        },
+        {
+            "id": "GR7985",
+            "type": "grounding_switch",
+            "name": "QSG118",
+            "x": 4010,
+            "y": 1310,
+            "rotation": 270
+        },
+        {
+            "id": "DI10dd",
+            "type": "disconnector",
+            "name": "QS75",
+            "x": 3990,
+            "y": 1340,
+            "rotation": 0
+        },
+        {
+            "id": "GR3159",
+            "type": "grounding_switch",
+            "name": "QSG119",
+            "x": 4150,
+            "y": 1130,
+            "rotation": 270
+        },
+        {
+            "id": "DIccb3",
+            "type": "disconnector",
+            "name": "QS76",
+            "x": 4130,
+            "y": 1170,
+            "rotation": 0
+        },
+        {
+            "id": "GR112a",
+            "type": "grounding_switch",
+            "name": "QSG120",
+            "x": 4150,
+            "y": 1200,
+            "rotation": 270
+        },
+        {
+            "id": "CU89b2",
+            "type": "current_transformer",
+            "name": "TA53",
+            "x": 4130,
+            "y": 1230,
+            "rotation": 0
+        },
+        {
+            "id": "BReafc",
+            "type": "breaker",
+            "name": "Q26",
+            "x": 4130,
+            "y": 1280,
+            "rotation": 0
+        },
+        {
+            "id": "GRee47",
+            "type": "grounding_switch",
+            "name": "QSG121",
+            "x": 4150,
+            "y": 1310,
+            "rotation": 270
+        },
+        {
+            "id": "DIf387",
+            "type": "disconnector",
+            "name": "QS77",
+            "x": 4130,
+            "y": 1340,
+            "rotation": 0
+        },
+        {
+            "id": "COfe15",
+            "type": "corner",
+            "name": "C11",
+            "x": 4130,
+            "y": 1090,
+            "orientation": "bottom_left"
+        },
+        {
+            "id": "NOe99e",
+            "type": "node",
+            "name": "N18",
+            "x": 3990,
+            "y": 1090
+        },
+        {
+            "id": "GRcb17",
+            "type": "grounding_switch",
+            "name": "QSG122",
+            "x": 4010,
+            "y": 1380,
+            "rotation": 270
+        },
+        {
+            "id": "VO53db",
+            "type": "voltage_transformer",
+            "name": "TV24",
+            "x": 4130,
+            "y": 1610,
+            "rotation": 0
+        },
+        {
+            "id": "GR2725",
+            "type": "grounding_switch",
+            "name": "QSG136",
+            "x": 4150,
+            "y": 1570,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DIac75",
+            "type": "disconnector",
+            "name": "QS86",
+            "x": 4130,
+            "y": 1530,
+            "rotation": 0
+        },
+        {
+            "id": "GR4460",
+            "type": "grounding_switch",
+            "name": "QSG137",
+            "x": 4150,
+            "y": 1490,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "GR73dc",
+            "type": "grounding_switch",
+            "name": "QSG138",
+            "x": 3850,
+            "y": 1550,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DI93e1",
+            "type": "disconnector",
+            "name": "QS87",
+            "x": 3830,
+            "y": 1510,
+            "rotation": 0
+        },
+        {
+            "id": "NO1f21",
+            "type": "node",
+            "name": "N20",
+            "x": 3830,
+            "y": 1750
+        },
+        {
+            "id": "BUa77f",
+            "type": "bus",
+            "name": "BB7",
+            "x": 2460,
+            "y": 1850,
+            "length": 80,
+            "label": [
+                -54.3,
+                9.8
+            ]
+        },
+        {
+            "id": "VO0120",
+            "type": "voltage_transformer",
+            "name": "TV25",
+            "x": 2460,
+            "y": 1900,
+            "rotation": 0
+        },
+        {
+            "id": "BUa96c",
+            "type": "bushing_monitor",
+            "name": "BSH3",
+            "x": 2460,
+            "y": 1630,
+            "rotation": 0
+        },
+        {
+            "id": "BU62ea",
+            "type": "bus",
+            "name": "BB8",
+            "x": 3060,
+            "y": 1290,
+            "length": 550
+        },
+        {
+            "id": "BUc9f9",
+            "type": "bus",
+            "name": "BB9",
+            "x": 3040,
+            "y": 220,
+            "length": 550
+        },
+        {
+            "id": "CA497a",
+            "type": "cabinet",
+            "name": "EL7",
+            "x": 2260,
+            "y": 1720,
+            "cabinet": {
+                "key": "шэт-410-01-1-копия",
+                "title": "ШЭТ 411.21-1",
+                "info": {
+                    "code": "ШЭТ 411.21-1",
+                    "name": "Резервные защиты АТ 220–750 кВ, АРНТ",
+                    "title": "Комплект резервных защит автотрансформатора 220-750 кВ и АРНТ",
+                    "description": "Комплект резервных защит автотрансформатора 220-750 кВ и АРНТ",
+                    "voltage": "220–750 кВ",
+                    "protected": "Автотрансформатор 220-750 кВ",
+                    "controlled": [],
+                    "its_functions": [
+                        "КСЗ ВН",
+                        "КСЗ СН",
+                        "ЗНР",
+                        "АРНТ",
+                        "РАС"
+                    ],
+                    "applicability": "Резервные защиты АТ 220–750 кВ (совместно со шкафами основных защит 211.04-1, 211.05-1, 311.01-1, 311.02-1)",
+                    "source": "разд. 5.9, табл. 5.9.1",
+                    "group": "Прочие",
+                    "goose": true
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "СЗ ВН (ДЗ",
+                            "ТНЗНП",
+                            "МТЗ",
+                            "ОУ",
+                            "АУ",
+                            "БНН",
+                            "БК)",
+                            "ЗНР ВН",
+                            "БНН НН",
+                            "РАС"
+                        ],
+                        "desc": "Комплект резервных защит стороны ВН",
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": "Комплект резервных защит стороны ВН"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-410-01-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 410.01-1",
+                        "cabinet_name": "Резервные защиты АТ 220–750 кВ",
+                        "cabinet_group": "Т/АТ",
+                        "source": "cabinet_entry"
+                    },
+                    {
+                        "name": "Комплект 2",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "СЗ СН (ДЗ",
+                            "ТНЗНП",
+                            "МТЗ",
+                            "ОУ",
+                            "АУ",
+                            "БНН",
+                            "БК)",
+                            "ЗНР СН",
+                            "БНН НН",
+                            "РАС"
+                        ],
+                        "desc": "Комплект резервных защит стороны СН",
+                        "ieds": [
+                            {
+                                "name": "ИЭУ2",
+                                "type": "МП РЗА",
+                                "desc": "Комплект резервных защит стороны СН"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-410-01-1",
+                        "cabinet_index": 1,
+                        "cabinet_code": "ШЭТ 410.01-1",
+                        "cabinet_name": "Резервные защиты АТ 220–750 кВ",
+                        "cabinet_group": "Т/АТ",
+                        "source": "cabinet_entry"
+                    },
+                    {
+                        "key": "",
+                        "kind": "typical",
+                        "name": "Комплект 3",
+                        "type": "АРНТ",
+                        "functions": [
+                            "автоматическое регулирование напряжения АТ",
+                            "управление РПН",
+                            "контроль и сигнализация"
+                        ],
+                        "desc": "Шкаф автоматики регулирования напряжения автотрансформатора",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "АРНТ",
+                                "type": "АРНТ",
+                                "desc": "Шкаф автоматики регулирования напряжения автотрансформатора"
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-410-04-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 410.04-1",
+                        "cabinet_name": "Шкаф автоматики регулирования напряжения автотрансформатора",
+                        "cabinet_group": "АРНТ",
+                        "source": "cabinet_entry"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CA9bb9",
+            "type": "cabinet",
+            "name": "EL8",
+            "x": 2880,
+            "y": 1640,
+            "cabinet": {
+                "key": "shet-441-01-1",
+                "title": "ШЭТ 441.01-1",
+                "info": {
+                    "code": "ШЭТ 441.01-1",
+                    "name": "ДЗО 6–750 кВ (два комплекта)",
+                    "title": "Дифференциальная защита ошиновки 6-750 кВ (два комплекта), УРОВ, АУВ",
+                    "description": "Шкаф дифференциальной защиты ошиновки 6–750 кВ (два комплекта ИЭУ), УРОВ, АУВ",
+                    "voltage": "6–750 кВ",
+                    "architecture": "II тип",
+                    "protected": "Ошиновка АТ, Т, СКРМ",
+                    "controlled": [
+                        "Выключатель В1",
+                        "Выключатель В2"
+                    ],
+                    "its_functions": [
+                        "ДЗО",
+                        "УРОВ В1",
+                        "АПВ В1",
+                        "АУВ В1",
+                        "УРОВ В2",
+                        "АПВ В2",
+                        "АУВ В2",
+                        "РАС"
+                    ],
+                    "applicability": "Все РУ",
+                    "source": "разд. 5.5, табл. 5.5.1",
+                    "standard": "СТО 56947007-33.040.20.286-2019",
+                    "standard_title": "Типовые шкафы ШЭТ РЗА сборных шин, ошиновок и шинных аппаратов 6-750 кВ. Архитектура II типа",
+                    "group": "СШ",
+                    "goose": true
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДЗО",
+                            "КЦТ",
+                            "БНН",
+                            "РАС",
+                            "УРОВ В1",
+                            "АПВ В1",
+                            "КСН В1",
+                            "ЗНФ В1",
+                            "АУВ В1",
+                            "УРОВ В2",
+                            "АПВ В2",
+                            "КСН В2",
+                            "ЗНФ В2",
+                            "АУВ В2"
+                        ],
+                        "desc": "Комплект 1: ДЗО, УРОВ и АУВ выключателей В1/В2",
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": "Комплект 1: ДЗО, УРОВ и АУВ выключателей В1/В2"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-441-01-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 441.01-1",
+                        "cabinet_name": "ДЗО 6–750 кВ (два комплекта)",
+                        "cabinet_group": "СШ",
+                        "source": "user"
+                    },
+                    {
+                        "name": "Комплект 2",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДЗО",
+                            "КЦТ",
+                            "БНН",
+                            "РАС",
+                            "УРОВ В1",
+                            "АПВ В1",
+                            "КСН В1",
+                            "ЗНФ В1",
+                            "АУВ В1",
+                            "УРОВ В2",
+                            "АПВ В2",
+                            "КСН В2",
+                            "ЗНФ В2",
+                            "АУВ В2"
+                        ],
+                        "desc": "Комплект 2: ДЗО, УРОВ и АУВ выключателей В1/В2",
+                        "ieds": [
+                            {
+                                "name": "ИЭУ2",
+                                "type": "МП РЗА",
+                                "desc": "Комплект 2: ДЗО, УРОВ и АУВ выключателей В1/В2"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-441-01-1",
+                        "cabinet_index": 1,
+                        "cabinet_code": "ШЭТ 441.01-1",
+                        "cabinet_name": "ДЗО 6–750 кВ (два комплекта)",
+                        "cabinet_group": "СШ",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CUaaeb",
+            "type": "current_transformer",
+            "name": "TA54",
+            "x": 2580,
+            "y": 1750,
+            "rotation": 90
+        },
+        {
+            "id": "BU0f17",
+            "type": "bus",
+            "name": "BB10",
+            "x": 3860,
+            "y": 1090,
+            "length": 30,
+            "label": [
+                -124.2,
+                10.9
+            ]
+        },
+        {
+            "id": "CA19fc",
+            "type": "cabinet",
+            "name": "EL9",
+            "x": 2930,
+            "y": 940,
+            "cabinet": {
+                "key": "shet-340-01-1",
+                "title": "ШЭТ 340.01-1",
+                "info": {
+                    "code": "ШЭТ 340.01-1",
+                    "name": "ДЗШ 330–750 кВ",
+                    "title": "Дифференциальная защита сборных шин 330-750 кВ, УРОВ",
+                    "description": "Шкаф дифференциальной защиты сборных шин 330–750 кВ, УРОВ",
+                    "voltage": "330–750 кВ",
+                    "architecture": "II тип",
+                    "protected": "Секция сборных шин 330–750 кВ",
+                    "controlled": [],
+                    "its_functions": [
+                        "ДЗШ",
+                        "УРОВ",
+                        "РАС"
+                    ],
+                    "applicability": "Схемы РУ № 15, 16, 17",
+                    "source": "разд. 5.4, табл. 5.4.1",
+                    "standard": "СТО 56947007-33.040.20.286-2019",
+                    "standard_title": "Типовые шкафы ШЭТ РЗА сборных шин, ошиновок и шинных аппаратов 6-750 кВ. Архитектура II типа",
+                    "group": "СШ",
+                    "goose": true
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДЗШ",
+                            "КЦТ",
+                            "БНН",
+                            "УРОВ",
+                            "РАС"
+                        ],
+                        "desc": "Дифференциальная защита сборных шин, УРОВ",
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": "Дифференциальная защита сборных шин, УРОВ"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-340-01-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 340.01-1",
+                        "cabinet_name": "ДЗШ 330–750 кВ",
+                        "cabinet_group": "СШ",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CAa960",
+            "type": "cabinet",
+            "name": "EL10",
+            "x": 2900,
+            "y": 1030,
+            "cabinet": {
+                "key": "shet-340-01-1",
+                "title": "ШЭТ 340.01-1",
+                "info": {
+                    "code": "ШЭТ 340.01-1",
+                    "name": "ДЗШ 330–750 кВ",
+                    "title": "Дифференциальная защита сборных шин 330-750 кВ, УРОВ",
+                    "description": "Шкаф дифференциальной защиты сборных шин 330–750 кВ, УРОВ",
+                    "voltage": "330–750 кВ",
+                    "architecture": "II тип",
+                    "protected": "Секция сборных шин 330–750 кВ",
+                    "controlled": [],
+                    "its_functions": [
+                        "ДЗШ",
+                        "УРОВ",
+                        "РАС"
+                    ],
+                    "applicability": "Схемы РУ № 15, 16, 17",
+                    "source": "разд. 5.4, табл. 5.4.1",
+                    "standard": "СТО 56947007-33.040.20.286-2019",
+                    "standard_title": "Типовые шкафы ШЭТ РЗА сборных шин, ошиновок и шинных аппаратов 6-750 кВ. Архитектура II типа",
+                    "group": "СШ",
+                    "goose": true
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДЗШ",
+                            "КЦТ",
+                            "БНН",
+                            "УРОВ",
+                            "РАС"
+                        ],
+                        "desc": "Дифференциальная защита сборных шин, УРОВ",
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": "Дифференциальная защита сборных шин, УРОВ"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-340-01-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 340.01-1",
+                        "cabinet_name": "ДЗШ 330–750 кВ",
+                        "cabinet_group": "СШ",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "VO8b8d",
+            "type": "voltage_transformer",
+            "name": "TV26",
+            "x": 2890,
+            "y": 1450,
+            "rotation": 0
+        },
+        {
+            "id": "GR0d1e",
+            "type": "grounding_switch",
+            "name": "QSG139",
+            "x": 2910,
+            "y": 1410,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DIc224",
+            "type": "disconnector",
+            "name": "QS88",
+            "x": 2890,
+            "y": 1370,
+            "rotation": 0
+        },
+        {
+            "id": "GR5d55",
+            "type": "grounding_switch",
+            "name": "QSG140",
+            "x": 2910,
+            "y": 1330,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "VOcde7",
+            "type": "voltage_transformer",
+            "name": "TV27",
+            "x": 2790,
+            "y": 380,
+            "rotation": 0
+        },
+        {
+            "id": "GR1115",
+            "type": "grounding_switch",
+            "name": "QSG141",
+            "x": 2810,
+            "y": 340,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DI3f6b",
+            "type": "disconnector",
+            "name": "QS89",
+            "x": 2790,
+            "y": 300,
+            "rotation": 0
+        },
+        {
+            "id": "GR827c",
+            "type": "grounding_switch",
+            "name": "QSG142",
+            "x": 2810,
+            "y": 260,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "VO16eb",
+            "type": "voltage_transformer",
+            "name": "TV28",
+            "x": 2930,
+            "y": 380,
+            "rotation": 0
+        },
+        {
+            "id": "GR810b",
+            "type": "grounding_switch",
+            "name": "QSG143",
+            "x": 2950,
+            "y": 340,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DId4a5",
+            "type": "disconnector",
+            "name": "QS90",
+            "x": 2930,
+            "y": 300,
+            "rotation": 0
+        },
+        {
+            "id": "GR9ceb",
+            "type": "grounding_switch",
+            "name": "QSG144",
+            "x": 2950,
+            "y": 260,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "CAa577",
+            "type": "cabinet",
+            "name": "EL11",
+            "x": 2260,
+            "y": 1460,
+            "cabinet": {
+                "key": "ket-cn-3",
+                "title": "ШЭТ ЦН.3",
+                "info": {
+                    "code": "ШЭТ ЦН.3",
+                    "name": "Цепи напряжения двух ТН",
+                    "title": "Шкаф организации цепей напряжения двух ТН с резервированием от двух источников",
+                    "description": "Шкаф организации цепей напряжения двух ТН с резервированием от двух источников",
+                    "voltage": "—",
+                    "architecture": "II тип",
+                    "protected": "",
+                    "controlled": [],
+                    "its_functions": [
+                        "ЦН двух ТН",
+                        "распределение цепей переменного напряжения",
+                        "переключение цепей напряжения"
+                    ],
+                    "applicability": "Внутренняя установка, архитектуры I и II типа; КЭТ СЗАУ всех типов",
+                    "source": "СТО 56947007-33.040.20.307-2020, п. 14.6",
+                    "standard": "СТО 56947007-33.040.20.307-2020",
+                    "standard_title": "Корпоративные шкафы вторичной коммутации (ВК): шкафы зажимов измерительных трансформаторов, промежуточных согласующих трансформаторов, организации цепей напряжения, перевода на обходной выключатель",
+                    "group": "ВК"
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "ЦН",
+                        "functions": [
+                            "ЦН двух ТН",
+                            "ручное и дистанционное переключение на резервный ТН"
+                        ],
+                        "desc": "Распределение цепей переменного напряжения устройств РЗА и АСУ ТП",
+                        "ieds": [],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": false,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "ket-cn-3",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ ЦН.3",
+                        "cabinet_name": "Цепи напряжения двух ТН",
+                        "cabinet_group": "ВК",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CA25d4",
+            "type": "cabinet",
+            "name": "EL12",
+            "x": 2140,
+            "y": 1880,
+            "cabinet": {
+                "key": "shet-cn-2-1",
+                "title": "ШЭТ ЦН.2-1",
+                "info": {
+                    "code": "ШЭТ ЦН.2-1",
+                    "name": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и РПР обходного выключателя (исполнение 1)",
+                    "title": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и РПР обходного выключателя (исполнение 1)",
+                    "description": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и реле-повторителями обходного выключателя, исполнение 1",
+                    "voltage": "—",
+                    "architecture": "I и II типа",
+                    "protected": "",
+                    "controlled": [],
+                    "its_functions": [
+                        "цепи напряжения двух ТН",
+                        "реле-повторители положения обходного выключателя",
+                        "переключение цепей напряжения"
+                    ],
+                    "applicability": "Внутренняя установка, архитектуры I и II типа",
+                    "source": "п. 14.5",
+                    "standard": "СТО 56947007-33.040.20.307-2020",
+                    "standard_title": "Корпоративные шкафы вторичной коммутации (ВК): шкафы зажимов измерительных трансформаторов, промежуточных согласующих трансформаторов, организации цепей напряжения, перевода на обходной выключатель",
+                    "group": "ВК"
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "ВК",
+                        "functions": [
+                            "цепи напряжения двух ТН",
+                            "реле-повторители положения обходного выключателя",
+                            "переключение цепей напряжения"
+                        ],
+                        "desc": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и реле-повторителями обходного выключателя, исполнение 1",
+                        "ieds": [
+                            {
+                                "name": "ВК",
+                                "type": "ВК",
+                                "desc": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и РПР обходного выключателя (исполнение 1)"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-cn-2-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ ЦН.2-1",
+                        "cabinet_name": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и РПР обходного выключателя (исполнение 1)",
+                        "cabinet_group": "ВК",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CA092d",
+            "type": "cabinet",
+            "name": "EL13",
+            "x": 2240,
+            "y": 1350,
+            "cabinet": {
+                "key": "shet-610-01-1",
+                "title": "ШЭТ 610.01-1",
+                "info": {
+                    "code": "ШЭТ 610.01-1",
+                    "name": "ПА (авто)трансформатора 110–750 кВ",
+                    "title": "Шкаф противоаварийной автоматики (авто)трансформатора 110-750 кВ",
+                    "description": "Шкаф противоаварийной автоматики (авто)трансформатора 110-750 кВ",
+                    "voltage": "110–750 кВ",
+                    "protected": "(Авто)трансформатор 110–750 кВ",
+                    "controlled": [],
+                    "its_functions": [
+                        "АЛАР",
+                        "АОПО",
+                        "ФОТ"
+                    ],
+                    "applicability": "КЭТ ПА, КЭТ СЗАУ АТ 330–750 кВ",
+                    "source": "Перечень шкафов противоаварийной автоматики",
+                    "group": "Прочие",
+                    "goose": true
+                },
+                "komplets": [
+                    {
+                        "key": "",
+                        "kind": "typical",
+                        "name": "Комплект 1",
+                        "type": "ПА",
+                        "functions": [
+                            "АЛАР",
+                            "АОПО",
+                            "ФОТ",
+                            "ФОДТ",
+                            "ФОВ",
+                            "БНН",
+                            "РАС"
+                        ],
+                        "desc": "Шкаф противоаварийной автоматики автотрансформатора 330–750 кВ: АЛАР, АОПО, ФОТ, ФОДТ",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ПА",
+                                "type": "ПА",
+                                "desc": "Шкаф АЛАР, АОПО, ФОТ, ФОДТ АТ 330–750 кВ"
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-611-01-0",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 611.01-0",
+                        "cabinet_name": "Шкаф АЛАР, АОПО, ФОТ, ФОДТ АТ 330–750 кВ",
+                        "cabinet_group": "ПА",
+                        "source": "cabinet_entry"
+                    },
+                    {
+                        "key": "",
+                        "kind": "typical",
+                        "name": "Комплект 2",
+                        "type": "ПА",
+                        "functions": [
+                            "АЛАР",
+                            "АОПО",
+                            "ФОТ",
+                            "ФОДТ",
+                            "ФОВ",
+                            "БНН",
+                            "РАС"
+                        ],
+                        "desc": "Шкаф противоаварийной автоматики трансформатора (автотрансформатора) 110–220 кВ: АЛАР, АОПО, ФОТ, ФОДТ",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ПА",
+                                "type": "ПА",
+                                "desc": "Шкаф АЛАР, АОПО, ФОТ, ФОДТ Т (АТ) 110–220 кВ"
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-610-01-0",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 610.01-0",
+                        "cabinet_name": "Шкаф АЛАР, АОПО, ФОТ, ФОДТ Т (АТ) 110–220 кВ",
+                        "cabinet_group": "ПА",
+                        "source": "cabinet_entry"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CA5614",
+            "type": "cabinet",
+            "name": "EL14",
+            "x": 2480,
+            "y": -350,
+            "cabinet": {
+                "key": "шэт-621-01-0-копия",
+                "title": "ШЭТ 621.01-1",
+                "info": {
+                    "code": "ШЭТ 621.01-1",
+                    "name": "Шкаф АЛАР, АОПО, АОПН, АУРН, УРОВ АОПН, ФОЛ, ФОДЛ ЛЭП 330–750 кВ",
+                    "title": "Шкаф АЛАР, АОПО, АОПН, АУРН, УРОВ АОПН, ФОЛ, ФОДЛ ЛЭП 330–750 кВ",
+                    "description": "Шкаф АЛАР, АОПО, АОПН, АУРН, УРОВ АОПН, ФОЛ, ФОДЛ ЛЭП 330–750 кВ",
+                    "voltage": "330–750 кВ",
+                    "protected": "ЛЭП 330–750 кВ",
+                    "controlled": [],
+                    "its_functions": [
+                        "АЛАР",
+                        "АОПО",
+                        "АОПН",
+                        "АУРН",
+                        "УРОВ АОПН",
+                        "ФОЛ",
+                        "ФОДЛ",
+                        "ФОВ",
+                        "БНН",
+                        "РАС"
+                    ],
+                    "applicability": "ПС архитектуры II типа, 2 ИЭУ в шкафу",
+                    "source": "п. 5.5",
+                    "group": "Прочие",
+                    "goose": true
+                },
+                "komplets": [
+                    {
+                        "name": "Комплект 1",
+                        "type": "ПА",
+                        "functions": [
+                            "АЛАР",
+                            "АОПО",
+                            "АОПН",
+                            "АУРН",
+                            "УРОВ АОПН",
+                            "ФОЛ",
+                            "ФОДЛ",
+                            "ФОВ",
+                            "БНН",
+                            "РАС"
+                        ],
+                        "desc": "Шкаф противоаварийной автоматики ЛЭП 330–750 кВ: АЛАР, АОПО, АОПН с АУРН и УРОВ, ФОЛ, ФОДЛ",
+                        "ieds": [
+                            {
+                                "name": "ПА",
+                                "type": "ПА",
+                                "desc": "Шкаф АЛАР, АОПО, АОПН, АУРН, УРОВ АОПН, ФОЛ, ФОДЛ ЛЭП 330–750 кВ"
+                            }
+                        ],
+                        "kind": "typical",
+                        "key": "",
+                        "has_ied": true,
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-621-01-0",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 621.01-0",
+                        "cabinet_name": "Шкаф АЛАР, АОПО, АОПН, АУРН, УРОВ АОПН, ФОЛ, ФОДЛ ЛЭП 330–750 кВ",
+                        "cabinet_group": "ПА",
+                        "source": "cabinet_entry"
+                    },
+                    {
+                        "key": "",
+                        "kind": "typical",
+                        "name": "Комплект 2",
+                        "type": "ПА",
+                        "functions": [
+                            "АЛАР",
+                            "АОПО",
+                            "АОПН",
+                            "АУРН",
+                            "УРОВ АОПН",
+                            "ФОЛ",
+                            "ФОДЛ",
+                            "ФОВ",
+                            "БНН",
+                            "РАС"
+                        ],
+                        "desc": "Шкаф противоаварийной автоматики ЛЭП 330–750 кВ: АЛАР, АОПО, АОПН с АУРН и УРОВ, ФОЛ, ФОДЛ",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ПА",
+                                "type": "ПА",
+                                "desc": "Шкаф АЛАР, АОПО, АОПН, АУРН, УРОВ АОПН, ФОЛ, ФОДЛ ЛЭП 330–750 кВ"
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "cabinet_key": "shet-621-01-0",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 621.01-0",
+                        "cabinet_name": "Шкаф АЛАР, АОПО, АОПН, АУРН, УРОВ АОПН, ФОЛ, ФОДЛ ЛЭП 330–750 кВ",
+                        "cabinet_group": "ПА",
+                        "source": "cabinet_entry"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "KE4707",
+            "type": "container",
+            "name": "EK1",
+            "x": 1650,
+            "y": 510,
+            "container": {
+                "key": "кэт-6-1-ii-копия",
+                "code": "КЭТ 12-1-II",
+                "title": "СЗАУ ВЛ 330–750 кВ с двумя выключателями и защитами реактора и АТ",
+                "size": "40dc",
+                "slots": 14,
+                "info": {
+                    "code": "КЭТ 12-1-II",
+                    "name": "СЗАУ ВЛ 330–750 кВ с двумя выключателями и защитами реактора и АТ",
+                    "title": "СЗАУ ВЛ 330–750 кВ с двумя выключателями и защитами реактора и АТ",
+                    "description": "Типовой контейнер СЗАУ для одной ВЛ 330–750 кВ с двумя выключателями и защитами реактора",
+                    "group": "СЗАУ",
+                    "size": "40dc",
+                    "size_code": "40’DC",
+                    "size_title": "40 футов, сухогрузный (40’DC)",
+                    "dimensions": "12192×2438×2591 мм (Д×Ш×В)",
+                    "climate": "УХЛ1",
+                    "ip": "IP-23 при открытых жалюзи / IP-55 при закрытых",
+                    "functions": [
+                        "ДФЗ/ДЗЛ ВЛ 330–750 кВ",
+                        "УРОВ и СА двух выключателей",
+                        "ПА ЛЭП",
+                        "УПАСК",
+                        "защиты реактора",
+                        "цепи напряжения"
+                    ],
+                    "composition": [
+                        "321.21-1 / 321.22-1 — шкаф защиты абсолютной селективности (ДФЗ или ДЗЛ) ЛЭП 330–750 кВ со ступенчатыми защитами, УРОВ и СА двух выключателей",
+                        "321.03-1 — шкаф ступенчатых защит ЛЭП 330–750 кВ с обменом разрешающими сигналами, УРОВ и СА двух выключателей",
+                        "620.01-1 — шкаф ПА ЛЭП 110–750 кВ",
+                        "ВЧ-32/32-1 — шкаф УПАСК, передача и приём 32 команд по ВЧ трактам",
+                        "431.23-1 — шкаф защит реактора 330–750 кВ",
+                        "ЦН.3 — шкаф организации цепей напряжения двух ТН с резервированием от двух источников",
+                        "КП+СК+ИП — шкаф контроллеров присоединения, сетевых коммутаторов и измерительных преобразователей",
+                        "ШРОТ КЭТ — шкаф распределения оперативного тока, 8 участков",
+                        "ШПДС (на ОРУ, в слоты не входят): ШПДС 2-0-6 — 2 шт.; ШПДС 0-0-3 (линейный) — 1 шт.; ШПДС 2-0-3 (реактора) — 1 шт."
+                    ],
+                    "source": "Перечень КЭТ, тип 6-1-II"
+                },
+                "cabinets": [
+                    "CAbbab",
+                    "CA5614",
+                    "CA386b",
+                    "CAdcc4",
+                    "CA70c6",
+                    "CA19fc",
+                    "CAa960",
+                    "CA092d",
+                    "CAa577",
+                    "CAd8df",
+                    "CA497a",
+                    "CA25d4",
+                    "CA9bb9",
+                    ""
+                ]
+            }
+        }
+    ],
+    "connections": [
+        {
+            "node_from": "N_DIff5f_bot",
+            "node_to": "N_GR7740_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIff5f",
+            "element_to": "GR7740"
+        },
+        {
+            "node_from": "N_GR7740_left",
+            "node_to": "N_VO5c5a_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR7740",
+            "element_to": "VO5c5a"
+        },
+        {
+            "node_from": "N_DI029f_bot",
+            "node_to": "N_GR0f2b_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI029f",
+            "element_to": "GR0f2b"
+        },
+        {
+            "node_from": "N_GR0f2b_left",
+            "node_to": "N_BRa8bd_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR0f2b",
+            "element_to": "BRa8bd"
+        },
+        {
+            "node_from": "N_BRa8bd_bot",
+            "node_to": "N_CUdd74_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BRa8bd",
+            "element_to": "CUdd74"
+        },
+        {
+            "node_from": "N_DI03fc_top",
+            "node_to": "N_GR04f6_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI03fc",
+            "element_to": "GR04f6"
+        },
+        {
+            "node_from": "N_DI03fc_bot",
+            "node_to": "N_GR3dff_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI03fc",
+            "element_to": "GR3dff"
+        },
+        {
+            "node_from": "N_CUdd74_bot",
+            "node_to": "N_GR04f6_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "CUdd74",
+            "element_to": "GR04f6"
+        },
+        {
+            "node_from": "N_DI102a_top",
+            "node_to": "N_GRa96c_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI102a",
+            "element_to": "GRa96c"
+        },
+        {
+            "node_from": "N_DI102a_bot",
+            "node_to": "N_GR793e_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI102a",
+            "element_to": "GR793e"
+        },
+        {
+            "node_from": "N_GR3dff_left",
+            "node_to": "NO05c8",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR3dff",
+            "element_to": "NO05c8"
+        },
+        {
+            "node_from": "NO05c8",
+            "node_to": "N_GRa96c_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO05c8",
+            "element_to": "GRa96c"
+        },
+        {
+            "node_from": "N_GR793e_left",
+            "node_to": "N_CU7807_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR793e",
+            "element_to": "CU7807"
+        },
+        {
+            "node_from": "N_CU7807_bot",
+            "node_to": "N_BRdb8f_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU7807",
+            "element_to": "BRdb8f"
+        },
+        {
+            "node_from": "N_DIa75b_top",
+            "node_to": "N_GRf05a_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIa75b",
+            "element_to": "GRf05a"
+        },
+        {
+            "node_from": "N_DIa75b_bot",
+            "node_to": "N_VOf9c1_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "DIa75b",
+            "element_to": "VOf9c1"
+        },
+        {
+            "node_from": "N_LId6d9_bottom",
+            "node_to": "N_GRf05a_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "LId6d9",
+            "element_to": "GRf05a"
+        },
+        {
+            "node_from": "N_DI0df2_top",
+            "node_to": "N_GRd4d5_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI0df2",
+            "element_to": "GRd4d5"
+        },
+        {
+            "node_from": "N_DI0df2_bot",
+            "node_to": "N_VO9c65_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "DI0df2",
+            "element_to": "VO9c65"
+        },
+        {
+            "node_from": "N_LI66c0_bottom",
+            "node_to": "N_GRd4d5_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "LI66c0",
+            "element_to": "GRd4d5"
+        },
+        {
+            "node_from": "N_BRdb8f_bot",
+            "node_to": "N_CUc83d_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BRdb8f",
+            "element_to": "CUc83d"
+        },
+        {
+            "node_from": "N_DI722f_top",
+            "node_to": "N_GR97e8_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI722f",
+            "element_to": "GR97e8"
+        },
+        {
+            "node_from": "N_DI722f_bot",
+            "node_to": "N_GRfeeb_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI722f",
+            "element_to": "GRfeeb"
+        },
+        {
+            "node_from": "N_DI1765_top",
+            "node_to": "N_GR80e3_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI1765",
+            "element_to": "GR80e3"
+        },
+        {
+            "node_from": "N_DI1765_bot",
+            "node_to": "N_GR784c_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI1765",
+            "element_to": "GR784c"
+        },
+        {
+            "node_from": "N_GRfeeb_left",
+            "node_to": "NO1723",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GRfeeb",
+            "element_to": "NO1723"
+        },
+        {
+            "node_from": "NO1723",
+            "node_to": "N_GR80e3_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO1723",
+            "element_to": "GR80e3"
+        },
+        {
+            "node_from": "N_CUc83d_bot",
+            "node_to": "N_GR97e8_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "CUc83d",
+            "element_to": "GR97e8"
+        },
+        {
+            "node_from": "N_CU9982_bot",
+            "node_to": "N_BR999e_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU9982",
+            "element_to": "BR999e"
+        },
+        {
+            "node_from": "N_GR784c_left",
+            "node_to": "N_CU9982_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR784c",
+            "element_to": "CU9982"
+        },
+        {
+            "node_from": "N_DI88bb_top",
+            "node_to": "N_GR17c9_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI88bb",
+            "element_to": "GR17c9"
+        },
+        {
+            "node_from": "N_BR999e_bot",
+            "node_to": "N_GR17c9_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "BR999e",
+            "element_to": "GR17c9"
+        },
+        {
+            "node_from": "N_DIff5f_top",
+            "node_to": "N_GR1e8a_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIff5f",
+            "element_to": "GR1e8a"
+        },
+        {
+            "node_from": "N_DI377e_bot",
+            "node_to": "N_GRffc2_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI377e",
+            "element_to": "GRffc2"
+        },
+        {
+            "node_from": "N_CO743b_bottom",
+            "node_to": "N_LI66c0_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CO743b",
+            "element_to": "LI66c0"
+        },
+        {
+            "node_from": "N_COc693_bottom",
+            "node_to": "N_LId6d9_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "COc693",
+            "element_to": "LId6d9"
+        },
+        {
+            "node_from": "N_LI93a6_out",
+            "node_to": "N_CO743b_bottom",
+            "port_from": "out",
+            "port_to": "bottom",
+            "element_from": "LI93a6",
+            "element_to": "CO743b"
+        },
+        {
+            "node_from": "N_LIec7d_out",
+            "node_to": "N_COc693_bottom",
+            "port_from": "out",
+            "port_to": "bottom",
+            "element_from": "LIec7d",
+            "element_to": "COc693"
+        },
+        {
+            "node_from": "NO1723",
+            "node_to": "NO0960",
+            "port_from": "center",
+            "port_to": "center",
+            "element_from": "NO1723",
+            "element_to": "NO0960"
+        },
+        {
+            "node_from": "N_CU0bb5_bot",
+            "node_to": "NO0960",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "CU0bb5",
+            "element_to": "NO0960"
+        },
+        {
+            "node_from": "NO05c8",
+            "node_to": "NO8dbe",
+            "port_from": "center",
+            "port_to": "center",
+            "element_from": "NO05c8",
+            "element_to": "NO8dbe"
+        },
+        {
+            "node_from": "NO8dbe",
+            "node_to": "N_CUa504_bot",
+            "port_from": "center",
+            "port_to": "bottom",
+            "element_from": "NO8dbe",
+            "element_to": "CUa504"
+        },
+        {
+            "node_from": "N_DI15d1_bot",
+            "node_to": "N_GRa4d5_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI15d1",
+            "element_to": "GRa4d5"
+        },
+        {
+            "node_from": "N_GRa4d5_left",
+            "node_to": "N_BR4349_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRa4d5",
+            "element_to": "BR4349"
+        },
+        {
+            "node_from": "N_BR4349_bot",
+            "node_to": "N_CU34f6_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BR4349",
+            "element_to": "CU34f6"
+        },
+        {
+            "node_from": "N_CU34f6_bot",
+            "node_to": "N_GR02ff_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "CU34f6",
+            "element_to": "GR02ff"
+        },
+        {
+            "node_from": "N_CUce29_top",
+            "node_to": "N_GR02ff_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "CUce29",
+            "element_to": "GR02ff"
+        },
+        {
+            "node_from": "N_CUce29_bot",
+            "node_to": "N_REfdbe_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CUce29",
+            "element_to": "REfdbe"
+        },
+        {
+            "node_from": "N_REfdbe_bottom",
+            "node_to": "N_GRad39_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "REfdbe",
+            "element_to": "GRad39"
+        },
+        {
+            "node_from": "N_DIc347_bot",
+            "node_to": "N_GR660c_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIc347",
+            "element_to": "GR660c"
+        },
+        {
+            "node_from": "N_GR660c_left",
+            "node_to": "N_BR7635_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR660c",
+            "element_to": "BR7635"
+        },
+        {
+            "node_from": "N_BR7635_bot",
+            "node_to": "N_CU447c_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BR7635",
+            "element_to": "CU447c"
+        },
+        {
+            "node_from": "N_DI22a5_top",
+            "node_to": "N_GR79fa_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI22a5",
+            "element_to": "GR79fa"
+        },
+        {
+            "node_from": "N_DI22a5_bot",
+            "node_to": "N_GR76a1_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI22a5",
+            "element_to": "GR76a1"
+        },
+        {
+            "node_from": "N_CU447c_bot",
+            "node_to": "N_GR79fa_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "CU447c",
+            "element_to": "GR79fa"
+        },
+        {
+            "node_from": "N_DIcaed_top",
+            "node_to": "N_GR2f93_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIcaed",
+            "element_to": "GR2f93"
+        },
+        {
+            "node_from": "N_DIcaed_bot",
+            "node_to": "N_GRec55_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIcaed",
+            "element_to": "GRec55"
+        },
+        {
+            "node_from": "N_GR76a1_left",
+            "node_to": "NO37de",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR76a1",
+            "element_to": "NO37de"
+        },
+        {
+            "node_from": "NO37de",
+            "node_to": "N_GR2f93_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO37de",
+            "element_to": "GR2f93"
+        },
+        {
+            "node_from": "N_GRec55_left",
+            "node_to": "N_CU27c4_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRec55",
+            "element_to": "CU27c4"
+        },
+        {
+            "node_from": "N_CU27c4_bot",
+            "node_to": "N_BR21cc_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU27c4",
+            "element_to": "BR21cc"
+        },
+        {
+            "node_from": "N_BR21cc_bot",
+            "node_to": "N_CUdb08_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BR21cc",
+            "element_to": "CUdb08"
+        },
+        {
+            "node_from": "N_DI8b74_top",
+            "node_to": "N_GR2b08_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI8b74",
+            "element_to": "GR2b08"
+        },
+        {
+            "node_from": "N_DI8b74_bot",
+            "node_to": "N_GR44cf_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI8b74",
+            "element_to": "GR44cf"
+        },
+        {
+            "node_from": "N_DI7772_top",
+            "node_to": "N_GRbc2c_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI7772",
+            "element_to": "GRbc2c"
+        },
+        {
+            "node_from": "N_DI7772_bot",
+            "node_to": "N_GRbd2e_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI7772",
+            "element_to": "GRbd2e"
+        },
+        {
+            "node_from": "N_GR44cf_left",
+            "node_to": "NO5dd7",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR44cf",
+            "element_to": "NO5dd7"
+        },
+        {
+            "node_from": "NO5dd7",
+            "node_to": "N_GRbc2c_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO5dd7",
+            "element_to": "GRbc2c"
+        },
+        {
+            "node_from": "N_CUdb08_bot",
+            "node_to": "N_GR2b08_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "CUdb08",
+            "element_to": "GR2b08"
+        },
+        {
+            "node_from": "N_CUc0dd_bot",
+            "node_to": "N_BR4252_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CUc0dd",
+            "element_to": "BR4252"
+        },
+        {
+            "node_from": "N_GRbd2e_left",
+            "node_to": "N_CUc0dd_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRbd2e",
+            "element_to": "CUc0dd"
+        },
+        {
+            "node_from": "N_DIf4e9_top",
+            "node_to": "N_GR8255_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIf4e9",
+            "element_to": "GR8255"
+        },
+        {
+            "node_from": "N_BR4252_bot",
+            "node_to": "N_GR8255_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "BR4252",
+            "element_to": "GR8255"
+        },
+        {
+            "node_from": "NO5dd7",
+            "node_to": "NO7f6b",
+            "port_from": "center",
+            "port_to": "center",
+            "element_from": "NO5dd7",
+            "element_to": "NO7f6b"
+        },
+        {
+            "node_from": "NO37de",
+            "node_to": "NO6f58",
+            "port_from": "center",
+            "port_to": "center",
+            "element_from": "NO37de",
+            "element_to": "NO6f58"
+        },
+        {
+            "node_from": "NO6f58",
+            "node_to": "N_CUff71_bot",
+            "port_from": "center",
+            "port_to": "bottom",
+            "element_from": "NO6f58",
+            "element_to": "CUff71"
+        },
+        {
+            "node_from": "N_VOf9c1_top",
+            "node_to": "N_CUa504_top",
+            "port_from": "top",
+            "port_to": "top",
+            "element_from": "VOf9c1",
+            "element_to": "CUa504"
+        },
+        {
+            "node_from": "N_VO9c65_top",
+            "node_to": "N_CU0bb5_top",
+            "port_from": "top",
+            "port_to": "top",
+            "element_from": "VO9c65",
+            "element_to": "CU0bb5"
+        },
+        {
+            "node_from": "N_DI8813_bot",
+            "node_to": "N_GRe706_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI8813",
+            "element_to": "GRe706"
+        },
+        {
+            "node_from": "N_GRe706_left",
+            "node_to": "N_BRd499_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRe706",
+            "element_to": "BRd499"
+        },
+        {
+            "node_from": "N_BRd499_bot",
+            "node_to": "N_CU27bb_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BRd499",
+            "element_to": "CU27bb"
+        },
+        {
+            "node_from": "N_CU27bb_bot",
+            "node_to": "N_GR556b_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "CU27bb",
+            "element_to": "GR556b"
+        },
+        {
+            "node_from": "N_CU0739_bot",
+            "node_to": "N_RE61c1_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU0739",
+            "element_to": "RE61c1"
+        },
+        {
+            "node_from": "N_RE61c1_bottom",
+            "node_to": "N_GRbe4a_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "RE61c1",
+            "element_to": "GRbe4a"
+        },
+        {
+            "node_from": "NO0960",
+            "node_to": "N_DI15d1_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NO0960",
+            "element_to": "DI15d1"
+        },
+        {
+            "node_from": "NO8dbe",
+            "node_to": "N_DI8813_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NO8dbe",
+            "element_to": "DI8813"
+        },
+        {
+            "node_from": "N_GR556b_left",
+            "node_to": "N_CU0739_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR556b",
+            "element_to": "CU0739"
+        },
+        {
+            "node_from": "N_DI0dc3_top",
+            "node_to": "N_GR655e_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI0dc3",
+            "element_to": "GR655e"
+        },
+        {
+            "node_from": "N_DI0dc3_bot",
+            "node_to": "N_VO67ac_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "DI0dc3",
+            "element_to": "VO67ac"
+        },
+        {
+            "node_from": "N_LI6d1c_bottom",
+            "node_to": "N_GR655e_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "LI6d1c",
+            "element_to": "GR655e"
+        },
+        {
+            "node_from": "N_COef14_bottom",
+            "node_to": "N_LI6d1c_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "COef14",
+            "element_to": "LI6d1c"
+        },
+        {
+            "node_from": "N_LI09c3_out",
+            "node_to": "N_COef14_bottom",
+            "port_from": "out",
+            "port_to": "bottom",
+            "element_from": "LI09c3",
+            "element_to": "COef14"
+        },
+        {
+            "node_from": "N_VO67ac_top",
+            "node_to": "N_CUff71_top",
+            "port_from": "top",
+            "port_to": "top",
+            "element_from": "VO67ac",
+            "element_to": "CUff71"
+        },
+        {
+            "node_from": "NO7f6b",
+            "node_to": "N_DI377e_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NO7f6b",
+            "element_to": "DI377e"
+        },
+        {
+            "node_from": "N_VOfc49_top",
+            "node_to": "N_COef14_bottom",
+            "port_from": "top",
+            "port_to": "bottom",
+            "element_from": "VOfc49",
+            "element_to": "COef14"
+        },
+        {
+            "node_from": "N_DIba2e_bot",
+            "node_to": "N_GR173f_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIba2e",
+            "element_to": "GR173f"
+        },
+        {
+            "node_from": "N_GR173f_left",
+            "node_to": "N_VO2323_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR173f",
+            "element_to": "VO2323"
+        },
+        {
+            "node_from": "N_DIba2e_top",
+            "node_to": "N_GR17f5_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIba2e",
+            "element_to": "GR17f5"
+        },
+        {
+            "node_from": "N_DI895f_top",
+            "node_to": "N_GR9a98_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI895f",
+            "element_to": "GR9a98"
+        },
+        {
+            "node_from": "N_DI895f_bot",
+            "node_to": "N_GR9dcf_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI895f",
+            "element_to": "GR9dcf"
+        },
+        {
+            "node_from": "N_GR9dcf_left",
+            "node_to": "N_CU80ac_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR9dcf",
+            "element_to": "CU80ac"
+        },
+        {
+            "node_from": "N_CU80ac_bot",
+            "node_to": "N_BRd051_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU80ac",
+            "element_to": "BRd051"
+        },
+        {
+            "node_from": "N_BRd051_bot",
+            "node_to": "N_GR7985_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "BRd051",
+            "element_to": "GR7985"
+        },
+        {
+            "node_from": "N_GR7985_left",
+            "node_to": "N_DI10dd_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR7985",
+            "element_to": "DI10dd"
+        },
+        {
+            "node_from": "N_DIccb3_top",
+            "node_to": "N_GR3159_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIccb3",
+            "element_to": "GR3159"
+        },
+        {
+            "node_from": "N_DIccb3_bot",
+            "node_to": "N_GR112a_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIccb3",
+            "element_to": "GR112a"
+        },
+        {
+            "node_from": "N_GR112a_left",
+            "node_to": "N_CU89b2_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR112a",
+            "element_to": "CU89b2"
+        },
+        {
+            "node_from": "N_CU89b2_bot",
+            "node_to": "N_BReafc_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU89b2",
+            "element_to": "BReafc"
+        },
+        {
+            "node_from": "N_BReafc_bot",
+            "node_to": "N_GRee47_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "BReafc",
+            "element_to": "GRee47"
+        },
+        {
+            "node_from": "N_GRee47_left",
+            "node_to": "N_DIf387_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRee47",
+            "element_to": "DIf387"
+        },
+        {
+            "node_from": "N_GR3159_left",
+            "node_to": "N_COfe15_bot",
+            "port_from": "left",
+            "port_to": "bottom",
+            "element_from": "GR3159",
+            "element_to": "COfe15"
+        },
+        {
+            "node_from": "N_GR9a98_left",
+            "node_to": "NOe99e",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR9a98",
+            "element_to": "NOe99e"
+        },
+        {
+            "node_from": "N_COfe15_left",
+            "node_to": "NOe99e",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "COfe15",
+            "element_to": "NOe99e"
+        },
+        {
+            "node_from": "N_DI10dd_bot",
+            "node_to": "N_GRcb17_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI10dd",
+            "element_to": "GRcb17"
+        },
+        {
+            "node_from": "N_DIac75_bot",
+            "node_to": "N_GR2725_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIac75",
+            "element_to": "GR2725"
+        },
+        {
+            "node_from": "N_GR2725_left",
+            "node_to": "N_VO53db_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR2725",
+            "element_to": "VO53db"
+        },
+        {
+            "node_from": "N_DIac75_top",
+            "node_to": "N_GR4460_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIac75",
+            "element_to": "GR4460"
+        },
+        {
+            "node_from": "N_DI93e1_bot",
+            "node_to": "N_GR73dc_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI93e1",
+            "element_to": "GR73dc"
+        },
+        {
+            "node_from": "N_GR73dc_left",
+            "node_to": "NO1f21",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR73dc",
+            "element_to": "NO1f21"
+        },
+        {
+            "node_from": "N_BUa77f_center",
+            "node_to": "N_VO0120_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "BUa77f",
+            "element_to": "VO0120"
+        },
+        {
+            "node_from": "N_AU44ad_LV",
+            "node_to": "N_BUa77f_center",
+            "port_from": "LV",
+            "port_to": "center",
+            "element_from": "AU44ad",
+            "element_to": "BUa77f"
+        },
+        {
+            "node_from": "N_GRffc2_left",
+            "node_to": "N_BUa96c_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRffc2",
+            "element_to": "BUa96c"
+        },
+        {
+            "node_from": "N_BUa96c_bottom",
+            "node_to": "N_CU02d2_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BUa96c",
+            "element_to": "CU02d2"
+        },
+        {
+            "node_from": "N_CU02d2_bot",
+            "node_to": "N_AU44ad_HV",
+            "port_from": "bottom",
+            "port_to": "HV",
+            "element_from": "CU02d2",
+            "element_to": "AU44ad"
+        },
+        {
+            "node_from": "N_GRcb17_left",
+            "node_to": "N_BU73b9_p_1",
+            "port_from": "left",
+            "port_to": "p_1",
+            "element_from": "GRcb17",
+            "element_to": "BU73b9"
+        },
+        {
+            "node_from": "N_DIf387_bot",
+            "node_to": "N_BU84de_p_8",
+            "port_from": "bottom",
+            "port_to": "p_8",
+            "element_from": "DIf387",
+            "element_to": "BU84de"
+        },
+        {
+            "node_from": "N_BU84de_p_8",
+            "node_to": "N_GR4460_left",
+            "port_from": "p_8",
+            "port_to": "left",
+            "element_from": "BU84de",
+            "element_to": "GR4460"
+        },
+        {
+            "node_from": "N_BU73b9_p_1",
+            "node_to": "N_GR17f5_left",
+            "port_from": "p_1",
+            "port_to": "left",
+            "element_from": "BU73b9",
+            "element_to": "GR17f5"
+        },
+        {
+            "node_from": "N_AU44ad_MV",
+            "node_to": "N_CUaaeb_bot",
+            "port_from": "MV",
+            "port_to": "bottom",
+            "element_from": "AU44ad",
+            "element_to": "CUaaeb"
+        },
+        {
+            "node_from": "N_CUaaeb_top",
+            "node_to": "NO1f21",
+            "port_from": "top",
+            "port_to": "center",
+            "element_from": "CUaaeb",
+            "element_to": "NO1f21"
+        },
+        {
+            "node_from": "N_BU0f17_right",
+            "node_to": "NOe99e",
+            "port_from": "right",
+            "port_to": "center",
+            "element_from": "BU0f17",
+            "element_to": "NOe99e"
+        },
+        {
+            "node_from": "N_DI93e1_top",
+            "node_to": "N_BU0f17_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI93e1",
+            "element_to": "BU0f17"
+        },
+        {
+            "node_from": "N_DIc224_bot",
+            "node_to": "N_GR0d1e_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIc224",
+            "element_to": "GR0d1e"
+        },
+        {
+            "node_from": "N_GR0d1e_left",
+            "node_to": "N_VO8b8d_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR0d1e",
+            "element_to": "VO8b8d"
+        },
+        {
+            "node_from": "N_DIc224_top",
+            "node_to": "N_GR5d55_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIc224",
+            "element_to": "GR5d55"
+        },
+        {
+            "node_from": "N_DI3f6b_bot",
+            "node_to": "N_GR1115_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI3f6b",
+            "element_to": "GR1115"
+        },
+        {
+            "node_from": "N_GR1115_left",
+            "node_to": "N_VOcde7_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR1115",
+            "element_to": "VOcde7"
+        },
+        {
+            "node_from": "N_DI3f6b_top",
+            "node_to": "N_GR827c_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI3f6b",
+            "element_to": "GR827c"
+        },
+        {
+            "node_from": "N_DId4a5_bot",
+            "node_to": "N_GR810b_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DId4a5",
+            "element_to": "GR810b"
+        },
+        {
+            "node_from": "N_GR810b_left",
+            "node_to": "N_VO16eb_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR810b",
+            "element_to": "VO16eb"
+        },
+        {
+            "node_from": "N_DId4a5_top",
+            "node_to": "N_GR9ceb_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DId4a5",
+            "element_to": "GR9ceb"
+        },
+        {
+            "node_from": "N_BU62ea_p_12",
+            "node_to": "N_GR1e8a_left",
+            "port_from": "p_12",
+            "port_to": "left",
+            "element_from": "BU62ea",
+            "element_to": "GR1e8a"
+        },
+        {
+            "node_from": "N_BU62ea_p_19",
+            "node_to": "N_GR5d55_left",
+            "port_from": "p_19",
+            "port_to": "left",
+            "element_from": "BU62ea",
+            "element_to": "GR5d55"
+        },
+        {
+            "node_from": "N_BUc9f9_p_15",
+            "node_to": "N_GR827c_left",
+            "port_from": "p_15",
+            "port_to": "left",
+            "element_from": "BUc9f9",
+            "element_to": "GR827c"
+        },
+        {
+            "node_from": "N_BUc9f9_p_22",
+            "node_to": "N_GR9ceb_left",
+            "port_from": "p_22",
+            "port_to": "left",
+            "element_from": "BUc9f9",
+            "element_to": "GR9ceb"
+        },
+        {
+            "node_from": "N_BUc9f9_p_3",
+            "node_to": "N_DIc347_top",
+            "port_from": "p_3",
+            "port_to": "top",
+            "element_from": "BUc9f9",
+            "element_to": "DIc347"
+        },
+        {
+            "node_from": "N_DIf4e9_bot",
+            "node_to": "N_BU62ea_p_2",
+            "port_from": "bottom",
+            "port_to": "p_2",
+            "element_from": "DIf4e9",
+            "element_to": "BU62ea"
+        }
+    ],
+    "protection_links": [
+        {
+            "komplekt": "CAdcc4#0",
+            "element": "LI09c3"
+        },
+        {
+            "komplekt": "CA386b#0",
+            "element": "LI09c3"
+        },
+        {
+            "komplekt": "CA9bb9#0",
+            "element": "BU0f17"
+        },
+        {
+            "komplekt": "CA19fc#0",
+            "element": "BU62ea"
+        },
+        {
+            "komplekt": "CAa960#0",
+            "element": "BU62ea"
+        },
+        {
+            "komplekt": "CAd8df#0",
+            "element": "AU44ad"
+        },
+        {
+            "komplekt": "CAd8df#1",
+            "element": "AU44ad"
+        },
+        {
+            "komplekt": "CA497a#0",
+            "element": "AU44ad"
+        },
+        {
+            "komplekt": "CA497a#1",
+            "element": "AU44ad"
+        },
+        {
+            "komplekt": "CA497a#2",
+            "element": "AU44ad"
+        },
+        {
+            "komplekt": "CA70c6#0",
+            "element": "LI09c3"
+        },
+        {
+            "komplekt": "CAa577#0",
+            "element": "AU44ad"
+        },
+        {
+            "komplekt": "CA25d4#0",
+            "element": "AU44ad"
+        },
+        {
+            "komplekt": "CA092d#0",
+            "element": "AU44ad"
+        },
+        {
+            "komplekt": "CA092d#1",
+            "element": "AU44ad"
+        },
+        {
+            "komplekt": "CA5614#1",
+            "element": "LI09c3"
+        },
+        {
+            "komplekt": "CA5614#0",
+            "element": "LI09c3"
+        },
+        {
+            "komplekt": "CAbbab#0",
+            "element": "LI09c3"
+        }
+    ],
+    "view": {
+        "zoom": 0.473,
+        "offset_x": -39.55,
+        "offset_y": 358.06
+    }
+}
