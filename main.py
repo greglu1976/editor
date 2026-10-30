@@ -7090,15 +7090,27 @@ class CircuitEditor:
                          for ied in komplekts.effective_ieds(kit)) or "—"
 
     def _nir_cabinet_fields(self, cabinet):
-        """Шифр, наименование и стандарт шкафа для отчёта по НИР."""
+        """Шифр, наименование и стандарт шкафа для отчёта по НИР.
+
+        Стандарт — документ целиком: обозначение и наименование, а не
+        только шифр («СТО …-2019 «Типовые шкафы ШЭТ …»»).
+        """
         code, name, _group = self._report_cabinet_type(cabinet)
         if not code or code == "—":
             code = cabinet.name or cabinet.id
         if not name or name == "—":
             name = cabinet.name or cabinet.id
         info = getattr(cabinet, "info", {}) or {}
-        standard = (info.get("standard") or "").strip() or "Нетиповой"
-        return code, name, standard
+        return code, name, self._nir_standard_text(info)
+
+    @staticmethod
+    def _nir_standard_text(info):
+        """Документ-стандарт шкафа: «СТО … «Наименование документа»»."""
+        code = (info.get("standard") or "").strip()
+        title = (info.get("standard_title") or "").strip()
+        if code and title:
+            return "{} «{}»".format(code, title)
+        return code or title or "Нетиповой"
 
     def _nir_cabinet_heading(self, cabinet):
         """Заголовок подраздела шкафа: «Шкаф <шифр> <наименование>»."""
@@ -7196,7 +7208,7 @@ class CircuitEditor:
             "kind": "table",
             "header": ["Шкаф", "Стандарт", "Примечание"],
             "rows": overview_rows,
-            "widths": [3400, 3600, 2638],
+            "widths": [2600, 5038, 2000],
             "aligns": ["left", "left", "left"],
             "empty_text": "",
         })
