@@ -23,6 +23,11 @@ try:
 except Exception:  # подписи в подложке необязательны
     pdf2json = None
 
+try:
+    import pngexport
+except Exception:  # экспорт в PNG требует Pillow — без него просто нет кнопки
+    pngexport = None
+
 
 # Префиксы обозначений по типу элемента — единый источник для добавления,
 # копирования, вставки из файла и развёртывания состава КЭТ.
@@ -357,6 +362,14 @@ def _ri_pdf(c):
                      outline="black", fill="white", width=2)
     c.create_line(19, 4, 19, 9, 24, 9, width=1)
     c.create_text(16, 19, text="PDF", font=("Arial", 6, "bold"))
+
+
+def _ri_png(c):
+    """Экспорт в PNG: картинка с горой и солнцем."""
+    c.create_rectangle(4, 6, 28, 26, outline="black", fill="white", width=2)
+    c.create_oval(19, 9, 24, 14, outline="black", width=1)
+    c.create_polygon(7, 23, 13, 15, 18, 23, fill="black", outline="black")
+    c.create_polygon(16, 23, 21, 17, 25, 23, fill="black", outline="black")
 
 
 def _ri_ssd(c):
@@ -880,6 +893,7 @@ class CircuitEditor:
             self._ribbon_button(row, "Из файла", self.insert_from_json, _ri_insert, 60).pack(side=tk.LEFT),
             self._ribbon_button(row, "Очистить", self.clear_all, _ri_clear, 60).pack(side=tk.LEFT),
             self._ribbon_button(row, "В PDF", self.export_pdf, _ri_pdf, 56).pack(side=tk.LEFT),
+            self._ribbon_button(row, "В PNG", self.export_png, _ri_png, 56).pack(side=tk.LEFT),
             self._ribbon_button(row, "В SSD", self.export_ssd, _ri_ssd, 56).pack(side=tk.LEFT),
         ])
         self._ribbon_group(page, "Защита", lambda row: [
@@ -7602,57 +7616,16 @@ class CircuitEditor:
             self._open_document(path)
 
     # ================= ЭКСПОРТ PDF =================
-    def export_pdf(self, event=None):
-        """Сохраняет текущий вид схемы (подложка + элементы) в PDF."""
-        filepath = filedialog.asksaveasfilename(
-            defaultextension=".pdf", filetypes=[("PDF files", "*.pdf")])
-        if not filepath:
-            return
+    #: Отступ от крайних линий чертежа при экспорте, в пунктах PDF.
+    EXPORT_MARGIN = 30.0
 
-        margin = 40.0
-        xs, ys = [], []
-        if self.underlay:
-            xs += [0.0, self.underlay["width"] * self.underlay_scale]
-            ys += [0.0, self.underlay["height"] * self.underlay_scale]
-        for element in self.elements.values():
-            if element.type == "cabinet" and not self.show_cabinets:
-                continue
-            if element.type == "container" and not self.show_containers:
-                continue
-            bx1, by1, bx2, by2 = element.get_bounding_box()
-            xs += [bx1, bx2]
-            ys += [by1, by2]
-        if not xs:
-            xs, ys = [0.0, 800.0], [0.0, 600.0]
+    def _draw_scene(self, canvas):
+        """Рисует на канве экспорта подложку, элементы, связи и подписи.
 
-        min_x, max_x = min(xs) - margin, max(xs) + margin
-        min_y, max_y = min(ys) - margin, max(ys) + margin
-
-        # Масштаб экспорта: при подложке приводим лист к размеру исходного PDF
-        export_scale = 1.0
-        if self.underlay and self.underlay_scale > 0:
-            export_scale = 1.0 / self.underlay_scale
-        width = max(50.0, (max_x - min_x) * export_scale)
-        height = max(50.0, (max_y - min_y) * export_scale)
-
-        # Слишком маленький лист поднимаем до A4 (альбом), содержимое центрируем
-        offset_x, offset_y = -min_x, -min_y
-        if width < 842 or height < 595:
-            sheet_w = max(width, 842) / export_scale
-            sheet_h = max(height, 595) / export_scale
-            offset_x = -min_x + (sheet_w - (max_x - min_x)) / 2.0
-            offset_y = -min_y + (sheet_h - (max_y - min_y)) / 2.0
-            width = sheet_w * export_scale
-            height = sheet_h * export_scale
-
-        try:
-            document = pdfexport.PdfDocument(width, height, offset_x, offset_y,
-                                             scale=export_scale)
-        except Exception as error:
-            messagebox.showerror("PDF", f"Не удалось подготовить экспорт:\n{error}")
-            return
-
-        canvas = document.canvas
+        Канва — любой объект с примитивами Tk-canvas: записывающая
+        (подсчёт габаритов), растеризующая (PNG) или генератор PDF.
+        """
+        self._sync_containers()
         if self.underlay and self.show_underlay:
             scale = self.underlay_scale
             for points in self.underlay["lines"]:
@@ -7662,13 +7635,15 @@ class CircuitEditor:
                 canvas.create_line(*coords, fill="#6f6f6f", width=1)
             for text, x, y in self.underlay["labels"]:
                 canvas.create_text(x * scale, y * scale, text=text,
-                                   anchor="w", font=("Arial", 6), fill="#8a8a8a")
+                                   anchor="w", font=("Arial", 6),
+                                   fill="#8a8a8a")
 
         visible = [element for element in self.elements.values()
-                   if not (element.type == "cabinet" and not self.show_cabinets)
-                   and not (element.type == "container" and not self.show_containers)]
+                   if not (element.type == "cabinet"
+                           and not self.show_cabinets)
+                   and not (element.type == "container"
+                            and not self.show_containers)]
         # Контейнеры и линии привязки слотов — под остальными элементами
-        self._sync_containers()
         for element in visible:
             if element.type == "container":
                 element.draw(canvas, 1.0, 0.0, 0.0)
@@ -7698,36 +7673,98 @@ class CircuitEditor:
                 canvas.create_rectangle(px - 3, py - 3, px + 3, py + 3,
                                         fill="#a0522d" if bound else "white",
                                         outline="#a0522d", width=1)
-        if self.show_analog:
-            for link in self.analog_links:
-                start = self._analog_ref_point(link.get("from"))
-                end = self._analog_ref_point(link.get("to"))
-                if start is None or end is None:
-                    continue
-                x1, y1 = start
-                x2, y2 = end
-                distance = math.hypot(x2 - x1, y2 - y1)
-                if distance < 1e-6:
-                    continue
-                ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
-                arrow_size = 9.0
-                canvas.create_line(x1, y1, x2 - ux * arrow_size * 0.9,
-                                   y2 - uy * arrow_size * 0.9,
-                                   fill=self.ANALOG_COLOR, width=1,
-                                   dash=(6, 3))
-                base_x, base_y = x2 - ux * arrow_size, y2 - uy * arrow_size
-                half = arrow_size * 0.45
-                canvas.create_polygon(
-                    x2, y2,
-                    base_x - uy * half, base_y + ux * half,
-                    base_x + uy * half, base_y - ux * half,
-                    fill=self.ANALOG_COLOR, outline=self.ANALOG_COLOR)
-                signals = self._analog_signals_text(link)
-                if signals:
-                    canvas.create_text((x1 + x2) / 2.0 - uy * 11,
-                                       (y1 + y2) / 2.0 + ux * 11,
-                                       text=signals, fill=self.ANALOG_COLOR,
-                                       font=("Arial", 6), anchor="center")
+        if not self.show_analog:
+            return
+        for link in self.analog_links:
+            start = self._analog_ref_point(link.get("from"))
+            end = self._analog_ref_point(link.get("to"))
+            if start is None or end is None:
+                continue
+            x1, y1 = start
+            x2, y2 = end
+            distance = math.hypot(x2 - x1, y2 - y1)
+            if distance < 1e-6:
+                continue
+            ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
+            arrow_size = 9.0
+            canvas.create_line(x1, y1, x2 - ux * arrow_size * 0.9,
+                               y2 - uy * arrow_size * 0.9,
+                               fill=self.ANALOG_COLOR, width=1,
+                               dash=(6, 3))
+            base_x, base_y = x2 - ux * arrow_size, y2 - uy * arrow_size
+            half = arrow_size * 0.45
+            canvas.create_polygon(
+                x2, y2,
+                base_x - uy * half, base_y + ux * half,
+                base_x + uy * half, base_y - ux * half,
+                fill=self.ANALOG_COLOR, outline=self.ANALOG_COLOR)
+            signals = self._analog_signals_text(link)
+            if signals:
+                canvas.create_text((x1 + x2) / 2.0 - uy * 11,
+                                   (y1 + y2) / 2.0 + ux * 11,
+                                   text=signals, fill=self.ANALOG_COLOR,
+                                   font=("Arial", 6), anchor="center")
+
+    def _export_geometry(self, a4_min=True):
+        """Размер листа и преобразование мира в лист для экспорта.
+
+        Габариты считаются по всему, что реально рисуется (символы,
+        подписи, стрелки, линии привязки), плюс отступ от края — чтобы
+        крайние подписи не подрезались. Возвращает
+        (width, height, offset_x, offset_y, scale, recorder).
+        """
+        # Масштаб: при подложке приводим лист к размеру исходного PDF
+        scale = 1.0
+        if self.underlay and self.underlay_scale > 0:
+            scale = 1.0 / self.underlay_scale
+
+        recorder = pdfexport.SceneRecorder()
+        self._draw_scene(recorder)
+        min_x, min_y, max_x, max_y = recorder.bounds() or (
+            0.0, 0.0, 800.0, 600.0)
+
+        # Отступ задан в пунктах листа и переводится в мировые единицы
+        margin = self.EXPORT_MARGIN / scale
+        min_x -= margin
+        min_y -= margin
+        max_x += margin
+        max_y += margin
+
+        width = max(50.0, (max_x - min_x) * scale)
+        height = max(50.0, (max_y - min_y) * scale)
+
+        offset_x, offset_y = -min_x, -min_y
+        if a4_min and (width < 842 or height < 595):
+            # Слишком маленький лист поднимаем до A4 (альбом), содержимое
+            # центрируем
+            sheet_w = max(width, 842) / scale
+            sheet_h = max(height, 595) / scale
+            offset_x = -min_x + (sheet_w - (max_x - min_x)) / 2.0
+            offset_y = -min_y + (sheet_h - (max_y - min_y)) / 2.0
+            width = sheet_w * scale
+            height = sheet_h * scale
+
+        return width, height, offset_x, offset_y, scale, recorder
+
+    def export_pdf(self, event=None):
+        """Сохраняет схему в PDF (вектор, без внешних зависимостей)."""
+        filepath = filedialog.asksaveasfilename(
+            title="Экспорт в PDF", defaultextension=".pdf",
+            filetypes=[("PDF files", "*.pdf")])
+        if not filepath:
+            return
+
+        try:
+            width, height, offset_x, offset_y, scale, recorder = \
+                self._export_geometry(a4_min=True)
+            document = pdfexport.PdfDocument(width, height, offset_x, offset_y,
+                                             scale=scale)
+        except Exception as error:
+            messagebox.showerror(
+                "PDF", f"Не удалось подготовить экспорт:\n{error}")
+            return
+
+        recorder.replay(document.canvas)
 
         try:
             document.save(filepath)
@@ -7735,7 +7772,38 @@ class CircuitEditor:
             messagebox.showerror("PDF", f"Не удалось сохранить PDF:\n{error}")
             return
 
-        messagebox.showinfo("PDF", f"Сохранено: {os.path.basename(filepath)}")
+        messagebox.showinfo(
+            "PDF", "Сохранено: {}\nлист {:.0f}×{:.0f} мм".format(
+                os.path.basename(filepath),
+                width * 25.4 / 72.0, height * 25.4 / 72.0))
+
+    def export_png(self, event=None):
+        """Сохраняет схему в PNG (растром занимается Pillow)."""
+        if pngexport is None:
+            messagebox.showerror(
+                "PNG",
+                "Экспорт в PNG требует модуль Pillow.\n\n"
+                "Установите его командой:\n    pip install pillow")
+            return
+        filepath = filedialog.asksaveasfilename(
+            title="Экспорт в PNG", defaultextension=".png",
+            filetypes=[("PNG images", "*.png")])
+        if not filepath:
+            return
+
+        try:
+            width, height, offset_x, offset_y, scale, recorder = \
+                self._export_geometry(a4_min=False)
+            pixels = pngexport.export_png(
+                filepath, recorder, width, height, offset_x, offset_y,
+                scale=scale)
+        except Exception as error:
+            messagebox.showerror("PNG", f"Не удалось сохранить PNG:\n{error}")
+            return
+
+        messagebox.showinfo(
+            "PNG", "Сохранено: {}\n{}×{} пикс.".format(
+                os.path.basename(filepath), pixels[0], pixels[1]))
 
     # ================= ЭКСПОРТ SSD (МЭК 61850-6) =================
     def export_ssd(self, event=None):

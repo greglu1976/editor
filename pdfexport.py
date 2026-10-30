@@ -156,6 +156,16 @@ def find_font():
     for path in candidates:
         if os.path.exists(path):
             return path
+    for path in (
+            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            "/Library/Fonts/Arial.ttf",
+            "/System/Library/Fonts/Supplemental/Arial.ttf",
+    ):
+        if os.path.exists(path):
+            return path
     for folder in (r"C:\Program Files\Python38",):
         for root, _dirs, files in os.walk(folder):
             for name in files:
@@ -205,6 +215,113 @@ class PdfWriter:
             handle.write(output)
 
 
+def text_bbox(x, y, text, size, anchor="center"):
+    """Габариты подписи в мировых координатах — как её рисует Tk.
+
+    Возвращает (left, top, right, bottom); anchor — строка Tk («w», «s», …).
+    """
+    width = _measure(text, size)
+    ascent, descent = _metrics(size)
+    if "w" in anchor:
+        left, right = x, x + width
+    elif "e" in anchor:
+        left, right = x - width, x
+    else:
+        left, right = x - width / 2.0, x + width / 2.0
+    if "n" in anchor:
+        top, bottom = y, y + ascent + descent
+    elif "s" in anchor:
+        top, bottom = y - ascent - descent, y
+    else:
+        top = y - (ascent + descent) / 2.0
+        bottom = y + (ascent + descent) / 2.0
+    return left, top, right, bottom
+
+
+class SceneRecorder:
+    """Записывает вызовы рисования и считает габариты сцены.
+
+    Нужен, чтобы заранее посчитать лист: в габариты попадают не только
+    символы элементов, но и подписи, стрелки аналоговых цепей и линии
+    привязки — иначе крайние подписи при экспорте подрезаются.
+    """
+
+    def __init__(self):
+        self.calls = []
+        self.min_x = None
+        self.min_y = None
+        self.max_x = None
+        self.max_y = None
+
+    # ---------------------------------------------------------- габариты
+    def _grow(self, xs, ys, pad=0.0):
+        for x in xs:
+            if self.min_x is None or x - pad < self.min_x:
+                self.min_x = x - pad
+            if self.max_x is None or x + pad > self.max_x:
+                self.max_x = x + pad
+        for y in ys:
+            if self.min_y is None or y - pad < self.min_y:
+                self.min_y = y - pad
+            if self.max_y is None or y + pad > self.max_y:
+                self.max_y = y + pad
+
+    @staticmethod
+    def _width(kwargs):
+        try:
+            return max(0.0, float(kwargs.get("width", 1))) / 2.0
+        except (TypeError, ValueError):
+            return 0.5
+
+    def bounds(self):
+        """(min_x, min_y, max_x, max_y) или None, если ничего не нарисовано."""
+        if self.min_x is None:
+            return None
+        return self.min_x, self.min_y, self.max_x, self.max_y
+
+    # ---------------------------------------------------------- примитивы
+    def create_line(self, *coords, **kwargs):
+        self.calls.append(("create_line", coords, kwargs))
+        self._grow(list(coords[0::2]), list(coords[1::2]), self._width(kwargs))
+
+    def create_rectangle(self, x1, y1, x2, y2, **kwargs):
+        self.calls.append(("create_rectangle", (x1, y1, x2, y2), kwargs))
+        self._grow([x1, x2], [y1, y2], self._width(kwargs))
+
+    def create_polygon(self, *coords, **kwargs):
+        self.calls.append(("create_polygon", coords, kwargs))
+        self._grow(list(coords[0::2]), list(coords[1::2]), self._width(kwargs))
+
+    def create_oval(self, x1, y1, x2, y2, **kwargs):
+        self.calls.append(("create_oval", (x1, y1, x2, y2), kwargs))
+        self._grow([x1, x2], [y1, y2], self._width(kwargs))
+
+    def create_arc(self, x1, y1, x2, y2, **kwargs):
+        self.calls.append(("create_arc", (x1, y1, x2, y2), kwargs))
+        self._grow([x1, x2], [y1, y2], self._width(kwargs))
+
+    def create_text(self, x, y, **kwargs):
+        self.calls.append(("create_text", (x, y), kwargs))
+        text = kwargs.get("text") or ""
+        if not text:
+            return None
+        size = _font_size(kwargs.get("font"))
+        left, top, right, bottom = text_bbox(
+            x, y, text, size, kwargs.get("anchor", "center"))
+        self._grow([left, right], [top, bottom])
+        return None
+
+    def bbox(self, item):
+        """Как у Tk-canvas: у записывающей канвы элементов нет."""
+        return None
+
+    # ------------------------------------------------------------- повтор
+    def replay(self, canvas):
+        """Повторяет записанные вызовы на настоящей канве экспорта."""
+        for name, args, kwargs in self.calls:
+            getattr(canvas, name)(*args, **kwargs)
+
+
 class PageCanvas:
     """Подменяет Tk-canvas и превращает вызовы рисования в операторы PDF."""
 
@@ -237,11 +354,23 @@ class PageCanvas:
         return f"{r:.3f} {g:.3f} {b:.3f} RG {self._width:.3f} w\n"
 
     # ---------------------------------------------------------- primitives
+    def _dash_ops(self, dash):
+        """Штрих: «[6 3] 0 d» перед линией, сброс после."""
+        if not dash:
+            return "", ""
+        try:
+            pattern = " ".join("%.2f" % (float(part) * self.scale)
+                               for part in dash)
+        except (TypeError, ValueError):
+            return "", ""
+        return "[{}] 0 d\n".format(pattern), "[] 0 d\n"
+
     def create_line(self, *coords, **kwargs):
         if kwargs.get("fill") in ("", None) and "fill" in kwargs:
             return
         self._set_style(fill=kwargs.get("fill", "black"), width=kwargs.get("width", 1))
-        ops = [self._stroke_ops()]
+        dash_on, dash_off = self._dash_ops(kwargs.get("dash"))
+        ops = [self._stroke_ops(), dash_on]
         points = list(zip(coords[0::2], coords[1::2]))
         if len(points) < 2:
             return
@@ -249,6 +378,7 @@ class PageCanvas:
         for x, y in points[1:]:
             ops.append(f"{self._x(x):.2f} {self._y(y):.2f} l\n")
         ops.append("S\n")
+        ops.append(dash_off)
         self.ops.append("".join(ops))
 
     def create_rectangle(self, x1, y1, x2, y2, **kwargs):
@@ -329,19 +459,7 @@ class PageCanvas:
         text = kwargs.get("text", "")
         if not text:
             return
-        font_spec = kwargs.get("font", ("Arial", 10))
-        size = 10
-        if isinstance(font_spec, (tuple, list)):
-            for part in font_spec:
-                if isinstance(part, int):
-                    size = part
-                    break
-        elif isinstance(font_spec, str):
-            import re
-            match = re.search(r"(\d+)", font_spec)
-            if match:
-                size = int(match.group(1))
-
+        size = _font_size(kwargs.get("font"))
         anchor = kwargs.get("anchor", "center")
         width = _measure(text, size)
         ascent, descent = _metrics(size)
@@ -368,11 +486,29 @@ class PageCanvas:
             self.used_glyphs.add(glyph)
         hexed = "".join("%04X" % glyph for glyph in glyphs)
         color = _color_rgb(kwargs.get("fill", "black"))
+        # Размер шрифта масштабируется вместе с геометрией: иначе при
+        # подложке, уменьшенной, например, вдвое, подписи выходят вдвое
+        # крупнее символов
         self.ops.append(
-            f"BT /F1 {size * max(1.0, self.scale):.2f} Tf "
+            f"BT /F1 {max(0.5, size * self.scale):.2f} Tf "
             f"{color[0]:.3f} {color[1]:.3f} {color[2]:.3f} rg "
             f"{self._x(left):.2f} {self._y(baseline):.2f} Td "
             f"<{hexed}> Tj ET\n")
+
+
+def _font_size(font_spec, default=10):
+    """Размер шрифта из спецификации Tk: («Arial», 9) или «Arial 9»."""
+    if isinstance(font_spec, (tuple, list)):
+        for part in font_spec:
+            if isinstance(part, int):
+                return part
+        return default
+    if isinstance(font_spec, str):
+        import re
+        match = re.search(r"(\d+)", font_spec)
+        if match:
+            return int(match.group(1))
+    return default
 
 
 def _color_rgb(name):
@@ -403,13 +539,68 @@ def _tkfont(size):
     return _font_cache[key]
 
 
+#: Публичные имена помощников для растеризатора PNG.
+font_size = _font_size
+color_rgb = _color_rgb
+
+_metrics_cache = {}
+_measure_cache = {}
+_export_font_cache = {}
+
+
+def _export_font():
+    """Шрифт для расчёта ширин — тот же, что встраивается в PDF.
+
+    Считать по Tk приходится через медленные запросы к X/шрифтовой
+    подсистеме, поэтому берём метрики самого TrueType-файла: так ширины
+    совпадают с реальными глифами и не зависят от системы.
+    """
+    if "font" not in _export_font_cache:
+        font = None
+        path = find_font()
+        if path:
+            try:
+                font = TrueTypeFont(path)
+            except Exception:
+                font = None
+        _export_font_cache["font"] = font
+    return _export_font_cache["font"]
+
+
 def _metrics(size):
-    font = _tkfont(size)
-    return font.metrics("ascent"), font.metrics("descent")
+    """Ascent/descent шрифта в пикселях для размера Tk."""
+    cached = _metrics_cache.get(size)
+    if cached is not None:
+        return cached
+    font = _export_font()
+    if font is not None and font.units_per_em:
+        ascent = font.ascent * size / float(font.units_per_em)
+        descent = abs(font.descent) * size / float(font.units_per_em)
+        result = (ascent, descent)
+    else:
+        tk_font = _tkfont(size)
+        result = (tk_font.metrics("ascent"), tk_font.metrics("descent"))
+    _metrics_cache[size] = result
+    return result
 
 
 def _measure(text, size):
-    return _tkfont(size).measure(text)
+    """Ширина строки в пикселях для размера Tk."""
+    key = (text, size)
+    cached = _measure_cache.get(key)
+    if cached is not None:
+        return cached
+    font = _export_font()
+    if font is not None:
+        total = 0
+        for character in text:
+            glyph = font.glyph(character) or font.glyph("?")
+            total += font.width1000(glyph)
+        width = total * size / 1000.0
+    else:
+        width = _tkfont(size).measure(text)
+    _measure_cache[key] = width
+    return width
 
 
 def build_font_objects(writer, font, used_glyphs):
