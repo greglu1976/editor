@@ -7626,6 +7626,7 @@ class CircuitEditor:
         (подсчёт габаритов), растеризующая (PNG) или генератор PDF.
         """
         self._sync_containers()
+        # 1. Подложка (под сеткой и проводами)
         if self.underlay and self.show_underlay:
             scale = self.underlay_scale
             for points in self.underlay["lines"]:
@@ -7638,12 +7639,27 @@ class CircuitEditor:
                                    anchor="w", font=("Arial", 6),
                                    fill="#8a8a8a")
 
+        # 2. Провода между выводами элементов — под символами
+        for connection in self.connections:
+            first = self.elements.get(connection.get("from"))
+            second = self.elements.get(connection.get("to"))
+            if first is None or second is None:
+                continue
+            port1 = first.ports.get(connection.get("port_from"))
+            port2 = second.ports.get(connection.get("port_to"))
+            if port1 is None:
+                port1 = {"x": first.x, "y": first.y}
+            if port2 is None:
+                port2 = {"x": second.x, "y": second.y}
+            canvas.create_line(port1["x"], port1["y"], port2["x"], port2["y"],
+                               fill="black", width=2)
+
         visible = [element for element in self.elements.values()
                    if not (element.type == "cabinet"
                            and not self.show_cabinets)
                    and not (element.type == "container"
                             and not self.show_containers)]
-        # Контейнеры и линии привязки слотов — под остальными элементами
+        # 3. Контейнеры и линии привязки слотов — под остальными элементами
         for element in visible:
             if element.type == "container":
                 element.draw(canvas, 1.0, 0.0, 0.0)
@@ -7661,9 +7677,11 @@ class CircuitEditor:
                     end_x, end_y = self._cabinet_bind_point(cabinet)
                     canvas.create_line(slot_x, slot_y, end_x, end_y,
                                        fill="#a0522d", width=1)
+        # 4. Символы элементов (шкафы, оборудование, подписи)
         for element in visible:
             if element.type != "container":
                 element.draw(canvas, 1.0, 0.0, 0.0)
+        # 5. Точки привязки шкафов к контейнерам
         if self.show_containers:
             for element in visible:
                 if element.type != "cabinet":
@@ -7673,6 +7691,9 @@ class CircuitEditor:
                 canvas.create_rectangle(px - 3, py - 3, px + 3, py + 3,
                                         fill="#a0522d" if bound else "white",
                                         outline="#a0522d", width=1)
+        # 6. Защитные узлы и стрелки комплект → оборудование
+        self._draw_protection_scene(canvas)
+        # 7. Аналоговые цепи
         if not self.show_analog:
             return
         for link in self.analog_links:
@@ -7685,25 +7706,66 @@ class CircuitEditor:
             distance = math.hypot(x2 - x1, y2 - y1)
             if distance < 1e-6:
                 continue
+            self._export_arrow(canvas, x1, y1, x2, y2,
+                               fill=self.ANALOG_COLOR, width=1, dash=(6, 3))
             ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
-            arrow_size = 9.0
-            canvas.create_line(x1, y1, x2 - ux * arrow_size * 0.9,
-                               y2 - uy * arrow_size * 0.9,
-                               fill=self.ANALOG_COLOR, width=1,
-                               dash=(6, 3))
-            base_x, base_y = x2 - ux * arrow_size, y2 - uy * arrow_size
-            half = arrow_size * 0.45
-            canvas.create_polygon(
-                x2, y2,
-                base_x - uy * half, base_y + ux * half,
-                base_x + uy * half, base_y - ux * half,
-                fill=self.ANALOG_COLOR, outline=self.ANALOG_COLOR)
             signals = self._analog_signals_text(link)
             if signals:
                 canvas.create_text((x1 + x2) / 2.0 - uy * 11,
                                    (y1 + y2) / 2.0 + ux * 11,
                                    text=signals, fill=self.ANALOG_COLOR,
                                    font=("Arial", 6), anchor="center")
+
+    @staticmethod
+    def _export_arrow(canvas, x1, y1, x2, y2, fill, width=1.0, size=9.0,
+                      dash=None):
+        """Стрелка линией с треугольным острием: PDF/PNG не знают «arrow»."""
+        distance = math.hypot(x2 - x1, y2 - y1)
+        if distance < 1e-6:
+            return
+        ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
+        kwargs = {"fill": fill, "width": width}
+        if dash:
+            kwargs["dash"] = dash
+        canvas.create_line(x1, y1, x2 - ux * size * 0.6, y2 - uy * size * 0.6,
+                           **kwargs)
+        base_x, base_y = x2 - ux * size, y2 - uy * size
+        half = size * 0.45
+        canvas.create_polygon(
+            x2, y2,
+            base_x - uy * half, base_y + ux * half,
+            base_x + uy * half, base_y - ux * half,
+            fill=fill, outline=fill)
+
+    def _draw_protection_scene(self, canvas):
+        """Защитные узлы оборудования и стрелки комплект → узел для экспорта."""
+        if not self.show_protection:
+            return
+        node_r = 4.5
+        for element in self.elements.values():
+            if element.type in ("cabinet", "container", "corner", "node",
+                                "bushing_monitor"):
+                continue
+            canvas.create_polygon(
+                element.x, element.y - node_r,
+                element.x + node_r, element.y,
+                element.x, element.y + node_r,
+                element.x - node_r, element.y,
+                fill="#1f4e79", outline="white", width=1)
+        if not self.show_cabinets:
+            return
+        for link in self.protection_links:
+            cabinet_id, _, index = self._link_ref(link).partition("#")
+            cabinet = self.elements.get(cabinet_id)
+            element = self.elements.get(link.get("element"))
+            if not cabinet or not element or cabinet.type != "cabinet":
+                continue
+            port = self._komplekt_port(cabinet, index)
+            if not port:
+                continue
+            self._export_arrow(canvas, port["x"], port["y"],
+                               element.x, element.y, fill="#1f4e79",
+                               width=1.5)
 
     def _export_geometry(self, a4_min=True):
         """Размер листа и преобразование мира в лист для экспорта.
