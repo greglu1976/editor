@@ -70,6 +70,38 @@ ELEMENT_TYPE_TITLES = {
     "node": "Узел",
 }
 
+# Подписи выводов (портов) элементов — для отчёта по непривязанным элементам.
+PORT_TITLES = {
+    "HV": "ВН", "LV": "НН", "MV": "СН", "LV1": "НН1", "LV2": "НН2",
+    "N": "нейтраль",
+    "top": "верх", "bottom": "низ", "left": "левый", "right": "правый",
+    "center": "центр", "in": "вход (уходящая линия)", "out": "выход",
+    "tap": "отвод", "earth": "заземление",
+}
+
+# Выводы, которые по типу элемента не обязаны быть подключены: в отчёте по
+# непривязанным элементам они не считаются свободными.
+#   * «N» — нейтраль трансформаторов и автотрансформаторов (включая
+#     расщеплённый и трёхобмоточный): это узел подключения, у которого нет
+#     нарисованного вывода, поэтому провода к нему обычно не подводят;
+#   * «bottom» — второй вывод фильтра присоединения (ФП): подключается по
+#     месту, на схеме часто остаётся свободным;
+#   * «in» — уходящая сторона ЛЭП: стрелка уходит за пределы схемы
+#     подстанции, узел на этой стороне свободен по определению.
+UNBOUND_IGNORED_PORTS = {
+    "transformer": ("N",),
+    "split_transformer": ("N",),
+    "three_winding_transformer": ("N",),
+    "autotransformer": ("N",),
+    "connection_filter": ("bottom",),
+    "line": ("in",),
+}
+
+# Элементы-соединители: их свободные отпайки — норма (шина тянется через
+# схему, у уголка заняты только две стороны из четырёх). Такой элемент
+# попадает в отчёт, только если у него нет ни одного соединения.
+UNBOUND_CONNECTOR_TYPES = ("bus", "node", "corner")
+
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
 PALETTE_ITEMS = [
     ("Выключатель", "breaker"),
@@ -291,6 +323,14 @@ def _ri_report(c):
     for y in (16, 19.5, 23):
         c.create_line(11, y, 22, y, width=1, fill="#666666")
     c.create_line(15, 13, 15, 26, width=1, fill="#666666")
+
+
+def _ri_unbound(c):
+    """Непривязанные элементы: предупреждающий треугольник с «!»."""
+    c.create_polygon(16, 3, 30, 28, 2, 28, outline="black", fill="white",
+                     width=2)
+    c.create_line(16, 11, 16, 20, width=2, fill="black")
+    c.create_line(16, 23, 16, 25, width=2, fill="black")
 
 
 def _ri_analog(c):
@@ -5692,10 +5732,16 @@ class CircuitEditor:
             self._ribbon_button(row, "По выделению", self.report_by_selection,
                                 _ri_report, 92).pack(side=tk.LEFT),
         ])
+        self._ribbon_group(page, "Проверка", lambda row: [
+            self._ribbon_button(row, "Непривязанные", self.report_unbound,
+                                _ri_unbound, 104).pack(side=tk.LEFT),
+        ])
         tk.Label(page, text="«По схеме» — документ Word со всеми ведомостями.\n"
                             "«По выделению» — отчёт по выбранному шкафу:\n"
                             "используемые и неиспользуемые комплекты,\n"
-                            "а по контейнеру — все шкафы в нём.",
+                            "а по контейнеру — все шкафы в нём.\n"
+                            "«Непривязанные» — пустые контейнеры, комплекты\n"
+                            "без связей и элементы со свободными выводами.",
                  bg="#f3f3f3", fg="#808080", font=("Arial", 7),
                  justify="left").pack(side=tk.LEFT, padx=12)
         return page
@@ -6272,6 +6318,332 @@ class CircuitEditor:
                 "аналоговых цепей; остальные комплекты свободны.",
             ],
         }
+
+    # ---------- отчёт по непривязанным элементам ----------
+    # Проверка ищет всё, что осталось «ни к чему не привязано»:
+    #   * пустые контейнеры КЭТ — без единого шкафа;
+    #   * комплекты шкафов без защитных и аналоговых связей;
+    #   * элементы первичной схемы со свободными выводами (к выводу не
+    #     подходит ни один провод).
+    # Нейтраль (N) трансформаторов и автотрансформаторов, второй вывод ФП и
+    # уходящая сторона ЛЭП не проверяются — см. UNBOUND_IGNORED_PORTS.
+
+    def _connected_ports(self):
+        """Пары (id элемента, имя вывода), к которым подходит провод.
+
+        Второй результат — id элементов, у соединений которых имя вывода не
+        совпадает с текущей схемой портов (например, элемент повернули после
+        создания провода). Такие элементы в отчёт не попадают: судить об их
+        выводах по устаревшим именам нельзя.
+        """
+        used, stale = set(), set()
+        for connection in self.connections:
+            for side, port_key in (("from", "port_from"),
+                                   ("to", "port_to")):
+                element = self.elements.get(connection.get(side))
+                if element is None:
+                    continue
+                port = connection.get(port_key)
+                if port in element.ports:
+                    used.add((element.id, port))
+                else:
+                    stale.add(element.id)
+        return used, stale
+
+    @staticmethod
+    def _element_ref_text(element):
+        """Обозначение элемента для отчёта (имя, иначе id)."""
+        name = (element.name or "").strip()
+        if name and name != element.id:
+            return name
+        return element.id
+
+    @staticmethod
+    def _port_title(port_name):
+        """Подпись вывода для отчёта: «верх (top)», «нейтраль (N)»…"""
+        title = PORT_TITLES.get(port_name)
+        if title is None:
+            digits = (str(port_name)[2:]
+                      if str(port_name).startswith("p_") else "")
+            title = ("отпайка {}".format(digits) if digits.isdigit()
+                     else port_name)
+        return "{} ({})".format(title, port_name)
+
+    def _unbound_ignored_ports(self, element):
+        """Выводы элемента, которые не обязаны быть подключены."""
+        return UNBOUND_IGNORED_PORTS.get(element.type, ())
+
+    def _unbound_elements(self, used, stale):
+        """Свободные выводы элементов.
+
+        Возвращает (строки ведомости, проверено выводов, свободно выводов).
+        """
+        per_element_connections = {}
+        for connection in self.connections:
+            for side in ("from", "to"):
+                element_id = connection.get(side)
+                if element_id:
+                    per_element_connections[element_id] = (
+                        per_element_connections.get(element_id, 0) + 1)
+
+        rows = []
+        checked_total = 0
+        free_total = 0
+        candidates = [
+            element for element in self.elements.values()
+            if element.type not in ("cabinet", "container")
+        ]
+        candidates.sort(key=lambda el: (self._natural_key(
+            self._element_ref_text(el)), el.type))
+        for element in candidates:
+            if element.id in stale:
+                continue
+            ignored = self._unbound_ignored_ports(element)
+            checked = [port for port in element.ports if port not in ignored]
+            if not checked:
+                continue
+            checked_total += len(checked)
+            if element.type in UNBOUND_CONNECTOR_TYPES:
+                # Шина, узел и уголок свободны на отпайках — их проверяем
+                # только целиком: элемент вообще не участвует в соединениях.
+                if per_element_connections.get(element.id):
+                    continue
+                free_total += len(checked)
+                rows.append([
+                    str(len(rows) + 1),
+                    self._element_ref_text(element),
+                    ELEMENT_TYPE_TITLES.get(element.type, element.type),
+                    "—",
+                    "0 — нет ни одного соединения",
+                ])
+                continue
+            free = [port for port in checked if (element.id, port) not in used]
+            if not free:
+                continue
+            free_total += len(free)
+            rows.append([
+                str(len(rows) + 1),
+                self._element_ref_text(element),
+                ELEMENT_TYPE_TITLES.get(element.type, element.type),
+                ", ".join(self._port_title(port) for port in free),
+                "{} из {}".format(len(checked) - len(free), len(checked)),
+            ])
+        return rows, checked_total, free_total
+
+    def _empty_container_rows(self):
+        """Контейнеры КЭТ, к которым не привязан ни один шкаф."""
+        rows = []
+        containers = sorted(
+            (el for el in self.elements.values() if el.type == "container"),
+            key=lambda el: self._natural_key(
+                el.name or getattr(el, "code", "") or el.id))
+        for container in containers:
+            if container.bound_ids():
+                continue
+            info = getattr(container, "info", {}) or {}
+            slots = container.slot_count()
+            rows.append([
+                str(len(rows) + 1),
+                container.name or getattr(container, "code", "") or container.id,
+                getattr(container, "code", "—") or "—",
+                info.get("name") or getattr(container, "title", "—") or "—",
+                info.get("size_code") or getattr(container, "size", "—") or "—",
+                str(slots),
+                str(slots),
+            ])
+        return rows
+
+    def _unbound_komplekt_rows(self):
+        """Комплекты шкафов без защитных и аналоговых связей."""
+        rows = []
+        cabinets = sorted(
+            (el for el in self.elements.values() if el.type == "cabinet"),
+            key=lambda el: self._natural_key(
+                self._element_ref_text(el)))
+        for cabinet in cabinets:
+            container = self._container_of(cabinet.id)
+            if container is not None:
+                slot = container.slot_of(cabinet.id) or 0
+                place = "{} · слот {}".format(
+                    container.name or getattr(container, "code", "")
+                    or "КЭТ", slot + 1)
+            else:
+                place = "—"
+            for index, kit in enumerate(getattr(cabinet, "komplets", [])):
+                protections, analogs = self._komplekt_links(cabinet, index)
+                if protections or analogs:
+                    continue
+                ieds = komplekts.effective_ieds(kit)
+                rows.append([
+                    str(len(rows) + 1),
+                    self._element_ref_text(cabinet),
+                    place,
+                    kit.get("name") or "Комплект {}".format(index + 1),
+                    komplekts.kind_title(kit),
+                    ", ".join(kit.get("functions") or []) or "—",
+                    ", ".join(ied.get("name") or "ИЭУ" for ied in ieds)
+                    or "нет",
+                ])
+        return rows
+
+    def _collect_unbound_report(self):
+        """Готовит данные отчёта по непривязанным элементам."""
+        used, stale = self._connected_ports()
+        element_rows, checked_ports, free_ports = self._unbound_elements(
+            used, stale)
+        container_rows = self._empty_container_rows()
+        komplekt_rows = self._unbound_komplekt_rows()
+
+        containers = [el for el in self.elements.values()
+                      if el.type == "container"]
+        cabinets = [el for el in self.elements.values()
+                    if el.type == "cabinet"]
+        total_kits = sum(len(getattr(el, "komplets", [])) for el in cabinets)
+
+        summary = [
+            ["Элементов первичной схемы", str(len([
+                el for el in self.elements.values()
+                if el.type not in ("cabinet", "container")]))],
+            ["Проверено выводов (без исключений)", str(checked_ports)],
+            ["Свободных выводов", str(free_ports)],
+            ["Элементов со свободными выводами", str(len(element_rows))],
+            ["Контейнеров КЭТ", str(len(containers))],
+            ["Пустых контейнеров", str(len(container_rows))],
+            ["Комплектов в шкафах", str(total_kits)],
+            ["Непривязанных комплектов", str(len(komplekt_rows))],
+            ["Связей РЗА (комплект → оборудование)",
+             str(len(self.protection_links))],
+            ["Аналоговых цепей", str(len(self.analog_links))],
+        ]
+
+        def empty_section(title, label, message):
+            """Раздел-заглушка: проверка пройдена, замечаний нет."""
+            return {"title": title,
+                    "rows": [[label, message]],
+                    "widths": [3400, 6238],
+                    "aligns": ["left", "left"]}
+
+        sections = [
+            {
+                "title": "1. Сводка проверки",
+                "header": ["Показатель", "Значение"],
+                "rows": summary,
+                "widths": [6200, 3438],
+                "aligns": ["left", "center"],
+            },
+        ]
+
+        if container_rows:
+            sections.append({
+                "title": "2. Пустые контейнеры КЭТ",
+                "note": "Пустой контейнер размещён на схеме, но ни один шкаф "
+                        "к нему не привязан: все слоты свободны.",
+                "header": ["№", "Обозначение", "Тип КЭТ", "Наименование",
+                           "Типоразмер", "Слотов", "Свободно"],
+                "rows": container_rows,
+                "widths": [500, 1400, 1100, 3400, 1200, 1000, 1038],
+                "aligns": ["center", "left", "center", "left", "left",
+                           "center", "center"],
+            })
+        else:
+            sections.append(empty_section(
+                "2. Пустые контейнеры КЭТ", "Пустые контейнеры",
+                "не обнаружены — все контейнеры привязаны хотя бы к одному "
+                "шкафу"))
+
+        if komplekt_rows:
+            sections.append({
+                "title": "3. Непривязанные комплекты",
+                "note": "Комплект без единой связи: ни защитной "
+                        "(комплект → оборудование), ни аналоговой "
+                        "(комплект ↔ ТТ/ТН или комплект резервирования).",
+                "header": ["№", "Шкаф", "Контейнер", "Комплект", "Вид",
+                           "Функции", "ИЭУ"],
+                "rows": komplekt_rows,
+                "widths": [500, 1200, 1600, 1900, 1000, 1938, 1500],
+                "aligns": ["center", "left", "left", "left", "center",
+                           "left", "left"],
+                "font_size": 8,
+            })
+        else:
+            sections.append(empty_section(
+                "3. Непривязанные комплекты", "Непривязанные комплекты",
+                "не обнаружены — у каждого комплекта есть хотя бы одна "
+                "связь"))
+
+        if element_rows:
+            sections.append({
+                "title": "4. Элементы со свободными выводами",
+                "note": "Свободный вывод — вывод элемента, к которому не "
+                        "подходит ни один провод. Шины, узлы и уголки "
+                        "проверяются целиком: у них свободные отпайки — "
+                        "норма, замечание выдаётся, только если у элемента "
+                        "нет ни одного соединения.",
+                "header": ["№", "Обозначение", "Тип элемента",
+                           "Свободные выводы", "Подключено"],
+                "rows": element_rows,
+                "widths": [500, 1500, 3000, 3438, 1200],
+                "aligns": ["center", "left", "left", "left", "center"],
+                "font_size": 8,
+            })
+        else:
+            sections.append(empty_section(
+                "4. Элементы со свободными выводами", "Свободные выводы",
+                "не обнаружены — к каждому проверяемому выводу подходит "
+                "провод"))
+
+        sections.append({
+            "title": "5. Выводы, которые не проверяются",
+            "header": ["Вывод", "Почему не проверяется"],
+            "rows": [
+                ["Нейтраль (N) трансформаторов, автотрансформаторов, "
+                 "расщеплённых и трёхобмоточных",
+                 "узел подключения без нарисованного вывода — провод к "
+                 "нейтрали на схеме не подводят"],
+                ["Второй вывод (низ) фильтра присоединения — ФП",
+                 "подключается по месту, на схеме часто остаётся свободным"],
+                ["Вход (in) ЛЭП",
+                 "уходящая сторона линии: стрелка уходит за пределы схемы "
+                 "подстанции, узел на этой стороне свободен по определению"],
+                ["Свободные отпайки шин, узлов и уголков",
+                 "проверяются только целиком: элемент попадает в отчёт, "
+                 "если у него нет ни одного соединения"],
+            ],
+            "widths": [4000, 5638],
+            "aligns": ["left", "left"],
+            "font_size": 8,
+        })
+
+        return {
+            "title": "Отчёт по непривязанным элементам",
+            "subtitle": [
+                "Сформирован: {}".format(
+                    datetime.now().strftime("%d.%m.%Y %H:%M")),
+                "Источник: текущая схема редактора",
+            ],
+            "sections": sections,
+            "footer": [
+                "Проверяются выводы элементов первичной схемы: свободным "
+                "считается вывод, к которому не подходит ни один провод. "
+                "Комплект считается непривязанным, если у него нет ни "
+                "защитных, ни аналоговых связей.",
+            ],
+        }
+
+    def report_unbound(self):
+        """Отчёт по непривязанным элементам схемы."""
+        if not self.elements:
+            messagebox.showinfo("Отчёты", "Схема пуста — проверять нечего.")
+            return
+        try:
+            report = self._collect_unbound_report()
+        except Exception as error:
+            messagebox.showerror(
+                "Отчёты", "Не удалось сформировать отчёт:\n{}".format(error))
+            return
+        self._show_report_window(
+            report,
+            self._report_filename("Отчёт по непривязанным элементам"))
 
     @staticmethod
     def _report_filename(stem):
