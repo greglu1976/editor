@@ -884,7 +884,8 @@ class CircuitEditor:
                               "на вкладке «Главная», панель «Инструменты».\n"
                               "Комментарий к чертежу — панель «Аннотации».\n"
                               "Средняя кнопка мыши — панорама.\n"
-                              "Ctrl+F — поиск, R — вращение",
+                              "Ctrl+F — поиск, R — вращение,\n"
+                              "Esc — снять выделение и режим «Выбрать».",
                  bg="#f0f0f0", fg="#8a8a8a", font=("Arial", 7), justify="left").pack(anchor="w", padx=4, pady=(10, 0))
 
         self.canvas = tk.Canvas(self.root, bg="white", width=800, height=700,
@@ -4912,7 +4913,7 @@ class CircuitEditor:
         self.canvas.bind("<R>", self.rotate_selected)
         self.canvas.bind("<Delete>", self.delete_selected)
         self.canvas.bind("<BackSpace>", self.delete_selected)
-        self.root.bind("<Escape>", self.deselect_all)
+        self.root.bind("<Escape>", self._on_escape)
         
         self.root.bind("<Control-c>", self.copy_selection)
         self.root.bind("<Control-v>", self.paste_selection)
@@ -5455,6 +5456,26 @@ class CircuitEditor:
     def deselect_all(self, event=None):
         self.selected_elements = []
         self.selected_comment = None
+        self.redraw_all()
+
+    def _on_escape(self, event=None):
+        """Esc: снять выделение, отменить начатое действие, режим «Выбрать».
+
+        Если менять нечего — ничего не выделено, незавершённых операций нет
+        и активен режим «Выбрать», — перерисовки не будет: на большой схеме
+        Esc не должен стоить кадра.
+        """
+        pending = any((self.link_start, self._protection_start,
+                       self._bind_start, self._analog_start,
+                       self.resizing_element, self.selection_start,
+                       self.dragging_group, self._dragging_label,
+                       self._dragging_comment))
+        if not (self.selected_elements or self.selected_comment
+                or pending or self.current_tool != "select"):
+            return
+        self._reset_transient()
+        self.selected_comment = None
+        self.set_tool("select")
         self.redraw_all()
 
     # ================= КОПИРОВАНИЕ / ВСТАВКА =================
