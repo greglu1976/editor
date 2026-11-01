@@ -1325,6 +1325,10 @@ class Cabinet(Component):
                         "standard", "standard_title", "group", "goose")
             if definition.get(key) is not None
         }
+        for key in komplekts.DETAIL_FIELDS:
+            value = definition.get(key)
+            if value:
+                self.info[key] = value
         self.generate_ports()
 
     def bind_point(self):

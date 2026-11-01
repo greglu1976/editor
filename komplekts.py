@@ -66,9 +66,50 @@ MAX_TEST_BLOCKS = 99
 USER_CATALOG_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "komplekts.json")
 
+#: Универсальные описательные поля из СТО. Есть и у шкафов, и у комплектов;
+#: если в стандарте поле не описано — хранится None (null).
+DETAIL_FIELDS = (
+    "mp_functions",         # основные функции МП ИЭУ
+    "its_functions_desc",   # функции ИТС / отображаемые на схеме ИТС
+    "power_supply",         # вводы (цепи) питания оперативного тока
+    "ports",                # цифровые порты ИЭУ / порты шины
+    "connection_scheme",    # поясняющая схема подключения
+    "components",           # основные компоненты
+    "additional_equipment", # дополнительная аппаратура
+    "parameters",           # основные параметры функций ИЭУ
+    "general_view",         # эскиз общего вида
+    "structural_scheme",    # структурно-функциональная схема
+    "schematic",            # схема электрическая принципиальная
+    "climate",              # климатическое исполнение
+    "enclosure",            # степень защиты оболочки
+    "cooling",              # охлаждение
+    "communication",        # аппаратура связи
+    "notes",                # примечания
+)
+
+#: Подписи описательных полей для интерфейса и отчётов.
+DETAIL_LABELS = (
+    ("mp_functions", "Основные функции МП ИЭУ"),
+    ("its_functions_desc", "Функции ИТС"),
+    ("power_supply", "Вводы (цепи) питания"),
+    ("ports", "Цифровые порты"),
+    ("connection_scheme", "Поясняющая схема подключения"),
+    ("components", "Основные компоненты"),
+    ("additional_equipment", "Дополнительная аппаратура"),
+    ("parameters", "Параметры функций ИЭУ"),
+    ("general_view", "Эскиз общего вида"),
+    ("structural_scheme", "Структурно-функциональная схема"),
+    ("schematic", "Схема электрическая принципиальная"),
+    ("climate", "Климатическое исполнение"),
+    ("enclosure", "Степень защиты оболочки"),
+    ("cooling", "Охлаждение"),
+    ("communication", "Аппаратура связи"),
+    ("notes", "Примечания"),
+)
+
 #: Поля, которые можно править у типового комплекта (остальное — из шкафа).
 _OVERRIDABLE = ("name", "type", "functions", "desc", "has_ied", "ieds",
-                "test_blocks", "tags")
+                "test_blocks", "tags") + DETAIL_FIELDS
 
 #: Тег шкафов и комплектов из ещё не выпущенных (проектных) СТО.
 TAG_UNRELEASED = "Невыпущенные СТО"
@@ -157,6 +198,12 @@ def normalize_komplekt(definition, default_kind=None):
         else bool(ieds)
 
     entry["test_blocks"] = normalize_test_blocks(entry.get("test_blocks"))
+    for name in DETAIL_FIELDS:
+        value = entry.get(name)
+        if value is None:
+            entry[name] = None
+        else:
+            entry[name] = str(value).strip() or None
     tags = tags_of(entry)
     if tags:
         entry["tags"] = tags
@@ -304,7 +351,7 @@ def kit_from_cabinet(cabinet, index, kind=None):
     cabinet_key = cabinet.get("key") or ""
     kind = kind or cabinet_kit_kind(cabinet)
     prefix = "typ" if kind == "typical" else "cab"
-    return normalize_komplekt({
+    data = {
         "key": "{}:{}:{}".format(prefix, cabinet_key, index),
         "kind": kind,
         "source": "cabinet",
@@ -321,7 +368,10 @@ def kit_from_cabinet(cabinet, index, kind=None):
         "cabinet_name": cabinet.get("name") or cabinet.get("title") or "",
         "cabinet_group": cabinet.get("group") or "",
         "tags": tags_of(komplekt) or tags_of(cabinet),
-    })
+    }
+    for name in DETAIL_FIELDS:
+        data[name] = komplekt.get(name) or cabinet.get(name)
+    return normalize_komplekt(data)
 
 
 def cabinet_komplekts(cabinets=None):

@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog
+from tkinter import filedialog, messagebox, simpledialog, ttk
 import json
 import re
 import sys
@@ -76,7 +76,7 @@ ELEMENT_TYPE_TITLES = {
 }
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
-APP_TITLE = "Редактор электрических схем v21"
+APP_TITLE = "Редактор электрических схем v22"
 
 # Комментарии к чертежу — плашки с текстом, привязанные к точке схемы.
 # Все размеры в мировых единицах: записка масштабируется вместе с чертежом
@@ -2180,6 +2180,56 @@ class CircuitEditor:
                  anchor="w").grid(row=row, column=0, columnspan=2, sticky="w", pady=(10, 2))
         row += 1
 
+        details = {key: definition.get(key) or ""
+                   for key, _label in komplekts.DETAIL_LABELS}
+        details_button = tk.Button(
+            form, text="Описание из стандарта…",
+            command=lambda: edit_details())
+        details_button.grid(row=row, column=0, columnspan=2, sticky="w", pady=(2, 8))
+        row += 1
+        tk.Button(form, text="Сигналы и БИ…", width=20,
+                  command=lambda: self.show_signals_window(definition)).grid(
+            row=row, column=0, columnspan=2, sticky="w", pady=(0, 8))
+        row += 1
+
+        def edit_details():
+            """Диалог описательных полей шкафа (общие для шкафов и комплектов)."""
+            window = tk.Toplevel(dialog)
+            window.title("Описание шкафа из стандарта")
+            window.transient(dialog)
+            canvas = tk.Canvas(window, borderwidth=0, highlightthickness=0)
+            scroll = tk.Scrollbar(window, orient="vertical", command=canvas.yview)
+            canvas.configure(yscrollcommand=scroll.set)
+            scroll.pack(side=tk.RIGHT, fill=tk.Y)
+            canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            body = tk.Frame(canvas, padx=10, pady=8)
+            canvas.create_window((0, 0), window=body, anchor="nw")
+            body.bind("<Configure>", lambda event: canvas.configure(
+                scrollregion=canvas.bbox("all")))
+            entries = {}
+            for index, (key, label) in enumerate(komplekts.DETAIL_LABELS):
+                tk.Label(body, text=label, anchor="w").grid(
+                    row=index, column=0, sticky="nw", pady=2)
+                entry = tk.Entry(body, width=64)
+                entry.insert(0, details.get(key) or "")
+                entry.grid(row=index, column=1, sticky="we", padx=(8, 0), pady=2)
+                entries[key] = entry
+
+            def accept_details():
+                for key, entry in entries.items():
+                    details[key] = entry.get().strip()
+                window.destroy()
+
+            buttons = tk.Frame(body)
+            buttons.grid(row=len(komplekts.DETAIL_LABELS), column=0,
+                         columnspan=2, sticky="e", pady=(8, 0))
+            tk.Button(buttons, text="Отмена", width=10,
+                      command=window.destroy).pack(side=tk.RIGHT)
+            tk.Button(buttons, text="Готово", width=10,
+                      command=accept_details).pack(side=tk.RIGHT, padx=(0, 6))
+            window.bind("<Escape>", lambda event: window.destroy())
+            window.grab_set()
+
         default_kind = "typical" if definition.get("standard_key") else "custom"
         komplets = komplekts.normalize_komplets(
             (definition.get("komplets") or [])[:cabs.MAX_KOMPLETS], default_kind)
@@ -2369,6 +2419,9 @@ class CircuitEditor:
                 "goose": True,
                 "komplets": cleaned,
             }
+            for key, _label in komplekts.DETAIL_LABELS:
+                value = details.get(key)
+                data[key] = value or None
             try:
                 cabs.save_cabinet(data, original_key)
             except Exception as exc:
@@ -3817,6 +3870,62 @@ class CircuitEditor:
         if bound and target_container is not None:
             self.selected_elements = [target_container.id]
 
+    def show_signals_window(self, cabinet):
+        """Окно «Сигналы и испытательные блоки» по данным из СТО."""
+        data = cabs.signals_for(cabinet)
+        code = cabinet.get("code") or cabinet.get("name") or "Шкаф"
+        window = tk.Toplevel(self.root)
+        window.title("Сигналы и БИ — {}".format(code))
+        window.transient(self.root)
+
+        header = tk.Label(
+            window, anchor="w", justify="left", fg="#333333", wraplength=760,
+            text="{} — {}".format(code, cabinet.get("name") or ""))
+        header.pack(fill=tk.X, padx=10, pady=(8, 4))
+
+        if not data:
+            tk.Label(window, anchor="w", fg="#777777",
+                     text="Для этого шкафа перечни сигналов в стандарте "
+                          "не приведены.").pack(fill=tk.X, padx=10, pady=8)
+            tk.Button(window, text="Закрыть", width=12,
+                      command=window.destroy).pack(pady=(0, 10))
+            return
+
+        tabs = ttk.Notebook(window)
+        tabs.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 8))
+        for kind, title, _short in cabs.SIGNAL_KINDS:
+            items = data.get(kind) or []
+            if not items:
+                continue
+            frame = tk.Frame(tabs)
+            tabs.add(frame, text="{} ({})".format(title, len(items)))
+            tree = ttk.Treeview(frame, columns=("num", "name", "code", "details"),
+                                show="headings", height=16)
+            for column, label, width in (("num", "№", 40),
+                                         ("name", "Наименование", 300),
+                                         ("code", "МЭК 61850", 150),
+                                         ("details", "Сведения из таблицы", 320)):
+                tree.heading(column, text=label)
+                tree.column(column, width=width, anchor="w")
+            scrollbar = ttk.Scrollbar(frame, orient="vertical",
+                                      command=tree.yview)
+            tree.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            for position, item in enumerate(items, start=1):
+                if kind == "test_blocks":
+                    tree.insert("", "end", values=(
+                        position, item.get("name", ""), item.get("spec", ""),
+                        item.get("count", "")))
+                else:
+                    tree.insert("", "end", values=(
+                        item.get("num", position), item.get("name", ""),
+                        item.get("code", ""), item.get("details", "")))
+
+        tk.Button(window, text="Закрыть", width=12,
+                  command=window.destroy).pack(pady=(0, 10))
+        window.bind("<Escape>", lambda event: window.destroy())
+
     def _choose_cabinet(self):
         """Диалог выбора шкафа из cabs.py."""
         dialog = tk.Toplevel(self.root)
@@ -3916,10 +4025,22 @@ class CircuitEditor:
                 lines.append("Комплекты: " + "; ".join(komplekt_parts))
             if cabinet.get("applicability"):
                 lines.append(f'Применимость: {cabinet["applicability"]}')
+            for field, label in komplekts.DETAIL_LABELS:
+                value = cabinet.get(field)
+                if value:
+                    if len(value) > 220:
+                        value = value[:217].rstrip() + "…"
+                    lines.append("{}: {}".format(label, value))
             if cabinet.get("source"):
                 lines.append(f'Источник: {cabinet["source"]}')
             if cabs.cabinet_tags(cabinet):
                 lines.append("Теги: " + ", ".join(cabs.cabinet_tags(cabinet)))
+            counts = cabs.signal_counts(cabinet)
+            if any(counts.values()):
+                parts = ["{}: {}".format(short, counts[kind])
+                         for kind, _title, short in cabs.SIGNAL_KINDS
+                         if counts.get(kind)]
+                lines.append("Из СТО — " + ", ".join(parts))
             info.config(text="\n".join(lines))
 
             standard = cabs.standard_for(cabinet)
@@ -3983,6 +4104,15 @@ class CircuitEditor:
         buttons = tk.Frame(dialog)
         buttons.pack(fill=tk.X, padx=10, pady=(0, 8))
         tk.Button(buttons, text="Отмена", width=10, command=cancel).pack(side=tk.RIGHT)
+
+        def show_signals():
+            selection = listbox.curselection()
+            if selection:
+                self.show_signals_window(state["visible"][selection[0]])
+
+        signal_button = tk.Button(buttons, text="Сигналы и БИ…", width=16,
+                                  command=show_signals)
+        signal_button.pack(side=tk.LEFT)
         tk.Button(buttons, text="Добавить", width=12, command=accept).pack(side=tk.RIGHT, padx=(0, 6))
 
         listbox.bind("<Double-Button-1>", accept)
@@ -6859,13 +6989,22 @@ class CircuitEditor:
         self._ribbon_group(page, "НИР", lambda row: [
             self._ribbon_button(row, "Отчёт по НИР", self.report_nir,
                                 _ri_nir, 96).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Расширенный", self.report_nir_extended,
+                                _ri_nir, 104).pack(side=tk.LEFT, padx=(4, 0)),
+            self._ribbon_button(row, "Без сигналов",
+                                self.report_nir_extended_short,
+                                _ri_nir, 104).pack(side=tk.LEFT, padx=(4, 0)),
         ])
         tk.Label(page, text="«По схеме» — документ Word со всеми ведомостями.\n"
                             "«По выделению» — отчёт по шкафу или контейнеру.\n"
                             "«Непривязанные» — пустые контейнеры, комплекты\n"
                             "без связей, элементы со свободными выводами.\n"
                             "«Отчёт по НИР» — документ по форме: шкафы и их\n"
-                            "функции ИЭУ, спецификация одного контейнера.",
+                            "функции ИЭУ, спецификация одного контейнера.\n"
+                            "«Расширенный» — по всем контейнерам: описание\n"
+                            "контейнера, затем его шкафы с сигналами и БИ.\n"
+                            "«Без сигналов» — то же, но только описания\n"
+                            "контейнеров и шкафов, без перечней сигналов и БИ.",
                  bg="#f3f3f3", fg="#808080", font=("Arial", 7),
                  justify="left").pack(side=tk.LEFT, padx=12)
         return page
@@ -7228,6 +7367,9 @@ class CircuitEditor:
         if info.get("its_functions"):
             general.append(["Функции ИТС",
                             ", ".join(info["its_functions"])])
+        for field, label in komplekts.DETAIL_LABELS:
+            if info.get(field):
+                general.append([label, info[field]])
         if info.get("standard_title") or info.get("standard"):
             general.append(["Стандарт",
                             info.get("standard_title") or info.get("standard")])
@@ -7237,6 +7379,13 @@ class CircuitEditor:
             ["Комплектов в шкафу", str(len(kits))],
             ["Устройств ИЭУ", str(ied_count)],
         ]
+        signal_data = cabs.signals_for(
+            {"key": getattr(cabinet, "cabinet_key", "") or ""})
+        if signal_data:
+            for kind, title, _short in cabs.SIGNAL_KINDS:
+                items = signal_data.get(kind) or []
+                if items:
+                    general.append(["{} (из СТО)".format(title), str(len(items))])
 
         total = [
             ["Всего комплектов", str(len(kits))],
@@ -7982,6 +8131,259 @@ class CircuitEditor:
         self._show_report_window(report,
                                  self._report_filename("Отчет по НИР"))
 
+    # ---------- расширенный отчёт по НИР: все контейнеры и их шкафы ------
+    #: Строки, которые в расширенный отчёт по НИР не выводятся.
+    NIR_HIDDEN_ROWS = ("Источник", "Группа", "Вводы (цепи) питания",
+                       "Поясняющая схема подключения",
+                       "Основные компоненты", "Эскиз общего вида",
+                       "Схема электрическая принципиальная", "Параметры функций ИЭУ", "Структурно-функциональная схема")
+
+    @classmethod
+    def _nir_pairs_table(cls, rows):
+        """Таблица «показатель — значение» для блоков отчёта."""
+        hidden = set(cls.NIR_HIDDEN_ROWS)
+        rows = [row for row in rows if not row or row[0] not in hidden]
+        return {
+            "kind": "table",
+            "header": ["Показатель", "Значение"],
+            "rows": rows,
+            "widths": [2600, 7038],
+            "aligns": ["left", "left"],
+            "font_size": 8,
+        }
+
+    def _nir_container_rows(self, container):
+        """Описание контейнера: обозначение, тип, состав, габариты."""
+        code = (getattr(container, "code", "") or "").strip() or "КЭТ"
+        info = getattr(container, "info", {}) or {}
+        rows = [["Обозначение", container.name or code],
+                ["Тип контейнера", code],
+                ["Наименование", info.get("name") or container.title or "—"]]
+        for key, label in (("group", "Группа"),
+                           ("standard_title", "Стандарт"),
+                           ("architecture", "Архитектура"),
+                           ("size_title", "Типоразмер"),
+                           ("dimensions", "Габариты"),
+                           ("climate", "Климатическое исполнение"),
+                           ("ip", "Степень защиты оболочки")):
+            if info.get(key):
+                rows.append([label, str(info[key])])
+        if info.get("standard") and not info.get("standard_title"):
+            rows.append(["Стандарт", str(info["standard"])])
+        rows.append(["Слотов в контейнере", str(container.slot_count())])
+        rows.append(["Шкафов привязано", str(container.bound_count())])
+        if info.get("description"):
+            rows.append(["Назначение", str(info["description"])])
+        composition = info.get("composition") or []
+        if composition:
+            rows.append(["Состав контейнера",
+                         "\n".join(str(item) for item in composition)])
+        if info.get("note"):
+            rows.append(["Примечание", str(info["note"])])
+        if info.get("source"):
+            rows.append(["Источник", str(info["source"])])
+        return rows
+
+    def _nir_cabinet_rows(self, cabinet, with_blocks=True):
+        """Расширенное описание шкафа: тип, функции, питание, порты, БИ.
+
+        with_blocks=False — без испытательных блоков (для краткого отчёта).
+        """
+        code, name, standard = self._nir_cabinet_fields(cabinet)
+        info = getattr(cabinet, "info", {}) or {}
+        kits = list(getattr(cabinet, "komplets", []) or [])
+        signals = cabs.signals_for(
+            {"key": getattr(cabinet, "cabinet_key", "") or ""})
+        rows = [["Тип (шифр)", code], ["Наименование", name],
+                ["Стандарт", standard]]
+        for key, label in (("group", "Группа"), ("voltage", "Напряжение"),
+                           ("architecture", "Архитектура")):
+            value = info.get(key) or (cabs.find_cabinet(
+                getattr(cabinet, "cabinet_key", "") or "") or {}).get(key)
+            if value:
+                rows.append([label, str(value)])
+        if info.get("protected"):
+            rows.append(["Защищаемый элемент", str(info["protected"])])
+        if info.get("controlled"):
+            rows.append(["Управляемые элементы",
+                         ", ".join(info["controlled"])])
+        functions = self._nir_functions_text(cabinet)
+        if functions:
+            # каждый ИЭУ — с новой строки, чтобы функции читались построчно
+            functions = functions.replace("; ", ";\n")
+        rows.append(["Функции ИЭУ", functions or "—"])
+        rows.append(["Комплектов / ИЭУ", "{} / {}".format(
+            len(kits),
+            sum(len(komplekts.effective_ieds(kit)) for kit in kits))])
+        blocks_text = [komplekts.test_blocks_text(kit) for kit in kits
+                       if komplekts.has_test_blocks(kit)]
+        if blocks_text and with_blocks:
+            rows.append(["Испытательные блоки (комплекты)",
+                         "; ".join(blocks_text)])
+        if info.get("applicability"):
+            rows.append(["Применимость", str(info["applicability"])])
+        for field, label in komplekts.DETAIL_LABELS:
+            value = info.get(field) or (cabs.find_cabinet(
+                getattr(cabinet, "cabinet_key", "") or "") or {}).get(field)
+            if value:
+                rows.append([label, str(value)])
+        if signals.get("test_blocks") and with_blocks:
+            rows.append(["Испытательные блоки (СТО)", ", ".join(
+                block.get("name", "") for block in signals["test_blocks"])])
+        if info.get("source"):
+            rows.append(["Источник", str(info["source"])])
+        return rows
+
+    def _collect_nir_extended_report(self, with_signals=True):
+        """Расширенный отчёт по НИР: раздел на каждый контейнер и его шкафы.
+
+        with_signals=False — краткий вариант: описания контейнеров и шкафов
+        без таблиц входных/выходных сигналов и испытательных блоков.
+        """
+        containers = sorted(
+            (el for el in self.elements.values() if el.type == "container"),
+            key=lambda el: self._natural_key(
+                el.name or getattr(el, "code", "") or el.id))
+        if not containers:
+            return None, ("На схеме нет контейнеров — расширенный отчёт "
+                          "по НИР строить не из чего.")
+
+        blocks = []
+        tables = {"number": 0}
+
+        def next_table():
+            tables["number"] += 1
+            return tables["number"]
+
+        def add_cabinet(cabinet, prefix):
+            code = self._nir_cabinet_fields(cabinet)[0]
+            blocks.append({"kind": "heading", "level": 2,
+                           "text": "{} {}".format(
+                               prefix, self._nir_cabinet_heading(cabinet))})
+            number = next_table()
+            blocks.append({"kind": "caption",
+                           "text": "Таблица {} – Описание шкафа {}".format(
+                               number, code)})
+            blocks.append(self._nir_pairs_table(
+                self._nir_cabinet_rows(cabinet, with_blocks=with_signals)))
+
+            if not with_signals:
+                return
+            signals = cabs.signals_for(
+                {"key": getattr(cabinet, "cabinet_key", "") or ""})
+            present = [(kind, title) for kind, title, _short in
+                       cabs.SIGNAL_KINDS if signals.get(kind)]
+            if not present:
+                blocks.append({"kind": "paragraph",
+                               "text": "Перечни сигналов и испытательных "
+                                       "блоков в стандарте не приведены."})
+                return
+            for kind, title in present:
+                items = signals.get(kind) or []
+                number = next_table()
+                blocks.append({"kind": "caption",
+                               "text": "Таблица {} – {} шкафа {}".format(
+                                   number, title, code)})
+                if kind == "test_blocks":
+                    rows = [[str(position), item.get("name", ""),
+                             item.get("spec", ""), item.get("count", "")]
+                            for position, item in enumerate(items, start=1)]
+                    blocks.append({
+                        "kind": "table",
+                        "header": ["№", "Испытательный блок", "Цепи",
+                                   "Кол-во"],
+                        "rows": rows,
+                        "widths": [600, 4000, 4000, 1038],
+                        "aligns": ["center", "left", "left", "center"],
+                        "font_size": 8,
+                    })
+                else:
+                    rows = [[str(item.get("num") or position),
+                             item.get("name", ""), item.get("code", ""),
+                             item.get("details", "")]
+                            for position, item in enumerate(items, start=1)]
+                    blocks.append({
+                        "kind": "table",
+                        "header": ["№", "Наименование сигнала",
+                                   "Обозначение по МЭК 61850", "Сведения"],
+                        "rows": rows,
+                        "widths": [600, 3400, 1900, 3738],
+                        "aligns": ["center", "left", "left", "left"],
+                        "font_size": 8,
+                    })
+
+        for index, container in enumerate(containers, start=1):
+            code = (getattr(container, "code", "") or "").strip() or "КЭТ"
+            name = (getattr(container, "info", {}) or {}).get("name") \
+                or container.title or ""
+            if index > 1:
+                blocks.append({"kind": "pagebreak"})
+            blocks.append({"kind": "heading", "level": 1,
+                           "text": "{}. Контейнер {} {}".format(
+                               index, code, name).strip()})
+            number = next_table()
+            blocks.append({"kind": "paragraph",
+                           "text": "Описание контейнера приведено "
+                                   "в таблице {}.".format(number)})
+            blocks.append({"kind": "caption",
+                           "text": "Таблица {} – Контейнер {}".format(
+                               number, code)})
+            blocks.append(self._nir_pairs_table(
+                self._nir_container_rows(container)))
+
+            cabinets = [self.elements[cabinet_id]
+                        for cabinet_id in container.bound_ids()
+                        if cabinet_id in self.elements]
+            if not cabinets:
+                blocks.append({"kind": "paragraph",
+                               "text": "К контейнеру не привязано ни одного "
+                                       "шкафа."})
+                continue
+            for position, cabinet in enumerate(cabinets, start=1):
+                add_cabinet(cabinet, "{}.{}.".format(index, position))
+
+        bound = set()
+        for container in containers:
+            bound.update(container.bound_ids())
+        free = sorted(
+            (el for el in self.elements.values()
+             if el.type == "cabinet" and el.id not in bound),
+            key=lambda el: self._natural_key(self._nir_cabinet_fields(el)[0]))
+        if free:
+            blocks.append({"kind": "heading", "level": 1,
+                           "text": "Шкафы вне контейнеров"})
+            for position, cabinet in enumerate(free, start=1):
+                add_cabinet(cabinet, "{}.{}.".format(len(containers) + 1,
+                                                    position))
+
+        title = ("Расширенный отчет по НИР" if with_signals else
+                 "Расширенный отчет по НИР (без сигналов и БИ)")
+        return {
+            "title": title,
+            "format": "blocks",
+            "footer": title,
+            "blocks": blocks,
+        }, None
+
+    def report_nir_extended(self):
+        """Расширенный отчёт по НИР: все контейнеры, их шкафы, сигналы и БИ."""
+        report, error = self._collect_nir_extended_report()
+        if report is None:
+            messagebox.showinfo("Расширенный отчет по НИР", error)
+            return
+        self._show_report_window(
+            report, self._report_filename("Расширенный отчет по НИР"))
+
+    def report_nir_extended_short(self):
+        """Расширенный отчёт по НИР без входных/выходных сигналов и БИ."""
+        report, error = self._collect_nir_extended_report(with_signals=False)
+        if report is None:
+            messagebox.showinfo("Расширенный отчет по НИР", error)
+            return
+        self._show_report_window(
+            report, self._report_filename(
+                "Расширенный отчет по НИР без сигналов и БИ"))
+
     def report_unbound(self):
         """Отчёт по непривязанным элементам схемы."""
         if not self.elements:
@@ -8006,23 +8408,37 @@ class CircuitEditor:
 
     @staticmethod
     def _table_text(header, rows):
-        """Строки таблицы для моноширинного предпросмотра."""
+        """Строки таблицы для моноширинного предпросмотра.
+
+        Ячейка может содержать переводы строк (например, функции ИЭУ —
+        по строке на устройство): такая ячейка занимает несколько
+        физических строк таблицы.
+        """
         table = [list(header)] + [list(row) for row in rows]
         columns = len(header)
-        widths = [0] * columns
+        cells_rows = []
         for row in table:
+            cells_rows.append([
+                str(row[index] if index < len(row) else "").split("\n")
+                for index in range(columns)])
+        widths = [0] * columns
+        for cells in cells_rows:
             for index in range(columns):
-                value = str(row[index]) if index < len(row) else ""
-                widths[index] = min(34, max(widths[index], len(value)))
+                for part in cells[index]:
+                    widths[index] = min(34, max(widths[index], len(part)))
         lines = []
-        for number, row in enumerate(table):
-            cells = []
-            for index in range(columns):
-                value = str(row[index]) if index < len(row) else ""
-                if len(value) > widths[index]:
-                    value = value[:widths[index] - 1] + "…"
-                cells.append(value.ljust(widths[index]))
-            lines.append("  " + " | ".join(cells).rstrip())
+        for number, cells in enumerate(cells_rows):
+            height = max(len(parts) for parts in cells)
+            for line_index in range(height):
+                rendered = []
+                for index in range(columns):
+                    parts = cells[index]
+                    value = (parts[line_index]
+                             if line_index < len(parts) else "")
+                    if len(value) > widths[index]:
+                        value = value[:widths[index] - 1] + "…"
+                    rendered.append(value.ljust(widths[index]))
+                lines.append("  " + " | ".join(rendered).rstrip())
             if number == 0:
                 lines.append("  " + "-+-".join("-" * w for w in widths))
         return lines
@@ -8043,6 +8459,10 @@ class CircuitEditor:
                 lines.append("")
             elif kind == "caption":
                 lines.append("  " + (block.get("text") or ""))
+            elif kind == "pagebreak":
+                lines.append("")
+                lines.append("-" * 60 + " разрыв страницы")
+                lines.append("")
             elif kind == "table":
                 header = block.get("header") or []
                 if header:

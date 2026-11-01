@@ -46,8 +46,11 @@ def _run(text, bold=False, size=None, color=None, italic=False):
     if size:
         props.append('<w:sz w:val="{}"/>'.format(int(size * 2)))
     rpr = "<w:rPr>{}</w:rPr>".format("".join(props)) if props else ""
-    return ('<w:r>{}<w:t xml:space="preserve">{}</w:t></w:r>'
-            .format(rpr, escape(str(text))))
+    pieces = str(text).split("\n")
+    inner = "<w:br/>".join(
+        '<w:t xml:space="preserve">{}</w:t>'.format(escape(piece))
+        for piece in pieces)
+    return '<w:r>{}{}</w:r>'.format(rpr, inner)
 
 
 def _paragraph(text, bold=False, size=None, align=None, space_after=0,
@@ -579,6 +582,8 @@ def build_nir_report(path, report):
                             level=int(block.get("level", 1)))
         elif kind == "caption":
             builder.caption(block.get("text") or "")
+        elif kind == "pagebreak":
+            builder.page_break()
         elif kind == "table":
             builder.table(header=block.get("header") or [],
                           rows=block.get("rows") or [],
