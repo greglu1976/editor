@@ -1426,6 +1426,9 @@ class CircuitEditor:
             if komplekts.has_test_blocks(kit):
                 lines.append("Испытательные блоки: " +
                              komplekts.test_blocks_text(kit))
+            if komplekts.has_analog(kit):
+                lines.append("Аналоговые измерения: " +
+                             komplekts.analog_text(kit))
             if kit.get("desc"):
                 lines.append("Примечание: " + kit["desc"])
             if komplekts.tags_of(kit):
@@ -1658,6 +1661,9 @@ class CircuitEditor:
             if komplekts.has_test_blocks(kit):
                 lines.append("Испытательные блоки: " +
                              komplekts.test_blocks_text(kit))
+            if komplekts.has_analog(kit):
+                lines.append("Аналоговые измерения: " +
+                             komplekts.analog_text(kit))
             if kit.get("desc"):
                 lines.append("Примечание: " + kit["desc"])
             if komplekts.tags_of(kit):
@@ -1845,54 +1851,196 @@ class CircuitEditor:
                                       command=lambda: remove_ied())
         remove_ied_button.pack(pady=1)
 
-        blocks_frame = tk.LabelFrame(form, text="Испытательные блоки",
+        blocks_frame = tk.LabelFrame(form, text="Испытательные блоки (ИБ)",
                                      padx=8, pady=4)
         blocks_frame.grid(row=rows["row"], column=0, columnspan=2,
                           sticky="we", pady=(8, 2))
         rows["row"] += 1
 
-        blocks = komplekts.normalize_test_blocks(data.get("test_blocks"))
-        volt_count_var = tk.StringVar(value=str(blocks["voltage"]["count"]))
-        volt_circuits_var = tk.StringVar(
-            value=", ".join(blocks["voltage"]["circuits"]))
-        curr_count_var = tk.StringVar(value=str(blocks["current"]["count"]))
-        curr_circuits_var = tk.StringVar(
-            value=", ".join(blocks["current"]["circuits"]))
+        def initial_blocks(kit):
+            """Список ИБ комплекта; у старых записей — из сводки U/I."""
+            listed = komplekts.normalize_block_list(
+                kit.get("test_block_list"))
+            if listed:
+                return listed
+            summary = komplekts.normalize_test_blocks(kit.get("test_blocks"))
+            result = []
+            for side, name in (("voltage", "Напряжение (U)"),
+                               ("current", "Ток (I)")):
+                part = summary[side]
+                if part["count"] or part["circuits"]:
+                    result.append({
+                        "name": name,
+                        "circuits": ", ".join(part["circuits"]),
+                        "count": str(part["count"]),
+                        "note": "",
+                    })
+            return result
 
-        def add_block_row(label, count_var, circuits_var, presets):
-            line = tk.Frame(blocks_frame)
-            line.pack(fill=tk.X, pady=(3, 0))
-            tk.Label(line, text=label, width=17, anchor="w").pack(side=tk.LEFT)
-            tk.Label(line, text="блоков").pack(side=tk.LEFT)
-            tk.Spinbox(line, from_=0, to=komplekts.MAX_TEST_BLOCKS, width=4,
-                       textvariable=count_var).pack(side=tk.LEFT, padx=(4, 10))
-            tk.Label(line, text="цепи:").pack(side=tk.LEFT)
-            tk.Entry(line, textvariable=circuits_var, width=30).pack(
-                side=tk.LEFT, fill=tk.X, expand=True)
-            buttons = tk.Frame(blocks_frame)
-            buttons.pack(fill=tk.X, padx=(150, 0))
-            for position, preset in enumerate(presets):
-                def toggle(name=preset, variable=circuits_var):
-                    tokens = komplekts.split_list(variable.get())
-                    if name in tokens:
-                        tokens.remove(name)
-                    else:
-                        tokens.append(name)
-                    variable.set(", ".join(tokens))
+        block_rows = initial_blocks(data)
+        block_state = {"index": 0}
 
-                tk.Button(buttons, text=preset, width=6, font=("Arial", 8),
-                          command=toggle).grid(row=position // 6,
-                                               column=position % 6,
-                                               padx=(0, 2), pady=(0, 2),
-                                               sticky="w")
+        list_line = tk.Frame(blocks_frame)
+        list_line.pack(fill=tk.X)
+        block_list = tk.Listbox(list_line, height=5, width=58,
+                                activestyle="dotbox")
+        block_scroll = tk.Scrollbar(list_line, orient="vertical",
+                                    command=block_list.yview)
+        block_list.configure(yscrollcommand=block_scroll.set)
+        block_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        block_list.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        add_block_row("Напряжение (U):", volt_count_var, volt_circuits_var,
-                      komplekts.VOLTAGE_PRESETS)
-        add_block_row("Ток (I):", curr_count_var, curr_circuits_var,
-                      komplekts.CURRENT_PRESETS)
-        tk.Label(blocks_frame,
-                 text="Например: Ua, Ub, Uc · 3U0 · Ia, Ib, Ic · 3I0 "
-                      "(как в связях аналоговых цепей)",
+        fields = tk.Frame(blocks_frame)
+        fields.pack(fill=tk.X, pady=(4, 0))
+        block_name_var = tk.StringVar()
+        block_count_var = tk.StringVar()
+        block_circuits_var = tk.StringVar()
+        block_note_var = tk.StringVar()
+        tk.Label(fields, text="Обозначение:").grid(row=0, column=0, sticky="w")
+        tk.Entry(fields, textvariable=block_name_var, width=14).grid(
+            row=0, column=1, sticky="w", padx=(4, 12))
+        tk.Label(fields, text="Контактов:").grid(row=0, column=2, sticky="w")
+        tk.Entry(fields, textvariable=block_count_var, width=10).grid(
+            row=0, column=3, sticky="w", padx=(4, 0))
+        tk.Label(fields, text="Цепи:").grid(row=1, column=0, sticky="w",
+                                            pady=(3, 0))
+        tk.Entry(fields, textvariable=block_circuits_var, width=52).grid(
+            row=1, column=1, columnspan=3, sticky="we", padx=(4, 0),
+            pady=(3, 0))
+        tk.Label(fields, text="Пояснение:").grid(row=2, column=0, sticky="w",
+                                                 pady=(3, 0))
+        tk.Entry(fields, textvariable=block_note_var, width=52).grid(
+            row=2, column=1, columnspan=3, sticky="we", padx=(4, 0),
+            pady=(3, 0))
+
+        block_buttons = tk.Frame(blocks_frame)
+        block_buttons.pack(fill=tk.X, pady=(4, 0))
+        block_hint = tk.Label(blocks_frame, text="", fg="#808080",
+                              font=("Arial", 7), anchor="w")
+        block_hint.pack(fill=tk.X, pady=(2, 0))
+
+        def block_caption(row, position):
+            parts = [row["name"] or "ИБ {}".format(position)]
+            if row["circuits"]:
+                parts.append(row["circuits"])
+            if row["count"]:
+                parts.append("({})".format(row["count"]))
+            if row["note"]:
+                parts.append("— " + row["note"])
+            return " · ".join(parts)
+
+        def refresh_blocks(select=None):
+            block_list.delete(0, "end")
+            for position, row in enumerate(block_rows, start=1):
+                block_list.insert("end", block_caption(row, position))
+            if block_rows:
+                index = block_state["index"] if select is None else select
+                index = max(0, min(index, len(block_rows) - 1))
+                block_list.selection_clear(0, "end")
+                block_list.selection_set(index)
+                block_list.see(index)
+                show_block(index)
+            else:
+                for variable in (block_name_var, block_count_var,
+                                 block_circuits_var, block_note_var):
+                    variable.set("")
+            block_hint.config(text="Всего ИБ: {}".format(len(block_rows)))
+
+        def show_block(index):
+            if not (0 <= index < len(block_rows)):
+                return
+            block_state["index"] = index
+            row = block_rows[index]
+            block_name_var.set(row["name"])
+            block_count_var.set(row["count"])
+            block_circuits_var.set(row["circuits"])
+            block_note_var.set(row["note"])
+
+        def collect_fields():
+            return {"name": block_name_var.get().strip(),
+                    "circuits": block_circuits_var.get().strip(),
+                    "count": block_count_var.get().strip(),
+                    "note": block_note_var.get().strip()}
+
+        def on_block_select(event=None):
+            selection = block_list.curselection()
+            if selection:
+                show_block(selection[0])
+
+        def apply_block():
+            row = collect_fields()
+            if not any(row.values()):
+                return
+            if block_rows and block_state["index"] < len(block_rows):
+                block_rows[block_state["index"]] = row
+            else:
+                block_rows.append(row)
+            refresh_blocks()
+
+        def add_block():
+            row = collect_fields()
+            if not any(row.values()):
+                row = {"name": "ИБ{}".format(len(block_rows) + 1),
+                       "circuits": "", "count": "", "note": ""}
+            block_rows.append(row)
+            block_state["index"] = len(block_rows) - 1
+            refresh_blocks()
+
+        def remove_block():
+            if not block_rows:
+                return
+            index = block_state["index"]
+            if 0 <= index < len(block_rows):
+                block_rows.pop(index)
+            block_state["index"] = max(0, index - 1)
+            refresh_blocks()
+
+        tk.Button(block_buttons, text="+ ИБ", width=8,
+                  command=add_block).pack(side=tk.LEFT)
+        tk.Button(block_buttons, text="− ИБ", width=8,
+                  command=remove_block).pack(side=tk.LEFT, padx=(6, 0))
+        tk.Button(block_buttons, text="Применить", width=11,
+                  command=apply_block).pack(side=tk.LEFT, padx=(6, 0))
+
+        block_list.bind("<<ListboxSelect>>", on_block_select)
+        refresh_blocks(0)
+
+        analog_frame = tk.LabelFrame(form, text="Аналоговые измерения",
+                                     padx=8, pady=4)
+        analog_frame.grid(row=rows["row"], column=0, columnspan=2,
+                          sticky="we", pady=(6, 2))
+        rows["row"] += 1
+        analog_text = tk.Text(analog_frame, height=4, width=80, wrap="none",
+                              font=("Arial", 8))
+        analog_text.pack(fill=tk.X)
+
+        def analog_lines(kit):
+            """Строки таблицы аналоговых измерений в редактируемом виде."""
+            return "".join(
+                "{} | {} | {} | {}\n".format(row["block"], row["signals"],
+                                             row["contacts"], row["note"])
+                for row in komplekts.normalize_analog(
+                    kit.get("analog_inputs")))
+
+        def parse_analog():
+            """Обратно из текста: блок | измерения | контактов | пояснение."""
+            result_rows = []
+            for line in analog_text.get("1.0", "end").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                parts = [part.strip() for part in line.split("|")]
+                if len(parts) == 1:
+                    parts = ["", parts[0]]
+                parts += [""] * (4 - len(parts))
+                result_rows.append({"block": parts[0], "signals": parts[1],
+                                    "contacts": parts[2], "note": parts[3]})
+            return result_rows
+
+        analog_text.insert("1.0", analog_lines(data))
+        tk.Label(analog_frame,
+                 text="По строке на измерение: блок | измерения | контактов | "
+                      "пояснение (пустые строки пропускаются)",
                  fg="#999999", font=("Arial", 7), anchor="w").pack(
             fill=tk.X, pady=(4, 0))
 
@@ -1981,10 +2129,12 @@ class CircuitEditor:
             refresh_ieds()
             sync_ied_state()
             blocks = komplekts.normalize_test_blocks(kit.get("test_blocks"))
-            volt_count_var.set(str(blocks["voltage"]["count"]))
-            volt_circuits_var.set(", ".join(blocks["voltage"]["circuits"]))
-            curr_count_var.set(str(blocks["current"]["count"]))
-            curr_circuits_var.set(", ".join(blocks["current"]["circuits"]))
+            del block_rows[:]
+            block_rows.extend(initial_blocks(kit))
+            block_state["index"] = 0
+            refresh_blocks(0)
+            analog_text.delete("1.0", "end")
+            analog_text.insert("1.0", analog_lines(kit))
 
         def on_cabinet_change(value=None):
             set_index_bounds()
@@ -2043,19 +2193,11 @@ class CircuitEditor:
                 "desc": desc_var.get().strip(),
                 "has_ied": has_ied_var.get(),
                 "ieds": [dict(ied) for ied in ieds],
-                "test_blocks": {
-                    "voltage": {
-                        "count": _int(volt_count_var.get()),
-                        "circuits": komplekts.split_list(
-                            volt_circuits_var.get()),
-                    },
-                    "current": {
-                        "count": _int(curr_count_var.get()),
-                        "circuits": komplekts.split_list(
-                            curr_circuits_var.get()),
-                    },
-                },
+                "test_blocks": komplekts.normalize_test_blocks(
+                    data.get("test_blocks")),
+                "test_block_list": [dict(row) for row in block_rows],
                 "cabinet_key": cabinet_key,
+                "analog_inputs": parse_analog(),
                 "cabinet_index": max(0, _int(index_var.get(), 1) - 1) if
                 kind == "typical" else 0,
                 "cabinet_code": cabinet_code if kind == "typical" else "",
@@ -2307,6 +2449,9 @@ class CircuitEditor:
             if komplekts.has_test_blocks(kit):
                 lines.append("Испытательные блоки: " +
                              komplekts.test_blocks_text(kit))
+            if komplekts.has_analog(kit):
+                lines.append("Аналоговые измерения: " +
+                             komplekts.analog_text(kit))
             if kit.get("desc"):
                 lines.append("Примечание: " + kit["desc"])
             if komplekts.tags_of(kit):
@@ -3874,6 +4019,11 @@ class CircuitEditor:
     def show_signals_window(self, cabinet):
         """Окно «Сигналы и испытательные блоки» по данным из СТО."""
         data = cabs.signals_for(cabinet)
+        definition = cabs.find_cabinet(cabinet.get("key") or "") or {}
+        analog_rows = []
+        for kit in definition.get("komplets") or []:
+            for row in komplekts.normalize_analog(kit.get("analog_inputs")):
+                analog_rows.append((kit.get("name") or "Комплект", row))
         code = cabinet.get("code") or cabinet.get("name") or "Шкаф"
         window = tk.Toplevel(self.root)
         window.title("Сигналы и БИ — {}".format(code))
@@ -3884,7 +4034,7 @@ class CircuitEditor:
             text="{} — {}".format(code, cabinet.get("name") or ""))
         header.pack(fill=tk.X, padx=10, pady=(8, 4))
 
-        if not data:
+        if not data and not analog_rows:
             tk.Label(window, anchor="w", fg="#777777",
                      text="Для этого шкафа перечни сигналов в стандарте "
                           "не приведены.").pack(fill=tk.X, padx=10, pady=8)
@@ -3922,6 +4072,31 @@ class CircuitEditor:
                     tree.insert("", "end", values=(
                         item.get("num", position), item.get("name", ""),
                         item.get("code", ""), item.get("details", "")))
+
+        if analog_rows:
+            frame = tk.Frame(tabs)
+            tabs.add(frame, text="Аналоговые измерения ({})".format(
+                len(analog_rows)))
+            tree = ttk.Treeview(
+                frame, show="headings", height=16,
+                columns=("num", "kit", "block", "signals", "contacts", "note"))
+            for column, label, width in (("num", "№", 40),
+                                         ("kit", "Комплект", 110),
+                                         ("block", "Блок", 70),
+                                         ("signals", "Аналоговые измерения", 210),
+                                         ("contacts", "Контактов", 80),
+                                         ("note", "Пояснение", 300)):
+                tree.heading(column, text=label)
+                tree.column(column, width=width, anchor="w")
+            scrollbar = ttk.Scrollbar(frame, orient="vertical",
+                                      command=tree.yview)
+            tree.configure(yscrollcommand=scrollbar.set)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            for position, (kit_name, row) in enumerate(analog_rows, start=1):
+                tree.insert("", "end", values=(
+                    position, kit_name, row["block"], row["signals"],
+                    row["contacts"], row["note"]))
 
         tk.Button(window, text="Закрыть", width=12,
                   command=window.destroy).pack(pady=(0, 10))
@@ -8241,6 +8416,20 @@ class CircuitEditor:
         if blocks_text and with_blocks:
             rows.append(["Испытательные блоки (комплекты)",
                          "; ".join(blocks_text)])
+        if blocks_text and not with_blocks:
+            # краткий отчёт: по строке на каждый комплект с испытательными
+            # блоками — обозначения и характеристики из стандарта
+            for number, kit in enumerate(kits, start=1):
+                if not komplekts.has_test_blocks(kit):
+                    continue
+                rows.append([
+                    "ИБ комплекта {}{}".format(
+                        number,
+                        " ({})".format(kit["name"])
+                        if kit.get("name")
+                        and kit["name"] != "Комплект {}".format(number)
+                        else ""),
+                    komplekts.test_blocks_text(kit)])
         if info.get("applicability"):
             rows.append(["Применимость", str(info["applicability"])])
         for field, label in komplekts.DETAIL_LABELS:

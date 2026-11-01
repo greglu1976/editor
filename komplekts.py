@@ -109,7 +109,8 @@ DETAIL_LABELS = (
 
 #: Поля, которые можно править у типового комплекта (остальное — из шкафа).
 _OVERRIDABLE = ("name", "type", "functions", "desc", "has_ied", "ieds",
-                "test_blocks", "tags") + DETAIL_FIELDS
+                "test_blocks", "test_block_list", "analog_inputs",
+                "tags") + DETAIL_FIELDS
 
 #: Тег шкафов и комплектов из ещё не выпущенных (проектных) СТО.
 TAG_UNRELEASED = "Невыпущенные СТО"
@@ -198,6 +199,9 @@ def normalize_komplekt(definition, default_kind=None):
         else bool(ieds)
 
     entry["test_blocks"] = normalize_test_blocks(entry.get("test_blocks"))
+    entry["test_block_list"] = normalize_block_list(
+        entry.get("test_block_list"))
+    entry["analog_inputs"] = normalize_analog(entry.get("analog_inputs"))
     for name in DETAIL_FIELDS:
         value = entry.get(name)
         if value is None:
@@ -231,12 +235,17 @@ def effective_ieds(entry):
 
 
 def has_test_blocks(entry):
+    if normalize_block_list(entry.get("test_block_list")):
+        return True
     blocks = normalize_test_blocks(entry.get("test_blocks"))
     return any(blocks[side]["count"] for side in ("voltage", "current"))
 
 
 def test_blocks_text(entry, compact=False):
-    """Подпись испытательных блоков: «U: 2 (Ua, Ub); I: 1 (Ia)» или «—»."""
+    """Подпись испытательных блоков: список ИБ, иначе сводка U/I."""
+    listed = block_list_text(entry, compact=compact)
+    if listed:
+        return listed
     blocks = normalize_test_blocks(entry.get("test_blocks"))
     parts = []
     for side, prefix in (("voltage", "U"), ("current", "I")):
@@ -253,6 +262,92 @@ def test_blocks_text(entry, compact=False):
     if compact:
         return "/".join(parts) or "—"
     return "; ".join(parts) or "—"
+
+
+def normalize_block_list(items):
+    """Список испытательных блоков комплекта с характеристиками.
+
+    Строка: ``{"name": "SG1", "circuits": "6 силовых + 1 сигнальная",
+    "count": "7", "note": "Фазные токи В1"}``.
+    """
+    result = []
+    for item in items or []:
+        if isinstance(item, str):
+            item = {"name": item}
+        if not isinstance(item, dict):
+            continue
+        row = {name: str(item.get(name) or "").strip()
+               for name in ("name", "circuits", "count", "note")}
+        if not any(row.values()):
+            continue
+        result.append(row)
+    return result
+
+
+def block_list_text(entry, compact=False, separator="; "):
+    """Подпись испытательных блоков комплекта."""
+    rows = normalize_block_list(entry.get("test_block_list"))
+    if not rows:
+        return None
+    if compact:
+        return str(len(rows))
+    parts = []
+    for row in rows:
+        text = row["name"] or "ИБ"
+        if row["circuits"]:
+            text += ": " + row["circuits"]
+        if row["count"]:
+            text += " ({})".format(row["count"])
+        if row["note"]:
+            text += " — " + row["note"]
+        parts.append(text)
+    return separator.join(parts)
+
+
+def normalize_analog(items):
+    """Аналоговые измерения комплекта: список строк таблицы стандарта.
+
+    Строка — «испытательный блок → аналоговые измерения, контакты, пояснение»:
+    ``{"block": "SG1", "signals": "Ia, Ib, Ic", "contacts": "6+1",
+    "note": "Фазные токи В1"}``.
+    """
+    result = []
+    for item in items or []:
+        if isinstance(item, str):
+            item = {"signals": item}
+        if not isinstance(item, dict):
+            continue
+        row = {name: str(item.get(name) or "").strip()
+               for name in ("block", "signals", "contacts", "note")}
+        if not any(row.values()):
+            continue
+        result.append(row)
+    return result
+
+
+def has_analog(entry):
+    """Есть ли у комплекта аналоговые измерения."""
+    return bool(normalize_analog(entry.get("analog_inputs")))
+
+
+def analog_text(entry, compact=False, separator="; "):
+    """Подпись аналоговых измерений: «SG1: Ia, Ib, Ic (6+1) — токи В1».
+
+    compact=True — только блоки и сигналы, без контактов и пояснений.
+    """
+    parts = []
+    for row in normalize_analog(entry.get("analog_inputs")):
+        block = row["block"]
+        text = row["signals"] or "—"
+        if compact:
+            parts.append("{}: {}".format(block, text) if block else text)
+            continue
+        if row["contacts"]:
+            text += " ({})".format(row["contacts"])
+        if row["note"]:
+            text += " — {}".format(row["note"])
+        parts.append("{}: {}".format(block, text) if block else text)
+    return separator.join(parts) if parts else "—"
 
 
 def kind_title(entry):
@@ -362,6 +457,8 @@ def kit_from_cabinet(cabinet, index, kind=None):
         "has_ied": komplekt["has_ied"],
         "ieds": komplekt["ieds"],
         "test_blocks": komplekt["test_blocks"],
+        "test_block_list": komplekt["test_block_list"],
+        "analog_inputs": komplekt["analog_inputs"],
         "cabinet_key": cabinet_key,
         "cabinet_index": index,
         "cabinet_code": cabinet.get("code") or "",
@@ -585,12 +682,43 @@ def for_cabinet(definition):
     return copy.deepcopy(entry)
 
 
+def fill_kit_details(kits, cabinet):
+    """Дополняет комплекты данными каталога: ИБ и аналоговые измерения.
+
+    Нужно для схем, сохранённых до появления этих полей: в файле комплектов
+    их нет, поэтому берём из записи каталога по тому же номеру.
+    """
+    if not cabinet:
+        return
+    source = cabinet
+    if not source.get("komplets"):
+        import cabs as cabinet_catalog
+        try:
+            source = cabinet_catalog.find_cabinet(
+                cabinet.get("key") or cabinet.get("cabinet_key") or "") \
+                or cabinet
+        except Exception:
+            source = cabinet
+    catalog = [kit for kit in (source.get("komplets") or [])
+               if isinstance(kit, dict)]
+    for index, kit in enumerate(kits):
+        if index >= len(catalog):
+            return
+        origin = catalog[index]
+        if not kit.get("test_block_list") and origin.get("test_block_list"):
+            kit["test_block_list"] = normalize_block_list(
+                origin["test_block_list"])
+        if not kit.get("analog_inputs") and origin.get("analog_inputs"):
+            kit["analog_inputs"] = normalize_analog(origin["analog_inputs"])
+
+
 def normalize_komplets(komplets, default_kind=None, cabinet=None):
     """Нормализует комплекты шкафа; при известном шкафе — проставляет ссылки."""
     result = [normalize_komplekt(komplekt, default_kind)
               for komplekt in (komplets or [])]
     if cabinet:
         link_komplets_to_cabinet(result, cabinet)
+        fill_kit_details(result, cabinet)
     return result
 
 
