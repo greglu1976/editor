@@ -357,6 +357,14 @@ def _ri_fit(c):
         c.create_line(x1, y1, x2, y2, width=2, arrow=tk.LAST)
 
 
+def _ri_extents(c):
+    """Весь чертёж: пунктирная рамка листа и мини-схема внутри."""
+    c.create_rectangle(4, 5, 28, 27, outline="#1f4e79", width=1, dash=(3, 2))
+    c.create_line(9, 21, 14, 14, 19, 18, 24, 10, width=2)
+    c.create_oval(7, 19, 11, 23, outline="black", width=1)
+    c.create_oval(22, 8, 26, 12, outline="black", width=1)
+
+
 def _ri_pdf(c):
     c.create_polygon(8, 4, 19, 4, 24, 9, 24, 28, 8, 28,
                      outline="black", fill="white", width=2)
@@ -476,6 +484,13 @@ def _ri_nodes(c):
     c.create_line(9, 23, 23, 23, width=1, fill="#666666")
     for x, y in ((16, 10), (9, 23), (23, 23)):
         c.create_oval(x - 3, y - 3, x + 3, y + 3, fill="white", outline="black", width=2)
+
+
+def _ri_crosshair(c):
+    """Перекрестие курсора: линии через всё полотно и прицел в точке."""
+    c.create_line(1, 16, 31, 16, width=1, fill="#666666")
+    c.create_line(16, 1, 16, 31, width=1, fill="#666666")
+    c.create_rectangle(12, 12, 20, 20, outline="#1f4e79", width=2)
 
 
 def _format_option(value):
@@ -660,6 +675,12 @@ class CircuitEditor:
         self.grid_size = 10
         self.grid_color = "#e0e0e0"
         self.snap_to_grid = True
+
+        # Режим «перекрестие» как в AutoCAD: вертикальная и горизонтальная
+        # линии через курсор во всё полотно. Включается на вкладке «Вид».
+        self.crosshair_enabled = False
+        self.crosshair_color = "#8c8c8c"
+        self._pointer_pos = None    # последняя позиция курсора над полотном
         
         self.zoom = 1.0
         self.offset_x = 0.0
@@ -702,6 +723,7 @@ class CircuitEditor:
 
         self.setup_ui()
         self.draw_grid()
+        self.draw_origin()
         self.bind_events()
         self._update_title()
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -933,6 +955,13 @@ class CircuitEditor:
 
         self._ribbon_group(page, "Сетка", build_grid)
 
+        def build_cursor(row):
+            self.crosshair_var = tk.BooleanVar(value=self.crosshair_enabled)
+            self._ribbon_toggle(row, "Перекрестие", self.crosshair_var,
+                                self.toggle_crosshair, _ri_crosshair, 70).pack(side=tk.LEFT)
+
+        self._ribbon_group(page, "Курсор", build_cursor)
+
         def build_protection(row):
             self.show_cabinets_var = tk.BooleanVar(value=True)
             self._ribbon_toggle(row, "Шкафы", self.show_cabinets_var,
@@ -954,6 +983,8 @@ class CircuitEditor:
                                 _ri_minus, 58).pack(side=tk.LEFT)
             self._ribbon_button(row, "Увеличить", lambda: self._zoom_step(1.25),
                                 _ri_plus, 58).pack(side=tk.LEFT)
+            self._ribbon_button(row, "Весь чертёж", self.zoom_extents,
+                                _ri_extents, 74).pack(side=tk.LEFT)
             self._ribbon_button(row, "Сбросить", self.reset_view, _ri_fit, 58).pack(side=tk.LEFT)
 
             cell = tk.Frame(row, bg="#f3f3f3")
@@ -4578,6 +4609,7 @@ class CircuitEditor:
     # ================= ПАНОРАМИРОВАНИЕ (средняя кнопка) =================
     def on_pan_start(self, event):
         self._hide_canvas_tooltip()
+        self._on_canvas_leave()
         self._pan_active = True
         self._pan_last = (event.x, event.y)
         self.canvas.config(cursor="fleur")
@@ -4615,6 +4647,8 @@ class CircuitEditor:
         self.canvas.bind("<Button-4>", self.on_zoom)
         self.canvas.bind("<Button-5>", self.on_zoom)
         self.canvas.bind("<Motion>", self.on_hover)
+        self.canvas.bind("<Enter>", self._on_canvas_enter)
+        self.canvas.bind("<Leave>", self._on_canvas_leave)
         # Панорамирование, как в AutoCAD: зажали среднюю кнопку и тянем чертёж
         self.canvas.bind("<Button-2>", self.on_pan_start)
         self.canvas.bind("<B2-Motion>", self.on_pan_move)
@@ -4723,6 +4757,48 @@ class CircuitEditor:
         self.redraw_all()
         self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
 
+    def zoom_extents(self, event=None):
+        """Показать весь чертёж — кнопка «Весь чертёж» на вкладке «Вид».
+
+        Габариты берём тем же обходом сцены, что и при экспорте: в них
+        попадают подписи, стрелки, линии привязки и подложка, а не только
+        прямоугольники символов. Скрытые слои в расчёт не входят.
+        """
+        self._hide_canvas_tooltip()
+        self._pan_active = False
+        self._pointer_pos = None
+
+        recorder = pdfexport.SceneRecorder()
+        self._draw_scene(recorder)
+        bounds = recorder.bounds()
+        if bounds is None:
+            # Пустой чертёж: возвращаем вид по умолчанию
+            self.reset_view()
+            self.canvas.config(
+                cursor="crosshair" if self.current_tool != "select" else "arrow")
+            return "break"
+
+        min_x, min_y, max_x, max_y = bounds
+        width = max(1.0, max_x - min_x)
+        height = max(1.0, max_y - min_y)
+        w = self.canvas.winfo_width() or 800
+        h = self.canvas.winfo_height() or 700
+        margin = 24.0
+        avail_w = max(20.0, w - 2 * margin)
+        avail_h = max(20.0, h - 2 * margin)
+        zoom = min(avail_w / width, avail_h / height)
+        self.zoom = max(0.08, min(5.0, zoom))
+        # Центрируем габариты чертежа в полотне
+        self.offset_x = (w - width * self.zoom) / 2.0 - min_x * self.zoom
+        self.offset_y = (h - height * self.zoom) / 2.0 - min_y * self.zoom
+
+        self.redraw_all()
+        if hasattr(self, "zoom_label"):
+            self.zoom_label.config(text=f"{int(self.zoom * 100)}%")
+        self.canvas.config(
+            cursor="crosshair" if self.current_tool != "select" else "arrow")
+        return "break"
+
     def screen_to_world(self, sx, sy):
         return (sx - self.offset_x) / self.zoom, (sy - self.offset_y) / self.zoom
 
@@ -4751,6 +4827,43 @@ class CircuitEditor:
             return round(x / self.grid_size) * self.grid_size, round(y / self.grid_size) * self.grid_size
         return x, y
 
+    def draw_origin(self):
+        """Отмечает точку начала координат (0,0): прицел и подпись «0,0»."""
+        self.canvas.delete("origin")
+        ox, oy = self.world_to_screen(0, 0)
+        w = self.canvas.winfo_width()
+        h = self.canvas.winfo_height()
+        if w <= 1:
+            w = 800
+        if h <= 1:
+            h = 700
+        margin = 24
+        if not (-margin <= ox <= w + margin and -margin <= oy <= h + margin):
+            return
+        color = "#1f4e79"
+        arm = 11
+        self.canvas.create_line(ox - arm, oy, ox + arm, oy,
+                                fill=color, tags="origin")
+        self.canvas.create_line(ox, oy - arm, ox, oy + arm,
+                                fill=color, tags="origin")
+        self.canvas.create_oval(ox - 3, oy - 3, ox + 3, oy + 3,
+                                outline=color, fill="white", tags="origin")
+        # Подпись ставим справа, а у правого края — слева, чтобы не обрезалась
+        label_x = ox + arm + 4
+        anchor = "w"
+        if label_x + 24 > w:
+            label_x = ox - arm - 4
+            anchor = "e"
+        # У верхнего/нижнего края подпись сдвигаем внутрь полотна
+        label_y = oy
+        if oy < 12:
+            label_y = oy + 13
+        elif oy > h - 12:
+            label_y = oy - 13
+        self.canvas.create_text(label_x, label_y, text="0,0", anchor=anchor,
+                                fill=color, font=("Arial", 8, "bold"),
+                                tags="origin")
+
     def toggle_snap(self):
         self.snap_to_grid = self.snap_var.get()
 
@@ -4772,6 +4885,63 @@ class CircuitEditor:
         self.grid_spin.delete(0, "end")
         self.grid_spin.insert(0, str(self.grid_size))
         self.redraw_all()
+
+    # ================= ПЕРЕКРЕСТИЕ КУРСОРА (КАК В AUTOCAD) =================
+    def toggle_crosshair(self):
+        """Включает/выключает линии перекрестия по курсору."""
+        self.crosshair_enabled = bool(self.crosshair_var.get())
+        if self.crosshair_enabled:
+            self._pointer_pos = self._pointer_on_canvas()
+        else:
+            self._pointer_pos = None
+        self._draw_crosshair()
+
+    def _pointer_on_canvas(self):
+        """Указатель в координатах полотна (None, если он вне полотна)."""
+        try:
+            x = self.canvas.winfo_pointerx() - self.canvas.winfo_rootx()
+            y = self.canvas.winfo_pointery() - self.canvas.winfo_rooty()
+        except tk.TclError:
+            return None
+        w = self.canvas.winfo_width()
+        h = self.canvas.winfo_height()
+        if w > 1 and h > 1 and 0 <= x < w and 0 <= y < h:
+            return (x, y)
+        return None
+
+    def _draw_crosshair(self, event=None):
+        """Рисует вертикальную и горизонтальную линии через курсор.
+
+        Линии идут во всё полотно и поднимаются над схемой, поэтому остаются
+        видны и при перерисовке, и при наведении на элементы. Во время
+        панорамирования (средняя кнопка) перекрестие скрыто.
+        """
+        if event is not None:
+            self._pointer_pos = (event.x, event.y)
+        self.canvas.delete("crosshair")
+        if not self.crosshair_enabled or self._pan_active:
+            return
+        pos = self._pointer_pos or self._pointer_on_canvas()
+        if pos is None:
+            return
+        x, y = pos
+        w = self.canvas.winfo_width() or 800
+        h = self.canvas.winfo_height() or 700
+        if not (0 <= x <= w and 0 <= y <= h):
+            return
+        self.canvas.create_line(0, y, w, y, fill=self.crosshair_color,
+                                tags="crosshair")
+        self.canvas.create_line(x, 0, x, h, fill=self.crosshair_color,
+                                tags="crosshair")
+        self.canvas.tag_raise("crosshair")
+
+    def _on_canvas_enter(self, event):
+        if self.crosshair_enabled:
+            self._draw_crosshair(event)
+
+    def _on_canvas_leave(self, event=None):
+        self._pointer_pos = None
+        self.canvas.delete("crosshair")
 
     def rotate_selected(self, event=None):
         self._push_undo()
@@ -5063,8 +5233,14 @@ class CircuitEditor:
         # 7. Подсветка совпадений поиска (Ctrl+F)
         self._draw_search_highlights()
 
+        # 8. Начало координат (0,0) — поверх схемы, как ориентир
+        self.draw_origin()
+
         # Подложка всегда под сеткой и элементами
         self.canvas.tag_lower("underlay")
+
+        # Перекрестие поверх схемы (после любой перерисовки)
+        self._draw_crosshair()
 
     def draw_handles(self, el):
         lx, ly = self.world_to_screen(el.x - el.length, el.y)
@@ -5084,6 +5260,7 @@ class CircuitEditor:
         return None
 
     def on_hover(self, event):
+        self._draw_crosshair(event)
         self.canvas.delete("port_highlight")
         self.canvas.delete("bind_hover")
         self.canvas.delete("bind_preview")
@@ -5660,6 +5837,9 @@ class CircuitEditor:
                 self.redraw_all()
 
     def on_drag(self, event):
+        # Перекрестие должно двигаться и при перетаскивании: события Motion
+        # во время нажатой кнопки не приходят, только B1-Motion.
+        self._draw_crosshair(event)
         # ПЕРЕТАСКИВАНИЕ ПОДПИСИ
         if self._dragging_label is not None:
             el = self.elements.get(self._dragging_label)
