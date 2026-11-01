@@ -76,7 +76,24 @@ ELEMENT_TYPE_TITLES = {
 }
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
-APP_TITLE = "Редактор электрических схем v20"
+APP_TITLE = "Редактор электрических схем v21"
+
+# Комментарии к чертежу — плашки с текстом, привязанные к точке схемы.
+# Все размеры в мировых единицах: записка масштабируется вместе с чертежом
+# и одинаково выглядит на экране, в PDF и в PNG.
+COMMENT_FONT = 10.0          # размер шрифта
+COMMENT_WIDTH = 190.0        # ширина плашки
+COMMENT_PAD = 7.0            # внутренние поля
+COMMENT_GAP = 10.0           # отступ плашки от точки привязки
+COMMENT_LINE = 1.35          # межстрочный интервал в долях шрифта
+COMMENT_FILL = "#fffbe0"     # фон плашки
+COMMENT_EDGE = "#c9a227"     # рамка
+COMMENT_ACCENT = "#b8860b"   # уголок и точка привязки
+COMMENT_TEXT_COLOR = "#3a3320"
+COMMENT_PLAIN_COLOR = "#1f4e79"   # текст без плашки
+
+#: Виды комментария: плашка с выноской к точке или просто текст на чертеже.
+COMMENT_STYLES = {"note": "плашка с выноской", "text": "просто текст"}
 
 # Подписи выводов (портов) элементов — для отчёта по непривязанным элементам.
 PORT_TITLES = {
@@ -218,7 +235,7 @@ class UndoManager:
         self.on_change = None  # вызывается после записи состояния
 
     def save_state(self, elements, connections, selected_elements,
-                   protection_links=None, analog_links=None):
+                   protection_links=None, analog_links=None, comments=None):
         """Сохраняет состояние и очищает стек redo (т.к. создана новая ветка)"""
         state = {
             "elements": copy.deepcopy(elements),
@@ -226,6 +243,7 @@ class UndoManager:
             "selected_elements": list(selected_elements),
             "protection": copy.deepcopy(protection_links or []),
             "analog": copy.deepcopy(analog_links or []),
+            "comments": copy.deepcopy(comments or []),
         }
         self.push_state(state)
 
@@ -493,12 +511,102 @@ def _ri_crosshair(c):
     c.create_rectangle(12, 12, 20, 20, outline="#1f4e79", width=2)
 
 
+def _ri_note(c):
+    """Комментарий: записка с загнутым уголком и строками текста."""
+    c.create_polygon(5, 5, 21, 5, 27, 11, 27, 27, 5, 27,
+                     outline=COMMENT_ACCENT, fill=COMMENT_FILL, width=2)
+    c.create_line(21, 5, 21, 11, 27, 11, width=1, fill=COMMENT_ACCENT)
+    for y in (15, 19, 23):
+        c.create_line(9, y, 22, y, width=1, fill="#8a7a3a")
+
+
 def _format_option(value):
     if value is None:
         return ""
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     return str(value)
+
+
+class CommentDialog(tk.Toplevel):
+    """Ввод и правка текста комментария к чертежу."""
+
+    def __init__(self, parent, text="", title="Комментарий к чертежу",
+                 style="note"):
+        super().__init__(parent)
+        self.title(title)
+        self.transient(parent)
+        self.resizable(True, True)
+        self.protocol("WM_DELETE_WINDOW", self._cancel)
+        self.result = None
+
+        body = tk.Frame(self, padx=12, pady=10)
+        body.pack(fill=tk.BOTH, expand=True)
+
+        tk.Label(body, text="Текст комментария:", anchor="w").pack(anchor="w")
+        self._text = tk.Text(body, width=58, height=6, wrap="word",
+                             font=("Arial", 9), undo=True)
+        self._text.pack(fill=tk.BOTH, expand=True, pady=(4, 0))
+        self._text.insert("1.0", text)
+        self._text.tag_add("sel", "1.0", "end-1c")
+
+        # Вид комментария: плашка с выноской или просто текст на чертеже
+        style_frame = tk.Frame(body)
+        style_frame.pack(anchor="w", pady=(8, 0))
+        tk.Label(style_frame, text="Вид:", anchor="w").pack(side=tk.LEFT)
+        self._style_var = tk.StringVar(
+            value=style if style in COMMENT_STYLES else "note")
+        for key, label in COMMENT_STYLES.items():
+            tk.Radiobutton(style_frame, text=label, value=key,
+                           variable=self._style_var, anchor="w").pack(
+                               side=tk.LEFT, padx=(6, 0))
+
+        tk.Label(body, text="Ctrl+Enter — сохранить, Esc — отмена.",
+                 fg="#808080", font=("Arial", 8), anchor="w").pack(
+                     anchor="w", pady=(6, 0))
+
+        buttons = tk.Frame(self)
+        buttons.pack(fill=tk.X, padx=12, pady=(0, 10))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=self._cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Сохранить", width=12, default="active",
+                  command=self._accept).pack(side=tk.RIGHT, padx=(0, 6))
+
+        self.bind("<Escape>", lambda event: self._cancel())
+        self.bind("<Control-Return>", lambda event: self._accept())
+        self._center(parent)
+
+    def _center(self, parent):
+        self.update_idletasks()
+        x = parent.winfo_rootx() + max(0, (parent.winfo_width() - self.winfo_width()) // 2)
+        y = parent.winfo_rooty() + max(0, (parent.winfo_height() - self.winfo_height()) // 3)
+        self.geometry("+{}+{}".format(x, y))
+
+    def show(self):
+        self.update()
+        try:
+            self.grab_set()
+        except tk.TclError:
+            pass
+        self.lift()
+        self._text.focus_set()
+        self.wait_window(self)
+        return self.result
+
+    def _cancel(self):
+        self.result = None
+        self.destroy()
+
+    def _accept(self):
+        # Хвостовые пустые строки не храним: они раздували бы плашку
+        text = self._text.get("1.0", "end-1c").strip()
+        if not text:
+            self._cancel()
+            return
+        style = self._style_var.get()
+        self.result = {"text": text,
+                       "style": style if style in COMMENT_STYLES else "note"}
+        self.destroy()
 
 
 class SsdOptionsDialog(tk.Toplevel):
@@ -659,6 +767,15 @@ class CircuitEditor:
         self._label_drag_start = (0, 0)
         self._label_drag_offset = [0.0, 0.0]
         self._label_drag_changed = False
+
+        # Комментарии к чертежу: плашки с текстом в мировых координатах.
+        # Хранятся в файле схемы вместе с элементами.
+        self.comments = []
+        self.selected_comment = None      # id выделенной плашки
+        self.last_comment_style = "note"  # вид для следующего комментария
+        self._dragging_comment = None     # id плашки, которую тащат мышкой
+        self._comment_drag_offset = (0.0, 0.0)
+        self._comment_drag_changed = False
         
         # Буфер обмена
         self.clipboard = None          
@@ -765,6 +882,7 @@ class CircuitEditor:
         tk.Frame(palette, height=2, bg="gray").pack(fill=tk.X, pady=6)
         tk.Label(palette, text="Связать, удалить и повернуть —\n"
                               "на вкладке «Главная», панель «Инструменты».\n"
+                              "Комментарий к чертежу — панель «Аннотации».\n"
                               "Средняя кнопка мыши — панорама.\n"
                               "Ctrl+F — поиск, R — вращение",
                  bg="#f0f0f0", fg="#8a8a8a", font=("Arial", 7), justify="left").pack(anchor="w", padx=4, pady=(10, 0))
@@ -899,6 +1017,11 @@ class CircuitEditor:
                                 _ri_find, 56).pack(side=tk.LEFT)
 
         self._ribbon_group(page, "Инструменты", build_tools)
+        self._ribbon_group(page, "Аннотации", lambda row: [
+            self._register_tool(self._ribbon_button(
+                row, "Комментарий", self.add_comment, _ri_note, 88),
+                "note").pack(side=tk.LEFT),
+        ])
         self._ribbon_group(page, "История", lambda row: [
             self._ribbon_button(row, "Назад", self.undo_last_action, _ri_undo, 52).pack(side=tk.LEFT),
             self._ribbon_button(row, "Вперёд", self.redo_last_action, _ri_redo, 52).pack(side=tk.LEFT),
@@ -4693,6 +4816,8 @@ class CircuitEditor:
         self._protection_start = None
         self._bind_start = None
         self._analog_start = None
+        self._dragging_comment = None
+        self._comment_drag_changed = False
         if self.selection_rect_id:
             self.canvas.delete(self.selection_rect_id)
             self.selection_rect_id = None
@@ -4705,6 +4830,7 @@ class CircuitEditor:
         self.connections = state["connections"]
         self.protection_links = state.get("protection", [])
         self.analog_links = state.get("analog", [])
+        self.comments = state.get("comments", [])
         self._reset_transient()
         self.selected_elements = list(state["selected_elements"])
 
@@ -4712,10 +4838,11 @@ class CircuitEditor:
         self._mark_modified()
 
     def _push_undo(self):
-        """Снимок состояния для отмены: элементы, связи, РЗА и аналоговые цепи."""
+        """Снимок состояния для отмены: элементы, связи, РЗА, аналоги и записки."""
         self.undo_manager.save_state(self.elements, self.connections,
                                      self.selected_elements,
-                                     self.protection_links, self.analog_links)
+                                     self.protection_links, self.analog_links,
+                                     self.comments)
 
     def _capture_state(self):
         return {
@@ -4724,6 +4851,7 @@ class CircuitEditor:
             "selected_elements": list(self.selected_elements),
             "protection": copy.deepcopy(self.protection_links),
             "analog": copy.deepcopy(self.analog_links),
+            "comments": copy.deepcopy(self.comments),
         }
 
     def undo_last_action(self, event=None):
@@ -4864,6 +4992,240 @@ class CircuitEditor:
                                 fill=color, font=("Arial", 8, "bold"),
                                 tags="origin")
 
+    # ================= КОММЕНТАРИИ К ЧЕРТЕЖУ =================
+    # Записка — плашка с текстом, привязанная к точке схемы. Хранится в JSON
+    # вместе с элементами, участвует в отмене/повторе и попадает в PDF/PNG.
+    # Текст переносится по словам теми же метриками шрифта, что идут в
+    # экспорт, поэтому на экране и в файле плашка выглядит одинаково.
+
+    def _comment_lines(self, text):
+        """Разбивает текст на строки по ширине плашки (с учётом «\\n»)."""
+        limit = COMMENT_WIDTH - 2 * COMMENT_PAD
+        lines = []
+        for paragraph in str(text).split("\n"):
+            words = paragraph.split()
+            if not words:
+                lines.append("")
+                continue
+            current = words[0]
+            for word in words[1:]:
+                candidate = current + " " + word
+                if pdfexport.measure_text(candidate, COMMENT_FONT) <= limit:
+                    current = candidate
+                else:
+                    lines.append(current)
+                    current = word
+            lines.append(current)
+        return lines or [""]
+
+    @staticmethod
+    def _comment_is_plain(comment):
+        """Комментарий без плашки — просто текст на чертеже."""
+        return comment.get("style") == "text"
+
+    def _comment_layout(self, comment):
+        """Геометрия комментария в мировых координатах.
+
+        Возвращает (box, lines): box = (left, top, right, bottom).
+        Плашка стоит справа-сверху от точки привязки, как выноска;
+        простой текст начинается прямо в точке клика.
+        """
+        lines = self._comment_lines(comment.get("text", ""))
+        line_height = COMMENT_FONT * COMMENT_LINE
+        height = line_height * len(lines)
+        if self._comment_is_plain(comment):
+            left, top = comment["x"], comment["y"]
+        else:
+            height += 2 * COMMENT_PAD
+            left = comment["x"] + COMMENT_GAP
+            top = comment["y"] - COMMENT_GAP - height
+        return (left, top, left + COMMENT_WIDTH, top + height), lines
+
+    def _comment_at(self, sx, sy):
+        """Комментарий под курсором (верхний по порядку отрисовки) или None."""
+        for comment in reversed(self.comments):
+            box, _ = self._comment_layout(comment)
+            x1, y1 = self.world_to_screen(box[0], box[1])
+            x2, y2 = self.world_to_screen(box[2], box[3])
+            if x1 - 2 <= sx <= x2 + 2 and y1 - 2 <= sy <= y2 + 2:
+                return comment
+            ax, ay = self.world_to_screen(comment["x"], comment["y"])
+            if math.hypot(sx - ax, sy - ay) <= 7 * max(self.zoom, 0.5):
+                return comment
+        return None
+
+    def _comment_by_id(self, comment_id):
+        for comment in self.comments:
+            if comment.get("id") == comment_id:
+                return comment
+        return None
+
+    def draw_comments(self):
+        """Рисует все комментарии на полотне (экранные координаты)."""
+        self.canvas.delete("comment")
+        for comment in self.comments:
+            box, lines = self._comment_layout(comment)
+            self._draw_comment_canvas(comment, box, lines,
+                                      self.zoom, self.offset_x, self.offset_y)
+
+    def _draw_comment_canvas(self, comment, box, lines, zoom, offset_x, offset_y):
+        """Один комментарий на полотне: плашка с выноской или просто текст."""
+        plain = self._comment_is_plain(comment)
+        selected = comment.get("id") == self.selected_comment
+        tags = ("comment", "comment_" + str(comment.get("id", "")))
+        left, top, right, bottom = box
+        x1, y1 = left * zoom + offset_x, top * zoom + offset_y
+        x2, y2 = right * zoom + offset_x, bottom * zoom + offset_y
+        # Шрифт масштабируется вместе с чертежом: при мелком масштабе
+        # комментарий уменьшается, но не «расползается» за рамку плашки
+        size = max(1, int(round(COMMENT_FONT * zoom)))
+        line_height = COMMENT_FONT * COMMENT_LINE * zoom
+
+        if plain:
+            text_x, text_y = x1, y1
+            color = COMMENT_PLAIN_COLOR
+            if selected:
+                self.canvas.create_rectangle(
+                    x1 - 2, y1 - 2, x2 + 2, y2 + 2, outline="#e07b00",
+                    dash=(3, 2), width=1, tags=tags)
+        else:
+            ax, ay = (comment["x"] * zoom + offset_x,
+                      comment["y"] * zoom + offset_y)
+            self.canvas.create_line(ax, ay, x1, y2, fill=COMMENT_ACCENT,
+                                    width=1, tags=tags)
+            self.canvas.create_rectangle(
+                x1, y1, x2, y2, fill=COMMENT_FILL,
+                outline="#e07b00" if selected else COMMENT_EDGE,
+                width=2 if selected else 1, tags=tags)
+            fold = min(12 * zoom, (x2 - x1) / 4)
+            if fold > 2:
+                self.canvas.create_polygon(x2 - fold, y1, x2, y1, x2, y1 + fold,
+                                           outline=COMMENT_EDGE, fill="#f0e2a8",
+                                           tags=tags)
+            text_x = x1 + COMMENT_PAD * zoom
+            text_y = y1 + COMMENT_PAD * zoom
+            color = COMMENT_TEXT_COLOR
+            radius = max(2, int(round(3 * zoom)))
+            self.canvas.create_oval(ax - radius, ay - radius,
+                                    ax + radius, ay + radius,
+                                    fill=COMMENT_ACCENT, outline=COMMENT_ACCENT,
+                                    tags=tags)
+
+        for index, line in enumerate(lines):
+            if line:
+                self.canvas.create_text(text_x, text_y + index * line_height,
+                                        text=line, anchor="nw", fill=color,
+                                        font=("Arial", size), tags=tags)
+
+    def _draw_comment_scene(self, canvas):
+        """Комментарии для экспорта: те же плашки и тексты в мировых координатах."""
+        for comment in self.comments:
+            box, lines = self._comment_layout(comment)
+            left, top, right, bottom = box
+            line_height = COMMENT_FONT * COMMENT_LINE
+            if self._comment_is_plain(comment):
+                text_x, text_y = left, top
+                color = COMMENT_PLAIN_COLOR
+            else:
+                canvas.create_line(comment["x"], comment["y"], left, bottom,
+                                   fill=COMMENT_ACCENT, width=1)
+                canvas.create_rectangle(left, top, right, bottom,
+                                        fill=COMMENT_FILL, outline=COMMENT_EDGE,
+                                        width=1)
+                fold = min(12.0, (right - left) / 4)
+                canvas.create_polygon(right - fold, top, right, top,
+                                      right, top + fold,
+                                      outline=COMMENT_EDGE, fill="#f0e2a8")
+                text_x = left + COMMENT_PAD
+                text_y = top + COMMENT_PAD
+                color = COMMENT_TEXT_COLOR
+                canvas.create_oval(comment["x"] - 3, comment["y"] - 3,
+                                   comment["x"] + 3, comment["y"] + 3,
+                                   fill=COMMENT_ACCENT, outline=COMMENT_ACCENT)
+            for index, line in enumerate(lines):
+                if line:
+                    canvas.create_text(text_x, text_y + index * line_height,
+                                       text=line, anchor="nw", fill=color,
+                                       font=("Arial", int(COMMENT_FONT)))
+
+    def add_comment(self):
+        """Кнопка «Комментарий»: режим вставки комментария на полотно."""
+        self.set_tool("note")
+        self._mark_active_tool()
+
+    def _comment_place(self, sx, sy):
+        """Ставит комментарий в точку клика: спрашивает текст и вид."""
+        result = CommentDialog(self.root, style=self.last_comment_style).show()
+        self.set_tool("select")
+        if not result:
+            return
+        wx, wy = self.screen_to_world(sx, sy)
+        self._push_undo()
+        self.last_comment_style = result["style"]
+        self.comments.append({
+            "id": "C" + str(uuid.uuid4())[:6],
+            "x": round(wx, 1),
+            "y": round(wy, 1),
+            "text": result["text"],
+            "style": result["style"],
+        })
+        self.selected_comment = self.comments[-1]["id"]
+        self._mark_modified()
+        self.redraw_all()
+
+    def edit_comment(self, comment):
+        """Правка текста и вида существующего комментария."""
+        result = CommentDialog(self.root, comment.get("text", ""),
+                               "Правка комментария",
+                               comment.get("style", "note")).show()
+        if result is None:
+            return
+        if (result["text"] == comment.get("text")
+                and result["style"] == comment.get("style", "note")):
+            return
+        self._push_undo()
+        comment["text"] = result["text"]
+        comment["style"] = result["style"]
+        self.last_comment_style = result["style"]
+        self._mark_modified()
+        self.redraw_all()
+
+    def delete_comment(self, comment):
+        """Удаляет комментарий и снимает его выделение."""
+        if comment not in self.comments:
+            return
+        self.comments.remove(comment)
+        if self.selected_comment == comment.get("id"):
+            self.selected_comment = None
+        self._mark_modified()
+        self.redraw_all()
+
+    def _build_comments(self, raw):
+        """Нормализует список комментариев из JSON (старые файлы — без них)."""
+        comments = []
+        if not isinstance(raw, list):
+            return comments
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            text = str(item.get("text") or "").strip()
+            if not text:
+                continue
+            try:
+                x = float(item.get("x", 0.0))
+                y = float(item.get("y", 0.0))
+            except (TypeError, ValueError):
+                continue
+            style = str(item.get("style") or "note")
+            comments.append({
+                "id": str(item.get("id") or ("C" + str(uuid.uuid4())[:6])),
+                "x": round(x, 1),
+                "y": round(y, 1),
+                "text": text,
+                "style": style if style in COMMENT_STYLES else "note",
+            })
+        return comments
+
     def toggle_snap(self):
         self.snap_to_grid = self.snap_var.get()
 
@@ -4962,6 +5324,7 @@ class CircuitEditor:
 
     def deselect_all(self, event=None):
         self.selected_elements = []
+        self.selected_comment = None
         self.redraw_all()
 
     # ================= КОПИРОВАНИЕ / ВСТАВКА =================
@@ -5236,6 +5599,9 @@ class CircuitEditor:
         # 8. Начало координат (0,0) — поверх схемы, как ориентир
         self.draw_origin()
 
+        # 9. Комментарии к чертежу — поверх схемы, под перекрестием
+        self.draw_comments()
+
         # Подложка всегда под сеткой и элементами
         self.canvas.tag_lower("underlay")
 
@@ -5367,6 +5733,11 @@ class CircuitEditor:
     def delete_selected(self, event=None):
         """Удаляет выделенные элементы (и все их связи) одним действием."""
         if not self.selected_elements:
+            # Нет элементов — возможно, выделена записка комментария
+            comment = self._comment_by_id(self.selected_comment)
+            if comment is not None:
+                self._push_undo()
+                self.delete_comment(comment)
             return
         self._push_undo()
         for el_id in list(self.selected_elements):
@@ -5649,10 +6020,33 @@ class CircuitEditor:
         wx, wy = self.screen_to_world(event.x, event.y)
         wx, wy = self.snap(wx, wy)
 
+        # ИНСТРУМЕНТ «КОММЕНТАРИЙ»: клик ставит записку в это место
+        if self.current_tool == "note":
+            self._comment_place(event.x, event.y)
+            return
+
         # ОБРАБОТКА ИНСТРУМЕНТА SELECT
         if self.current_tool == "select":
 
-            # А) ПРОВЕРКА МАРКЕРОВ ИЗМЕНЕНИЯ РАЗМЕРА ШИНЫ
+            # А) ЗАПИСКА КОММЕНТАРИЯ — перетаскивается как отдельный объект
+            comment = self._comment_at(event.x, event.y)
+            if comment is not None:
+                self.selected_comment = comment.get("id")
+                self.selected_elements = []
+                self._dragging_comment = comment.get("id")
+                self._comment_drag_offset = (wx - comment["x"], wy - comment["y"])
+                self._comment_drag_changed = False
+                self._pre_change_state = self._capture_state()
+                self.canvas.config(cursor="fleur")
+                self.redraw_all()
+                return
+
+            # Выделение записки снимается кликом мимо неё
+            if self.selected_comment is not None:
+                self.selected_comment = None
+                self.draw_comments()
+
+            # А2) ПРОВЕРКА МАРКЕРОВ ИЗМЕНЕНИЯ РАЗМЕРА ШИНЫ
             for el_id in list(self.selected_elements):
                 if el_id in self.elements and self.elements[el_id].type == "bus":
                     handle = self.find_resize_handle(el_id, event.x, event.y)
@@ -5796,6 +6190,13 @@ class CircuitEditor:
         return f"{prefix}{next_num}"
 
     def on_double_click(self, event):
+        # Двойной клик по записке комментария — правка текста
+        comment = self._comment_at(event.x, event.y)
+        if comment is not None:
+            self.selected_comment = comment.get("id")
+            self.edit_comment(comment)
+            return
+
         # Двойной клик по линии аналоговых цепей — свойства связи (U/I)
         link = self._analog_link_at(event.x, event.y)
         if link is not None:
@@ -5840,6 +6241,21 @@ class CircuitEditor:
         # Перекрестие должно двигаться и при перетаскивании: события Motion
         # во время нажатой кнопки не приходят, только B1-Motion.
         self._draw_crosshair(event)
+        # ПЕРЕТАСКИВАНИЕ ЗАПИСКИ КОММЕНТАРИЯ
+        if self._dragging_comment is not None:
+            comment = self._comment_by_id(self._dragging_comment)
+            if comment is not None:
+                wx, wy = self.screen_to_world(event.x, event.y)
+                wx, wy = self.snap(wx, wy)
+                new_x = wx - self._comment_drag_offset[0]
+                new_y = wy - self._comment_drag_offset[1]
+                if new_x != comment["x"] or new_y != comment["y"]:
+                    comment["x"] = round(new_x, 1)
+                    comment["y"] = round(new_y, 1)
+                    self._comment_drag_changed = True
+                    self.draw_comments()
+            return
+
         # ПЕРЕТАСКИВАНИЕ ПОДПИСИ
         if self._dragging_label is not None:
             el = self.elements.get(self._dragging_label)
@@ -5911,6 +6327,19 @@ class CircuitEditor:
             return
 
     def on_release(self, event):
+        # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ЗАПИСКИ
+        if self._dragging_comment is not None:
+            if self._comment_drag_changed:
+                self.undo_manager.push_state(self._pre_change_state)
+                self._mark_modified()
+            self._dragging_comment = None
+            self._comment_drag_changed = False
+            self._pre_change_state = None
+            self.canvas.config(cursor="arrow" if self.current_tool == "select"
+                               else "crosshair")
+            self.redraw_all()
+            return
+
         # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ПОДПИСИ
         if self._dragging_label is not None:
             if self._label_drag_changed:
@@ -5972,6 +6401,12 @@ class CircuitEditor:
 
     def on_right_click(self, event):
         self._hide_canvas_tooltip()
+        # Правая кнопка по записке удаляет её
+        comment = self._comment_at(event.x, event.y)
+        if comment is not None:
+            self._push_undo()
+            self.delete_comment(comment)
+            return
         clicked_el = self._element_at(event.x, event.y)
         if clicked_el:
             self._push_undo()
@@ -6031,6 +6466,8 @@ class CircuitEditor:
             self._push_undo()
             self.elements = {}
             self.connections = []
+            self.comments = []
+            self.selected_comment = None
             self._reset_transient()
             self.clipboard = None
             self.clipboard_connections = []
@@ -7874,27 +8311,28 @@ class CircuitEditor:
         # 6. Защитные узлы и стрелки комплект → оборудование
         self._draw_protection_scene(canvas)
         # 7. Аналоговые цепи
-        if not self.show_analog:
-            return
-        for link in self.analog_links:
-            start = self._analog_ref_point(link.get("from"))
-            end = self._analog_ref_point(link.get("to"))
-            if start is None or end is None:
-                continue
-            x1, y1 = start
-            x2, y2 = end
-            distance = math.hypot(x2 - x1, y2 - y1)
-            if distance < 1e-6:
-                continue
-            self._export_arrow(canvas, x1, y1, x2, y2,
-                               fill=self.ANALOG_COLOR, width=1, dash=(6, 3))
-            ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
-            signals = self._analog_signals_text(link)
-            if signals:
-                canvas.create_text((x1 + x2) / 2.0 - uy * 11,
-                                   (y1 + y2) / 2.0 + ux * 11,
-                                   text=signals, fill=self.ANALOG_COLOR,
-                                   font=("Arial", 6), anchor="center")
+        if self.show_analog:
+            for link in self.analog_links:
+                start = self._analog_ref_point(link.get("from"))
+                end = self._analog_ref_point(link.get("to"))
+                if start is None or end is None:
+                    continue
+                x1, y1 = start
+                x2, y2 = end
+                distance = math.hypot(x2 - x1, y2 - y1)
+                if distance < 1e-6:
+                    continue
+                self._export_arrow(canvas, x1, y1, x2, y2,
+                                   fill=self.ANALOG_COLOR, width=1, dash=(6, 3))
+                ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
+                signals = self._analog_signals_text(link)
+                if signals:
+                    canvas.create_text((x1 + x2) / 2.0 - uy * 11,
+                                       (y1 + y2) / 2.0 + ux * 11,
+                                       text=signals, fill=self.ANALOG_COLOR,
+                                       font=("Arial", 6), anchor="center")
+        # 8. Комментарии к чертежу — поверх схемы
+        self._draw_comment_scene(canvas)
 
     @staticmethod
     def _export_arrow(canvas, x1, y1, x2, y2, fill, width=1.0, size=9.0,
@@ -8226,6 +8664,16 @@ class CircuitEditor:
             data["protection_links"] = [dict(link) for link in self.protection_links]
         if self.analog_links:
             data["analog_links"] = [dict(link) for link in self.analog_links]
+        # Комментарии к чертежу: точка привязки, вид и текст
+        if self.comments:
+            data["comments"] = [
+                {"id": comment.get("id", ""),
+                 "x": round(float(comment.get("x", 0.0)), 1),
+                 "y": round(float(comment.get("y", 0.0)), 1),
+                 "text": comment.get("text", ""),
+                 "style": comment.get("style", "note")}
+                for comment in self.comments
+            ]
         data["view"] = {
             "zoom": round(self.zoom, 4),
             "offset_x": round(self.offset_x, 2),
@@ -8293,6 +8741,8 @@ class CircuitEditor:
             data.get("protection_links", []))
         self.analog_links = self._build_analog_links(
             data.get("analog_links", []))
+        self.comments = self._build_comments(data.get("comments", []))
+        self.selected_comment = None
         self._reset_transient()
 
         underlay_info = data.get("underlay")
@@ -8578,6 +9028,16 @@ class CircuitEditor:
                 if key not in existing:
                     self.protection_links.append(link)
                     existing.add(key)
+
+            # 3б. Комментарии к вставленному фрагменту — со сдвигом на место вставки
+            for comment in self._build_comments(data.get("comments", [])):
+                self.comments.append({
+                    "id": "C" + str(uuid.uuid4())[:6],
+                    "x": round(comment["x"] + offset_x, 1),
+                    "y": round(comment["y"] + offset_y, 1),
+                    "text": comment["text"],
+                    "style": comment["style"],
+                })
 
             # 4. Выделяем вставленное
             self.selected_elements = new_selected

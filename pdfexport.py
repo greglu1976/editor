@@ -673,3 +673,9 @@ class PdfDocument:
         writer.set(pages, f"<< /Type /Pages /Kids [{page} 0 R] /Count 1 >>".encode("latin-1"))
         writer.set(catalog, f"<< /Type /Catalog /Pages {pages} 0 R >>".encode("latin-1"))
         writer.save(path)
+
+
+#: Ширина строки в пикселях — теми же метриками, что уходят в PDF и PNG.
+#: Нужна редактору: комментарии переносятся по словам одинаково на экране
+#: и в экспорте.
+measure_text = _measure

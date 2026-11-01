@@ -3958,9 +3958,17 @@
             "element": "LI09c3"
         }
     ],
+    "comments": [
+        {
+            "id": "C0ca32d",
+            "x": 3518.4,
+            "y": -132.4,
+            "text": "РУ 220 кВ"
+        }
+    ],
     "view": {
-        "zoom": 0.473,
-        "offset_x": -39.55,
-        "offset_y": 358.06
+        "zoom": 1.1781,
+        "offset_x": -3680.9,
+        "offset_y": 395.63
     }
 }
