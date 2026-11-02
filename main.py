@@ -8209,21 +8209,20 @@ class CircuitEditor:
         return "{}, Слот {}".format(name, slot + 1)
 
     def _nir_cabinet_heading(self, cabinet):
-        """Заголовок подраздела шкафа: «Шкаф <шифр> <наименование>».
-
-        Для привязанного шкафа добавляется место на схеме, иначе два
-        шкафа одного типа выглядели бы как один и тот же подраздел.
-        """
+        """Заголовок подраздела шкафа: «Шкаф <шифр> <наименование>»."""
         code, name, _standard = self._nir_cabinet_fields(cabinet)
         text = code if name == code else "{} {}".format(code, name)
         if text.casefold().startswith(("шкаф", "ящик")):
-            heading = text
-        else:
-            heading = "Шкаф {}".format(text)
-        place = self._nir_cabinet_place(cabinet)
-        if place:
-            heading = "{} ({})".format(heading, place)
-        return heading
+            return text
+        return "Шкаф {}".format(text)
+
+    def _nir_cabinet_type_key(self, cabinet):
+        """Ключ типа шкафа: одинаковые типы описываются в отчёте один раз."""
+        code, name, _standard = self._nir_cabinet_fields(cabinet)
+        key = code if code and code != "—" else name
+        if not key or key == "—":
+            key = cabinet.id
+        return str(key).strip().casefold()
 
     def _nir_kit_rows(self, cabinet):
         """Таблица функций шкафа: устройство, комплект, функции."""
@@ -8319,7 +8318,14 @@ class CircuitEditor:
             "empty_text": "",
         })
 
+        described_types = set()
         for cabinet in cabinets:
+            type_key = self._nir_cabinet_type_key(cabinet)
+            if type_key in described_types:
+                # Однотипные шкафы описываем один раз: функции и состав
+                # у них одинаковые, а в перечне выше указаны все экземпляры.
+                continue
+            described_types.add(type_key)
             code = self._nir_cabinet_fields(cabinet)[0]
             table_number += 1
             blocks.append({"kind": "heading", "level": 2,
@@ -8644,8 +8650,17 @@ class CircuitEditor:
                                "text": "К контейнеру не привязано ни одного "
                                        "шкафа."})
                 continue
-            for position, cabinet in enumerate(cabinets, start=1):
-                add_cabinet(cabinet, "{}.{}.".format(index, position))
+            described_types = set()
+            described = 0
+            for cabinet in cabinets:
+                type_key = self._nir_cabinet_type_key(cabinet)
+                if type_key in described_types:
+                    # Однотипные шкафы описываем один раз; все экземпляры
+                    # перечислены в составе контейнера выше.
+                    continue
+                described_types.add(type_key)
+                described += 1
+                add_cabinet(cabinet, "{}.{}.".format(index, described))
 
         bound = set()
         for container in containers:
@@ -8657,9 +8672,16 @@ class CircuitEditor:
         if free:
             blocks.append({"kind": "heading", "level": 1,
                            "text": "Шкафы вне контейнеров"})
-            for position, cabinet in enumerate(free, start=1):
+            described_types = set()
+            described = 0
+            for cabinet in free:
+                type_key = self._nir_cabinet_type_key(cabinet)
+                if type_key in described_types:
+                    continue
+                described_types.add(type_key)
+                described += 1
                 add_cabinet(cabinet, "{}.{}.".format(len(containers) + 1,
-                                                    position))
+                                                    described))
 
         title = ("Расширенный отчет по НИР" if with_signals else
                  "Расширенный отчет по НИР (без сигналов и БИ)")
