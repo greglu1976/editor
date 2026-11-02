@@ -8193,13 +8193,37 @@ class CircuitEditor:
             return "{} «{}»".format(code, title)
         return code or title or "Нетиповой"
 
+    def _nir_cabinet_place(self, cabinet):
+        """Место шкафа на схеме: «EL9, Слот 6» или «EL3» вне контейнера.
+
+        Нужно, чтобы одинаковые по типу шкафы в отчёте были различимы:
+        у каждого своё обозначение на схеме, а у привязанного — ещё и слот.
+        """
+        name = cabinet.name or cabinet.id
+        container = self._container_of(cabinet.id)
+        if container is None:
+            return name or ""
+        slot = container.slot_of(cabinet.id)
+        if slot is None:
+            return name or ""
+        return "{}, Слот {}".format(name, slot + 1)
+
     def _nir_cabinet_heading(self, cabinet):
-        """Заголовок подраздела шкафа: «Шкаф <шифр> <наименование>»."""
+        """Заголовок подраздела шкафа: «Шкаф <шифр> <наименование>».
+
+        Для привязанного шкафа добавляется место на схеме, иначе два
+        шкафа одного типа выглядели бы как один и тот же подраздел.
+        """
         code, name, _standard = self._nir_cabinet_fields(cabinet)
         text = code if name == code else "{} {}".format(code, name)
         if text.casefold().startswith(("шкаф", "ящик")):
-            return text
-        return "Шкаф {}".format(text)
+            heading = text
+        else:
+            heading = "Шкаф {}".format(text)
+        place = self._nir_cabinet_place(cabinet)
+        if place:
+            heading = "{} ({})".format(heading, place)
+        return heading
 
     def _nir_kit_rows(self, cabinet):
         """Таблица функций шкафа: устройство, комплект, функции."""
@@ -8284,7 +8308,8 @@ class CircuitEditor:
         overview_rows = []
         for cabinet in cabinets:
             code, _name, standard = self._nir_cabinet_fields(cabinet)
-            overview_rows.append([code, standard, ""])
+            overview_rows.append([code, standard,
+                                  self._nir_cabinet_place(cabinet)])
         blocks.append({
             "kind": "table",
             "header": ["Шкаф", "Стандарт", "Примечание"],
@@ -8340,6 +8365,9 @@ class CircuitEditor:
             for cabinet in cabinets:
                 cab_code, cab_name, standard = self._nir_cabinet_fields(
                     cabinet)
+                place = self._nir_cabinet_place(cabinet)
+                if place:
+                    cab_name = "{} ({})".format(cab_name, place)
                 type_text = cab_code
                 if standard == "Нетиповой":
                     type_text = "{} (нетиповой)".format(cab_code)
