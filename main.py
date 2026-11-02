@@ -2331,7 +2331,8 @@ class CircuitEditor:
         details_button.grid(row=row, column=0, columnspan=2, sticky="w", pady=(2, 8))
         row += 1
         tk.Button(form, text="Сигналы и БИ…", width=20,
-                  command=lambda: self.show_signals_window(definition)).grid(
+                  command=lambda: self.show_signals_window(
+                      definition, parent=dialog)).grid(
             row=row, column=0, columnspan=2, sticky="w", pady=(0, 8))
         row += 1
 
@@ -4016,8 +4017,15 @@ class CircuitEditor:
         if bound and target_container is not None:
             self.selected_elements = [target_container.id]
 
-    def show_signals_window(self, cabinet):
-        """Окно «Сигналы и испытательные блоки» по данным из СТО."""
+    def show_signals_window(self, cabinet, parent=None):
+        """Окно «Сигналы и испытательные блоки» по данным из СТО.
+
+        parent — диалог, из которого открыт просмотр (редактор шкафа или
+        выбор шкафа). Окно делается дочерним и модальным именно для него:
+        иначе grab родительского диалога не даёт нажимать вкладки и
+        «Закрыть», а само окно может уйти на другой монитор.
+        """
+        owner = parent or self.root
         data = cabs.signals_for(cabinet)
         definition = cabs.find_cabinet(cabinet.get("key") or "") or {}
         analog_rows = []
@@ -4025,9 +4033,41 @@ class CircuitEditor:
             for row in komplekts.normalize_analog(kit.get("analog_inputs")):
                 analog_rows.append((kit.get("name") or "Комплект", row))
         code = cabinet.get("code") or cabinet.get("name") or "Шкаф"
-        window = tk.Toplevel(self.root)
+        window = tk.Toplevel(owner)
         window.title("Сигналы и БИ — {}".format(code))
-        window.transient(self.root)
+        window.transient(owner)
+        # Собираем окно скрытым: иначе WM успевает поставить его
+        # по-своему (иногда на другом мониторе), и позиция ниже
+        # оказывается уже не той, что нужно.
+        window.withdraw()
+
+        def finish():
+            """Показывает окно по центру родителя и делает его модальным."""
+            window.update_idletasks()
+            # У скрытого окна winfo_width() == 1, поэтому берём
+            # запрошенный размер, рассчитанный по содержимому.
+            width = max(window.winfo_width(), window.winfo_reqwidth())
+            height = max(window.winfo_height(), window.winfo_reqheight())
+            # Если окно шире родителя, прижимаем его к левому/верхнему
+            # краю родителя: так оно остаётся на том же мониторе.
+            x = owner.winfo_rootx() + max(
+                0, (owner.winfo_width() - width) // 2)
+            y = owner.winfo_rooty() + max(
+                0, (owner.winfo_height() - height) // 4)
+            window.geometry(f"+{x}+{y}")
+            window.deiconify()
+            window.lift()
+            try:
+                window.wait_visibility()
+                window.grab_set()
+            except tk.TclError:
+                pass
+            window.wait_window(window)
+            if parent is not None:
+                try:
+                    parent.grab_set()
+                except tk.TclError:
+                    pass
 
         header = tk.Label(
             window, anchor="w", justify="left", fg="#333333", wraplength=760,
@@ -4040,16 +4080,18 @@ class CircuitEditor:
                           "не приведены.").pack(fill=tk.X, padx=10, pady=8)
             tk.Button(window, text="Закрыть", width=12,
                       command=window.destroy).pack(pady=(0, 10))
+            window.bind("<Escape>", lambda event: window.destroy())
+            finish()
             return
 
         tabs = ttk.Notebook(window)
         tabs.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 8))
-        for kind, title, _short in cabs.SIGNAL_KINDS:
+        for kind, _title, short_title in cabs.SIGNAL_KINDS:
             items = data.get(kind) or []
             if not items:
                 continue
             frame = tk.Frame(tabs)
-            tabs.add(frame, text="{} ({})".format(title, len(items)))
+            tabs.add(frame, text="{} ({})".format(short_title, len(items)))
             tree = ttk.Treeview(frame, columns=("num", "name", "code", "details"),
                                 show="headings", height=16)
             for column, label, width in (("num", "№", 40),
@@ -4101,6 +4143,7 @@ class CircuitEditor:
         tk.Button(window, text="Закрыть", width=12,
                   command=window.destroy).pack(pady=(0, 10))
         window.bind("<Escape>", lambda event: window.destroy())
+        finish()
 
     def _choose_cabinet(self):
         """Диалог выбора шкафа из cabs.py."""
@@ -4284,7 +4327,8 @@ class CircuitEditor:
         def show_signals():
             selection = listbox.curselection()
             if selection:
-                self.show_signals_window(state["visible"][selection[0]])
+                self.show_signals_window(state["visible"][selection[0]],
+                                         parent=dialog)
 
         signal_button = tk.Button(buttons, text="Сигналы и БИ…", width=16,
                                   command=show_signals)
