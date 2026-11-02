@@ -133,7 +133,11 @@ def tags_text(entry, separator=", "):
 
 
 def split_list(value):
-    """«Ua, Ub; Uc» или список → список строк без пустых элементов."""
+    """«Ua, Ub; Uc» или список → список строк без пустых элементов.
+
+    Элементы готового списка не дробятся: строка «СЗ (ДЗ, ТЗНП, МТЗ)» —
+    одна функция, а не три.
+    """
     if value is None:
         return []
     if isinstance(value, str):
@@ -141,7 +145,10 @@ def split_list(value):
     else:
         items = []
         for item in value:
-            items.extend(split_list(item))
+            if isinstance(item, str):
+                items.append(item)
+            else:
+                items.extend(split_list(item))
     return [str(item).strip() for item in items if str(item).strip()]
 
 
