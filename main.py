@@ -8348,10 +8348,27 @@ class CircuitEditor:
             "font_size": 8,
         }
 
+    def _nir_bound_cabinets(self, container):
+        """Шкафы, реально привязанные к контейнеру, в порядке слотов.
+
+        Возвращает пары «номер слота (с 1) — элемент шкафа». Ссылки на
+        удалённые элементы и пустые слоты пропускаются, поэтому в отчёт
+        попадают только оставленные в контейнере шкафы.
+        """
+        result = []
+        for index in range(container.slot_count()):
+            cabinet_id = (container.cabinets[index]
+                          if index < len(container.cabinets) else "")
+            cabinet = self.elements.get(cabinet_id) if cabinet_id else None
+            if cabinet is not None and cabinet.type == "cabinet":
+                result.append((index + 1, cabinet))
+        return result
+
     def _nir_container_rows(self, container):
-        """Описание контейнера: обозначение, тип, состав, габариты."""
+        """Описание контейнера: обозначение, тип, привязанные шкафы, габариты."""
         code = (getattr(container, "code", "") or "").strip() or "КЭТ"
         info = getattr(container, "info", {}) or {}
+        bound = self._nir_bound_cabinets(container)
         rows = [["Обозначение", container.name or code],
                 ["Тип контейнера", code],
                 ["Наименование", info.get("name") or container.title or "—"]]
@@ -8367,13 +8384,20 @@ class CircuitEditor:
         if info.get("standard") and not info.get("standard_title"):
             rows.append(["Стандарт", str(info["standard"])])
         rows.append(["Слотов в контейнере", str(container.slot_count())])
-        rows.append(["Шкафов привязано", str(container.bound_count())])
+        rows.append(["Шкафов привязано", str(len(bound))])
         if info.get("description"):
             rows.append(["Назначение", str(info["description"])])
-        composition = info.get("composition") or []
-        if composition:
-            rows.append(["Состав контейнера",
-                         "\n".join(str(item) for item in composition)])
+        if bound:
+            composition = []
+            for slot, cabinet in bound:
+                cabinet_code, cabinet_name, _standard = (
+                    self._nir_cabinet_fields(cabinet))
+                composition.append("Слот {} — {} — {} — {}".format(
+                    slot, cabinet.name or cabinet.id,
+                    cabinet_code, cabinet_name))
+            rows.append(["Состав контейнера", "\n".join(composition)])
+        else:
+            rows.append(["Состав контейнера", "Шкафы не привязаны"])
         if info.get("note"):
             rows.append(["Примечание", str(info["note"])])
         if info.get("source"):
@@ -8541,9 +8565,8 @@ class CircuitEditor:
             blocks.append(self._nir_pairs_table(
                 self._nir_container_rows(container)))
 
-            cabinets = [self.elements[cabinet_id]
-                        for cabinet_id in container.bound_ids()
-                        if cabinet_id in self.elements]
+            cabinets = [cabinet for _slot, cabinet
+                        in self._nir_bound_cabinets(container)]
             if not cabinets:
                 blocks.append({"kind": "paragraph",
                                "text": "К контейнеру не привязано ни одного "
