@@ -8436,9 +8436,9 @@ class CircuitEditor:
             for slot, cabinet in bound:
                 cabinet_code, cabinet_name, _standard = (
                     self._nir_cabinet_fields(cabinet))
-                composition.append("Слот {} — {} — {} — {}".format(
-                    slot, cabinet.name or cabinet.id,
-                    cabinet_code, cabinet_name))
+                composition.append("{} {} ({}, Слот {})".format(
+                    cabinet_code, cabinet_name,
+                    cabinet.name or cabinet.id, slot))
             rows.append(["Состав контейнера", "\n".join(composition)])
         else:
             rows.append(["Состав контейнера", "Шкафы не привязаны"])
