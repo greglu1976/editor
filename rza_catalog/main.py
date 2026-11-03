@@ -60,7 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version="rza_catalog 1",
+        version="rza_catalog 2",
     )
     return parser
 
@@ -76,7 +76,9 @@ def _human_size(path: Path) -> str:
 
 def _print_report(counts: dict[str, int], *, json_path: Path,
                   sqlite_path: Optional[Path]) -> None:
-    print(f"Контейнеров:        {counts['containers']}")
+    print(f"Встроенных шкафов:  {counts['builtin_cabinets']}")
+    print(f"Встроенных КЭТ:     {counts['builtin_kets']}")
+    print(f"Пользовательских контейнеров: {counts['containers']}")
     print(f"Шкафов:             {counts['cabinets']}")
     print(f"Комплектов:         {counts['kits']} "
           f"(с ИЭУ: {counts['kits_with_ied']})")
@@ -85,6 +87,7 @@ def _print_report(counts: dict[str, int], *, json_path: Path,
     print(f"Стандартов:         {counts['standards']}")
     print(f"Испытательных блоков: {counts['test_blocks']}")
     print(f"Аналоговых входов:  {counts['analog_inputs']}")
+    print(f"Сигналов:           {counts['signals']}")
     print(f"Удалённых ключей:   {counts['deleted']}")
     print(f"Удалённых КЭТ:      {counts['deleted_containers']}")
     print()

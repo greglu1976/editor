@@ -83,13 +83,11 @@
 * СТО 56947007-33.040.20.286-2019 — сборные шины, ошиновки и шинные
   аппараты 6-750 кВ.
 
-Шкафы тех же серий для архитектур I и III типа (СТО 276, 278, 279, 281,
-282, 284, 285, 287), а также шкафы ШСО, ШСК (СТО 289, 290) и отсеки
-ШЭТ/ОЭТ 6-35 кВ (СТО 296, 297) собраны в cabs_sto.py; там же хранятся
-исправления полей записей cabs_data.py. См. CABINETS ниже.
-
-Шкафы остальных стандартов (архитектура I типа, ОЭТ 6–35 кВ, УПАСК, ПДС,
-АРНТ, ПА, ВК, ШКП, ШИП) собраны в едином справочнике cabs_data.py.
+Встроенные шкафы (включая архитектуры I и III типа, ШСО/ШСК, ОЭТ 6–35 кВ,
+УПАСК, ПДС, АРНТ, ПА, ВК, ШКП, ШИП) перенесены в
+``catalog.normalized.json``, раздел ``builtin_cabinets``. Модули
+``cabs_data.py`` и ``cabs_sto.py`` оставлены архивом исходных данных и
+приложением не используются.
 """
 
 import copy
@@ -98,8 +96,6 @@ import os
 import re
 import uuid
 
-import cabs_data
-import cabs_sto
 import komplekts
 
 try:  # единое нормализованное хранилище пользовательского каталога
@@ -318,20 +314,25 @@ def standard_for(cabinet):
     key = cabinet.get("standard_key")
     return STANDARDS.get(key) if key else None
 
+def _stored_builtin_cabinets():
+    """Встроенные шкафы из catalog.normalized.json (основной источник)."""
+    if catalog_store is None:
+        return []
+    try:
+        catalog = catalog_store.read_store(
+            catalog_store.CANONICAL_STORE_PATH, copy_data=False
+        )
+        return [
+            catalog_store.container_to_cabinet_dict(container)
+            for container in catalog_store.builtin_cabinet_entries(catalog)
+        ]
+    except Exception:
+        return []
+
+
 #: Единый справочник шкафов: одна запись — один шкаф, одинаковый набор полей.
-#: Шкафы, занесённые из выпущенных СТО (cabs_sto.py), дополняют встроенный
-#: справочник; правки их полей применяются поверх cabs_data.
-CABINETS = [copy.deepcopy(cabinet) for cabinet in cabs_data.CABINETS]
-for _cabinet in CABINETS:
-    _cabinet.update(cabs_sto.CORRECTIONS.get(_cabinet.get("key"), {}))
-    _functions = cabs_sto.KIT_FUNCTIONS.get(_cabinet.get("key"))
-    if _functions:
-        for _komplet, _items in zip(_cabinet.get("komplets") or [], _functions):
-            _komplet["functions"] = list(_items)
-            for _ied in _komplet.get("ieds") or []:
-                _ied["functions"] = list(_items)
-CABINETS.extend(copy.deepcopy(cabs_sto.CABINETS))
-del _cabinet, _functions
+#: Источник — catalog.normalized.json (раздел builtin_cabinets).
+CABINETS = _stored_builtin_cabinets()
 
 #: Универсальные описательные поля (одни и те же у шкафов и комплектов).
 DETAIL_FIELDS = komplekts.DETAIL_FIELDS
@@ -352,11 +353,10 @@ def _apply_standard_defaults(cabinet):
         cabinet.setdefault("group", standard["group"])
     else:
         cabinet.setdefault("group", "Прочие")
-    # Описательные поля из стандартов: пустое значение — None.
-    details = cabs_data.DETAILS_BY_CODE.get(
-        (cabinet.get("code") or "").strip()) or {}
+    # Описательные поля: пустое значение — None. Встроенные шкафы уже
+    # содержат данные СТО в store; для пользовательских берём то, что задано.
     for name in DETAIL_FIELDS:
-        value = cabinet.get(name) or details.get(name)
+        value = cabinet.get(name)
         if isinstance(value, str):
             value = value.strip() or None
         cabinet[name] = value
@@ -386,6 +386,19 @@ SIGNALS_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "cabs_signals.json")
 
 
+def derive_cabinet_kind(komplets, default="custom"):
+    """Вид шкафа по его комплектам: типовой, только если все комплекты типовые."""
+    kinds = {kit.get("kind") for kit in (komplets or []) if isinstance(kit, dict)}
+    if not kinds:
+        return default
+    return "typical" if kinds <= {"typical"} else "custom"
+
+
+def cabinet_kind_title(cabinet):
+    """Подпись вида шкафа для списков и отчётов."""
+    return "Типовой" if (cabinet or {}).get("kind") == "typical" else "Нетиповой"
+
+
 def normalize_cabinet(cabinet):
     """Приводит шкаф к формату комплектов (старое поле ieds → komplets)."""
     # Теги: строка «а; б» или список → список строк (пустой — не храним).
@@ -401,24 +414,26 @@ def normalize_cabinet(cabinet):
     if isinstance(komplets, list):
         cabinet["komplets"] = komplekts.normalize_komplets(
             komplets[:MAX_KOMPLETS], default_kind, cabinet)
-        return cabinet
-
-    # Старый формат: список ИЭУ прямо в шкафу — каждый ИЭУ становится комплектом
-    result = []
-    for index, ied in enumerate(cabinet.get("ieds", [])[:MAX_KOMPLETS]):
-        result.append({
-            "name": "Комплект {}".format(index + 1),
-            "type": ied.get("type", "МП РЗА"),
-            "functions": list(ied.get("functions", [])),
-            "desc": ied.get("desc", ""),
-            "ieds": [{
-                "name": ied.get("name", "ИЭУ{}".format(index + 1)),
+    else:
+        # Старый формат: список ИЭУ прямо в шкафу — каждый ИЭУ становится
+        # комплектом.
+        result = []
+        for index, ied in enumerate(cabinet.get("ieds", [])[:MAX_KOMPLETS]):
+            result.append({
+                "name": "Комплект {}".format(index + 1),
                 "type": ied.get("type", "МП РЗА"),
+                "functions": list(ied.get("functions", [])),
                 "desc": ied.get("desc", ""),
-            }],
-        })
-    cabinet["komplets"] = komplekts.normalize_komplets(
-        result, default_kind, cabinet)
+                "ieds": [{
+                    "name": ied.get("name", "ИЭУ{}".format(index + 1)),
+                    "type": ied.get("type", "МП РЗА"),
+                    "desc": ied.get("desc", ""),
+                }],
+            })
+        cabinet["komplets"] = komplekts.normalize_komplets(
+            result, default_kind, cabinet)
+
+    cabinet["kind"] = derive_cabinet_kind(cabinet["komplets"], default_kind)
     return cabinet
 
 

@@ -11,6 +11,33 @@ from pathlib import Path
 from rza_catalog import store
 
 
+class BuiltinStoreTest(unittest.TestCase):
+    def test_root_store_contains_builtin_cabinets_and_kets(self) -> None:
+        catalog = store.read_store()
+        self.assertEqual(len(store.builtin_cabinet_entries(catalog)), 282)
+        self.assertEqual(len(store.builtin_ket_entries(catalog)), 16)
+        self.assertEqual(len(catalog.deleted), 6)
+
+    def test_builtin_cabinet_is_converted_to_app_dict(self) -> None:
+        catalog = store.read_store()
+        container = store.builtin_cabinet_entries(catalog)[0]
+        definition = store.container_to_cabinet_dict(container)
+        self.assertEqual(definition["key"], container.key)
+        self.assertIn("komplets", definition)
+        self.assertIn("kind", definition)
+
+    def test_full_store_roundtrip_keeps_builtins(self) -> None:
+        first = store.read_store()
+        second = store.load_catalog(store.catalog_to_dict(first))
+        self.assertEqual(len(second.builtin_cabinets),
+                         len(first.builtin_cabinets))
+        self.assertEqual(len(second.builtin_kets), len(first.builtin_kets))
+        self.assertEqual(
+            [container.key for container in second.builtin_cabinets.values()],
+            [container.key for container in first.builtin_cabinets.values()],
+        )
+
+
 class StoreIntegrationTest(unittest.TestCase):
     def setUp(self) -> None:
         self._directory = tempfile.TemporaryDirectory()

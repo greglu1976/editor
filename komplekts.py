@@ -5,9 +5,10 @@
 только внутри шкафов (поле ``komplets`` в каталоге шкафов). Теперь у них
 есть собственный каталог, чтобы комплекты можно было вести отдельно:
 
-* **типовые** — берутся из типовых шкафов каталога (``cabs.py``): у каждого
-  типового шкафа свой комплект (или несколько). Такой комплект ссылается на
-  шкаф-источник и в каталоге не дублируется, а вычисляется на лету;
+* **типовые** — берутся из типовых шкафов каталога (``cabs.py``) или
+  создаются пользователем как самостоятельные (из собранных СТО и
+  документов). Комплект из шкафа ссылается на шкаф-источник и не
+  дублируется, а вычисляется на лету;
 * **нетиповые** — комплекты нетиповых шкафов каталога (вычисляются так же)
   и комплекты, созданные пользователем (хранятся в
   ``catalog.normalized.json``, служебный контейнер ``__kit_catalog__``);
@@ -32,6 +33,8 @@
         "cabinet_key": "ключ типового шкафа (только для типовых)",
         "cabinet_index": 0,             # номер комплекта в шкафу-источнике
         "tags": ["метки, например «Невыпущенные СТО»"],
+        "io_in":  [{"name": "…", "code": "…", "details": "…"}],
+        "io_out": [{"name": "…", "code": "…", "details": "…"}],
     }
 
 Пользовательский каталог хранится в ``catalog.normalized.json`` (через
@@ -115,10 +118,19 @@ DETAIL_LABELS = (
     ("notes", "Примечания"),
 )
 
+#: Виды сигналов комплекта: ключ → подпись.
+SIGNAL_FIELDS = (
+    ("io_in", "Входные сигналы"),
+    ("io_out", "Выходные сигналы"),
+    ("goose_in", "Входные GOOSE"),
+    ("goose_out", "Выходные GOOSE"),
+)
+SIGNAL_LABELS = dict(SIGNAL_FIELDS)
+
 #: Поля, которые можно править у типового комплекта (остальное — из шкафа).
 _OVERRIDABLE = ("name", "type", "functions", "desc", "has_ied", "ieds",
                 "test_blocks", "test_block_list", "analog_inputs",
-                "tags") + DETAIL_FIELDS
+                "tags", "io_in", "io_out", "goose_in", "goose_out") + DETAIL_FIELDS
 
 #: Тег шкафов и комплектов из ещё не выпущенных (проектных) СТО.
 TAG_UNRELEASED = "Невыпущенные СТО"
@@ -158,6 +170,57 @@ def split_list(value):
             else:
                 items.extend(split_list(item))
     return [str(item).strip() for item in items if str(item).strip()]
+
+
+def normalize_signals(items):
+    """Сигналы комплекта: список строк таблицы СТО.
+
+    Строка: ``{"name": "...", "code": "...", "details": "..."}``.
+    Для совместимости принимает и просто строку — она станет именем.
+    """
+    result = []
+    for item in items or []:
+        if isinstance(item, str):
+            item = {"name": item}
+        if not isinstance(item, dict):
+            continue
+        row = {name: str(item.get(name) or "").strip()
+               for name in ("name", "code", "details")}
+        if any(row.values()):
+            result.append(row)
+    return result
+
+
+def has_signals(entry):
+    return any(normalize_signals(entry.get(field))
+               for field, _label in SIGNAL_FIELDS)
+
+
+def signals_brief(entry):
+    """Короткая сводка сигналов: «Входные сигналы: 12; Выходные сигналы: 8»."""
+    parts = []
+    for field, label in SIGNAL_FIELDS:
+        count = signal_count(entry, field)
+        if count:
+            parts.append("{}: {}".format(label, count))
+    return "; ".join(parts) if parts else "—"
+
+
+def signal_count(entry, field):
+    return len(normalize_signals(entry.get(field)))
+
+
+def signals_text(entry, field, separator="; "):
+    """Подпись сигналов комплекта для карточки/отчёта."""
+    parts = []
+    for row in normalize_signals(entry.get(field)):
+        text = row["name"] or "—"
+        if row["code"]:
+            text += " [{}]".format(row["code"])
+        if row["details"]:
+            text += " — {}".format(row["details"])
+        parts.append(text)
+    return separator.join(parts) if parts else "—"
 
 
 def normalize_test_blocks(blocks):
@@ -217,6 +280,8 @@ def normalize_komplekt(definition, default_kind=None):
     entry["test_block_list"] = normalize_block_list(
         entry.get("test_block_list"))
     entry["analog_inputs"] = normalize_analog(entry.get("analog_inputs"))
+    for field, _label in SIGNAL_FIELDS:
+        entry[field] = normalize_signals(entry.get(field))
     for name in DETAIL_FIELDS:
         value = entry.get(name)
         if value is None:
@@ -401,6 +466,10 @@ def kit_label(entry):
     parts.append("{} ИЭУ".format(count) if count else "без ИЭУ")
     if has_test_blocks(entry):
         parts.append("БИ " + test_blocks_text(entry, compact=True))
+    incoming = signal_count(entry, "io_in")
+    outgoing = signal_count(entry, "io_out")
+    if incoming or outgoing:
+        parts.append("вх/вых {}/{}".format(incoming, outgoing))
     tags = tags_of(entry)
     if tags:
         parts.append(", ".join(tags))
@@ -459,7 +528,7 @@ def kit_from_cabinet(cabinet, index, kind=None):
     index = max(0, min(int(index), len(komplets) - 1))
     komplekt = normalize_komplekt(komplets[index])
     cabinet_key = cabinet.get("key") or ""
-    kind = kind or cabinet_kit_kind(cabinet)
+    kind = komplekt.get("kind") or kind or cabinet_kit_kind(cabinet)
     prefix = "typ" if kind == "typical" else "cab"
     data = {
         "key": "{}:{}:{}".format(prefix, cabinet_key, index),
@@ -474,6 +543,10 @@ def kit_from_cabinet(cabinet, index, kind=None):
         "test_blocks": komplekt["test_blocks"],
         "test_block_list": komplekt["test_block_list"],
         "analog_inputs": komplekt["analog_inputs"],
+        "io_in": komplekt.get("io_in") or [],
+        "io_out": komplekt.get("io_out") or [],
+        "goose_in": komplekt.get("goose_in") or [],
+        "goose_out": komplekt.get("goose_out") or [],
         "cabinet_key": cabinet_key,
         "cabinet_index": index,
         "cabinet_code": cabinet.get("code") or "",
@@ -483,6 +556,29 @@ def kit_from_cabinet(cabinet, index, kind=None):
     }
     for name in DETAIL_FIELDS:
         data[name] = komplekt.get(name) or cabinet.get(name)
+
+    # Для одно-комплектного шкафа сигналы из СТО однозначно относятся к
+    # комплекту — подставляем их, если в самом комплекте перечня ещё нет.
+    if not data.get("io_in") and not data.get("io_out"):
+        komplets = cabinet.get("komplets") or []
+        if len(komplets) == 1:
+            try:
+                import cabs as cabinet_catalog
+                signals = cabinet_catalog.signals_for(cabinet)
+            except Exception:
+                signals = {}
+            for field in ("io_in", "io_out"):
+                rows = []
+                for row in signals.get(field) or []:
+                    if not isinstance(row, dict):
+                        continue
+                    rows.append({
+                        "name": str(row.get("name") or "").strip(),
+                        "code": str(row.get("code") or "").strip(),
+                        "details": str(row.get("details") or "").strip(),
+                    })
+                data[field] = rows
+
     return normalize_komplekt(data)
 
 
@@ -645,8 +741,6 @@ def save_komplekt(definition, original_key=None):
     if not key or (current is None and not is_typical_key(key)):
         key = _make_key(entry)
     entry["key"] = key
-    if entry["kind"] == "typical" and not entry["cabinet_key"]:
-        entry["kind"] = "custom"
     entry["source"] = "user"
 
     replaced = False

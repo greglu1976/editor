@@ -20,7 +20,7 @@ from enum import Enum
 from typing import Any, Optional
 
 #: Версия нормализованного JSON/SQLite. Меняется при несовместимом изменении.
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 
 class IedType(str, Enum):
@@ -155,6 +155,15 @@ class AnalogInput:
     note: Optional[str] = None
 
 
+@dataclass
+class SignalEntry:
+    """Дискретный сигнал комплекта (вход/выход, в т. ч. GOOSE)."""
+
+    name: str
+    code: Optional[str] = None
+    details: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # Комплект
 # ---------------------------------------------------------------------------
@@ -173,6 +182,10 @@ class Kit:
     ieds: list[Ied] = field(default_factory=list)
     test_blocks: TestBlocks = field(default_factory=TestBlocks)
     analog_inputs: list[AnalogInput] = field(default_factory=list)
+    io_in: list[SignalEntry] = field(default_factory=list)
+    io_out: list[SignalEntry] = field(default_factory=list)
+    goose_in: list[SignalEntry] = field(default_factory=list)
+    goose_out: list[SignalEntry] = field(default_factory=list)
     tags: list[TagRef] = field(default_factory=list)
     cabinet_id: Optional[str] = None  # обратная ссылка
     has_ied: bool = False
@@ -237,7 +250,10 @@ class Container:
 class RzaCatalog:
     """Корневой объект нормализованного каталога."""
 
-    #: Контейнеры по ключу. Порядок вставки сохраняется.
+    #: Встроенные шкафы и КЭТ (перенесены из кода в JSON).
+    builtin_cabinets: dict[str, Container] = field(default_factory=dict)
+    builtin_kets: dict[str, Container] = field(default_factory=dict)
+    #: Пользовательские контейнеры по ключу. Порядок вставки сохраняется.
     containers: dict[str, Container] = field(default_factory=dict)
     #: Удалённые ключи шкафов (в т. ч. встроенных) и КЭТ-контейнеров.
     deleted: set[str] = field(default_factory=set)

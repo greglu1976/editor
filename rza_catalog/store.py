@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
 """Единое хранилище каталога для приложения.
 
-Файл ``catalog.normalized.json`` — единственный источник пользовательских
-данных каталога. Встроенные шкафы и КЭТ остаются в коде (``cabs_data.py``,
-``cabs_sto.py``, ``containers.py``), а пользовательские записи и правки
-хранятся здесь в нормализованной иерархии:
+Файл ``catalog.normalized.json`` — единственный источник данных каталога.
+Встроенные шкафы и КЭТ лежат в разделах ``builtin_cabinets`` /
+``builtin_kets``, пользовательские записи и правки — в ``containers``:
 
     Container → Cabinet → Kit → Ied
 
-Записи двух видов:
+Типы записей:
 
-* ``entry_type = "cabinet"`` — запись каталога шкафов (вложенные шкафы и
-  комплекты);
-* ``entry_type = "ket"`` — контейнер КЭТ, который ссылается на шкафы по
-  ключам (``extensions.cabinet_keys``).
+* ``entry_type = "builtin_cabinet"`` / ``"builtin_ket"`` — перенесённые
+  из кода встроенные шкафы и КЭТ;
+* ``entry_type = "cabinet"`` — пользовательская запись каталога шкафов;
+* ``entry_type = "ket"`` — пользовательский КЭТ, который ссылается на
+  шкафы по ключам (``extensions.cabinet_keys``);
+* ``entry_type = "kit_catalog"`` — служебный контейнер пользовательских
+  комплектов.
 
 Модуль также умеет один раз собрать хранилище из старых
 ``cabinets.json`` / ``containers.json``.
@@ -39,7 +41,9 @@ from .models import (
 )
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_STORE_PATH = ROOT / "catalog.normalized.json"
+#: Канонический файл с встроенными и пользовательскими данными.
+CANONICAL_STORE_PATH = ROOT / "catalog.normalized.json"
+DEFAULT_STORE_PATH = CANONICAL_STORE_PATH
 LEGACY_CABINETS_PATH = ROOT / "cabinets.json"
 LEGACY_CONTAINERS_PATH = ROOT / "containers.json"
 LEGACY_KITS_PATH = ROOT / "komplekts.json"
@@ -60,8 +64,15 @@ _cache: dict[Path, tuple[int, RzaCatalog]] = {}
 # ---------------------------------------------------------------------------
 
 
-def read_store(path: str | Path | None = None) -> RzaCatalog:
-    """Читает нормализованный каталог (с кэшем по mtime)."""
+def read_store(
+    path: str | Path | None = None,
+    *,
+    copy_data: bool = True,
+) -> RzaCatalog:
+    """Читает нормализованный каталог (с кэшем по mtime).
+
+    ``copy_data=False`` возвращает общий кэш — только для чтения.
+    """
 
     target = Path(path) if path is not None else DEFAULT_STORE_PATH
     if not target.exists():
@@ -70,7 +81,7 @@ def read_store(path: str | Path | None = None) -> RzaCatalog:
     mtime = target.stat().st_mtime_ns
     cached = _cache.get(target)
     if cached and cached[0] == mtime:
-        return copy.deepcopy(cached[1])
+        return copy.deepcopy(cached[1]) if copy_data else cached[1]
 
     try:
         raw = json.loads(target.read_text(encoding="utf-8-sig"))
@@ -112,12 +123,16 @@ def update_store(
     return catalog
 
 
-def ensure_store(path: str | Path | None = None) -> RzaCatalog:
+def ensure_store(
+    path: str | Path | None = None,
+    *,
+    copy_data: bool = True,
+) -> RzaCatalog:
     """Возвращает хранилище, при первом запуске собирая его из старых JSON."""
 
     target = Path(path) if path is not None else DEFAULT_STORE_PATH
     if target.exists():
-        return read_store(target)
+        return read_store(target, copy_data=copy_data)
     catalog = bootstrap_from_legacy()
     write_store(catalog, target)
     return catalog
@@ -129,7 +144,12 @@ def rebuild_references(catalog: RzaCatalog) -> None:
     catalog.functions.clear()
     catalog.standards.clear()
 
-    for container in catalog.containers.values():
+    all_containers = (
+        list(catalog.builtin_cabinets.values())
+        + list(catalog.builtin_kets.values())
+        + list(catalog.containers.values())
+    )
+    for container in all_containers:
         for function in container.its_functions:
             if function.code not in catalog.functions:
                 catalog.functions[function.code] = function
@@ -178,6 +198,14 @@ def rebuild_references(catalog: RzaCatalog) -> None:
 
 def entry_type(container: Container) -> str:
     return container_entry_type(container)
+
+
+def builtin_cabinet_entries(catalog: RzaCatalog) -> list[Container]:
+    return list(catalog.builtin_cabinets.values())
+
+
+def builtin_ket_entries(catalog: RzaCatalog) -> list[Container]:
+    return list(catalog.builtin_kets.values())
 
 
 def cabinet_entries(catalog: RzaCatalog) -> list[Container]:
@@ -436,6 +464,18 @@ def _kit_to_dict(kit: Kit, cabinet: Cabinet, index: int) -> dict[str, Any]:
             }
             for analog in kit.analog_inputs
         ]
+
+    for field in ("io_in", "io_out", "goose_in", "goose_out"):
+        rows = getattr(kit, field)
+        if rows:
+            result[field] = [
+                {
+                    "name": row.name,
+                    "code": row.code or "",
+                    "details": row.details or "",
+                }
+                for row in rows
+            ]
 
     if kit.tags:
         result["tags"] = _tag_codes(kit.tags)

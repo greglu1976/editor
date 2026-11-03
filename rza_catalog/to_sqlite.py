@@ -17,6 +17,7 @@ _TABLES = (
     "test_blocks",
     "analog_inputs",
     "kit_tags",
+    "kit_signals",
     "container_tags",
     "container_controlled",
     "kit_functions",
@@ -152,6 +153,16 @@ CREATE TABLE test_block_circuits (
   ord INTEGER NOT NULL
 );
 
+CREATE TABLE kit_signals (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  kit_id TEXT NOT NULL REFERENCES kits(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL CHECK (kind IN ('io_in', 'io_out', 'goose_in', 'goose_out')),
+  name TEXT,
+  code TEXT,
+  details TEXT,
+  ord INTEGER NOT NULL
+);
+
 CREATE TABLE analog_inputs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   kit_id TEXT NOT NULL REFERENCES kits(id) ON DELETE CASCADE,
@@ -176,6 +187,7 @@ CREATE INDEX idx_kits_cabinet ON kits(cabinet_id, ord);
 CREATE INDEX idx_ieds_kit ON ieds(kit_id, ord);
 CREATE INDEX idx_test_blocks_kit ON test_blocks(kit_id, ord);
 CREATE INDEX idx_analog_inputs_kit ON analog_inputs(kit_id, ord);
+CREATE INDEX idx_kit_signals_kit ON kit_signals(kit_id, kind, ord);
 CREATE INDEX idx_container_functions_code ON container_functions(function_code);
 CREATE INDEX idx_kit_functions_code ON kit_functions(function_code);
 """
@@ -355,6 +367,23 @@ def _export_database(catalog: RzaCatalog, path: Path) -> None:
                                 ),
                             )
                             block_order += 1
+
+                        for kind, entries in (
+                            ("io_in", kit.io_in),
+                            ("io_out", kit.io_out),
+                            ("goose_in", kit.goose_in),
+                            ("goose_out", kit.goose_out),
+                        ):
+                            for index, signal in enumerate(entries):
+                                cursor.execute(
+                                    "INSERT INTO kit_signals("
+                                    "kit_id, kind, name, code, details, ord"
+                                    ") VALUES (?,?,?,?,?,?)",
+                                    (
+                                        kit.id, kind, signal.name,
+                                        signal.code, signal.details, index,
+                                    ),
+                                )
 
                         for index, analog in enumerate(kit.analog_inputs):
                             cursor.execute(

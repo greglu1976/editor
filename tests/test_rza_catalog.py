@@ -102,6 +102,10 @@ def sample_source() -> dict:
                             {"block": "SG1", "signals": "Ia",
                              "contacts": "6+1", "note": "вход"}
                         ],
+                        io_in=[{"name": "Пуск", "code": "PTRC.Str",
+                                "details": "цепь 1"}],
+                        io_out=[{"name": "Отключить", "code": "PTRC.Op",
+                                 "details": "цепь 2"}],
                         mp_functions="основные функции",
                         notes="примечание комплекта",
                     ),
@@ -227,6 +231,9 @@ class MigrationTest(unittest.TestCase):
         self.assertEqual(blocks.blocks[0].note, "примечание")
         self.assertEqual(len(kit.analog_inputs), 1)
         self.assertEqual(kit.analog_inputs[0].block, "SG1")
+        self.assertEqual(kit.io_in[0].name, "Пуск")
+        self.assertEqual(kit.io_in[0].code, "PTRC.Str")
+        self.assertEqual(kit.io_out[0].name, "Отключить")
 
         second = self.catalog.containers["cont-1"].cabinets[0].kits[1]
         self.assertEqual([f.code for f in second.functions], ["ДЗТ"])
@@ -243,8 +250,11 @@ class MigrationTest(unittest.TestCase):
             "standards": 1,
             "test_blocks": 3,
             "analog_inputs": 1,
+            "signals": 2,
             "deleted": 1,
             "deleted_containers": 0,
+            "builtin_cabinets": 0,
+            "builtin_kets": 0,
         })
 
     def test_roundtrip(self) -> None:
@@ -384,6 +394,10 @@ class SqliteTest(unittest.TestCase):
                     ).fetchone()[0], 3)
                 self.assertEqual(
                     connection.execute(
+                        "SELECT COUNT(*) FROM kit_signals"
+                    ).fetchone()[0], 2)
+                self.assertEqual(
+                    connection.execute(
                         "SELECT count_value FROM test_blocks "
                         "WHERE kind = 'block' AND name = 'SG1'"
                     ).fetchone()[0], "6+1")
@@ -436,7 +450,7 @@ class NormalizedInputTest(unittest.TestCase):
             dump_catalog(catalog, path)
             text = path.read_text(encoding="utf-8")
             self.assertIn("Контейнер 1", text)
-            self.assertEqual(json.loads(text)["schema_version"], 1)
+            self.assertEqual(json.loads(text)["schema_version"], 2)
 
 
 if __name__ == "__main__":

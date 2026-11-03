@@ -1213,8 +1213,9 @@ class CircuitEditor:
             mark = "" if cabs.is_builtin(cabinet.get("key")) else " •"
             tags = cabs.cabinet_tags(cabinet)
             suffix = " — " + ", ".join(tags) if tags else ""
-            return (f"{prefix}{code} — {name}{mark}{suffix}" if code
-                    else prefix + name + mark + suffix)
+            kind = " · " + cabs.cabinet_kind_title(cabinet)
+            return (f"{prefix}{code} — {name}{mark}{suffix}{kind}" if code
+                    else prefix + name + mark + suffix + kind)
 
         def refresh():
             state["cabinets"] = cabs.all_cabinets()
@@ -1429,6 +1430,8 @@ class CircuitEditor:
             if komplekts.has_analog(kit):
                 lines.append("Аналоговые измерения: " +
                              komplekts.analog_text(kit))
+            if komplekts.has_signals(kit):
+                lines.append("Сигналы: " + komplekts.signals_brief(kit))
             if kit.get("desc"):
                 lines.append("Примечание: " + kit["desc"])
             if komplekts.tags_of(kit):
@@ -1664,6 +1667,8 @@ class CircuitEditor:
             if komplekts.has_analog(kit):
                 lines.append("Аналоговые измерения: " +
                              komplekts.analog_text(kit))
+            if komplekts.has_signals(kit):
+                lines.append("Сигналы: " + komplekts.signals_brief(kit))
             if kit.get("desc"):
                 lines.append("Примечание: " + kit["desc"])
             if komplekts.tags_of(kit):
@@ -1735,12 +1740,11 @@ class CircuitEditor:
         dialog.wait_window(dialog)
         return result["value"]
 
-    def _komplekt_form(self, definition=None, title="Комплект РЗА",
-                       allow_no_cabinet=False):
+    def _komplekt_form(self, definition=None, title="Комплект РЗА"):
         """Редактор комплекта. Возвращает нормализованный dict или None.
 
-        allow_no_cabinet — для комплектов внутри шкафа схемы: вид «типовой»
-        не требует ссылки, ссылка на шкаф и так подразумевается самим шкафом.
+        Типовой комплект может быть самостоятельным (без шкафа-источника):
+        так заводятся типовые комплекты из собранных СТО и документов.
         """
         data = komplekts.normalize_komplekt(
             copy.deepcopy(dict(definition or {})), "custom")
@@ -1800,7 +1804,7 @@ class CircuitEditor:
         cabinet_var = tk.StringVar(value=initial_label)
         cabinet_menu = tk.OptionMenu(form, cabinet_var, *cabinet_labels,
                                      command=lambda value: on_cabinet_change())
-        add_line("Типовой шкаф", cabinet_menu)
+        add_line("Типовой шкаф (необязательно)", cabinet_menu)
 
         kit_row = tk.Frame(form)
         index_var = tk.StringVar(
@@ -1820,6 +1824,82 @@ class CircuitEditor:
             value=", ".join(data.get("tags") or []))
         add_line("Теги (через запятую)",
                  tk.Entry(form, textvariable=tags_var, width=50))
+
+        signal_state = {
+            "io_in": komplekts.normalize_signals(data.get("io_in")),
+            "io_out": komplekts.normalize_signals(data.get("io_out")),
+        }
+
+        def signals_to_text(rows):
+            return "".join(
+                "{} | {} | {}\n".format(row["name"], row["code"],
+                                         row["details"])
+                for row in rows)
+
+        def text_to_signals(widget):
+            result = []
+            for line in widget.get("1.0", "end").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                parts = [part.strip() for part in line.split("|")]
+                parts += [""] * (3 - len(parts))
+                result.append({"name": parts[0], "code": parts[1],
+                               "details": parts[2]})
+            return komplekts.normalize_signals(result)
+
+        def refresh_signal_button():
+            signal_button.config(text="Сигналы: вх {} / вых {}…".format(
+                len(signal_state["io_in"]), len(signal_state["io_out"])))
+
+        def edit_signals():
+            signal_dialog = tk.Toplevel(dialog)
+            signal_dialog.title("Сигналы комплекта")
+            signal_dialog.transient(dialog)
+            signal_dialog.resizable(False, False)
+            texts = {}
+            for field, label in (("io_in", "Входные сигналы"),
+                                 ("io_out", "Выходные сигналы")):
+                frame = tk.LabelFrame(signal_dialog, text=label,
+                                      padx=8, pady=6)
+                frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(8, 0))
+                text = tk.Text(frame, height=8, width=80, wrap="none",
+                               font=("Arial", 8))
+                text.pack(fill=tk.BOTH, expand=True)
+                text.insert("1.0", signals_to_text(signal_state[field]))
+                texts[field] = text
+            tk.Label(signal_dialog,
+                     text="По строке на сигнал: наименование | код МЭК 61850 | "
+                          "сведения из таблицы",
+                     fg="#999999", font=("Arial", 7), anchor="w").pack(
+                fill=tk.X, padx=10, pady=(4, 0))
+
+            def apply():
+                for field in ("io_in", "io_out"):
+                    signal_state[field] = text_to_signals(texts[field])
+                refresh_signal_button()
+                signal_dialog.destroy()
+
+            buttons = tk.Frame(signal_dialog)
+            buttons.pack(fill=tk.X, padx=10, pady=8)
+            tk.Button(buttons, text="Отмена", width=10,
+                      command=signal_dialog.destroy).pack(side=tk.RIGHT)
+            tk.Button(buttons, text="Сохранить", width=12,
+                      command=apply).pack(side=tk.RIGHT, padx=(0, 6))
+            signal_dialog.bind("<Escape>",
+                               lambda event: signal_dialog.destroy())
+            self._center_dialog(signal_dialog)
+            signal_dialog.grab_set()
+            signal_dialog.wait_window(signal_dialog)
+            try:
+                dialog.grab_set()
+            except tk.TclError:
+                pass
+
+        signal_button = tk.Button(form, text="Сигналы…",
+                                  command=edit_signals)
+        add_line("Сигналы (вход/выход)", signal_button)
+        refresh_signal_button()
 
         has_ied_var = tk.BooleanVar(value=data["has_ied"])
         tk.Checkbutton(form, text="Есть ИЭУ в комплекте",
@@ -2135,6 +2215,11 @@ class CircuitEditor:
             refresh_blocks(0)
             analog_text.delete("1.0", "end")
             analog_text.insert("1.0", analog_lines(kit))
+            signal_state["io_in"] = komplekts.normalize_signals(
+                kit.get("io_in"))
+            signal_state["io_out"] = komplekts.normalize_signals(
+                kit.get("io_out"))
+            refresh_signal_button()
 
         def on_cabinet_change(value=None):
             set_index_bounds()
@@ -2172,10 +2257,6 @@ class CircuitEditor:
             cabinet = cabinet_lookup.get(cabinet_var.get())
             cabinet_key = ""
             if kind == "typical":
-                if cabinet is None and not (allow_no_cabinet or derived):
-                    error.config(
-                        text="Выберите типовой шкаф для типового комплекта.")
-                    return
                 cabinet_key = ((cabinet.get("key") or "") if cabinet
                                else data.get("cabinet_key") or "")
             cabinet_code = ((cabinet.get("code") or "") if cabinet
@@ -2198,6 +2279,12 @@ class CircuitEditor:
                 "test_block_list": [dict(row) for row in block_rows],
                 "cabinet_key": cabinet_key,
                 "analog_inputs": parse_analog(),
+                "io_in": [dict(row) for row in signal_state["io_in"]],
+                "io_out": [dict(row) for row in signal_state["io_out"]],
+                "goose_in": komplekts.normalize_signals(
+                    data.get("goose_in")),
+                "goose_out": komplekts.normalize_signals(
+                    data.get("goose_out")),
                 "cabinet_index": max(0, _int(index_var.get(), 1) - 1) if
                 kind == "typical" else 0,
                 "cabinet_code": cabinet_code if kind == "typical" else "",
@@ -2396,6 +2483,9 @@ class CircuitEditor:
                   command=lambda: add_komplekt()).pack(side=tk.LEFT)
         tk.Button(komplekt_buttons, text="+ Из каталога…", width=14,
                   command=lambda: add_from_catalog()).pack(side=tk.LEFT, padx=(4, 0))
+        tk.Button(komplekt_buttons, text="Обновить из каталога", width=20,
+                  command=lambda: sync_from_catalog()).pack(
+            side=tk.LEFT, padx=(4, 0))
         tk.Button(komplekt_buttons, text="− Комплект", width=12,
                   command=lambda: remove_komplekt()).pack(side=tk.LEFT, padx=(4, 0))
 
@@ -2453,6 +2543,8 @@ class CircuitEditor:
             if komplekts.has_analog(kit):
                 lines.append("Аналоговые измерения: " +
                              komplekts.analog_text(kit))
+            if komplekts.has_signals(kit):
+                lines.append("Сигналы: " + komplekts.signals_brief(kit))
             if kit.get("desc"):
                 lines.append("Примечание: " + kit["desc"])
             if komplekts.tags_of(kit):
@@ -2488,8 +2580,7 @@ class CircuitEditor:
                 "name": "Комплект {}".format(len(komplets) + 1),
                 "kind": default_kind,
             }, default_kind)
-            edited = self._komplekt_form(default, title="Новый комплект",
-                                         allow_no_cabinet=True)
+            edited = self._komplekt_form(default, title="Новый комплект")
             if edited is None:
                 return
             komplets.append(edited)
@@ -2513,14 +2604,33 @@ class CircuitEditor:
             error.config(text="")
             refresh_komplekts(len(komplets) - 1)
 
+        def sync_from_catalog():
+            catalog = {kit["key"]: kit for kit in komplekts.all_komplekts()}
+            changed = 0
+            for index, kit in enumerate(komplets):
+                found = catalog.get(kit.get("key"))
+                if found is None:
+                    continue
+                metadata = {
+                    field: kit.get(field) for field in
+                    ("cabinet_key", "cabinet_index", "cabinet_code",
+                     "cabinet_name", "cabinet_group")
+                }
+                updated = komplekts.for_cabinet(found)
+                updated.update(metadata)
+                komplets[index] = updated
+                changed += 1
+            refresh_komplekts(state["index"])
+            error.config(
+                text="Обновлено из каталога комплектов: {}".format(changed))
+
         def edit_komplekt():
             selection = komplekt_list.curselection()
             if not selection:
                 return
             index = selection[0]
             edited = self._komplekt_form(
-                copy.deepcopy(komplets[index]), title="Комплект — изменение",
-                allow_no_cabinet=True)
+                copy.deepcopy(komplets[index]), title="Комплект — изменение")
             if edited is None:
                 return
             komplets[index] = edited
@@ -2771,7 +2881,12 @@ class CircuitEditor:
                 names = []
                 for key in cabinets:
                     found = cabs.find_cabinet(key)
-                    names.append((found or {}).get("code") or key)
+                    if found:
+                        names.append("{} [{}]".format(
+                            found.get("code") or key,
+                            cabs.cabinet_kind_title(found)))
+                    else:
+                        names.append(key)
                 lines.append("Шкафы: " + ", ".join(names))
             if container.get("note"):
                 lines.append("Примечание: " + container["note"])
@@ -2826,6 +2941,12 @@ class CircuitEditor:
             window.destroy()
             self._place_container(container, expand=False)
 
+        def on_report():
+            container = selected()
+            if container is None:
+                return
+            self.open_catalog_report(container)
+
         buttons = tk.Frame(window)
         buttons.pack(fill=tk.X, padx=10, pady=8)
         tk.Button(buttons, text="Закрыть", width=10,
@@ -2840,6 +2961,8 @@ class CircuitEditor:
                   command=on_new).pack(side=tk.RIGHT, padx=(0, 6))
         tk.Button(buttons, text="На схему", width=12,
                   command=on_place).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="Отчёт…", width=10,
+                  command=on_report).pack(side=tk.RIGHT, padx=(0, 6))
 
         listbox.bind("<<ListboxSelect>>", show_info)
         listbox.bind("<Double-Button-1>", on_edit)
@@ -7831,6 +7954,147 @@ class CircuitEditor:
                 "аналоговых цепей; остальные комплекты свободны.",
             ],
         }
+
+    def _catalog_container_report(self, container):
+        """Отчёт по контейнеру из каталога: шкафы и комплекты без схемы."""
+        keys = [key for key in (container.get("cabinets") or []) if key]
+        cabinets_by_key = {cabinet.get("key"): cabinet
+                           for cabinet in cabs.all_cabinets()}
+        cabinets = []
+        missing = []
+        for key in keys:
+            cabinet = cabinets_by_key.get(key)
+            if cabinet is None:
+                missing.append(key)
+            else:
+                cabinets.append(cabinet)
+
+        general = [
+            ["Обозначение", container.get("code") or container.get("name")
+             or "—"],
+            ["Наименование", container.get("name") or "—"],
+            ["Назначение", container.get("description") or "—"],
+            ["Группа", container.get("group") or "—"],
+            ["Типоразмер", container.get("size_title")
+             or container.get("size") or "—"],
+            ["Габариты", container.get("dimensions") or "—"],
+            ["Слотов", str(container.get("slots") or "—")],
+            ["Шкафов в составе", str(len(cabinets))],
+        ]
+        if container.get("standard_title") or container.get("standard"):
+            general.append(["Стандарт", container.get("standard_title")
+                            or container.get("standard")])
+        if container.get("functions"):
+            general.append(["Функции", ", ".join(container["functions"])])
+        if container.get("composition"):
+            general.append(["Состав по стандарту",
+                            "; ".join(container["composition"])])
+        if missing:
+            general.append(["Не найдены шкафы", ", ".join(missing)])
+
+        catalog_kits = {kit["key"]: kit
+                        for kit in komplekts.all_komplekts(cabinets)}
+        cabinet_rows = []
+        kit_blocks = []
+        total_kits = 0
+        total_ieds = 0
+        for slot, cabinet in enumerate(cabinets, start=1):
+            kits = []
+            for index in range(len(cabinet.get("komplets") or [])):
+                kit = komplekts.kit_from_cabinet(cabinet, index)
+                if kit is None:
+                    continue
+                kits.append(catalog_kits.get(kit["key"], kit))
+            ieds_count = sum(len(komplekts.effective_ieds(kit))
+                             for kit in kits)
+            total_kits += len(kits)
+            total_ieds += ieds_count
+            cabinet_rows.append([
+                str(slot),
+                cabinet.get("code") or cabinet.get("key") or "—",
+                cabinet.get("name") or cabinet.get("title") or "—",
+                cabs.cabinet_kind_title(cabinet),
+                str(len(kits)),
+                str(ieds_count),
+            ])
+            for index, kit in enumerate(kits, start=1):
+                ieds = komplekts.effective_ieds(kit)
+                rows = [
+                    ["Вид", komplekts.kind_title(kit)],
+                    ["Есть ИЭУ", "да" if kit.get("has_ied") else "нет"],
+                    ["ИЭУ", ", ".join(ied.get("name") or "ИЭУ"
+                                      for ied in ieds) or "—"],
+                    ["Функции", ", ".join(kit.get("functions") or []) or "—"],
+                ]
+                for field, label in komplekts.SIGNAL_FIELDS[:2]:
+                    if komplekts.signal_count(kit, field):
+                        rows.append([label, komplekts.signals_text(kit, field)])
+                if komplekts.has_analog(kit):
+                    rows.append(["Аналоговые измерения",
+                                 komplekts.analog_text(kit)])
+                if komplekts.has_test_blocks(kit):
+                    rows.append(["Испытательные блоки",
+                                 komplekts.test_blocks_text(kit)])
+                if kit.get("desc"):
+                    rows.append(["Примечание", kit["desc"]])
+                kit_blocks.append({
+                    "head": "{} · комплект {} — {}".format(
+                        cabinet.get("code") or cabinet.get("key") or "Шкаф",
+                        index, kit.get("name") or "Комплект"),
+                    "rows": rows,
+                })
+
+        sections = [
+            {"title": "1. Общие сведения о контейнере", "rows": general},
+            {
+                "title": "2. Шкафы в контейнере",
+                "header": ["№", "Шифр", "Наименование", "Тип",
+                           "Комплектов", "ИЭУ"],
+                "rows": cabinet_rows,
+                "widths": [500, 1500, 3600, 1400, 1200, 900],
+                "aligns": ["center", "left", "left", "center",
+                           "center", "center"],
+                "note": "Комплектов всего: {}; ИЭУ всего: {}.".format(
+                    total_kits, total_ieds),
+            },
+        ]
+        if kit_blocks:
+            sections.append({
+                "title": "3. Комплекты шкафов",
+                "blocks": kit_blocks,
+            })
+        else:
+            sections.append({
+                "title": "3. Комплекты шкафов",
+                "note": "В шкафах контейнера нет комплектов.",
+            })
+
+        return {
+            "title": "Отчёт по каталогу: {}".format(
+                container.get("code") or container.get("name") or "КЭТ"),
+            "subtitle": [
+                "Сформирован: {}".format(
+                    datetime.now().strftime("%d.%m.%Y %H:%M")),
+                "Источник: {} · шкафов: {} · комплектов: {}".format(
+                    container.get("source") or "каталог",
+                    len(cabinets), total_kits),
+            ],
+            "sections": sections,
+            "footer": [
+                "Тип шкафа определяется комплектами: если хотя бы один "
+                "комплект нетиповой, шкаф считается нетиповым.",
+                "Для многокомплектных шкафов перечни сигналов в СТО могут "
+                "быть заданы на шкаф; в отчёте показаны сигналы, "
+                "привязанные к комплектам.",
+            ],
+        }
+
+    def open_catalog_report(self, container):
+        """Открывает предпросмотр и сохранение отчёта по контейнеру."""
+        report = self._catalog_container_report(container)
+        code = container.get("code") or container.get("name") or "КЭТ"
+        self._show_report_window(
+            report, self._report_filename("Отчёт по каталогу {}".format(code)))
 
     # ---------- отчёт по непривязанным элементам ----------
     # Проверка ищет всё, что осталось «ни к чему не привязано»:

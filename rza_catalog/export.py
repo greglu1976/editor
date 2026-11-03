@@ -21,6 +21,14 @@ def catalog_to_dict(catalog: RzaCatalog) -> dict[str, Any]:
 
     return {
         "schema_version": SCHEMA_VERSION,
+        "builtin_cabinets": [
+            asdict(container)
+            for container in catalog.builtin_cabinets.values()
+        ],
+        "builtin_kets": [
+            asdict(container)
+            for container in catalog.builtin_kets.values()
+        ],
         "containers": [asdict(container) for container in catalog.containers.values()],
         "deleted": sorted(catalog.deleted),
         "deleted_containers": sorted(catalog.deleted_containers),
@@ -64,6 +72,7 @@ def catalog_counts(catalog: RzaCatalog) -> dict[str, int]:
     ieds = 0
     test_blocks = 0
     analog_inputs = 0
+    signals = 0
     kits_with_ied = 0
 
     for container in catalog.containers.values():
@@ -80,6 +89,8 @@ def catalog_counts(catalog: RzaCatalog) -> dict[str, int]:
                 if kit.test_blocks.current.count or kit.test_blocks.current.circuits:
                     test_blocks += 1
                 analog_inputs += len(kit.analog_inputs)
+                signals += (len(kit.io_in) + len(kit.io_out)
+                            + len(kit.goose_in) + len(kit.goose_out))
 
     return {
         "containers": len(catalog.containers),
@@ -91,6 +102,9 @@ def catalog_counts(catalog: RzaCatalog) -> dict[str, int]:
         "standards": len(catalog.standards),
         "test_blocks": test_blocks,
         "analog_inputs": analog_inputs,
+        "signals": signals,
         "deleted": len(catalog.deleted),
         "deleted_containers": len(catalog.deleted_containers),
+        "builtin_cabinets": len(catalog.builtin_cabinets),
+        "builtin_kets": len(catalog.builtin_kets),
     }

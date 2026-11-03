@@ -39,6 +39,7 @@ from .models import (
     Kit,
     KitKind,
     RzaCatalog,
+    SignalEntry,
     StandardRef,
     TagRef,
     TestBlockEntry,
@@ -59,6 +60,10 @@ _KIT_MAPPED = {
     "test_blocks",
     "test_block_list",
     "analog_inputs",
+    "io_in",
+    "io_out",
+    "goose_in",
+    "goose_out",
     "tags",
     "has_ied",
     "source",
@@ -503,6 +508,44 @@ def _parse_analog_inputs(
     return result
 
 
+def _parse_signals(
+    raw: Any,
+    *,
+    context: str,
+    report: list[str],
+) -> list[SignalEntry]:
+    """Дискретные сигналы комплекта: вход/выход, GOOSE."""
+
+    if raw is None:
+        return []
+    if isinstance(raw, dict):
+        entries: list[Any] = [raw]
+    elif isinstance(raw, (list, tuple)):
+        entries = list(raw)
+    else:
+        report.append(f"{context}: сигналы имеют неожиданный тип "
+                      f"{type(raw).__name__}, пропущены")
+        return []
+
+    result: list[SignalEntry] = []
+    for item in entries:
+        if isinstance(item, str):
+            name = _text(item)
+            code = None
+            details = None
+        elif isinstance(item, dict):
+            name = _text(item.get("name"))
+            code = _optional_text(item.get("code"))
+            details = _optional_text(item.get("details"))
+        else:
+            report.append(f"{context}: некорректная строка сигнала, пропущена")
+            continue
+        if not any((name, code, details)):
+            continue
+        result.append(SignalEntry(name=name, code=code, details=details))
+    return result
+
+
 # ---------------------------------------------------------------------------
 # ИЭУ
 # ---------------------------------------------------------------------------
@@ -629,6 +672,18 @@ def _parse_kit(
         ),
         analog_inputs=_parse_analog_inputs(
             obj, context=context, report=report
+        ),
+        io_in=_parse_signals(
+            obj.get("io_in"), context=context + "/io_in", report=report
+        ),
+        io_out=_parse_signals(
+            obj.get("io_out"), context=context + "/io_out", report=report
+        ),
+        goose_in=_parse_signals(
+            obj.get("goose_in"), context=context + "/goose_in", report=report
+        ),
+        goose_out=_parse_signals(
+            obj.get("goose_out"), context=context + "/goose_out", report=report
         ),
         tags=_to_tags(obj.get("tags")),
         cabinet_id=cabinet_id,
@@ -1027,6 +1082,61 @@ def _iter_overrides(
     return []
 
 
+def _parse_builtin_collection(
+    raw: Any,
+    entry_type: str,
+    origin: str,
+    report: list[str],
+    strict: bool,
+) -> dict[str, Container]:
+    """Разбирает встроенные шкафы/КЭТ из отдельного раздела JSON."""
+
+    result: dict[str, Container] = {}
+    if raw is None:
+        return result
+    if not isinstance(raw, (list, tuple)):
+        message = f"{entry_type}: раздел должен быть списком"
+        if strict:
+            raise MigrationError(message)
+        report.append(message + " — прочитан как пустой")
+        return result
+
+    used_cabinet_ids: set[str] = set()
+    used_kit_ids: set[str] = set()
+    used_ied_ids: set[str] = set()
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            message = f"{entry_type}[{index}] — не объект, пропущен"
+            if strict:
+                raise MigrationError(message)
+            report.append(message)
+            continue
+        key = _container_key(item, None, index)
+        if key in result:
+            message = f"Повтор ключа {entry_type} {key!r}"
+            if strict:
+                raise MigrationError(message)
+            report.append(message + " — запись переименована")
+            base = key
+            suffix = 2
+            while key in result:
+                key = f"{base}:dup{suffix}"
+                suffix += 1
+        container = _parse_container(
+            item,
+            origin,
+            key=key,
+            used_cabinet_ids=used_cabinet_ids,
+            used_kit_ids=used_kit_ids,
+            used_ied_ids=used_ied_ids,
+            report=report,
+        )
+        container.extensions["entry_type"] = entry_type
+        container.origin = origin
+        result[container.key] = container
+    return result
+
+
 def load_catalog(
     raw: Any,
     *,
@@ -1047,9 +1157,12 @@ def load_catalog(
         overrides: Any = {}
         deleted: Any = []
         deleted_containers: Any = []
+        builtin_cabinets_raw: Any = []
+        builtin_kets_raw: Any = []
     elif isinstance(raw, dict):
         # Нормализованный документ проверяем первым: у него тоже есть deleted.
-        if "containers" in raw and "custom" not in raw:
+        if ("containers" in raw or "builtin_cabinets" in raw
+                or "builtin_kets" in raw) and "custom" not in raw:
             containers = raw.get("containers") or []
             if not isinstance(containers, list):
                 raise MigrationError("Поле containers должно быть списком")
@@ -1057,16 +1170,22 @@ def load_catalog(
             overrides = {}
             deleted = raw.get("deleted") or []
             deleted_containers = raw.get("deleted_containers") or []
+            builtin_cabinets_raw = raw.get("builtin_cabinets") or []
+            builtin_kets_raw = raw.get("builtin_kets") or []
         elif "custom" in raw or "overrides" in raw or "deleted" in raw:
             custom = raw.get("custom") or []
             overrides = raw.get("overrides") or {}
             deleted = raw.get("deleted") or []
             deleted_containers = raw.get("deleted_containers") or []
+            builtin_cabinets_raw = raw.get("builtin_cabinets") or []
+            builtin_kets_raw = raw.get("builtin_kets") or []
         elif "key" in raw or "komplets" in raw or "cabinets" in raw:
             custom = [raw]
             overrides = {}
             deleted = []
             deleted_containers = []
+            builtin_cabinets_raw = []
+            builtin_kets_raw = []
         else:
             raise MigrationError(
                 "Неизвестный формат документа: ожидались custom/overrides/"
@@ -1094,6 +1213,12 @@ def load_catalog(
         deleted_containers = []
 
     catalog = RzaCatalog()
+    catalog.builtin_cabinets = _parse_builtin_collection(
+        builtin_cabinets_raw, "builtin_cabinet", "builtin", report, strict
+    )
+    catalog.builtin_kets = _parse_builtin_collection(
+        builtin_kets_raw, "builtin_ket", "builtin", report, strict
+    )
     used_cabinet_ids: set[str] = set()
     used_kit_ids: set[str] = set()
     used_ied_ids: set[str] = set()
@@ -1189,7 +1314,12 @@ def load_catalog(
 def _build_references(catalog: RzaCatalog) -> None:
     """Собирает глобальные справочники функций и стандартов."""
 
-    for container in catalog.containers.values():
+    all_containers = (
+        list(catalog.builtin_cabinets.values())
+        + list(catalog.builtin_kets.values())
+        + list(catalog.containers.values())
+    )
+    for container in all_containers:
         for function in container.its_functions:
             catalog.functions.setdefault(function.code, function)
 
@@ -1217,7 +1347,12 @@ def _build_references(catalog: RzaCatalog) -> None:
 def iter_kits(catalog: RzaCatalog) -> Iterable[tuple[Container, Cabinet, Kit]]:
     """Плоский обход всех комплектов каталога."""
 
-    for container in catalog.containers.values():
+    all_containers = (
+        list(catalog.builtin_cabinets.values())
+        + list(catalog.builtin_kets.values())
+        + list(catalog.containers.values())
+    )
+    for container in all_containers:
         for cabinet in container.cabinets:
             for kit in cabinet.kits:
                 yield container, cabinet, kit
