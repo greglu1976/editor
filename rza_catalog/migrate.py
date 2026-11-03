@@ -113,6 +113,16 @@ class MigrationError(ValueError):
     """Исходные данные не соответствуют ожидаемому формату."""
 
 
+def container_entry_type(container: Container) -> str:
+    """Тип записи в общем нормализованном каталоге.
+
+    ``cabinet`` — запись каталога шкафов (Container → Cabinet → Kit → Ied),
+    ``ket`` — контейнер КЭТ, который ссылается на шкафы по ключам.
+    """
+
+    return str(container.extensions.get("entry_type") or "cabinet")
+
+
 # ---------------------------------------------------------------------------
 # Вспомогательные преобразования
 # ---------------------------------------------------------------------------
@@ -1036,6 +1046,7 @@ def load_catalog(
         custom: Any = raw
         overrides: Any = {}
         deleted: Any = []
+        deleted_containers: Any = []
     elif isinstance(raw, dict):
         # Нормализованный документ проверяем первым: у него тоже есть deleted.
         if "containers" in raw and "custom" not in raw:
@@ -1045,14 +1056,17 @@ def load_catalog(
             custom = containers
             overrides = {}
             deleted = raw.get("deleted") or []
+            deleted_containers = raw.get("deleted_containers") or []
         elif "custom" in raw or "overrides" in raw or "deleted" in raw:
             custom = raw.get("custom") or []
             overrides = raw.get("overrides") or {}
             deleted = raw.get("deleted") or []
+            deleted_containers = raw.get("deleted_containers") or []
         elif "key" in raw or "komplets" in raw or "cabinets" in raw:
             custom = [raw]
             overrides = {}
             deleted = []
+            deleted_containers = []
         else:
             raise MigrationError(
                 "Неизвестный формат документа: ожидались custom/overrides/"
@@ -1073,6 +1087,11 @@ def load_catalog(
             raise MigrationError("Поле deleted должно быть списком")
         report.append("deleted не список — прочитан как пустой")
         deleted = []
+    if not isinstance(deleted_containers, (list, tuple, set)):
+        if strict:
+            raise MigrationError("Поле deleted_containers должно быть списком")
+        report.append("deleted_containers не список — прочитан как пустой")
+        deleted_containers = []
 
     catalog = RzaCatalog()
     used_cabinet_ids: set[str] = set()
@@ -1146,7 +1165,17 @@ def load_catalog(
         if not key:
             continue
         catalog.deleted.add(key)
-        catalog.containers.pop(key, None)
+        container = catalog.containers.get(key)
+        if container is not None and container_entry_type(container) != "ket":
+            catalog.containers.pop(key, None)
+
+    for key in (_text(item) for item in deleted_containers):
+        if not key:
+            continue
+        catalog.deleted_containers.add(key)
+        container = catalog.containers.get(key)
+        if container is not None and container_entry_type(container) == "ket":
+            catalog.containers.pop(key, None)
 
     _build_references(catalog)
     return catalog

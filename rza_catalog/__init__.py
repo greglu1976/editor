@@ -5,6 +5,7 @@ from .export import catalog_counts, catalog_to_dict, dump_catalog
 from .migrate import (
     MigrationError,
     iter_kits,
+    container_entry_type,
     load_catalog,
     repair_functions,
 )
@@ -50,6 +51,7 @@ __all__ = [
     "TestBlocks",
     "catalog_counts",
     "catalog_to_dict",
+    "container_entry_type",
     "dump_catalog",
     "export_sqlite",
     "iter_kits",

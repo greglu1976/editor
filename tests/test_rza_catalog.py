@@ -244,6 +244,7 @@ class MigrationTest(unittest.TestCase):
             "test_blocks": 3,
             "analog_inputs": 1,
             "deleted": 1,
+            "deleted_containers": 0,
         })
 
     def test_roundtrip(self) -> None:

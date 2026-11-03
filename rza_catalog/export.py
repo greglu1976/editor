@@ -23,6 +23,7 @@ def catalog_to_dict(catalog: RzaCatalog) -> dict[str, Any]:
         "schema_version": SCHEMA_VERSION,
         "containers": [asdict(container) for container in catalog.containers.values()],
         "deleted": sorted(catalog.deleted),
+        "deleted_containers": sorted(catalog.deleted_containers),
         "standards": {
             key: asdict(standard)
             for key, standard in catalog.standards.items()
@@ -91,4 +92,5 @@ def catalog_counts(catalog: RzaCatalog) -> dict[str, int]:
         "test_blocks": test_blocks,
         "analog_inputs": analog_inputs,
         "deleted": len(catalog.deleted),
+        "deleted_containers": len(catalog.deleted_containers),
     }

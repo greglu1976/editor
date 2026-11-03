@@ -102,6 +102,11 @@ import cabs_data
 import cabs_sto
 import komplekts
 
+try:  # единое нормализованное хранилище пользовательского каталога
+    from rza_catalog import store as catalog_store
+except Exception:  # pragma: no cover - приложение должно запускаться и без него
+    catalog_store = None
+
 _COMMON_STANDARD = {
     "organization": "ПАО «ФСК ЕЭС»",
     "date": "26.12.2019",
@@ -364,9 +369,9 @@ for cabinet in CABINETS:
 # ---------------------------------------------------------------------------
 # Пользовательский каталог: создание, изменение и удаление шкафов
 # ---------------------------------------------------------------------------
-# Встроенные шкафы из CABINETS не меняются. Всё, что пользователь создал или
-# изменил, хранится в cabinets.json рядом с этим файлом:
-#     {"custom": [...], "overrides": {"ключ": {...}}, "deleted": ["ключ", ...]}
+# Встроенные шкафы из CABINETS не меняются. Пользовательские шкафы и правки
+# хранятся в catalog.normalized.json (см. rza_catalog/store.py). Путь ниже —
+# только резервный legacy-формат для первого bootstrap хранилища.
 #
 # Шкаф содержит до MAX_KOMPLETS комплектов. Комплект — подключаемая единица
 # (свой порт и защитные связи) и может содержать 0..N устройств ИЭУ.
@@ -418,6 +423,25 @@ def normalize_cabinet(cabinet):
 
 
 def _read_user_catalog():
+    if catalog_store is not None:
+        try:
+            catalog = catalog_store.ensure_store()
+            custom = []
+            overrides = {}
+            for container in catalog_store.cabinet_entries(catalog):
+                definition = catalog_store.container_to_cabinet_dict(container)
+                if container.origin == "override":
+                    overrides[container.key] = definition
+                else:
+                    custom.append(definition)
+            return {
+                "custom": custom,
+                "overrides": overrides,
+                "deleted": sorted(catalog.deleted),
+            }
+        except Exception:
+            pass
+
     if not os.path.exists(USER_CATALOG_PATH):
         return {"custom": [], "overrides": {}, "deleted": []}
     try:
@@ -432,6 +456,29 @@ def _read_user_catalog():
 
 
 def _write_user_catalog(data):
+    if catalog_store is not None:
+        try:
+            def mutate(catalog):
+                catalog_store.reset_cabinet_entries(catalog)
+                for definition in data.get("custom") or []:
+                    if not isinstance(definition, dict):
+                        continue
+                    container = catalog_store.cabinet_dict_to_container(
+                        definition, "custom")
+                    catalog.containers[container.key] = container
+                for definition in (data.get("overrides") or {}).values():
+                    if not isinstance(definition, dict):
+                        continue
+                    container = catalog_store.cabinet_dict_to_container(
+                        definition, "override")
+                    catalog.containers[container.key] = container
+                catalog.deleted = set(data.get("deleted") or [])
+
+            catalog_store.update_store(mutate)
+            return
+        except Exception:
+            pass
+
     if not data["custom"] and not data["overrides"] and not data["deleted"]:
         if os.path.exists(USER_CATALOG_PATH):
             os.remove(USER_CATALOG_PATH)
@@ -553,7 +600,13 @@ def duplicate_cabinet(key):
 
 
 def reset_user_catalog():
-    """Возвращает каталог к встроенному набору (удаляет cabinets.json)."""
+    """Удаляет пользовательские шкафы и правки, не трогая каталог КЭТ."""
+    if catalog_store is not None:
+        try:
+            catalog_store.update_store(catalog_store.reset_cabinet_entries)
+            return
+        except Exception:
+            pass
     if os.path.exists(USER_CATALOG_PATH):
         os.remove(USER_CATALOG_PATH)
 

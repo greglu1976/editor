@@ -9,7 +9,8 @@
   типового шкафа свой комплект (или несколько). Такой комплект ссылается на
   шкаф-источник и в каталоге не дублируется, а вычисляется на лету;
 * **нетиповые** — комплекты нетиповых шкафов каталога (вычисляются так же)
-  и комплекты, созданные пользователем (хранятся в ``komplekts.json``);
+  и комплекты, созданные пользователем (хранятся в
+  ``catalog.normalized.json``, служебный контейнер ``__kit_catalog__``);
 * **прочие** — пользовательские комплекты без привязки к шкафу
   (запас, нестандартное оборудование, временные решения).
 
@@ -33,7 +34,8 @@
         "tags": ["метки, например «Невыпущенные СТО»"],
     }
 
-Пользовательский каталог хранится в ``komplekts.json`` рядом с этим файлом::
+Пользовательский каталог хранится в ``catalog.normalized.json`` (через
+``rza_catalog.store``), в служебном контейнере ``__kit_catalog__``::
 
     {"custom": [...], "overrides": {"ключ": {...}}, "deleted": ["ключ"]}
 
@@ -46,6 +48,11 @@ import json
 import os
 import re
 import uuid
+
+try:  # единое нормализованное хранилище пользовательского каталога
+    from rza_catalog import store as catalog_store
+except Exception:  # pragma: no cover - приложение должно запускаться и без него
+    catalog_store = None
 
 #: Виды комплектов: ключ → подпись в интерфейсе.
 KINDS = {
@@ -63,6 +70,7 @@ CURRENT_PRESETS = ("Ia", "Ib", "Ic", "3I0")
 
 MAX_TEST_BLOCKS = 99
 
+#: Резервный legacy-путь для первого bootstrap хранилища.
 USER_CATALOG_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "komplekts.json")
 
@@ -512,6 +520,13 @@ def typical_cabinets(cabinets=None):
 # ---------------------------------------------------------------------------
 def _read_catalog():
     empty = {"custom": [], "overrides": {}, "deleted": []}
+    if catalog_store is not None:
+        try:
+            catalog = catalog_store.ensure_store()
+            return catalog_store.kit_catalog_data(catalog)
+        except Exception:
+            pass
+
     if not os.path.exists(USER_CATALOG_PATH):
         return empty
     try:
@@ -528,6 +543,15 @@ def _read_catalog():
 
 
 def _write_catalog(data):
+    if catalog_store is not None:
+        try:
+            catalog_store.update_store(
+                lambda catalog: catalog_store.write_kit_catalog(catalog, data)
+            )
+            return
+        except Exception:
+            pass
+
     if not data["custom"] and not data["overrides"] and not data["deleted"]:
         if os.path.exists(USER_CATALOG_PATH):
             os.remove(USER_CATALOG_PATH)
@@ -610,8 +634,10 @@ def save_komplekt(definition, original_key=None):
 
     if current is not None and current.get("source") == "cabinet":
         # Типовой комплект из шкафа: правим только поля комплекта.
-        user["overrides"][key] = {field: copy.deepcopy(entry[field])
-                                  for field in _OVERRIDABLE}
+        user["overrides"][key] = {
+            field: copy.deepcopy(entry[field])
+            for field in _OVERRIDABLE if field in entry
+        }
         user["deleted"] = [item for item in user["deleted"] if item != key]
         _write_catalog(user)
         return key
@@ -671,6 +697,12 @@ def duplicate_komplekt(key):
 
 def reset_user_catalog():
     """Удаляет пользовательские комплекты и правки типовых."""
+    if catalog_store is not None:
+        try:
+            catalog_store.update_store(catalog_store.reset_kit_catalog)
+            return
+        except Exception:
+            pass
     if os.path.exists(USER_CATALOG_PATH):
         os.remove(USER_CATALOG_PATH)
 

@@ -107,6 +107,11 @@ def validate_catalog(
     for key in catalog.deleted:
         if not isinstance(key, str) or not key:
             problems.append(f"некорректный ключ в deleted: {key!r}")
+    for key in catalog.deleted_containers:
+        if not isinstance(key, str) or not key:
+            problems.append(
+                f"некорректный ключ в deleted_containers: {key!r}"
+            )
 
     if problems and raise_error:
         raise CatalogValidationError(problems)

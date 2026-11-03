@@ -1160,7 +1160,7 @@ class CircuitEditor:
         ])
         tk.Label(page, text="Создание, изменение и удаление шкафов.\n"
                             "Пользовательские шкафы и правки хранятся\n"
-                            "в cabinets.json рядом с cabs.py",
+                            "в catalog.normalized.json",
                  bg="#f3f3f3", fg="#808080", font=("Arial", 7),
                  justify="left").pack(side=tk.LEFT, padx=12)
         return page
@@ -1353,7 +1353,7 @@ class CircuitEditor:
                                 _ri_clear, 64).pack(side=tk.LEFT),
         ])
         tk.Label(page, text="Типовые комплекты берутся из типовых шкафов каталога,\n"
-                            "нетиповые и прочие хранятся в komplekts.json.\n"
+                            "нетиповые и прочие хранятся в catalog.normalized.json.\n"
                             "В комплекте: ИЭУ, функции и испытательные блоки U/I.",
                  bg="#f3f3f3", fg="#808080", font=("Arial", 7),
                  justify="left").pack(side=tk.LEFT, padx=12)
@@ -1576,7 +1576,7 @@ class CircuitEditor:
         return self.edit_komplekt_type(None)
 
     def edit_komplekt_type(self, definition=None, original_key=None):
-        """Редактор комплекта каталога: сохраняет в komplekts.json.
+        """Редактор комплекта каталога: сохраняет в catalog.normalized.json.
 
         Возвращает ключ сохранённого комплекта (или None при отмене).
         """

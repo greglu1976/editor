@@ -86,6 +86,7 @@ def _print_report(counts: dict[str, int], *, json_path: Path,
     print(f"Испытательных блоков: {counts['test_blocks']}")
     print(f"Аналоговых входов:  {counts['analog_inputs']}")
     print(f"Удалённых ключей:   {counts['deleted']}")
+    print(f"Удалённых КЭТ:      {counts['deleted_containers']}")
     print()
     print(f"JSON:   {json_path} ({_human_size(json_path)})")
     if sqlite_path is not None:

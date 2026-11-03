@@ -239,6 +239,8 @@ class RzaCatalog:
 
     #: Контейнеры по ключу. Порядок вставки сохраняется.
     containers: dict[str, Container] = field(default_factory=dict)
+    #: Удалённые ключи шкафов (в т. ч. встроенных) и КЭТ-контейнеров.
     deleted: set[str] = field(default_factory=set)
+    deleted_containers: set[str] = field(default_factory=set)
     standards: dict[str, StandardRef] = field(default_factory=dict)
     functions: dict[str, FunctionRef] = field(default_factory=dict)
