@@ -179,6 +179,85 @@ bootstrap при отсутствии нового файла). Если `catalo
 КЭТ и комплекты, сброс КЭТ не удаляет шкафы, сброс комплектов не трогает
 ни то, ни другое.
 
+## Классовый (доменный) подход
+
+Модуль `domain.py` — классы с полями для работы с данными как с объектами,
+а не со словарями:
+
+```
+Kit          — комплект: ИЭУ (has_ied / ieds — «с ИЭУ» / «без ИЭУ»),
+               входные цепи (io_in, goose_in, analog_inputs) и
+               выходные цепи (io_out, goose_out), испытательные блоки
+               (test_blocks: группы U/I и построчный перечень БИ),
+               функции, теги, описание, описательные поля СТО (details),
+               всё остальное — extensions
+Cabinet      — шкаф: набирается из комплектов (kits), ключ шкафа — ключ
+               его записи каталога; тип вычисляется по комплектам
+               (типовой, только если все комплекты типовые)
+Container    — контейнер КЭТ: содержит шкафы (cabinets), набирается по
+               cabinet_keys из библиотеки шкафов, хранит слоты, типоразмер
+               и состав; умеет генерить отчёт
+Ied, SignalEntry, AnalogInput, TestBlocks, CircuitGroup, TestBlockEntry
+DomainCatalog — корневой объект: библиотеки kits / cabinets / containers
+```
+
+У каждого класса есть `to_dict()` / `from_dict()` (принимает словари
+приложения: `desc`→`description`, `test_block_list`→`test_blocks.blocks`,
+`cabinet_key`→`cabinet_id`, функции-объекты→коды) и `to_model()` /
+`from_model()` — конвертация в нормализованную модель хранения `models.py`.
+Ключ комплекта в библиотеке — тот же, что у каталога комплектов:
+`typ:<ключ шкафа>:<номер>` / `cab:<ключ шкафа>:<номер>` (`Kit.app_key()`).
+
+Заполнение классов из базы — `DomainCatalog.load()` (читает
+`catalog.normalized.json` через `store.py`):
+
+```python
+from rza_catalog.domain import DomainCatalog
+catalog = DomainCatalog.load()      # Kits/Cabinets/Containers из хранилища
+catalog.kits        # библиотека комплектов (339)
+catalog.cabinets    # шкафы (308), kits — общие экземпляры библиотеки
+catalog.containers  # КЭТ (17), cabinets — ссылки на библиотеку шкафов
+```
+
+Повторяется семантика приложения: пользовательская правка шкафа (override)
+заменяет встроенный шкаф тем же ключом; удалённые шкафы и КЭТ
+(`deleted` / `deleted_containers`) не заполняются; правки и пользовательские
+комплекты из каталога комплектов накладываются на библиотеку
+(`overrides` по ключу, `custom` добавляются, `deleted` снимаются); сигналы
+СТО для одно-комплектных шкафов подтягиваются из `cabs_signals.json`.
+Объекты в рамках одного `DomainCatalog` разделяются: один и тот же Kit
+лежит в шкафу и в библиотеке комплектов, один Cabinet — в каталоге шкафов
+и во всех ссылающихся на него КЭТ. Ссылочная целостность проверяется
+тестами (`test_cabinets_share_library_kits`, `test_kit_keys_match_app`).
+
+Отчёт генерит сам контейнер — формат совместим с
+`docxreport.build_selection_report`:
+
+```python
+ket = catalog.container("ket-6-1-ii")
+report = ket.report_data()            # словарь отчёта (тот же, что у редактора)
+ket.write_report("отчёт.docx")        # DOCX без внешних зависимостей
+```
+
+В редакторе (`main.py`) кнопка «Отчёт…» в каталоге КЭТ сначала пробует
+доменный отчёт (`_domain_container_report`), при недоступности доменного
+слоя использует прежний сборщик из словарей.
+
+CLI:
+
+```bash
+python3 domain_catalog.py                       # сводка по базе
+python3 domain_catalog.py --list                # перечень контейнеров
+python3 domain_catalog.py --dump output/domain.json   # переносимый дамп
+python3 domain_catalog.py --report ket-6-1-ii --out otchet.docx
+python3 -m rza_catalog.domain ...               # то же через модуль пакета
+```
+
+Дамп `domain.json` хранит данные без дублирования: `kits` — полные
+комплекты, `cabinets` — шкафы со своими комплектами, `containers` — КЭТ со
+ссылками на шкафы (читается `DomainCatalog.from_dump()`, объекты снова
+общие).
+
 ## Сценарий: комплект → шкаф → контейнер → отчёт
 
 1. **Комплекты** ведутся отдельно в каталоге комплектов. Типовой комплект

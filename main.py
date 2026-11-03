@@ -8089,9 +8089,32 @@ class CircuitEditor:
             ],
         }
 
+    def _domain_container_report(self, container):
+        """Отчёт по контейнеру через доменную модель rza_catalog.domain.
+
+        Классовый подход: DomainCatalog заполняет библиотеки комплектов,
+        шкафов и КЭТ из хранилища (catalog.normalized.json), контейнер
+        собирает шкафы по ключам и сам генерит структуру отчёта.
+        Возвращает None, если доменный слой недоступен или контейнер
+        в нём не найден — вызывающий использует резервный сборщик.
+        """
+        key = (container or {}).get("key")
+        if not key:
+            return None
+        try:
+            from rza_catalog.domain import DomainCatalog
+            domain_catalog = DomainCatalog.load()
+            domain_container = domain_catalog.container(key)
+            if domain_container is None:
+                return None
+            return domain_container.report_data()
+        except Exception:
+            return None
+
     def open_catalog_report(self, container):
         """Открывает предпросмотр и сохранение отчёта по контейнеру."""
-        report = self._catalog_container_report(container)
+        report = (self._domain_container_report(container)
+                  or self._catalog_container_report(container))
         code = container.get("code") or container.get("name") or "КЭТ"
         self._show_report_window(
             report, self._report_filename("Отчёт по каталогу {}".format(code)))
