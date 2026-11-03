@@ -17,6 +17,7 @@ import cabs
 import komplekts
 import containers as ketlib
 import docxreport
+import structure
 
 try:
     import pdf2json
@@ -1157,6 +1158,8 @@ class CircuitEditor:
         self._ribbon_group(page, "Данные", lambda row: [
             self._ribbon_button(row, "Сбросить", self.reset_cabinet_catalog,
                                 _ri_clear, 64).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Структура…", self.show_structure_overview,
+                                _ri_report, 72).pack(side=tk.LEFT),
         ])
         tk.Label(page, text="Создание, изменение и удаление шкафов.\n"
                             "Пользовательские шкафы и правки хранятся\n"
@@ -1294,6 +1297,11 @@ class CircuitEditor:
             cabs.delete_cabinet(cabinet.get("key"))
             refresh()
 
+        def on_structure():
+            cabinet = selected()
+            if cabinet is not None:
+                self.show_cabinet_structure(cabinet.get("key"))
+
         buttons = tk.Frame(window)
         buttons.pack(fill=tk.X, padx=10, pady=8)
         tk.Button(buttons, text="Закрыть", width=10,
@@ -1306,6 +1314,8 @@ class CircuitEditor:
                   command=on_edit).pack(side=tk.RIGHT, padx=(0, 6))
         tk.Button(buttons, text="Новый", width=10,
                   command=on_new).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="Структура", width=12,
+                  command=on_structure).pack(side=tk.RIGHT, padx=(0, 6))
 
         listbox.bind("<Double-Button-1>", on_edit)
         window.bind("<Escape>", lambda event: window.destroy())
@@ -1535,6 +1545,11 @@ class CircuitEditor:
             if kit is not None:
                 self.add_komplekt_to_cabinet(kit)
 
+        def on_structure():
+            kit = selected()
+            if kit is not None:
+                self.show_komplekt_structure(kit)
+
         buttons = tk.Frame(window)
         buttons.pack(fill=tk.X, padx=10, pady=8)
         tk.Button(buttons, text="Закрыть", width=10,
@@ -1549,6 +1564,8 @@ class CircuitEditor:
                   command=on_new).pack(side=tk.RIGHT, padx=(0, 6))
         tk.Button(buttons, text="В шкаф…", width=10,
                   command=on_to_cabinet).pack(side=tk.LEFT)
+        tk.Button(buttons, text="Структура", width=12,
+                  command=on_structure).pack(side=tk.LEFT, padx=(6, 0))
 
         listbox.bind("<<ListboxSelect>>",
                      lambda event: info.config(text=kit_info(selected()))
@@ -1570,6 +1587,155 @@ class CircuitEditor:
             window.grab_set()
         except tk.TclError:
             pass
+
+    # ================= СТРУКТУРА ШКАФОВ (structure.json) =================
+    def _structure_window(self, title, body, hint="", renderer=None):
+        """Одно окно просмотра текстового представления структуры."""
+        window = tk.Toplevel(self.root)
+        window.title(title)
+        window.transient(self.root)
+        window.geometry("1020x660")
+        window.minsize(620, 380)
+
+        if hint:
+            tk.Label(window, text=hint, anchor="w", fg="#555555"
+                     ).pack(fill=tk.X, padx=10, pady=(8, 2))
+
+        body_frame = tk.Frame(window)
+        body_frame.pack(fill=tk.BOTH, expand=True, padx=10)
+        text = tk.Text(body_frame, wrap="word", font=("Courier New", 9),
+                       bg="#fdfdf7", relief="solid", bd=1,
+                       highlightthickness=0)
+        yscroll = tk.Scrollbar(body_frame, orient=tk.VERTICAL,
+                               command=text.yview)
+        text.config(yscrollcommand=yscroll.set)
+        yscroll.pack(side=tk.RIGHT, fill=tk.Y)
+        text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        text.insert("1.0", body or "")
+        text.config(state="disabled")
+
+        buttons = tk.Frame(window)
+        buttons.pack(fill=tk.X, padx=10, pady=8)
+
+        def reload_structure():
+            structure.reload()
+            fresh = renderer() if renderer else ""
+            text.config(state="normal")
+            text.delete("1.0", "end")
+            text.insert("1.0", fresh or "нет данных")
+            text.config(state="disabled")
+
+        def copy_all():
+            window.clipboard_clear()
+            window.clipboard_append(text.get("1.0", "end"))
+
+        tk.Button(buttons, text="Копировать", width=12,
+                  command=copy_all).pack(side=tk.LEFT)
+        tk.Button(buttons, text="Обновить из файла", width=18,
+                  command=reload_structure).pack(side=tk.LEFT, padx=(6, 0))
+        tk.Button(buttons, text="Закрыть", width=10,
+                  command=window.destroy).pack(side=tk.RIGHT)
+        window.bind("<Escape>", lambda event: window.destroy())
+        window.update_idletasks()
+        self._center_dialog(window)
+        return window
+
+    def show_cabinet_structure(self, cabinet_key):
+        """Окно структуры шкафа каталога (и всех его комплектов)."""
+        if not structure.available():
+            messagebox.showinfo(
+                "Структура шкафов",
+                "Файл structure.json недоступен.\n\n{}".format(
+                    structure.error() or ""))
+            return
+        cabinet = structure.cabinet(cabinet_key)
+        if not cabinet:
+            messagebox.showinfo(
+                "Структура шкафов",
+                "Запись этого шкафа в structure.json не найдена — возможно,\n"
+                "он добавлен в каталог уже после сборки структуры.\n"
+                "Пересоберите файл: python3 tools/build_structure.py")
+            return
+        label = cabinet.get("Шифр шкафа") or cabinet.get("Наименование шкафа") \
+            or cabinet_key
+        self._structure_window(
+            "Структура шкафа — %s" % (cabinet.get("id") or label),
+            structure.format_cabinet_full(cabinet_key), hint=label,
+            renderer=lambda: structure.format_cabinet_full(cabinet_key))
+
+    def show_komplekt_structure(self, kit):
+        """Окно структуры комплекта каталога."""
+        if not structure.available() or not kit:
+            if not structure.available():
+                messagebox.showinfo("Структура шкафов",
+                                    "Файл structure.json недоступен.\n\n{}".format(
+                                        structure.error() or ""))
+            return
+        cabinet_key = kit.get("cabinet_key") or ""
+        index = kit.get("cabinet_index")
+        entry = (structure.kit(kit.get("key") or "")
+                 or (structure.kit_for(cabinet_key, index)
+                     if cabinet_key is not None and index is not None else None))
+        if not entry and cabinet_key:
+            # копия типового комплекта: сопоставим по номеру в шкафу
+            kits = structure.kits_of(cabinet_key)
+            name = (kit.get("name") or "").strip()
+            entry = next((item for item in kits
+                          if name and name in (item.get("Полное имя комплекта")
+                                               or "")), None)
+        if not entry:
+            messagebox.showinfo(
+                "Структура шкафов",
+                "Запись этого комплекта в structure.json не найдена — \n"
+                "пересоберите файл: python3 tools/build_structure.py")
+            return
+        title = "%s · %s" % (entry.get("id"),
+                             entry.get("Полное имя комплекта") or "")
+        kit_id = entry.get("id")
+        self._structure_window(
+            "Структура комплекта — %s" % kit_id,
+            structure.format_record(entry), hint=title,
+            renderer=lambda: structure.format_record(structure.kit(kit_id)))
+
+    def show_structure_overview(self):
+        """Сводка по структуре: источники и полнота заполнения."""
+        self._structure_window(
+            "Структура шкафов — %s" % os.path.basename(structure.path()),
+            structure.summary(),
+            renderer=structure.summary,
+            hint="Файл structure.json собирается скриптом tools/build_structure.py "
+                 "по образцу standards/structure.json.")
+
+    def show_selected_structure(self):
+        """Структура шкафа (или контейнера), выделенного на схеме."""
+        cabinet = next((el for el in self.selected_elements
+                        if getattr(el, "type", "") == "cabinet"), None)
+        if cabinet is not None:
+            self.show_cabinet_structure(getattr(cabinet, "cabinet_key", "")
+                                        or cabinet.name)
+            return
+        container = next((el for el in self.selected_elements
+                          if getattr(el, "type", "") == "container"), None)
+        if container is not None:
+            if not structure.available():
+                messagebox.showinfo("Структура шкафов",
+                                    "Файл structure.json недоступен.")
+                return
+            parts = []
+            for placed_id in container.bound_ids():
+                placed = self.elements.get(placed_id)
+                key = (getattr(placed, "cabinet_key", "") or
+                       getattr(placed, "name", ""))
+                entry = structure.cabinet(key)
+                if entry:
+                    parts.append(structure.format_record(entry))
+            self._structure_window(
+                "Структура контейнера — %s" % container.name,
+                ("\n\n" + "—" * 60 + "\n\n").join(parts) or
+                "в контейнере нет шкафов каталога",
+                hint=container.name, renderer=lambda: "\n\n".join(parts))
+            return
+        self.show_structure_overview()
 
     def create_komplekt_type(self):
         """Создание нового комплекта в каталоге. Возвращает ключ или None."""
@@ -5142,6 +5308,8 @@ class CircuitEditor:
         self.root.bind("<Control-Shift-S>", self.export_ssd)
         # Поиск по схеме: Ctrl+F открывает панель, Esc в поле — закрывает
         self.root.bind("<Control-f>", self.open_search)
+        self.root.bind("<Control-e>", self.show_selected_structure)
+        self.root.bind("<Control-E>", self.show_selected_structure)
         self.root.bind("<Control-F>", self.open_search)
         # Файл: Ctrl+S — сохранить (Ctrl+Shift+S занят экспортом в SSD)
         self.root.bind("<Control-s>", self.save_json)
