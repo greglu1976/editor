@@ -21,6 +21,16 @@ python3 tests/test_structure_docking.py # 5. тесты (модуль, схем�
 Шаги 1–2 кешируются: `standards/src/*.json` и `standards/text_cache/`
 (по файлу на документ) + `standards/extracted.json`.
 
+## Место в git
+
+В репозитории — код: [`structure.py`](structure.py) (модуль доступа),
+`tools/*` (сборка и проверки), `tests/test_structure_docking.py`,
+[`STRUCTURE.md`](STRUCTURE.md) и правка [`main.py`](main.py).
+Сам **`structure.json` — генерируемый артефакт и в `.gitignore`**: его нужно
+собрать после свежего клона (`tools/build_structure.py`). Образец структуры
+хранится отдельно — `standards/structure.json` (папка `standards/` с PDF тоже
+вне git, поэтому шаг 2 работает только там, где лежат стандарты).
+
 ## Формат
 
 Плоский JSON: два списка — «Шкаф» и «комплекты» (образец: *«комплекты, шкафы в
