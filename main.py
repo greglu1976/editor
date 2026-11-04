@@ -78,7 +78,7 @@ ELEMENT_TYPE_TITLES = {
 }
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
-APP_TITLE = "Редактор электрических схем v25.2"
+APP_TITLE = "Редактор электрических схем v25.3"
 
 # Комментарии к чертежу — плашки с текстом, привязанные к точке схемы.
 # Все размеры в мировых единицах: записка масштабируется вместе с чертежом
@@ -909,6 +909,9 @@ class CircuitEditor:
         # этого фиксируем высоту ленты: смена шрифта влияет на reqheight.
         ui_theme.recolor(self.root)
         self._lock_ribbon_geometry()
+        # Показываем инструмент по умолчанию («Выбрать») сразу после старта.
+        # Только цвет: текст, шрифт и геометрия кнопок не меняются.
+        self._mark_active_tool()
 
     # ================= ЛЕНТА (RIBBON) =================
     def _build_ribbon(self):
@@ -1001,32 +1004,54 @@ class CircuitEditor:
                  font=("Arial", 7)).pack(side=tk.BOTTOM, pady=(0, 2))
         tk.Frame(parent, width=1, bg="#d8d8d8").pack(side=tk.LEFT, fill=tk.Y, pady=6)
 
+    @staticmethod
+    def _paint_ribbon_cell(cell):
+        """Состояние кнопки ленты показываем цветом, а не текстом.
+
+        Раньше к подписи активного инструмента добавляли «▶ »: кнопка
+        становилась шире на 9 px и сдвигала всю строку ленты. Теперь текст
+        и шрифт кнопки никогда не меняются, меняются только фон и цвет
+        подписи. Выделенный инструмент главнее наведения курсора.
+        """
+        active = getattr(cell, "_active", False)
+        hover = getattr(cell, "_hover", False)
+        bg = (ui_theme.TOOL_ACTIVE if active else
+              ui_theme.HOVER if hover else ui_theme.RIBBON)
+        fg = ui_theme.ACCENT if (active or hover) else ui_theme.TEXT
+        for widget in (cell, cell._canvas, cell._label):
+            widget.config(bg=bg)
+        cell._label.config(fg=fg)
+
     def _ribbon_button(self, parent, text, command, icon, width=64):
         """Крупная кнопка ленты: иконка сверху, подпись снизу."""
-        cell = tk.Frame(parent, bg="#f3f3f3", cursor="hand2")
-        canvas = tk.Canvas(cell, width=32, height=32, bg="#f3f3f3",
+        cell = tk.Frame(parent, bg=ui_theme.RIBBON, cursor="hand2")
+        canvas = tk.Canvas(cell, width=32, height=32, bg=ui_theme.RIBBON,
                            highlightthickness=0, takefocus=False)
         canvas.pack(pady=(4, 0), padx=4)
         try:
             icon(canvas)
         except Exception:
             pass
-        label = tk.Label(cell, text=text, bg="#f3f3f3", font=("Arial", 8),
+        label = tk.Label(cell, text=text, bg=ui_theme.RIBBON,
+                         fg=ui_theme.TEXT, font=ui_theme.font(8),
                          justify="center")
         label.pack(padx=2, pady=(1, 4))
         cell._label = label
         cell._base_text = text
+        cell._canvas = canvas
+        cell._active = False
+        cell._hover = False
 
         def on_click(event=None):
             command()
 
         def on_enter(event=None):
-            for widget in (cell, canvas, label):
-                widget.config(bg=ui_theme.HOVER)
+            cell._hover = True
+            self._paint_ribbon_cell(cell)
 
         def on_leave(event=None):
-            for widget in (cell, canvas, label):
-                widget.config(bg=ui_theme.RIBBON)
+            cell._hover = False
+            self._paint_ribbon_cell(cell)
 
         for widget in (cell, canvas, label):
             widget.bind("<Button-1>", on_click)
@@ -5633,8 +5658,9 @@ class CircuitEditor:
 
     def _make_tool_icon(self, parent, etype, label, size=46):
         """Кнопка-иконка: символ элемента, нарисованный на маленьком canvas."""
-        canvas = tk.Canvas(parent, width=size, height=size, bg="white",
-                           highlightthickness=1, highlightbackground="#b0b0b0",
+        canvas = tk.Canvas(parent, width=size, height=size,
+                           bg=ui_theme.CANVAS, highlightthickness=1,
+                           highlightbackground=ui_theme.BORDER,
                            takefocus=False)
         try:
             comp = library.create_component(etype, f"icon_{etype}", 0, 0, self.grid_size)
@@ -5653,15 +5679,19 @@ class CircuitEditor:
         return canvas
 
     def _mark_active_tool(self):
+        """Показывает выбранный инструмент цветом, не меняя геометрию."""
         for etype, canvas in getattr(self, "_tool_icons", {}).items():
             active = (etype == self.current_tool)
+            # Толщина рамки постоянна: её изменение меняло бы размер иконки.
             canvas.config(
+                bg=ui_theme.TOOL_ACTIVE if active else ui_theme.CANVAS,
                 highlightbackground=(ui_theme.ACCENT if active
-                                     else ui_theme.BORDER),
-                highlightthickness=2 if active else 1)
+                                     else ui_theme.BORDER))
         for tool, cell in getattr(self, "_ribbon_tool_cells", {}).items():
-            active = (tool == self.current_tool)
-            cell._label.config(text=("▶ " if active else "") + cell._base_text)
+            cell._active = (tool == self.current_tool)
+            # Текст подписи всегда постоянный — лента не сдвигается.
+            cell._label.config(text=cell._base_text)
+            self._paint_ribbon_cell(cell)
 
     # ================= ПАНОРАМИРОВАНИЕ (средняя кнопка) =================
     def on_pan_start(self, event):

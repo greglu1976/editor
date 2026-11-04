@@ -12,7 +12,9 @@
    переключатели не меняют ни фактический, ни «запрошенный» размер окна;
 3. оформление: применена тема ``clam``, «исторические» цвета и шрифты
    Arial нормализованы, активная вкладка меняет только цвет;
-4. окна, созданные после старта (проводник структуры), тоже получают тему.
+4. активный инструмент выделяется цветом без треугольника и без сдвига
+   ленты/палитры;
+5. окна, созданные после старта (проводник структуры), тоже получают тему.
 """
 
 from __future__ import annotations
@@ -59,6 +61,8 @@ def test_theme_module():
           "акцент совпадает с фирменным синим схемы")
     check(ui_theme.RIBBON != ui_theme.TABBAR != ui_theme.PALETTE,
           "лента, полоса вкладок и палитра различаются")
+    check(ui_theme.TOOL_ACTIVE not in (ui_theme.RIBBON, ui_theme.HOVER),
+          "цвет выбранного инструмента отличается от обычного и наведения")
     check(set(ui_theme.LEGACY_COLORS.values()) <= set(palette),
           "все замены ведут в актуальную палитру")
     check("bg" not in ui_theme._COLOR_OPTIONS
@@ -79,6 +83,11 @@ def _walk(widget):
     for child in children:
         for item in _walk(child):
             yield item
+
+
+def _ribbon_cells(page):
+    """Все ячейки крупных кнопок ленты на странице ``page``."""
+    return [item for item in _walk(page) if hasattr(item, "_base_text")]
 
 
 def _legacy_left(widget):
@@ -181,7 +190,7 @@ def test_gui():
         check((root.winfo_width(), root.winfo_height()) in actual,
               "обновление подписей переключателей не меняет размер окна")
 
-        print("4. активная вкладка и динамические цвета")
+        print("4. активная вкладка и инструменты: только цвет")
         fonts_before = {name: button.cget("font")
                         for name, button in app._ribbon_tab_buttons.items()}
         app._show_ribbon_tab("Отчёты")
@@ -198,7 +207,7 @@ def test_gui():
               "неактивная вкладка остаётся на полосе вкладок")
 
         app._show_ribbon_tab("Главная")
-        app._mark_active_tool()
+        app.set_tool("select")
         root.update()
         marks = [canvas.cget("highlightbackground")
                  for canvas in app._tool_icons.values()]
@@ -207,6 +216,78 @@ def test_gui():
         check(not any(value.lower() in ui_theme.LEGACY_COLORS
                       for value in marks),
               "подсветка инструментов не возвращает устаревшие цвета")
+
+        # Раньше активный инструмент получал префикс «▶ » в подписи:
+        # кнопка расширялась на 9 px и сдвигала соседей. Теперь текст,
+        # шрифт и геометрия всех ячеек должны оставаться неизменными.
+        cells = _ribbon_cells(app._ribbon_pages["Главная"])
+        baseline = [(cell, cell.winfo_x(), cell.winfo_width(),
+                     cell.winfo_reqwidth(), cell._label.cget("text"))
+                    for cell in cells]
+        icons_before = {
+            etype: (icon.winfo_width(), icon.winfo_height(),
+                    icon.winfo_reqwidth(), icon.winfo_reqheight())
+            for etype, icon in app._tool_icons.items()
+        }
+        root_before = (root.winfo_width(), root.winfo_height())
+        ribbon_before = (app._ribbon_content.winfo_width(),
+                         app._ribbon_content.winfo_height())
+        shifts, renamed, triangles, bad_colors = [], [], [], []
+        for tool in ("select", "connect", "note", "protection", "analog"):
+            app.set_tool(tool)
+            root.update()
+            for cell, x, width, reqwidth, text in baseline:
+                now = (cell.winfo_x(), cell.winfo_width(),
+                       cell.winfo_reqwidth())
+                if now != (x, width, reqwidth):
+                    shifts.append((tool, cell._base_text, (x, width, reqwidth), now))
+                label_text = cell._label.cget("text")
+                if label_text != text:
+                    renamed.append((tool, cell._base_text, text, label_text))
+                if "▶" in label_text:
+                    triangles.append((tool, cell._base_text, label_text))
+            active = app._ribbon_tool_cells[tool]
+            state = (active.cget("bg"), active._canvas.cget("bg"),
+                     active._label.cget("bg"), active._label.cget("fg"))
+            if state != (ui_theme.TOOL_ACTIVE, ui_theme.TOOL_ACTIVE,
+                         ui_theme.TOOL_ACTIVE, ui_theme.ACCENT):
+                bad_colors.append((tool, state))
+            inactive_name = "connect" if tool == "select" else "select"
+            inactive = app._ribbon_tool_cells[inactive_name]
+            if inactive.cget("bg") != ui_theme.RIBBON:
+                bad_colors.append((inactive_name, inactive.cget("bg")))
+            if (root.winfo_width(), root.winfo_height()) != root_before:
+                shifts.append((tool, "root", root_before,
+                               (root.winfo_width(), root.winfo_height())))
+            if (app._ribbon_content.winfo_width(),
+                    app._ribbon_content.winfo_height()) != ribbon_before:
+                shifts.append((tool, "ribbon", ribbon_before,
+                               (app._ribbon_content.winfo_width(),
+                                app._ribbon_content.winfo_height())))
+
+        check(not shifts, "выбор инструмента не сдвигает ленту и окно (%d)" % len(shifts))
+        check(not renamed, "подписи кнопок остаются постоянными (%d)" % len(renamed))
+        check(not triangles, "треугольник «▶» не добавляется в подписи (%d)" % len(triangles))
+        check(not bad_colors, "активная/неактивная кнопки используют цвета темы (%d)"
+              % len(bad_colors))
+
+        # Иконки палитры тоже выделяются фоном и рамкой, но толщина
+        # рамки постоянна — иначе grid палитры тоже менял бы размер ячеек.
+        app.set_tool("breaker")
+        root.update()
+        icon = app._tool_icons["breaker"]
+        check(icon.cget("bg") == ui_theme.TOOL_ACTIVE
+              and icon.cget("highlightbackground") == ui_theme.ACCENT,
+              "выбранная иконка палитры выделена цветом темы")
+        check(all(int(item.cget("highlightthickness")) == 1
+                  for item in app._tool_icons.values()),
+              "толщина рамки иконок не меняется при выборе")
+        check(all((item.winfo_width(), item.winfo_height(),
+                   item.winfo_reqwidth(), item.winfo_reqheight()) == icons_before[etype]
+                  for etype, item in app._tool_icons.items()),
+              "выделение иконки не меняет геометрию палитры")
+        app.set_tool("select")
+        root.update()
 
         print("5. окна, созданные после старта")
         app.show_structure_overview()
