@@ -18,6 +18,7 @@ import komplekts
 import containers as ketlib
 import docxreport
 import structure
+import ui_theme
 
 try:
     import pdf2json
@@ -77,7 +78,7 @@ ELEMENT_TYPE_TITLES = {
 }
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
-APP_TITLE = "Редактор электрических схем v25"
+APP_TITLE = "Редактор электрических схем v25.2"
 
 # Комментарии к чертежу — плашки с текстом, привязанные к точке схемы.
 # Все размеры в мировых единицах: записка масштабируется вместе с чертежом
@@ -731,6 +732,11 @@ class SsdOptionsDialog(tk.Toplevel):
 class CircuitEditor:
     def __init__(self, root):
         self.root = root
+        # Тема и геометрия задаются ДО построения виджетов: база опций Tk
+        # действует только на создаваемые после неё объекты, а явная
+        # геометрия не даёт ленте «дёргать» размер окна при смене вкладки.
+        ui_theme.apply(root)
+        ui_theme.stabilize(root)
         self.root.title(APP_TITLE)
         
         # Текущий файл чертежа и признак несохранённых изменений
@@ -857,8 +863,8 @@ class CircuitEditor:
 
         self.palette_canvas = tk.Canvas(palette_wrap, width=188, bg="#f0f0f0",
                                         highlightthickness=0, takefocus=False)
-        palette_scroll = tk.Scrollbar(palette_wrap, orient="vertical",
-                                      command=self.palette_canvas.yview)
+        palette_scroll = ttk.Scrollbar(palette_wrap, orient="vertical",
+                                       command=self.palette_canvas.yview)
         self.palette_canvas.configure(yscrollcommand=palette_scroll.set)
         palette_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.palette_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -887,7 +893,9 @@ class CircuitEditor:
                               "Средняя кнопка мыши — панорама.\n"
                               "Ctrl+F — поиск, R — вращение,\n"
                               "Esc — снять выделение и режим «Выбрать».",
-                 bg="#f0f0f0", fg="#8a8a8a", font=("Arial", 7), justify="left").pack(anchor="w", padx=4, pady=(10, 0))
+                 bg=ui_theme.PALETTE, fg=ui_theme.TEXT_MUTED,
+                 font=ui_theme.font(8), justify="left",
+                 wraplength=168).pack(anchor="w", padx=4, pady=(10, 0))
 
         self.canvas = tk.Canvas(self.root, bg="white", width=800, height=700,
                                 takefocus=True, highlightthickness=0)
@@ -897,16 +905,30 @@ class CircuitEditor:
 
         self._bind_palette_wheel(palette)
 
+        # Нормализуем исторические bg/fg/font обходом дерева и только после
+        # этого фиксируем высоту ленты: смена шрифта влияет на reqheight.
+        ui_theme.recolor(self.root)
+        self._lock_ribbon_geometry()
+
     # ================= ЛЕНТА (RIBBON) =================
     def _build_ribbon(self):
-        ribbon = tk.Frame(self.root, bg="#f3f3f3")
+        ribbon = tk.Frame(self.root, bg=ui_theme.RIBBON)
         ribbon.pack(side=tk.TOP, fill=tk.X)
 
-        tabbar = tk.Frame(ribbon, bg="#e4e4e4")
+        tabbar = tk.Frame(ribbon, bg=ui_theme.TABBAR)
         tabbar.pack(side=tk.TOP, fill=tk.X)
 
-        content = tk.Frame(ribbon, bg="#f3f3f3")
+        # Ключ к стабильности окна: контейнер вкладок имеет СОБСТВЕННЫЙ
+        # фиксированный размер (см. _lock_ribbon_geometry) и не передаёт
+        # наверх запрошенные размеры текущей страницы. Раньше каждая
+        # вкладка «просила» свою ширину/высоту, и Tk пересчитывал окно.
+        content = tk.Frame(ribbon, bg=ui_theme.RIBBON)
         content.pack(side=tk.TOP, fill=tk.X)
+        content.pack_propagate(False)
+        self._ribbon_content = content
+        # Тонкая граница отделяет ленту от полотна схемы.
+        tk.Frame(ribbon, height=1, bg=ui_theme.BORDER).pack(
+            side=tk.TOP, fill=tk.X)
 
         self._ribbon_pages = {}
         self._ribbon_tab_buttons = {}
@@ -917,23 +939,57 @@ class CircuitEditor:
                               ("Контейнеры", self._build_ribbon_containers),
                               ("Отчёты", self._build_ribbon_reports)):
             self._ribbon_pages[name] = builder(content)
+            # Шрифт одинаковый у всех вкладок: выделение активной меняет
+            # только цвет, поэтому соседние вкладки не сдвигаются.
             button = tk.Button(tabbar, text=name, relief=tk.FLAT, bd=0,
-                               padx=16, pady=3, font=("Arial", 9),
-                               bg="#e4e4e4", activebackground="#f3f3f3",
+                               padx=16, pady=5, font=ui_theme.font(9, "bold"),
+                               bg=ui_theme.TABBAR, fg=ui_theme.TEXT_SOFT,
+                               activebackground=ui_theme.HOVER,
+                               activeforeground=ui_theme.ACCENT,
                                command=lambda n=name: self._show_ribbon_tab(n))
-            button.pack(side=tk.LEFT, padx=(2, 0))
+            button.pack(side=tk.LEFT, padx=(2, 0), pady=(2, 0))
             self._ribbon_tab_buttons[name] = button
 
         self._show_ribbon_tab("Главная")
 
+    def _lock_ribbon_geometry(self):
+        """Один раз задаёт размер области вкладок по самой большой странице.
+
+        Вызывается в конце setup_ui() после нормализации шрифтов: все шесть
+        страниц уже построены, поэтому их запрошенные размеры известны и
+        ни одна из них не будет обрезана при переключении.
+        """
+        content = getattr(self, "_ribbon_content", None)
+        if content is None:
+            return
+        # У страницы, снятой с упаковки (pack_forget), winfo_reqheight()
+        # возвращает 1 -- геометрию считает только менеджер. Поэтому каждую
+        # страницу на мгновение упаковываем, измеряем и снова снимаем.
+        measured = []
+        for page in self._ribbon_pages.values():
+            page.pack(side=tk.TOP, fill=tk.X)
+            content.update_idletasks()
+            measured.append((page.winfo_reqwidth(), page.winfo_reqheight()))
+            page.pack_forget()
+        width = max((item[0] for item in measured), default=0)
+        height = max((item[1] for item in measured), default=0)
+        size = (max(640, width), max(92, height + 6))
+        content.configure(width=size[0], height=size[1])
+        self._ribbon_size = size
+        self._show_ribbon_tab(getattr(self, "_active_ribbon_tab", "Главная"))
+
     def _show_ribbon_tab(self, name):
+        if name not in self._ribbon_pages:
+            return
         for page in self._ribbon_pages.values():
             page.pack_forget()
         self._ribbon_pages[name].pack(side=tk.TOP, fill=tk.X)
+        self._active_ribbon_tab = name
         for tab_name, button in self._ribbon_tab_buttons.items():
             active = (tab_name == name)
-            button.config(bg="#f3f3f3" if active else "#e4e4e4",
-                          font=("Arial", 9, "bold" if active else "normal"))
+            button.config(
+                bg=ui_theme.TAB_ACTIVE if active else ui_theme.TABBAR,
+                fg=ui_theme.ACCENT if active else ui_theme.TEXT_SOFT)
 
     def _ribbon_group(self, parent, title, build_row):
         group = tk.Frame(parent, bg="#f3f3f3")
@@ -966,11 +1022,11 @@ class CircuitEditor:
 
         def on_enter(event=None):
             for widget in (cell, canvas, label):
-                widget.config(bg="#dce9f7")
+                widget.config(bg=ui_theme.HOVER)
 
         def on_leave(event=None):
             for widget in (cell, canvas, label):
-                widget.config(bg="#f3f3f3")
+                widget.config(bg=ui_theme.RIBBON)
 
         for widget in (cell, canvas, label):
             widget.bind("<Button-1>", on_click)
@@ -1673,19 +1729,25 @@ class CircuitEditor:
         panes.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 4))
         left = tk.Frame(panes)
         tree = ttk.Treeview(left, show="tree", selectmode="browse")
-        tree_scroll = tk.Scrollbar(left, orient=tk.VERTICAL,
-                                   command=tree.yview)
-        tree.configure(yscrollcommand=tree_scroll.set)
+        tree_scroll = ttk.Scrollbar(left, orient=tk.VERTICAL,
+                                    command=tree.yview)
+        tree_hscroll = ttk.Scrollbar(left, orient=tk.HORIZONTAL,
+                                     command=tree.xview)
+        tree.configure(yscrollcommand=tree_scroll.set,
+                       xscrollcommand=tree_hscroll.set)
         tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        tree_hscroll.pack(side=tk.BOTTOM, fill=tk.X)
         tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         panes.add(left, width=420, minsize=260)
 
         right = tk.Frame(panes)
-        details = tk.Text(right, wrap="word", font=("Courier New", 9),
-                          bg="#fdfdf7", relief="solid", bd=1,
-                          highlightthickness=0)
-        detail_scroll = tk.Scrollbar(right, orient=tk.VERTICAL,
-                                     command=details.yview)
+        # wrap="char": в карточке встречаются длинные имена PDF без пробелов,
+        # при wrap="word" они уходили за правый край без переноса.
+        details = tk.Text(right, wrap="char", font=("Courier New", 9),
+                          bg=ui_theme.CANVAS, fg=ui_theme.TEXT,
+                          relief="solid", bd=1, highlightthickness=0)
+        detail_scroll = ttk.Scrollbar(right, orient=tk.VERTICAL,
+                                      command=details.yview)
         details.configure(yscrollcommand=detail_scroll.set)
         detail_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         details.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -1697,7 +1759,7 @@ class CircuitEditor:
                 ("kit", "#1b6b3a", False), ("kit_empty", "#8a5a00", False),
                 ("ied", "#5b3a8e", False), ("info", "#404040", False)):
             tree.tag_configure(tag, foreground=color,
-                               font=("Arial", 9, "bold" if bold else "normal"))
+                               font=ui_theme.font(9, "bold" if bold else "normal"))
 
         status = tk.Label(window, text="", anchor="w", fg="#555555")
         status.pack(fill=tk.X, padx=10)
@@ -5593,8 +5655,10 @@ class CircuitEditor:
     def _mark_active_tool(self):
         for etype, canvas in getattr(self, "_tool_icons", {}).items():
             active = (etype == self.current_tool)
-            canvas.config(highlightbackground="#1f4e79" if active else "#b0b0b0",
-                          highlightthickness=2 if active else 1)
+            canvas.config(
+                highlightbackground=(ui_theme.ACCENT if active
+                                     else ui_theme.BORDER),
+                highlightthickness=2 if active else 1)
         for tool, cell in getattr(self, "_ribbon_tool_cells", {}).items():
             active = (tool == self.current_tool)
             cell._label.config(text=("▶ " if active else "") + cell._base_text)
@@ -7757,18 +7821,19 @@ class CircuitEditor:
                                 self.report_nir_extended_short,
                                 _ri_nir, 104).pack(side=tk.LEFT, padx=(4, 0)),
         ])
-        tk.Label(page, text="«По схеме» — документ Word со всеми ведомостями.\n"
-                            "«По выделению» — отчёт по шкафу или контейнеру.\n"
-                            "«Непривязанные» — пустые контейнеры, комплекты\n"
-                            "без связей, элементы со свободными выводами.\n"
-                            "«Отчёт по НИР» — документ по форме: шкафы и их\n"
-                            "функции ИЭУ, спецификация одного контейнера.\n"
-                            "«Расширенный» — по всем контейнерам: описание\n"
-                            "контейнера, затем его шкафы с сигналами и БИ.\n"
-                            "«Без сигналов» — то же, но только описания\n"
-                            "контейнеров и шкафов, без перечней сигналов и БИ.",
-                 bg="#f3f3f3", fg="#808080", font=("Arial", 7),
-                 justify="left").pack(side=tk.LEFT, padx=12)
+        tk.Label(page, text="«По схеме» — Word со всеми ведомостями. "
+                            "«По выделению» — по шкафу/КЭТ.\n"
+                            "«Непривязанные» — пустые КЭТ, комплекты без "
+                            "связей, свободные выводы.\n"
+                            "«Отчёт по НИР» — по форме: шкафы, функции ИЭУ, "
+                            "спецификация одного КЭТ.\n"
+                            "«Расширенный» — по всем КЭТ: описание, шкафы "
+                            "с сигналами и БИ.\n"
+                            "«Без сигналов» — то же, только описания КЭТ "
+                            "и шкафов.",
+                 bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
+                 font=ui_theme.font(8), justify="left").pack(
+                     side=tk.LEFT, padx=12)
         return page
 
     @staticmethod
