@@ -5,3 +5,5 @@
 */__pycache__
 /output
 /standards
+# собранный артефакт: tools/build_structure.py
+/structure.json

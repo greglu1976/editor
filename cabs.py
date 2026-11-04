@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """Каталог шкафов РЗА и устройств (IED) для редактора схем.
 
-Шкаф — контейнер от 1 до 3 устройств IED. Шкаф помещается на схему,
-его IED подключаются защитными связями к защитным узлам первичного
-оборудования (узел — в центре символа оборудования).
+Шкаф помещается на схему и **состоит из комплектов** (от 1 до
+MAX_KOMPLETS). Комплект — подключаемая единица: к его порту идут защитные
+связи к защитным узлам первичного оборудования (узел — в центре символа
+оборудования). ИЭУ хранится внутри комплекта, причём комплект может быть
+и без ИЭУ; единственное ИЭУ в описании шкафа входит в его комплект.
 
 Формат записи:
     {
@@ -382,7 +384,13 @@ SIGNALS_PATH = os.path.join(
 
 
 def normalize_cabinet(cabinet):
-    """Приводит шкаф к формату комплектов (старое поле ieds → komplets)."""
+    """Приводит шкаф к модели «шкаф состоит из комплектов».
+
+    Старое поле ``ieds`` (ИЭУ прямо в описании шкафа) переносится в комплекты:
+    одно ИЭУ входит в первый комплект, несколько — по комплекту на ИЭУ.
+    После этого у шкафа есть только ``komplets``; ИЭУ на уровне шкафа не
+    хранится. См. ``komplekts.ensure_cabinet_kits``.
+    """
     # Теги: строка «а; б» или список → список строк (пустой — не храним).
     tags = komplekts.tags_of(cabinet)
     if tags:
@@ -392,28 +400,9 @@ def normalize_cabinet(cabinet):
     # Типовой шкаф (есть стандарт) порождает типовые комплекты,
     # произвольный — нетиповые.
     default_kind = "typical" if cabinet.get("standard_key") else "custom"
-    komplets = cabinet.get("komplets")
-    if isinstance(komplets, list):
-        cabinet["komplets"] = komplekts.normalize_komplets(
-            komplets[:MAX_KOMPLETS], default_kind, cabinet)
-        return cabinet
-
-    # Старый формат: список ИЭУ прямо в шкафу — каждый ИЭУ становится комплектом
-    result = []
-    for index, ied in enumerate(cabinet.get("ieds", [])[:MAX_KOMPLETS]):
-        result.append({
-            "name": "Комплект {}".format(index + 1),
-            "type": ied.get("type", "МП РЗА"),
-            "functions": list(ied.get("functions", [])),
-            "desc": ied.get("desc", ""),
-            "ieds": [{
-                "name": ied.get("name", "ИЭУ{}".format(index + 1)),
-                "type": ied.get("type", "МП РЗА"),
-                "desc": ied.get("desc", ""),
-            }],
-        })
+    kits = komplekts.ensure_cabinet_kits(cabinet)
     cabinet["komplets"] = komplekts.normalize_komplets(
-        result, default_kind, cabinet)
+        kits[:MAX_KOMPLETS], default_kind, cabinet)
     return cabinet
 
 

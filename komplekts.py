@@ -1,6 +1,19 @@
 # -*- coding: utf-8 -*-
 """Каталог комплектов РЗА.
 
+Модель хранения (единая для каталога, схем и ``structure.json``)::
+
+    шкаф → комплекты (1..N) → ИЭУ (0..N)
+
+* **шкаф состоит из комплектов** — у любого шкафа есть хотя бы один комплект;
+  ИЭУ никогда не хранится прямо в шкафу;
+* **комплект может быть с ИЭУ или без** — признак ``has_ied`` обязателен,
+  список ``ieds`` имеет смысл только при ``has_ied=True``
+  (см. ``effective_ieds``);
+* **единственное ИЭУ в описании шкафа входит в комплект** — старое поле
+  ``cabinet["ieds"]`` с одним устройством переносится в первый комплект,
+  после чего из шкафа удаляется (``ensure_cabinet_kits``).
+
 Комплект — подключаемая единица шкафа РЗА. Раньше комплекты хранились
 только внутри шкафов (поле ``komplets`` в каталоге шкафов). Теперь у них
 есть собственный каталог, чтобы комплекты можно было вести отдельно:
@@ -235,10 +248,101 @@ def normalize_komplekt(definition, default_kind=None):
 
 
 def effective_ieds(entry):
-    """Список ИЭУ с учётом галочки «Есть ИЭУ»."""
+    """Список ИЭУ с учётом признака «Есть ИЭУ».
+
+    Комплект без ИЭУ может хранить неактивный список устройств (пользователь
+    снял галочку, но не удалил строки) — в состав они не входят.
+    """
     if not entry.get("has_ied"):
         return []
     return list(entry.get("ieds") or [])
+
+
+def kit_composition(entry):
+    """«с ИЭУ: ИЭУ1, ИЭУ2» или «без ИЭУ» — для списков и окон."""
+    ieds = effective_ieds(entry)
+    if not ieds:
+        return "без ИЭУ"
+    return "с ИЭУ: " + ", ".join(
+        str(ied.get("name") or "ИЭУ") for ied in ieds)
+
+
+def cabinet_ieds(cabinet):
+    """ИЭУ из старого описания шкафа (поле ``ieds``), без изменений."""
+    return [ied for ied in (cabinet or {}).get("ieds") or []
+            if isinstance(ied, dict)]
+
+
+def cabinet_single_ied(cabinet):
+    """Единственное ИЭУ в описании шкафа или None.
+
+    По правилу модели такое ИЭУ должно входить в комплект, а не лежать
+    отдельно на уровне шкафа.
+    """
+    ieds = cabinet_ieds(cabinet)
+    return ieds[0] if len(ieds) == 1 else None
+
+
+def _ied_from_description(ied, index=0):
+    """ИЭУ из описания шкафа в формате списка ``ieds`` комплекта."""
+    return {
+        "name": str(ied.get("name") or "ИЭУ%d" % (index + 1)).strip(),
+        "type": str(ied.get("type") or "МП РЗА").strip(),
+        "desc": str(ied.get("desc") or "").strip(),
+    }
+
+
+def ensure_cabinet_kits(cabinet):
+    """Гарантирует, что шкаф состоит из комплектов (минимум одного).
+
+    Правила:
+
+    * комплекты есть — они и остаются основой шкафа;
+    * в описании шкафа (``ieds``) **одно ИЭУ**, а в комплектах ИЭУ нет —
+      устройство входит в первый комплект;
+    * комплектов нет, ИЭУ в описании несколько — по комплекту на ИЭУ
+      (старый формат каталога);
+    * нет ни комплектов, ни ИЭУ — создаётся пустой комплект без ИЭУ.
+
+    Старое поле ``ieds`` удаляется: ИЭУ хранится только внутри комплекта.
+    Функция идемпотентна, меняет переданный словарь шкафа и возвращает
+    список его комплектов.
+    """
+    if cabinet is None:
+        return []
+    raw = cabinet.get("komplets")
+    described = cabinet_ieds(cabinet)
+    kits = ([normalize_komplekt(item) for item in raw if isinstance(item, dict)]
+            if isinstance(raw, list) else [])
+
+    if not kits and described:
+        for index, ied in enumerate(described):
+            kits.append(normalize_komplekt({
+                "name": "Комплект %d" % (index + 1),
+                "type": ied.get("type") or "МП РЗА",
+                "functions": ied.get("functions") or [],
+                "desc": ied.get("desc") or "",
+                "has_ied": True,
+                "ieds": [_ied_from_description(ied, index)],
+            }))
+    elif not kits:
+        kits = [normalize_komplekt({"name": "Комплект 1",
+                                    "has_ied": False, "ieds": []})]
+
+    single = cabinet_single_ied(cabinet)
+    if single and not any(kit.get("has_ied") for kit in kits):
+        first = normalize_komplekt(kits[0])
+        first["has_ied"] = True
+        first["ieds"] = [_ied_from_description(single)]
+        if not first.get("functions"):
+            first["functions"] = split_list(single.get("functions"))
+        if not first.get("desc"):
+            first["desc"] = str(single.get("desc") or "").strip()
+        kits[0] = first
+
+    cabinet["komplets"] = kits
+    cabinet.pop("ieds", None)
+    return kits
 
 
 def has_test_blocks(entry):
