@@ -3605,13 +3605,13 @@
             "БНН",
             "РАС"
           ],
-          "desc": "Шкаф противоаварийной автоматики автотрансформатора 330–750 кВ: АЛАР, АОПО, ФОТ, ФОДТ",
+          "desc": "Шкаф противоаварийной автоматики трансформатора (автотрансформатора) 110–220 кВ: АЛАР, АОПО, ФОТ, ФОДТ",
           "has_ied": true,
           "ieds": [
             {
-              "name": "ПА",
-              "type": "ПА",
-              "desc": "Шкаф АЛАР, АОПО, ФОТ, ФОДТ АТ 330–750 кВ"
+              "name": "ИЭУ",
+              "type": "МП РЗА",
+              "desc": ""
             }
           ],
           "test_blocks": {
@@ -3624,11 +3624,127 @@
               "circuits": []
             }
           },
-          "cabinet_key": "shet-611-01-0",
+          "test_block_list": [
+            {
+              "name": "SG1",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В1/Т(АТ) (обмотка защит)"
+            },
+            {
+              "name": "SG2",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В2/ОВ (обмотка защит)"
+            },
+            {
+              "name": "SG3",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В1/Т(АТ) (обмотка измерений)"
+            },
+            {
+              "name": "SG4",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В2/ОВ (обмотка измерений)"
+            },
+            {
+              "name": "SG5",
+              "circuits": "Ua, Ub, Uc",
+              "count": "4+1",
+              "note": "Напряжения \"звезда\" Т(АТ)/ТН основной"
+            },
+            {
+              "name": "SG6",
+              "circuits": "Ufk, Uuf, Uhu",
+              "count": "4+1",
+              "note": "Напряжения \"треугольник\" Т(АТ)/ТН основной"
+            },
+            {
+              "name": "SG7",
+              "circuits": "Ua, Ub, Uc",
+              "count": "4+1",
+              "note": "Напряжения \"звезда\" ОВ/ТН резервный"
+            },
+            {
+              "name": "SG8",
+              "circuits": "Ufk, Uuf, Uhu",
+              "count": "4+1",
+              "note": "Напряжения \"треугольник\" ОВ/ТН резервный"
+            }
+          ],
+          "cabinet_key": "shet-610-01-0",
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В1/Т(АТ) (обмотка защит)"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В2/ОВ (обмотка защит)"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В1/Т(АТ) (обмотка измерений)"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В2/ОВ (обмотка измерений)"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения \"звезда\" Т(АТ)/ТН основной"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ufk, Uuf, Uhu",
+              "contacts": "4+1",
+              "note": "Напряжения \"треугольник\" Т(АТ)/ТН основной"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения \"звезда\" ОВ/ТН резервный"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ufk, Uuf, Uhu",
+              "contacts": "4+1",
+              "note": "Напряжения \"треугольник\" ОВ/ТН резервный"
+            }
+          ],
           "cabinet_index": 0,
-          "cabinet_code": "ШЭТ 611.01-0",
-          "cabinet_name": "Шкаф АЛАР, АОПО, ФОТ, ФОДТ АТ 330–750 кВ",
+          "cabinet_code": "ШЭТ 610.01-0",
+          "cabinet_name": "Шкаф АЛАР, АОПО, ФОТ, ФОДТ Т (АТ) 110–220 кВ",
           "cabinet_group": "ПА",
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "source": "cabinet_entry"
         },
         {
@@ -3649,9 +3765,9 @@
           "has_ied": true,
           "ieds": [
             {
-              "name": "ПА",
-              "type": "ПА",
-              "desc": "Шкаф АЛАР, АОПО, ФОТ, ФОДТ Т (АТ) 110–220 кВ"
+              "name": "ИЭУ",
+              "type": "МП РЗА",
+              "desc": ""
             }
           ],
           "test_blocks": {
@@ -3664,14 +3780,146 @@
               "circuits": []
             }
           },
+          "test_block_list": [
+            {
+              "name": "SG1",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В1/Т(АТ) (обмотка защит)"
+            },
+            {
+              "name": "SG2",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В2/ОВ (обмотка защит)"
+            },
+            {
+              "name": "SG3",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В1/Т(АТ) (обмотка измерений)"
+            },
+            {
+              "name": "SG4",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В2/ОВ (обмотка измерений)"
+            },
+            {
+              "name": "SG5",
+              "circuits": "Ua, Ub, Uc",
+              "count": "4+1",
+              "note": "Напряжения \"звезда\" Т(АТ)/ТН основной"
+            },
+            {
+              "name": "SG6",
+              "circuits": "Ufk, Uuf, Uhu",
+              "count": "4+1",
+              "note": "Напряжения \"треугольник\" Т(АТ)/ТН основной"
+            },
+            {
+              "name": "SG7",
+              "circuits": "Ua, Ub, Uc",
+              "count": "4+1",
+              "note": "Напряжения \"звезда\" ОВ/ТН резервный"
+            },
+            {
+              "name": "SG8",
+              "circuits": "Ufk, Uuf, Uhu",
+              "count": "4+1",
+              "note": "Напряжения \"треугольник\" ОВ/ТН резервный"
+            }
+          ],
           "cabinet_key": "shet-610-01-0",
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В1/Т(АТ) (обмотка защит)"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В2/ОВ (обмотка защит)"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В1/Т(АТ) (обмотка измерений)"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В2/ОВ (обмотка измерений)"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения \"звезда\" Т(АТ)/ТН основной"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ufk, Uuf, Uhu",
+              "contacts": "4+1",
+              "note": "Напряжения \"треугольник\" Т(АТ)/ТН основной"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения \"звезда\" ОВ/ТН резервный"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ufk, Uuf, Uhu",
+              "contacts": "4+1",
+              "note": "Напряжения \"треугольник\" ОВ/ТН резервный"
+            }
+          ],
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 610.01-0",
           "cabinet_name": "Шкаф АЛАР, АОПО, ФОТ, ФОДТ Т (АТ) 110–220 кВ",
           "cabinet_group": "ПА",
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "source": "cabinet_entry"
         }
       ],
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null,
       "group": "Прочие"
     }
   },

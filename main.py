@@ -1244,9 +1244,15 @@ class CircuitEditor:
                 listbox.insert("end", cabinet_label(cabinet))
             tagged = sum(1 for cabinet in state["cabinets"]
                          if cabs.cabinet_tags(cabinet))
+            kits = [kit for cabinet in state["cabinets"]
+                    for kit in (cabinet.get("komplets") or [])]
+            with_ied = sum(1 for kit in kits
+                           if komplekts.effective_ieds(kit))
             header.config(text=f"Шкафов в каталоге: {len(state['cabinets'])} "
                                f"(показано {len(visible)}; встроенных "
                                f"{len(cabs.CABINETS)}, с тегами {tagged}; "
+                               f"комплектов {len(kits)}: с ИЭУ {with_ied}, "
+                               f"без ИЭУ {len(kits) - with_ied}; "
                                f"точка • — пользовательский)")
 
         def selected():
@@ -1370,7 +1376,11 @@ class CircuitEditor:
         return page
 
     def open_komplekt_catalog(self):
-        """Окно каталога комплектов: список и управление."""
+        """Окно каталога комплектов: список и управление.
+
+        Комплект может быть с ИЭУ или без — оба вида равноправны и
+        фильтруются отдельно.
+        """
         window = tk.Toplevel(self.root)
         window.title("Каталог комплектов РЗА")
         window.transient(self.root)
@@ -1390,6 +1400,10 @@ class CircuitEditor:
         tag_variable = tk.StringVar(value="Все теги")
         tk.OptionMenu(filters, tag_variable, "Все теги",
                       *all_tags).pack(side=tk.LEFT, padx=(6, 12))
+        tk.Label(filters, text="Состав:").pack(side=tk.LEFT)
+        ied_variable = tk.StringVar(value="Все")
+        tk.OptionMenu(filters, ied_variable, "Все", "С ИЭУ", "Без ИЭУ").pack(
+            side=tk.LEFT, padx=(6, 12))
         tk.Label(filters, text="Поиск:").pack(side=tk.LEFT)
         search_variable = tk.StringVar()
         tk.Entry(filters, textvariable=search_variable, width=26).pack(
@@ -1412,7 +1426,9 @@ class CircuitEditor:
         kind_by_label = {title: key for key, title in komplekts.KINDS.items()}
 
         def kit_info(kit):
-            lines = ["Вид: " + komplekts.kind_title(kit)]
+            lines = ["Вид: " + komplekts.kind_title(kit),
+                     "Состав: комплект " +
+                     ("с ИЭУ" if kit.get("has_ied") else "без ИЭУ")]
             if kit.get("kind") == "typical":
                 cabinet = cabs.find_cabinet(kit.get("cabinet_key"))
                 cabinet_text = (komplekts.cabinet_label(cabinet) if cabinet
@@ -1450,12 +1466,18 @@ class CircuitEditor:
             kind_label = kind_variable.get()
             kind = kind_by_label.get(kind_label)
             tag = tag_variable.get()
+            composition = ied_variable.get()
             needle = search_variable.get().strip().lower()
             visible = []
             for kit in state["kits"]:
                 if kind and kit.get("kind") != kind:
                     continue
                 if tag != "Все теги" and tag not in komplekts.tags_of(kit):
+                    continue
+                has_ied = bool(komplekts.effective_ieds(kit))
+                if composition == "С ИЭУ" and not has_ied:
+                    continue
+                if composition == "Без ИЭУ" and has_ied:
                     continue
                 if needle:
                     haystack = " ".join([
@@ -1477,11 +1499,14 @@ class CircuitEditor:
             counts = {key: 0 for key in komplekts.KIND_ORDER}
             for kit in state["kits"]:
                 counts[kit["kind"]] = counts.get(kit["kind"], 0) + 1
+            with_ied = sum(1 for kit in state["kits"]
+                           if komplekts.effective_ieds(kit))
             header.config(
                 text="Комплектов: {} (типовых {}, нетиповых {}, прочих {}; "
-                     "показано {})".format(
+                     "с ИЭУ {}, без ИЭУ {}; показано {})".format(
                          len(state["kits"]), counts.get("typical", 0),
                          counts.get("custom", 0), counts.get("other", 0),
+                         with_ied, len(state["kits"]) - with_ied,
                          len(visible)))
             if visible:
                 index = 0
@@ -1574,6 +1599,7 @@ class CircuitEditor:
         window.bind("<Escape>", lambda event: window.destroy())
         kind_variable.trace_add("write", lambda *args: refresh())
         tag_variable.trace_add("write", lambda *args: refresh())
+        ied_variable.trace_add("write", lambda *args: refresh())
         search_variable.trace_add("write", lambda *args: refresh())
         refresh()
 
@@ -1588,154 +1614,411 @@ class CircuitEditor:
         except tk.TclError:
             pass
 
-    # ================= СТРУКТУРА ШКАФОВ (structure.json) =================
-    def _structure_window(self, title, body, hint="", renderer=None):
-        """Одно окно просмотра текстового представления структуры."""
+    # ================= СТРУКТУРА РЗА (structure.json) =================
+    # Иерархия: КЭТ → шкафы → комплекты (с ИЭУ / без ИЭУ) → ИЭУ.
+    # Одно окно-проводник на все точки входа: дерево слева, карточка справа.
+
+    def _require_structure(self):
+        """Проверяет доступность structure.json и объясняет, как его собрать."""
+        if structure.available():
+            return True
+        messagebox.showinfo(
+            "Структура РЗА",
+            "Файл structure.json недоступен.\n\n{}\n\n"
+            "Соберите его: python3 tools/build_structure.py".format(
+                structure.error() or ""))
+        return False
+
+    def _structure_browser(self, title, mode="overview", key=None, hint=""):
+        """Проводник по структуре РЗА.
+
+        mode: overview | cabinet | kit | container. Дерево повторяет модель
+        хранения; комплекты без ИЭУ показываются отдельным типом узла,
+        ИЭУ всегда вложено в комплект.
+        """
         window = tk.Toplevel(self.root)
         window.title(title)
         window.transient(self.root)
-        window.geometry("1020x660")
-        window.minsize(620, 380)
+        window.geometry("1120x700")
+        window.minsize(780, 460)
 
-        if hint:
-            tk.Label(window, text=hint, anchor="w", fg="#555555"
-                     ).pack(fill=tk.X, padx=10, pady=(8, 2))
+        head = tk.Frame(window)
+        head.pack(fill=tk.X, padx=10, pady=(8, 2))
+        tk.Label(head, text=hint or "КЭТ → шкафы → комплекты → ИЭУ",
+                 anchor="w", fg="#555555").pack(fill=tk.X)
 
-        body_frame = tk.Frame(window)
-        body_frame.pack(fill=tk.BOTH, expand=True, padx=10)
-        text = tk.Text(body_frame, wrap="word", font=("Courier New", 9),
-                       bg="#fdfdf7", relief="solid", bd=1,
-                       highlightthickness=0)
-        yscroll = tk.Scrollbar(body_frame, orient=tk.VERTICAL,
-                               command=text.yview)
-        text.config(yscrollcommand=yscroll.set)
-        yscroll.pack(side=tk.RIGHT, fill=tk.Y)
-        text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        text.insert("1.0", body or "")
-        text.config(state="disabled")
+        tools = tk.Frame(window)
+        tools.pack(fill=tk.X, padx=10, pady=(2, 6))
+        tk.Label(tools, text="Поиск:").pack(side=tk.LEFT)
+        search_var = tk.StringVar()
+        tk.Entry(tools, textvariable=search_var, width=26).pack(
+            side=tk.LEFT, padx=(4, 12))
+        tk.Label(tools, text="Комплекты:").pack(side=tk.LEFT)
+        ied_filter = tk.StringVar(value="Все")
+        tk.OptionMenu(tools, ied_filter, "Все", "С ИЭУ", "Без ИЭУ").pack(
+            side=tk.LEFT, padx=(4, 0))
 
+        panes = tk.PanedWindow(window, orient=tk.HORIZONTAL, sashrelief="groove",
+                               sashwidth=5, bg="#e8e8e8")
+        panes.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 4))
+        left = tk.Frame(panes)
+        tree = ttk.Treeview(left, show="tree", selectmode="browse")
+        tree_scroll = tk.Scrollbar(left, orient=tk.VERTICAL,
+                                   command=tree.yview)
+        tree.configure(yscrollcommand=tree_scroll.set)
+        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        panes.add(left, width=420, minsize=260)
+
+        right = tk.Frame(panes)
+        details = tk.Text(right, wrap="word", font=("Courier New", 9),
+                          bg="#fdfdf7", relief="solid", bd=1,
+                          highlightthickness=0)
+        detail_scroll = tk.Scrollbar(right, orient=tk.VERTICAL,
+                                     command=details.yview)
+        details.configure(yscrollcommand=detail_scroll.set)
+        detail_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        details.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        panes.add(right, minsize=320)
+
+        for tag, color, bold in (
+                ("root", "#1f3864", True), ("group", "#404040", True),
+                ("container", "#0f6b76", True), ("cabinet", "#1f4e79", True),
+                ("kit", "#1b6b3a", False), ("kit_empty", "#8a5a00", False),
+                ("ied", "#5b3a8e", False), ("info", "#404040", False)):
+            tree.tag_configure(tag, foreground=color,
+                               font=("Arial", 9, "bold" if bold else "normal"))
+
+        status = tk.Label(window, text="", anchor="w", fg="#555555")
+        status.pack(fill=tk.X, padx=10)
         buttons = tk.Frame(window)
-        buttons.pack(fill=tk.X, padx=10, pady=8)
+        buttons.pack(fill=tk.X, padx=10, pady=(2, 8))
+
+        nodes = {}
+        selected_key = {"value": key}
+
+        def add_node(parent, kind, text, record=None, tag=None):
+            item = tree.insert(parent, "end", text=text,
+                               tags=(tag or kind,))
+            nodes[item] = {"kind": kind, "record": record, "title": text}
+            return item
+
+        def kit_visible(kit_record):
+            filter_value = ied_filter.get()
+            if filter_value == "С ИЭУ":
+                return structure.has_ied(kit_record)
+            if filter_value == "Без ИЭУ":
+                return not structure.has_ied(kit_record)
+            return True
+
+        def cabinet_matches(cabinet_record, needle):
+            if not needle:
+                return True
+            haystack = " ".join([
+                structure.cabinet_label(cabinet_record),
+                str(cabinet_record.get("id") or ""),
+                " ".join(structure.kit_label(kit)
+                         for kit in cabinet_record.get("комплекты") or []),
+                " ".join(structure.ied_label(ied)
+                         for kit in cabinet_record.get("комплекты") or []
+                         for ied in structure.ieds_of(kit)),
+            ]).lower()
+            return needle in haystack
+
+        def add_kit(parent, kit_record):
+            tag = "kit" if structure.has_ied(kit_record) else "kit_empty"
+            node = add_node(parent, "kit", structure.kit_label(kit_record),
+                            kit_record, tag)
+            for ied in structure.ieds_of(kit_record):
+                add_node(node, "ied", structure.ied_label(ied), ied, "ied")
+            return node
+
+        def add_cabinet(parent, cabinet_record):
+            kits = structure.kits_of(cabinet_record.get("id"))
+            with_ied = sum(1 for kit in kits if structure.has_ied(kit))
+            text = "%s · %d компл. (%d с ИЭУ / %d без)" % (
+                structure.cabinet_label(cabinet_record), len(kits),
+                with_ied, len(kits) - with_ied)
+            node = add_node(parent, "cabinet", text, cabinet_record, "cabinet")
+            for kit_record in kits:
+                if kit_visible(kit_record):
+                    add_kit(node, kit_record)
+            return node
+
+        def add_summary(parent):
+            add_node(parent, "info", "Сводка по файлу", None, "info")
+
+        def build_tree():
+            existing = tree.get_children()
+            if existing:
+                tree.delete(*existing)
+            nodes.clear()
+            needle = search_var.get().strip().lower()
+            document = structure.load() or {}
+            version = document.get("версия") or "?"
+            root_text = "%s · версия %s" % (
+                os.path.basename(structure.path()), version)
+            root = add_node("", "root", root_text, None, "root")
+
+            if mode == "cabinet" and structure.cabinet(key):
+                cabinet_record = structure.cabinet(key)
+                add_cabinet(root, cabinet_record)
+                add_summary(root)
+                tree.item(root, open=True)
+            elif mode == "kit" and structure.kit(key):
+                parent = structure.cabinet_of_kit(key)
+                if parent:
+                    cabinet_node = add_node(
+                        root, "cabinet", structure.cabinet_label(parent),
+                        parent, "cabinet")
+                    for kit_record in structure.kits_of(parent.get("id")):
+                        if kit_visible(kit_record):
+                            add_kit(cabinet_node, kit_record)
+                else:
+                    add_kit(root, structure.kit(key))
+                add_summary(root)
+                tree.item(root, open=True)
+            elif mode == "container" and structure.container(key):
+                container_record = structure.container(key)
+                container_node = add_node(
+                    root, "container", structure.container_label(container_record),
+                    container_record, "container")
+                for cabinet_record in structure.cabinets_of(
+                        container_record.get("шкафы")):
+                    if cabinet_matches(cabinet_record, needle):
+                        add_cabinet(container_node, cabinet_record)
+                add_summary(root)
+                tree.item(root, open=True)
+                tree.item(container_node, open=True)
+            else:
+                containers_list = structure.containers()
+                group = add_node(root, "group", "Контейнеры (%d)"
+                                 % len(containers_list), None, "group")
+                for container_record in containers_list:
+                    label = structure.container_label(container_record)
+                    if needle and needle not in label.lower():
+                        continue
+                    node = add_node(group, "container", label,
+                                    container_record, "container")
+                    for cabinet_record in structure.cabinets_of(
+                            container_record.get("шкафы")):
+                        if cabinet_matches(cabinet_record, needle):
+                            add_cabinet(node, cabinet_record)
+                cabinets_list = [item for item in structure.cabinets()
+                                 if cabinet_matches(item, needle)]
+                group = add_node(root, "group", "Шкафы (%d)"
+                                 % len(cabinets_list), None, "group")
+                for cabinet_record in cabinets_list:
+                    add_cabinet(group, cabinet_record)
+                add_summary(root)
+                tree.item(root, open=True)
+                for group_node in tree.get_children(root)[:2]:
+                    tree.item(group_node, open=True)
+
+            # выбрать целевой узел (или первый попавшийся)
+            wanted = selected_key["value"]
+            target = next((item for item, node in nodes.items()
+                           if wanted and node.get("record")
+                           and node["record"].get("id") == wanted
+                           and node["kind"] in ("cabinet", "kit", "container")),
+                          None)
+            if target is None:
+                target = next((item for item in nodes
+                               if nodes[item]["kind"] == "info"), root)
+            tree.selection_set(target)
+            tree.focus(target)
+            tree.see(target)
+            show_details(target)
+
+        def describe(item):
+            node = nodes.get(item) or {}
+            kind = node.get("kind")
+            record = node.get("record")
+            title = node.get("title") or ""
+            if kind in ("root", "info"):
+                return structure.summary()
+            if kind == "group":
+                children = [nodes[child]["title"]
+                            for child in tree.get_children(item)]
+                return "%s\n%s\n\n%s" % (
+                    title, "=" * 60,
+                    "\n".join("  • %s" % text for text in children)
+                    or "раздел пуст")
+            if kind == "container":
+                lines = [structure.container_label(record), "=" * 60,
+                         structure.format_record(record), "",
+                         "Шкафы контейнера:"]
+                for cabinet_record in structure.cabinets_of(
+                        record.get("шкафы")):
+                    lines.append("  • " + structure.cabinet_label(cabinet_record))
+                return "\n".join(lines)
+            if kind == "cabinet":
+                kits = structure.kits_of(record.get("id"))
+                lines = [structure.cabinet_label(record), "=" * 60,
+                         structure.format_record(record), "",
+                         "Состав шкафа: %d комплект(ов)" % len(kits)]
+                for kit_record in kits:
+                    lines.append("  • " + structure.kit_label(kit_record))
+                return "\n".join(lines)
+            if kind == "kit":
+                return structure.format_kit_full(record.get("id"))
+            if kind == "ied":
+                return "%s\n%s\n\n%s" % (structure.ied_label(record),
+                                         "=" * 60,
+                                         structure.format_record(record))
+            return title
+
+        def show_details(item=None):
+            item = item or (tree.selection() or [None])[0]
+            if not item:
+                return
+            text = describe(item) or "нет данных"
+            details.config(state="normal")
+            details.delete("1.0", "end")
+            details.insert("1.0", text)
+            details.config(state="disabled")
+            node = nodes.get(item) or {}
+            counts = (len(structure.cabinets()), len(structure.kits()),
+                      sum(1 for kit in structure.kits()
+                          if structure.has_ied(kit)), len(structure.ieds()))
+            status.config(
+                text="Шкафов: %d · комплектов: %d (с ИЭУ %d, без ИЭУ %d) "
+                     "· ИЭУ: %d   |   %s"
+                % (counts[0], counts[1], counts[2],
+                   counts[1] - counts[2], counts[3],
+                   node.get("title") or ""))
 
         def reload_structure():
             structure.reload()
-            fresh = renderer() if renderer else ""
-            text.config(state="normal")
-            text.delete("1.0", "end")
-            text.insert("1.0", fresh or "нет данных")
-            text.config(state="disabled")
+            build_tree()
 
         def copy_all():
             window.clipboard_clear()
-            window.clipboard_append(text.get("1.0", "end"))
+            window.clipboard_append(details.get("1.0", "end"))
 
         tk.Button(buttons, text="Копировать", width=12,
                   command=copy_all).pack(side=tk.LEFT)
         tk.Button(buttons, text="Обновить из файла", width=18,
                   command=reload_structure).pack(side=tk.LEFT, padx=(6, 0))
+        tk.Button(buttons, text="Сводка", width=10,
+                  command=lambda: show_summary()).pack(side=tk.LEFT, padx=(6, 0))
         tk.Button(buttons, text="Закрыть", width=10,
                   command=window.destroy).pack(side=tk.RIGHT)
+
+        def show_summary():
+            details.config(state="normal")
+            details.delete("1.0", "end")
+            details.insert("1.0", structure.summary())
+            details.config(state="disabled")
+
+        tree.bind("<<TreeviewSelect>>", lambda event: show_details())
+        tree.bind("<Double-Button-1>", lambda event: show_details())
         window.bind("<Escape>", lambda event: window.destroy())
+        window.bind("<F5>", lambda event: reload_structure())
+        search_var.trace_add("write", lambda *args: build_tree())
+        ied_filter.trace_add("write", lambda *args: build_tree())
+
         window.update_idletasks()
         self._center_dialog(window)
+        build_tree()
         return window
 
     def show_cabinet_structure(self, cabinet_key):
-        """Окно структуры шкафа каталога (и всех его комплектов)."""
-        if not structure.available():
-            messagebox.showinfo(
-                "Структура шкафов",
-                "Файл structure.json недоступен.\n\n{}".format(
-                    structure.error() or ""))
+        """Окно структуры шкафа: шкаф → комплекты (с ИЭУ / без) → ИЭУ."""
+        if not self._require_structure():
             return
-        cabinet = structure.cabinet(cabinet_key)
-        if not cabinet:
+        entry = structure.cabinet(cabinet_key)
+        if not entry:
             messagebox.showinfo(
-                "Структура шкафов",
+                "Структура РЗА",
                 "Запись этого шкафа в structure.json не найдена — возможно,\n"
                 "он добавлен в каталог уже после сборки структуры.\n"
                 "Пересоберите файл: python3 tools/build_structure.py")
             return
-        label = cabinet.get("Шифр шкафа") or cabinet.get("Наименование шкафа") \
-            or cabinet_key
-        self._structure_window(
-            "Структура шкафа — %s" % (cabinet.get("id") or label),
-            structure.format_cabinet_full(cabinet_key), hint=label,
-            renderer=lambda: structure.format_cabinet_full(cabinet_key))
+        label = structure.cabinet_label(entry)
+        kits = structure.kits_of(entry.get("id"))
+        with_ied = sum(1 for kit in kits if structure.has_ied(kit))
+        return self._structure_browser(
+            "Структура шкафа — %s" % (entry.get("id") or label),
+            mode="cabinet", key=entry.get("id"),
+            hint="%s · шкаф состоит из %d комплект(ов): %d с ИЭУ, %d без ИЭУ"
+                 % (label, len(kits), with_ied, len(kits) - with_ied))
 
     def show_komplekt_structure(self, kit):
-        """Окно структуры комплекта каталога."""
-        if not structure.available() or not kit:
-            if not structure.available():
-                messagebox.showinfo("Структура шкафов",
-                                    "Файл structure.json недоступен.\n\n{}".format(
-                                        structure.error() or ""))
+        """Окно структуры комплекта в составе его шкафа.
+
+        Комплект без ИЭУ показывается как полноценный узел; единственное
+        ИЭУ шкафа всегда находится внутри комплекта.
+        """
+        if not kit or not self._require_structure():
             return
         cabinet_key = kit.get("cabinet_key") or ""
         index = kit.get("cabinet_index")
         entry = (structure.kit(kit.get("key") or "")
                  or (structure.kit_for(cabinet_key, index)
-                     if cabinet_key is not None and index is not None else None))
+                     if cabinet_key and index is not None else None))
         if not entry and cabinet_key:
-            # копия типового комплекта: сопоставим по номеру в шкафу
-            kits = structure.kits_of(cabinet_key)
+            # копия типового комплекта: сопоставим по названию в шкафу
             name = (kit.get("name") or "").strip()
-            entry = next((item for item in kits
-                          if name and name in (item.get("Полное имя комплекта")
-                                               or "")), None)
+            entry = next((item for item in structure.kits_of(cabinet_key)
+                          if name and name in (item.get("полное имя") or "")),
+                         None)
         if not entry:
             messagebox.showinfo(
-                "Структура шкафов",
+                "Структура РЗА",
                 "Запись этого комплекта в structure.json не найдена — \n"
                 "пересоберите файл: python3 tools/build_structure.py")
             return
-        title = "%s · %s" % (entry.get("id"),
-                             entry.get("Полное имя комплекта") or "")
         kit_id = entry.get("id")
-        self._structure_window(
+        parent = structure.cabinet_of_kit(kit_id)
+        composition = ("с ИЭУ" if structure.has_ied(entry) else "без ИЭУ")
+        return self._structure_browser(
             "Структура комплекта — %s" % kit_id,
-            structure.format_record(entry), hint=title,
-            renderer=lambda: structure.format_record(structure.kit(kit_id)))
+            mode="kit", key=kit_id,
+            hint="%s · комплект %s · шкаф: %s"
+                 % (entry.get("полное имя") or kit_id, composition,
+                    structure.cabinet_label(parent) if parent else "—"))
 
     def show_structure_overview(self):
-        """Сводка по структуре: источники и полнота заполнения."""
-        self._structure_window(
-            "Структура шкафов — %s" % os.path.basename(structure.path()),
-            structure.summary(),
-            renderer=structure.summary,
-            hint="Файл structure.json собирается скриптом tools/build_structure.py "
-                 "по образцу standards/structure.json.")
+        """Вся структура: КЭТ, шкафы, комплекты и ИЭУ в одном дереве."""
+        if not self._require_structure():
+            return
+        return self._structure_browser(
+            "Структура РЗА — %s" % os.path.basename(structure.path()),
+            mode="overview",
+            hint="КЭТ → шкафы → комплекты → ИЭУ. Комплект бывает с ИЭУ "
+                 "или без; ИЭУ хранится только внутри комплекта. "
+                 "Собирается: python3 tools/build_structure.py")
 
-    def show_selected_structure(self):
-        """Структура шкафа (или контейнера), выделенного на схеме."""
-        cabinet = next((el for el in self.selected_elements
+    def show_selected_structure(self, event=None):
+        """Структура шкафа (или контейнера КЭТ), выделенного на схеме.
+
+        ``selected_elements`` хранит id элементов, сами объекты — в
+        ``self.elements``; поддерживаются и объекты (например, из тестов).
+        """
+        selected = []
+        for item in self.selected_elements or []:
+            element = (self.elements.get(item) if isinstance(item, str)
+                       else item)
+            if element is not None:
+                selected.append(element)
+        cabinet = next((el for el in selected
                         if getattr(el, "type", "") == "cabinet"), None)
         if cabinet is not None:
-            self.show_cabinet_structure(getattr(cabinet, "cabinet_key", "")
-                                        or cabinet.name)
-            return
-        container = next((el for el in self.selected_elements
+            return self.show_cabinet_structure(
+                getattr(cabinet, "cabinet_key", "")
+                or getattr(cabinet, "name", ""))
+        container = next((el for el in selected
                           if getattr(el, "type", "") == "container"), None)
-        if container is not None:
-            if not structure.available():
-                messagebox.showinfo("Структура шкафов",
-                                    "Файл structure.json недоступен.")
-                return
-            parts = []
-            for placed_id in container.bound_ids():
-                placed = self.elements.get(placed_id)
-                key = (getattr(placed, "cabinet_key", "") or
-                       getattr(placed, "name", ""))
-                entry = structure.cabinet(key)
-                if entry:
-                    parts.append(structure.format_record(entry))
-            self._structure_window(
-                "Структура контейнера — %s" % container.name,
-                ("\n\n" + "—" * 60 + "\n\n").join(parts) or
-                "в контейнере нет шкафов каталога",
-                hint=container.name, renderer=lambda: "\n\n".join(parts))
-            return
-        self.show_structure_overview()
+        if container is not None and self._require_structure():
+            key = getattr(container, "container_key", "") or ""
+            if structure.container(key):
+                return self._structure_browser(
+                    "Структура контейнера — %s"
+                    % (getattr(container, "name", "") or key),
+                    mode="container", key=key,
+                    hint="Контейнер КЭТ → шкафы → комплекты → ИЭУ")
+        return self.show_structure_overview()
 
     def create_komplekt_type(self):
         """Создание нового комплекта в каталоге. Возвращает ключ или None."""
@@ -1794,6 +2077,10 @@ class CircuitEditor:
         tag_variable = tk.StringVar(value="Все теги")
         tk.OptionMenu(filters, tag_variable, "Все теги",
                       *all_tags).pack(side=tk.LEFT, padx=(6, 12))
+        tk.Label(filters, text="Состав:").pack(side=tk.LEFT)
+        ied_variable = tk.StringVar(value="Все")
+        tk.OptionMenu(filters, ied_variable, "Все", "С ИЭУ", "Без ИЭУ").pack(
+            side=tk.LEFT, padx=(6, 12))
         tk.Label(filters, text="Поиск:").pack(side=tk.LEFT)
         search_variable = tk.StringVar()
         tk.Entry(filters, textvariable=search_variable, width=22).pack(
@@ -1817,7 +2104,9 @@ class CircuitEditor:
         kind_by_label = {title: key for key, title in komplekts.KINDS.items()}
 
         def describe(kit):
-            lines = ["Вид: " + komplekts.kind_title(kit)]
+            lines = ["Вид: " + komplekts.kind_title(kit),
+                     "Состав: комплект " +
+                     ("с ИЭУ" if kit.get("has_ied") else "без ИЭУ")]
             if kit.get("functions"):
                 lines.append("Функции: " + ", ".join(kit["functions"]))
             ieds = komplekts.effective_ieds(kit)
@@ -1839,12 +2128,18 @@ class CircuitEditor:
         def refresh():
             kind = kind_by_label.get(kind_variable.get())
             tag = tag_variable.get()
+            composition = ied_variable.get()
             needle = search_variable.get().strip().lower()
             visible = []
             for kit in kits:
                 if kind and kit.get("kind") != kind:
                     continue
                 if tag != "Все теги" and tag not in komplekts.tags_of(kit):
+                    continue
+                has_ied = bool(komplekts.effective_ieds(kit))
+                if composition == "С ИЭУ" and not has_ied:
+                    continue
+                if composition == "Без ИЭУ" and has_ied:
                     continue
                 if needle:
                     haystack = " ".join([
@@ -1894,6 +2189,7 @@ class CircuitEditor:
         dialog.bind("<Escape>", lambda event: dialog.destroy())
         kind_variable.trace_add("write", lambda *args: refresh())
         tag_variable.trace_add("write", lambda *args: refresh())
+        ied_variable.trace_add("write", lambda *args: refresh())
         search_variable.trace_add("write", lambda *args: refresh())
         refresh()
 
@@ -1988,11 +2284,16 @@ class CircuitEditor:
                  tk.Entry(form, textvariable=tags_var, width=50))
 
         has_ied_var = tk.BooleanVar(value=data["has_ied"])
-        tk.Checkbutton(form, text="Есть ИЭУ в комплекте",
+        tk.Checkbutton(form, text="Комплект с ИЭУ (снимите — комплект без ИЭУ)",
                        variable=has_ied_var,
                        command=lambda: sync_ied_state()).grid(
             row=rows["row"], column=0, columnspan=2, sticky="w",
             pady=(8, 2))
+        rows["row"] += 1
+        composition_label = tk.Label(form, text="", anchor="w", fg="#555555",
+                                     font=("Arial", 8), justify="left")
+        composition_label.grid(row=rows["row"], column=0, columnspan=2,
+                               sticky="w", pady=(0, 4))
         rows["row"] += 1
 
         ieds = [dict(ied) for ied in data["ieds"]]
@@ -2218,7 +2519,12 @@ class CircuitEditor:
         if derived:
             hint.config(text="Название, вид и типовой шкаф берутся из каталога "
                              "шкафов; здесь меняются функции, ИЭУ и "
-                             "испытательные блоки.")
+                             "испытательные блоки. Шкаф состоит из комплектов; "
+                             "ИЭУ хранится внутри комплекта.")
+        else:
+            hint.config(text="Шкаф состоит из комплектов. Комплект может быть "
+                             "с ИЭУ или без; единственное ИЭУ в описании шкафа "
+                             "входит в его комплект.")
 
         error = tk.Label(form, text="", fg="#b00020", anchor="w")
         error.grid(row=rows["row"], column=0, columnspan=2, sticky="w",
@@ -2245,6 +2551,14 @@ class CircuitEditor:
             ied_type_entry.config(state=state)
             add_ied_button.config(state=state)
             remove_ied_button.config(state=state)
+            if has_ied_var.get():
+                names = ", ".join(ied.get("name") or "ИЭУ" for ied in ieds)
+                composition_label.config(
+                    text="Комплект с ИЭУ: " + (names or "устройства не заданы"))
+            else:
+                composition_label.config(
+                    text="Комплект без ИЭУ: ИЭУ входит в состав только "
+                         "через комплекты, здесь его нет")
 
         def add_ied():
             name = ied_name_var.get().strip()
@@ -2266,6 +2580,7 @@ class CircuitEditor:
                 return
             ieds.pop(selection[0])
             refresh_ieds()
+            sync_ied_state()
 
         def kits_of(cabinet):
             return (cabinet.get("komplets") or []) if cabinet else []
@@ -2485,8 +2800,17 @@ class CircuitEditor:
             row=row, column=1, sticky="we", padx=(8, 0), pady=2)
         row += 1
 
-        tk.Label(form, text="Комплекты (1–{}, в каждом 0..N ИЭУ):".format(cabs.MAX_KOMPLETS),
-                 anchor="w").grid(row=row, column=0, columnspan=2, sticky="w", pady=(10, 2))
+        tk.Label(form, text="Состав шкафа — комплекты (1–{}, с ИЭУ или без):"
+                 .format(cabs.MAX_KOMPLETS),
+                 anchor="w").grid(row=row, column=0, columnspan=2, sticky="w",
+                                  pady=(10, 2))
+        row += 1
+        tk.Label(form, text="Шкаф состоит из комплектов; ИЭУ хранится внутри "
+                            "комплекта (одно ИЭУ в описании шкафа входит в "
+                            "первый комплект).",
+                 anchor="w", fg="#808080", font=("Arial", 7),
+                 justify="left").grid(row=row, column=0, columnspan=2,
+                                     sticky="w", pady=(0, 4))
         row += 1
 
         details = {key: definition.get(key) or ""
@@ -2598,7 +2922,9 @@ class CircuitEditor:
             return " · ".join(parts)
 
         def summary_text(kit):
-            lines = ["Вид: " + komplekts.kind_title(kit)]
+            lines = ["Вид: " + komplekts.kind_title(kit),
+                     "Состав: комплект " +
+                     ("с ИЭУ" if kit.get("has_ied") else "без ИЭУ")]
             if kit.get("kind") == "typical":
                 lines.append("Типовой шкаф: " + komplekts.cabinet_ref_text(kit))
             if kit.get("functions"):
