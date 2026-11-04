@@ -1635,6 +1635,11 @@ class CircuitEditor:
         mode: overview | cabinet | kit | container. Дерево повторяет модель
         хранения; комплекты без ИЭУ показываются отдельным типом узла,
         ИЭУ всегда вложено в комплект.
+
+        Окно работает с готовым ``structure.json`` (путь показан в шапке).
+        Кнопка «Перечитать structure.json»/F5 только сбрасывает кэш
+        ``structure.py`` и читает файл заново; сборка файла из каталогов —
+        отдельный шаг, ``tools/build_structure.py``.
         """
         window = tk.Toplevel(self.root)
         window.title(title)
@@ -1646,6 +1651,11 @@ class CircuitEditor:
         head.pack(fill=tk.X, padx=10, pady=(8, 2))
         tk.Label(head, text=hint or "КЭТ → шкафы → комплекты → ИЭУ",
                  anchor="w", fg="#555555").pack(fill=tk.X)
+        tk.Label(head, text="Источник данных: %s · пересборка: "
+                           "python3 tools/build_structure.py"
+                           % structure.path(),
+                 anchor="w", fg="#808080", font=("Arial", 8)).pack(
+                     fill=tk.X, pady=(2, 0))
 
         tools = tk.Frame(window)
         tools.pack(fill=tk.X, padx=10, pady=(2, 6))
@@ -1756,8 +1766,14 @@ class CircuitEditor:
             needle = search_var.get().strip().lower()
             document = structure.load() or {}
             version = document.get("версия") or "?"
-            root_text = "%s · версия %s" % (
-                os.path.basename(structure.path()), version)
+            source_path = structure.path()
+            try:
+                stamp = datetime.fromtimestamp(
+                    os.path.getmtime(source_path)).strftime("%d.%m.%Y %H:%M")
+            except OSError:
+                stamp = "файл недоступен"
+            root_text = "%s · версия %s · изменён %s" % (
+                os.path.basename(source_path), version, stamp)
             root = add_node("", "root", root_text, None, "root")
 
             if mode == "cabinet" and structure.cabinet(key):
@@ -1889,7 +1905,19 @@ class CircuitEditor:
                    node.get("title") or ""))
 
         def reload_structure():
-            structure.reload()
+            """Перечитать готовый structure.json с диска (не пересобирать).
+
+            Каталоги редактора, PDF и база знаний здесь не участвуют: чтобы
+            изменения каталогов попали в окно, сначала нужно запустить
+            tools/build_structure.py, а потом нажать эту кнопку.
+            """
+            if not structure.reload():
+                messagebox.showerror(
+                    "Структура РЗА",
+                    "Не удалось перечитать %s:\n\n%s\n\n"
+                    "Соберите файл: python3 tools/build_structure.py"
+                    % (structure.path(), structure.error() or ""))
+                return
             build_tree()
 
         def copy_all():
@@ -1898,7 +1926,7 @@ class CircuitEditor:
 
         tk.Button(buttons, text="Копировать", width=12,
                   command=copy_all).pack(side=tk.LEFT)
-        tk.Button(buttons, text="Обновить из файла", width=18,
+        tk.Button(buttons, text="Перечитать structure.json (F5)", width=30,
                   command=reload_structure).pack(side=tk.LEFT, padx=(6, 0))
         tk.Button(buttons, text="Сводка", width=10,
                   command=lambda: show_summary()).pack(side=tk.LEFT, padx=(6, 0))

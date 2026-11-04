@@ -335,6 +335,26 @@ def test_gui():
         tree = find_tree(overview)
         check(len(nodes(tree)) > 100,
               "дерево обзора заполнено (%d узлов)" % len(nodes(tree)))
+        root_item = tree.get_children()[0]
+        root_label = tree.item(root_item, "text")
+        check("structure.json" in root_label and "изменён" in root_label,
+              "корень дерева показывает файл-источник и время сборки")
+        labels = [w.cget("text") for w in widgets(
+            overview, lambda w: isinstance(w, tk.Label))]
+        check(any("Источник данных:" in str(text)
+                  and "structure.json" in str(text) for text in labels),
+              "в шапке окна указан путь к файлу-источнику")
+        reload_button = next(
+            (w for w in widgets(overview,
+                                lambda w: isinstance(w, tk.Button))
+             if "Перечитать structure.json" in str(w.cget("text"))), None)
+        check(reload_button is not None,
+              "кнопка явно называет перечитываемый файл")
+        if reload_button:
+            reload_button.invoke()
+            root.update_idletasks()
+            check(len(nodes(find_tree(overview))) > 100,
+                  "перечитывание файла перестраивает дерево")
         check(all(count_tag(tree, tag) > 0 for tag in
                   ("container", "cabinet", "kit", "kit_empty", "ied")),
               "в дереве есть КЭТ, шкафы, комплекты с/без ИЭУ и ИЭУ")
