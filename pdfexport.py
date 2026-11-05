@@ -215,6 +215,21 @@ class PdfWriter:
             handle.write(output)
 
 
+def _anchor_parts(anchor):
+    """Горизонтальная и вертикальная части якоря Tk.
+
+    Строка «center» содержит буквы «e» и «n», поэтому проверять подстроки
+    до её разбора нельзя: иначе центрированная подпись считается как «ne»
+    и уезжает влево-вниз от нужной точки.
+    """
+    anchor = (anchor or "center").strip().lower()
+    if anchor in ("", "center"):
+        return "center", "center"
+    horizontal = "w" if "w" in anchor else ("e" if "e" in anchor else "center")
+    vertical = "n" if "n" in anchor else ("s" if "s" in anchor else "center")
+    return horizontal, vertical
+
+
 def text_bbox(x, y, text, size, anchor="center"):
     """Габариты подписи в мировых координатах — как её рисует Tk.
 
@@ -222,15 +237,16 @@ def text_bbox(x, y, text, size, anchor="center"):
     """
     width = _measure(text, size)
     ascent, descent = _metrics(size)
-    if "w" in anchor:
+    horizontal, vertical = _anchor_parts(anchor)
+    if horizontal == "w":
         left, right = x, x + width
-    elif "e" in anchor:
+    elif horizontal == "e":
         left, right = x - width, x
     else:
         left, right = x - width / 2.0, x + width / 2.0
-    if "n" in anchor:
+    if vertical == "n":
         top, bottom = y, y + ascent + descent
-    elif "s" in anchor:
+    elif vertical == "s":
         top, bottom = y - ascent - descent, y
     else:
         top = y - (ascent + descent) / 2.0
@@ -460,19 +476,19 @@ class PageCanvas:
         if not text:
             return
         size = _font_size(kwargs.get("font"))
-        anchor = kwargs.get("anchor", "center")
+        horizontal, vertical = _anchor_parts(kwargs.get("anchor"))
         width = _measure(text, size)
         ascent, descent = _metrics(size)
         px, py = x, y
-        if "w" in anchor:
+        if horizontal == "w":
             left = px
-        elif "e" in anchor:
+        elif horizontal == "e":
             left = px - width
         else:
             left = px - width / 2.0
-        if "n" in anchor:
+        if vertical == "n":
             baseline = py + ascent
-        elif "s" in anchor:
+        elif vertical == "s":
             baseline = py - descent
         else:
             baseline = py + (ascent - descent) / 2.0
