@@ -19,6 +19,7 @@ import containers as ketlib
 import docxreport
 import structure
 import ui_theme
+import appicon
 
 try:
     import pdf2json
@@ -770,6 +771,12 @@ class CircuitEditor:
         ui_theme.apply(root)
         ui_theme.stabilize(root)
         self.root.title(APP_TITLE)
+
+        # Иконка окна рисуется кодом: штатная иконка Tk не нужна.
+        # Ссылки на PhotoImage держим сами — Tk их не сохраняет.
+        self._icon_images = appicon.images()
+        if self._icon_images:
+            self.root.iconphoto(True, *self._icon_images)
         
         # Текущий файл чертежа и признак несохранённых изменений
         # (звёздочка в заголовке окна)
