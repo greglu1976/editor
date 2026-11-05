@@ -341,6 +341,28 @@ class Node(Component):
         return (self.x - 5, self.y - 5, self.x + 5, self.y + 5)
 
 
+class CommentNode(Component):
+    """Декоративный чёрный узел.
+
+    Тот же размер, что и «Узел», но без выводов: он не участвует в связях,
+    проверках и отчётах — это просто метка на чертеже, как комментарий.
+    """
+
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = "comment_node"
+        self.ports = {}
+
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        sx = self.x * zoom + offset_x
+        sy = self.y * zoom + offset_y
+        r = 4 * zoom
+        canvas.create_oval(sx-r, sy-r, sx+r, sy+r, fill="black", outline="black")
+
+    def get_bounding_box(self):
+        return (self.x - 5, self.y - 5, self.x + 5, self.y + 5)
+
+
 # ==========================================
 # 6. ЛЭП
 # ==========================================
@@ -1911,7 +1933,7 @@ COMPONENT_TYPES = (
     "voltage_transformer", "current_transformer", "node", "corner",
     "grounding_switch", "ground", "opn", "coupling_capacitor", "line_trap",
     "connection_filter", "av_breaker", "fuse", "cabinet", "container",
-    "bushing_monitor", "capacitor_battery",
+    "bushing_monitor", "capacitor_battery", "comment_node",
 )
 
 
@@ -1928,6 +1950,7 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
     elif comp_type == "voltage_transformer": return VoltageTransformer(comp_id, x, y, grid_size)
     elif comp_type == "current_transformer": return CurrentTransformer(comp_id, x, y, grid_size)
     elif comp_type == "node": return Node(comp_id, x, y, grid_size)
+    elif comp_type == "comment_node": return CommentNode(comp_id, x, y, grid_size)
     elif comp_type == "line": return PowerLine(comp_id, x, y, grid_size)
     elif comp_type == "corner": return Corner(comp_id, x, y, grid_size)
     elif comp_type == "grounding_switch": return GroundingSwitch(comp_id, x, y, grid_size)

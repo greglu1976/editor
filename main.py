@@ -44,7 +44,7 @@ PREFIX_BY_TYPE = {
     "opn": "FV", "coupling_capacitor": "CC", "line_trap": "LT",
     "connection_filter": "CF", "av_breaker": "QF", "fuse": "FU",
     "cabinet": "EL", "container": "EK", "bushing_monitor": "BSH",
-    "capacitor_battery": "BSK",
+    "capacitor_battery": "BSK", "comment_node": "D",
 }
 
 # Названия типов элементов для отчётов и подсказок.
@@ -75,6 +75,7 @@ ELEMENT_TYPE_TITLES = {
     "container": "Контейнер КЭТ",
     "corner": "Уголок",
     "node": "Узел",
+    "comment_node": "Декоративный узел",
 }
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
@@ -176,6 +177,7 @@ PALETTE_ITEMS = [
     ("Заземляющий разъединитель", "grounding_switch"),
     ("Заземление", "ground"),
     ("Узел", "node"),
+    ("Декоративный узел", "comment_node"),
     ("КИВ — контроль изоляции вводов", "bushing_monitor"),
     ("БСК — батарея статических конденсаторов", "capacitor_battery"),
 ]
@@ -5088,7 +5090,7 @@ class CircuitEditor:
         node_r = max(3.0, 4.5 * self.zoom)
         for element in self.elements.values():
             if element.type in ("cabinet", "container", "corner", "node",
-                                "bushing_monitor"):
+                                "comment_node", "bushing_monitor"):
                 continue
             x, y = self.world_to_screen(element.x, element.y)
             self.canvas.create_polygon(
@@ -6379,8 +6381,9 @@ class CircuitEditor:
                 self.grid_size
             )
             
-            new_el.name = self.get_next_name(
-                PREFIX_BY_TYPE.get(el_template.type, "EL"), el_template.type)
+            if el_template.type != "comment_node":
+                new_el.name = self.get_next_name(
+                    PREFIX_BY_TYPE.get(el_template.type, "EL"), el_template.type)
             
             if hasattr(el_template, 'rotation'): new_el.rotation = el_template.rotation
             if hasattr(el_template, 'orientation'): new_el.orientation = el_template.orientation
@@ -6485,7 +6488,7 @@ class CircuitEditor:
                 continue
             if el.type == "cabinet" and not self.show_cabinets:
                 continue
-            if el.type == "node" and not self.show_all_nodes:
+            if el.type in ("node", "comment_node") and not self.show_all_nodes:
                 continue
             el.draw(self.canvas, self.zoom, self.offset_x, self.offset_y)
             
@@ -6509,7 +6512,7 @@ class CircuitEditor:
                     if p2: used_node_ids.add(p2["node_id"])
 
             for el in self.elements.values():
-                if el.type == "node" and not self.show_all_nodes:
+                if el.type in ("node", "comment_node") and not self.show_all_nodes:
                     continue
                 for p_name, p_data in el.ports.items():
                     sx, sy = self.world_to_screen(p_data["x"], p_data["y"])
@@ -6549,7 +6552,7 @@ class CircuitEditor:
                     continue
                 if el.type == "container" and not self.show_containers:
                     continue
-                if el.type == "node" and not self.show_all_nodes:
+                if el.type in ("node", "comment_node") and not self.show_all_nodes:
                     continue
                 bx1, by1, bx2, by2 = el.get_bounding_box()
                 
@@ -6752,7 +6755,7 @@ class CircuitEditor:
                     continue
                 if el.type == "container" and not self.show_containers:
                     continue
-                if el.type == "node" and not self.show_all_nodes:
+                if el.type in ("node", "comment_node") and not self.show_all_nodes:
                     continue
                 bx1, by1, bx2, by2 = el.get_bounding_box()
                 sx1, sy1 = self.world_to_screen(bx1, by1)
@@ -6768,7 +6771,7 @@ class CircuitEditor:
                 continue
             if el.type == "container" and not self.show_containers:
                 continue
-            if el.type == "node" and not self.show_all_nodes:
+            if el.type in ("node", "comment_node") and not self.show_all_nodes:
                 continue
             box = getattr(el, "_label_bbox", None)
             if box and box[0] <= sx <= box[2] and box[1] <= sy <= box[3]:
@@ -7416,7 +7419,9 @@ class CircuitEditor:
         el_id = f"{etype[:2].upper()}{str(uuid.uuid4())[:4]}"
         el = library.create_component(etype, el_id, x, y, self.grid_size)
 
-        el.name = self.get_next_name(PREFIX_BY_TYPE.get(etype, "EL"), etype)
+        # Декоративный узел без обозначения: подписи у него нет по замыслу
+        if etype != "comment_node":
+            el.name = self.get_next_name(PREFIX_BY_TYPE.get(etype, "EL"), etype)
 
         self.elements[el_id] = el
         self.redraw_all()
@@ -7747,7 +7752,7 @@ class CircuitEditor:
             if getattr(self, "show_containers_var", None) is not None:
                 self.show_containers_var.set(True)
             self._refresh_ribbon_toggles()
-        if element.type == "node" and not self.show_all_nodes:
+        if element.type in ("node", "comment_node") and not self.show_all_nodes:
             self.show_all_nodes = True
             if getattr(self, "show_nodes_var", None) is not None:
                 self.show_nodes_var.set(True)
@@ -7906,7 +7911,8 @@ class CircuitEditor:
                              if el.type == "container"),
                             key=lambda el: self._natural_key(el.name))
         equipment = [el for el in self.elements.values()
-                     if el.type not in ("cabinet", "container", "node", "corner")]
+                     if el.type not in ("cabinet", "container", "node",
+                                        "comment_node", "corner")]
         equipment.sort(key=lambda el: self._natural_key(el.name))
 
         total_komplets = sum(len(getattr(el, "komplets", [])) for el in cabinets)
@@ -8648,7 +8654,7 @@ class CircuitEditor:
         summary = [
             ["Элементов первичной схемы", str(len([
                 el for el in self.elements.values()
-                if el.type not in ("cabinet", "container")]))],
+                if el.type not in ("cabinet", "container", "comment_node")]))],
             ["Проверено выводов (без исключений)", str(checked_ports)],
             ["Свободных выводов", str(free_ports)],
             ["Элементов со свободными выводами", str(len(element_rows))],
@@ -9741,7 +9747,7 @@ class CircuitEditor:
         node_r = 4.5
         for element in self.elements.values():
             if element.type in ("cabinet", "container", "corner", "node",
-                                "bushing_monitor"):
+                                "comment_node", "bushing_monitor"):
                 continue
             canvas.create_polygon(
                 element.x, element.y - node_r,
