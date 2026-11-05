@@ -53,7 +53,9 @@ import json
 import os
 import re
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+import apppaths
+
+HERE = apppaths.app_dir()
 DEFAULT_PATH = os.path.join(HERE, "structure.json")
 
 #: Разделы и служебные ключи формата v3.

@@ -60,6 +60,8 @@ import os
 import re
 import uuid
 
+import apppaths
+
 #: Виды комплектов: ключ → подпись в интерфейсе.
 KINDS = {
     "typical": "Типовой",
@@ -76,8 +78,7 @@ CURRENT_PRESETS = ("Ia", "Ib", "Ic", "3I0")
 
 MAX_TEST_BLOCKS = 99
 
-USER_CATALOG_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "komplekts.json")
+USER_CATALOG_PATH = apppaths.data_path("komplekts.json")
 
 #: Универсальные описательные поля из СТО. Есть и у шкафов, и у комплектов;
 #: если в стандарте поле не описано — хранится None (null).

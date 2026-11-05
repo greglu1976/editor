@@ -47,6 +47,8 @@ import os
 import re
 import uuid
 
+import apppaths
+
 #: Предельное число слотов для шкафов в одном контейнере.
 MAX_SLOTS = 14
 
@@ -660,8 +662,7 @@ def size_for(container):
 # создал или изменил, хранится в containers.json рядом с этим файлом:
 #     {"custom": [...], "overrides": {"ключ": {...}}, "deleted": ["ключ", ...]}
 
-USER_CATALOG_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "containers.json")
+USER_CATALOG_PATH = apppaths.data_path("containers.json")
 
 
 def normalize_container(container):

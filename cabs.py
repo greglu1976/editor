@@ -100,6 +100,7 @@ import os
 import re
 import uuid
 
+import apppaths
 import cabs_data
 import cabs_sto
 import komplekts
@@ -375,12 +376,10 @@ for cabinet in CABINETS:
 
 MAX_KOMPLETS = 7
 
-USER_CATALOG_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "cabinets.json")
+USER_CATALOG_PATH = apppaths.data_path("cabinets.json")
 
 #: Сигналы и испытательные блоки из СТО (генерируется output/build_signals.py).
-SIGNALS_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "cabs_signals.json")
+SIGNALS_PATH = apppaths.data_path("cabs_signals.json")
 
 
 def normalize_cabinet(cabinet):
