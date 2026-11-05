@@ -6485,6 +6485,8 @@ class CircuitEditor:
                 continue
             if el.type == "cabinet" and not self.show_cabinets:
                 continue
+            if el.type == "node" and not self.show_all_nodes:
+                continue
             el.draw(self.canvas, self.zoom, self.offset_x, self.offset_y)
             
         # 3. Маркеры шины
@@ -6507,6 +6509,8 @@ class CircuitEditor:
                     if p2: used_node_ids.add(p2["node_id"])
 
             for el in self.elements.values():
+                if el.type == "node" and not self.show_all_nodes:
+                    continue
                 for p_name, p_data in el.ports.items():
                     sx, sy = self.world_to_screen(p_data["x"], p_data["y"])
                     r = 3 * self.zoom
@@ -6544,6 +6548,8 @@ class CircuitEditor:
                 if el.type == "cabinet" and not self.show_cabinets:
                     continue
                 if el.type == "container" and not self.show_containers:
+                    continue
+                if el.type == "node" and not self.show_all_nodes:
                     continue
                 bx1, by1, bx2, by2 = el.get_bounding_box()
                 
@@ -6746,6 +6752,8 @@ class CircuitEditor:
                     continue
                 if el.type == "container" and not self.show_containers:
                     continue
+                if el.type == "node" and not self.show_all_nodes:
+                    continue
                 bx1, by1, bx2, by2 = el.get_bounding_box()
                 sx1, sy1 = self.world_to_screen(bx1, by1)
                 sx2, sy2 = self.world_to_screen(bx2, by2)
@@ -6759,6 +6767,8 @@ class CircuitEditor:
             if el.type == "cabinet" and not self.show_cabinets:
                 continue
             if el.type == "container" and not self.show_containers:
+                continue
+            if el.type == "node" and not self.show_all_nodes:
                 continue
             box = getattr(el, "_label_bbox", None)
             if box and box[0] <= sx <= box[2] and box[1] <= sy <= box[3]:
@@ -7736,6 +7746,11 @@ class CircuitEditor:
             self.show_containers = True
             if getattr(self, "show_containers_var", None) is not None:
                 self.show_containers_var.set(True)
+            self._refresh_ribbon_toggles()
+        if element.type == "node" and not self.show_all_nodes:
+            self.show_all_nodes = True
+            if getattr(self, "show_nodes_var", None) is not None:
+                self.show_nodes_var.set(True)
             self._refresh_ribbon_toggles()
 
         bx1, by1, bx2, by2 = element.get_bounding_box()
