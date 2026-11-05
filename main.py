@@ -81,6 +81,22 @@ ELEMENT_TYPE_TITLES = {
 #: Название программы: идёт в заголовок окна после имени чертежа.
 APP_TITLE = "Редактор электрических схем v26"
 
+#: Подпись разработчика в окне «Разработчик» (вкладка «?»).
+DEVELOPER = ""
+
+#: Описание программы для окна «О программе».
+ABOUT_TEXT = (
+    "Редактор однолинейных электрических схем подстанций.\n\n"
+    "• Первичная схема: выключатели, разъединители, шины, "
+    "трансформаторы, ЛЭП, заземления.\n"
+    "• Шкафы РЗА с комплектами и ИЭУ, контейнеры КЭТ с раскладкой "
+    "шкафов по слотам.\n"
+    "• Связи РЗА и аналоговые цепи, подписи и комментарии к чертежу.\n"
+    "• Отчёты по схеме, выделению, шкафам и КЭТ, отчёт по НИР.\n"
+    "• Экспорт в PDF и PNG, выгрузка SSD по МЭК 61850-6.\n\n"
+    "Схема хранится в JSON-файле вместе с подложкой и положением вида."
+)
+
 # Комментарии к чертежу — плашки с текстом, привязанные к точке схемы.
 # Все размеры в мировых единицах: записка масштабируется вместе с чертежом
 # и одинаково выглядит на экране, в PDF и в PNG.
@@ -442,6 +458,20 @@ def _ri_nir(c):
     for y in (13, 17, 21):
         c.create_line(10, y, 23, y, width=1, fill="#666666")
     c.create_text(16, 25, text="НИР", font=("Arial", 6, "bold"))
+
+
+def _ri_about(c):
+    """О программе: буква «i» в круге."""
+    c.create_oval(5, 5, 27, 27, outline="black", width=2)
+    c.create_line(16, 14, 16, 22, width=2)
+    c.create_line(16, 10, 16, 11, width=3)
+
+
+def _ri_developer(c):
+    """Разработчик: угловые скобки кода."""
+    c.create_line(12, 10, 5, 16, 12, 22, width=2)
+    c.create_line(20, 10, 27, 16, 20, 22, width=2)
+    c.create_line(18, 8, 14, 24, width=2, fill="#1f4e79")
 
 
 def _ri_find(c):
@@ -942,7 +972,8 @@ class CircuitEditor:
                               ("Шкафы", self._build_ribbon_cabinets),
                               ("Комплекты", self._build_ribbon_komplekts),
                               ("Контейнеры", self._build_ribbon_containers),
-                              ("Отчёты", self._build_ribbon_reports)):
+                              ("Отчёты", self._build_ribbon_reports),
+                              ("?", self._build_ribbon_help)):
             self._ribbon_pages[name] = builder(content)
             # Шрифт одинаковый у всех вкладок: выделение активной меняет
             # только цвет, поэтому соседние вкладки не сдвигаются.
@@ -7887,6 +7918,65 @@ class CircuitEditor:
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)
         return page
+
+    def _build_ribbon_help(self, parent):
+        page = tk.Frame(parent, bg="#f3f3f3")
+        self._ribbon_group(page, "Программа", lambda row: [
+            self._ribbon_button(row, "О программе", self.show_about,
+                                _ri_about, 96).pack(side=tk.LEFT),
+        ])
+        self._ribbon_group(page, "Автор", lambda row: [
+            self._ribbon_button(row, "Разработчик", self.show_developer,
+                                _ri_developer, 104).pack(side=tk.LEFT),
+        ])
+        tk.Label(page, text="«О программе» — назначение и возможности "
+                            "редактора.\n"
+                            "«Разработчик» — сведения об авторе сборки.",
+                 bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
+                 font=ui_theme.font(8), justify="left").pack(
+                     side=tk.LEFT, padx=12)
+        return page
+
+    def show_about(self):
+        """Окно «О программе»: название, версия и возможности редактора."""
+        window = self._help_window("О программе")
+        body = tk.Frame(window, bg=ui_theme.WINDOW)
+        body.pack(fill=tk.BOTH, expand=True, padx=18, pady=14)
+
+        tk.Label(body, text=APP_TITLE, bg=ui_theme.WINDOW, fg=ui_theme.ACCENT,
+                 font=ui_theme.font(13, "bold")).pack(anchor="w")
+        tk.Label(body, text=ABOUT_TEXT, bg=ui_theme.WINDOW, fg=ui_theme.TEXT,
+                 font=ui_theme.font(9), justify="left", wraplength=480).pack(
+                     anchor="w", pady=(10, 0))
+        self._help_close_button(body, window)
+
+    def show_developer(self):
+        """Окно «Разработчик»: строка DEVELOPER = "…"."""
+        window = self._help_window("Разработчик")
+        body = tk.Frame(window, bg=ui_theme.WINDOW)
+        body.pack(fill=tk.BOTH, expand=True, padx=18, pady=14)
+
+        tk.Label(body, text='DEVELOPER = "{}"'.format(DEVELOPER),
+                 bg=ui_theme.WINDOW, fg=ui_theme.TEXT,
+                 font=(ui_theme.FIXED_FONT_FAMILY, 11)).pack(
+                     anchor="w", pady=(4, 0))
+        self._help_close_button(body, window)
+
+    def _help_window(self, title):
+        """Пустое окно справки: модальное к главному, по центру экрана."""
+        window = tk.Toplevel(self.root)
+        window.title(title)
+        window.transient(self.root)
+        window.resizable(False, False)
+        window.configure(bg=ui_theme.WINDOW)
+        window.bind("<Escape>", lambda event: window.destroy())
+        return window
+
+    def _help_close_button(self, body, window):
+        """Кнопка «Закрыть» в правом нижнем углу окна справки."""
+        tk.Button(body, text="Закрыть", width=12,
+                  command=window.destroy).pack(anchor="e", pady=(14, 0))
+        self._center_dialog(window)
 
     @staticmethod
     def _natural_key(text):
