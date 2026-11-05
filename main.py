@@ -7951,15 +7951,15 @@ class CircuitEditor:
         self._help_close_button(body, window)
 
     def show_developer(self):
-        """Окно «Разработчик»: строка DEVELOPER = "…"."""
+        """Окно «Разработчик»: содержимое строки DEVELOPER."""
         window = self._help_window("Разработчик")
         body = tk.Frame(window, bg=ui_theme.WINDOW)
         body.pack(fill=tk.BOTH, expand=True, padx=18, pady=14)
 
-        tk.Label(body, text='DEVELOPER = "{}"'.format(DEVELOPER),
+        # Ширина в знакоместах задаёт минимум: пустая строка не схлопывает окно.
+        tk.Label(body, text=DEVELOPER, width=30, anchor="w",
                  bg=ui_theme.WINDOW, fg=ui_theme.TEXT,
-                 font=(ui_theme.FIXED_FONT_FAMILY, 11)).pack(
-                     anchor="w", pady=(4, 0))
+                 font=ui_theme.font(10)).pack(anchor="w", pady=(4, 0))
         self._help_close_button(body, window)
 
     def _help_window(self, title):
