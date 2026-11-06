@@ -3569,6 +3569,410 @@
         }
       ],
       "standard": "СТО (проект, ред. 2)"
+    },
+    {
+      "key": "шэт-311-01-1-копия-dd9c",
+      "standard_key": "",
+      "code": "ШЭТ 311.31-1",
+      "name": "Защиты АТ 330–750 кВ и ошиновки",
+      "title": "Шкаф защит автотрансформатора 330-750 кВ и ошиновки 6-35 кВ, УРОВ, АУВ",
+      "description": "Шкаф защит автотрансформатора 330-750 кВ и ошиновки 6-35 кВ, УРОВ, АУВ",
+      "voltage": "330–750 кВ",
+      "protected": "Автотрансформатор 330-750 кВ, ошиновка 6-35 кВ автотрансформатора",
+      "controlled": [
+        "Выключатель СН АТ"
+      ],
+      "its_functions": [
+        "ДЗТ",
+        "ГЗ АТ",
+        "ГЗ РПН АТ",
+        "ТЗ АТ",
+        "ГЗ ЛРТ",
+        "ТЗ ЛРТ",
+        "КИВ ВН (СН)",
+        "МТЗ НН/U",
+        "КИ НН",
+        "ЗП ВН",
+        "ЗП НН",
+        "ЗП ОО",
+        "ТК ЗДЗ",
+        "УРОВ",
+        "АПВ",
+        "КСН",
+        "АУВ",
+        "РАС",
+        "ДЗО НН"
+      ],
+      "applicability": "АТ 330–750 кВ: два выключателя на ВН (схемы РУ №6Н, 7, 17), два выключателя на СН 220 кВ — ДЗТ 1 комплект, ДЗО НН, КИВ ВН",
+      "source": "",
+      "goose": true,
+      "komplets": [
+        {
+          "key": "typ:shet-311-01-1:0",
+          "kind": "typical",
+          "name": "Комплект 1",
+          "type": "МП РЗА",
+          "functions": [
+            "ДЗТ",
+            "ГЗ АТ",
+            "ТЗ АТ",
+            "ГЗ ЛРТ",
+            "ТЗ ЛРТ",
+            "ГЗ РПН",
+            "КИВ",
+            "МТЗ/U НН",
+            "КИ НН",
+            "БНН (НН)",
+            "ЗП ВН",
+            "ЗП ОО",
+            "ЗП НН",
+            "КОН АТ",
+            "ТК ЗДЗ",
+            "ПО УРОВ НН",
+            "РТПО",
+            "РАС",
+            "УРОВ СН",
+            "АПВ СН",
+            "КСН СН",
+            "АУВ СН"
+          ],
+          "desc": "Основные защиты АТ 330–750 кВ, АУВ выключателя СН",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ1",
+              "type": "МП РЗА",
+              "desc": "Основные защиты АТ 330–750 кВ, АУВ выключателя СН"
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [
+            {
+              "name": "SG1",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи ВН"
+            },
+            {
+              "name": "SG2",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи СН"
+            },
+            {
+              "name": "SG3",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи ОВ СН"
+            },
+            {
+              "name": "SG4",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи НН"
+            },
+            {
+              "name": "SG5",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Токи КИВ"
+            },
+            {
+              "name": "SG6",
+              "circuits": "Ua, Ub, Uc, Uhk",
+              "count": "6+1",
+              "note": "Напряжения НН"
+            },
+            {
+              "name": "SG7",
+              "circuits": "Uab, Ubc",
+              "count": "3+1",
+              "note": "Напряжения НН1"
+            },
+            {
+              "name": "SG8",
+              "circuits": "Uab, Ubc",
+              "count": "3+1",
+              "note": "Напряжения НН2"
+            },
+            {
+              "name": "SG9",
+              "circuits": "Uhk",
+              "count": "2+1",
+              "note": "Напряжение 3Uo ВН"
+            },
+            {
+              "name": "SG10",
+              "circuits": "U",
+              "count": "2+1",
+              "note": "Напряжение СН"
+            }
+          ],
+          "cabinet_key": "shet-311-01-1",
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи СН"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи ОВ СН"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи НН"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи КИВ"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc, Uhk",
+              "contacts": "6+1",
+              "note": "Напряжения НН"
+            },
+            {
+              "block": "SG7",
+              "signals": "Uab, Ubc",
+              "contacts": "3+1",
+              "note": "Напряжения НН1"
+            },
+            {
+              "block": "SG8",
+              "signals": "Uab, Ubc",
+              "contacts": "3+1",
+              "note": "Напряжения НН2"
+            },
+            {
+              "block": "SG9",
+              "signals": "Uhk",
+              "contacts": "2+1",
+              "note": "Напряжение 3Uo ВН"
+            },
+            {
+              "block": "SG10",
+              "signals": "U",
+              "contacts": "2+1",
+              "note": "Напряжение СН"
+            }
+          ],
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 311.01-1",
+          "cabinet_name": "Основные защиты АТ 330–750 кВ и ошиновки",
+          "cabinet_group": "Т/АТ",
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "source": "cabinet_entry"
+        },
+        {
+          "key": "typ:shet-410-01-1:1",
+          "kind": "typical",
+          "name": "Комплект 2",
+          "type": "МП РЗА",
+          "functions": [
+            "СЗ СН (ДЗ",
+            "ТНЗНП",
+            "МТЗ",
+            "ОУ",
+            "АУ",
+            "БНН",
+            "БК)",
+            "ЗНР СН",
+            "БНН НН",
+            "РАС"
+          ],
+          "desc": "Комплект резервных защит стороны СН",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ2",
+              "type": "МП РЗА",
+              "desc": "Комплект резервных защит стороны СН"
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [],
+          "cabinet_key": "shet-410-01-1",
+          "analog_inputs": [],
+          "cabinet_index": 1,
+          "cabinet_code": "ШЭТ 410.01-1",
+          "cabinet_name": "Резервные защиты АТ 220–750 кВ",
+          "cabinet_group": "Т/АТ",
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "source": "cabinet_entry"
+        },
+        {
+          "key": "typ:shet-211-01-1:1",
+          "kind": "typical",
+          "name": "Комплект 2",
+          "type": "МП РЗА",
+          "functions": [
+            "ДЗО (НН",
+            "СН)",
+            "РАС"
+          ],
+          "desc": "Дифференциальная защита ошиновки НН/СН",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ2",
+              "type": "МП РЗА",
+              "desc": "Дифференциальная защита ошиновки НН/СН"
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [
+            {
+              "name": "SG12",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи (НН, СН)"
+            },
+            {
+              "name": "SG13",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи (НН, СН)"
+            },
+            {
+              "name": "SG14",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи (НН, СН)"
+            }
+          ],
+          "cabinet_key": "shet-211-01-1",
+          "analog_inputs": [
+            {
+              "block": "SG12",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи (НН, СН)"
+            },
+            {
+              "block": "SG13",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи (НН, СН)"
+            },
+            {
+              "block": "SG14",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи (НН, СН)"
+            }
+          ],
+          "cabinet_index": 1,
+          "cabinet_code": "ШЭТ 211.01-1",
+          "cabinet_name": "Защиты Т 110–220 кВ и ошиновки",
+          "cabinet_group": "Т/АТ",
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "source": "cabinet_entry"
+        }
+      ],
+      "mp_functions": "ДЗТ, ГЗ АТ, ТЗ АТ, ГЗ ЛРТ, ТЗ ЛРТ, ГЗ ДЗО НН, РАС РПН, КИВ, МТЗ/U НН, КИ НН, БНН (НН) 3 экз., ЗП ВН, ЗП ОО, ЗП НН, КОН АТ, ТК ЗДЗ, ПО УРОВ НН, РТПО, РАС УРОВ СН, АПВ СН, КСН СН, АУВ СН - Область применения в рамках РУ 330-750 кВ",
+      "its_functions_desc": "ДЗТ, ГЗ АТ, ГЗ РПН АТ, ТЗ АТ, ДЗО НН, РАС ГЗ ЛРТ, ТЗ ЛРТ, КИВ ВН (СН), МТЗ НН/U, КИ НН, ЗП ВН, ЗП НН, ЗП ОО, ТК ЗДЗ, УРОВ, АПВ, КСН, АУВ, РАС",
+      "power_supply": "питание ИЭУ1; питание ИЭУ2; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+      "connection_scheme": "Рисунок 5.7.1",
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": "Рисунок 5.7.2",
+      "structural_scheme": "Рисунок 5.7.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null,
+      "group": "Прочие"
     }
   ],
   "overrides": {
