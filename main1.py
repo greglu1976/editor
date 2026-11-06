@@ -1429,6 +1429,13 @@ class CircuitEditor:
             if cabinet is not None:
                 self.show_cabinet_structure(cabinet.get("key"))
 
+        def on_place():
+            cabinet = selected()
+            if cabinet is None:
+                return
+            window.destroy()
+            self._place_cabinet(cabinet)
+
         buttons = tk.Frame(window)
         buttons.pack(fill=tk.X, padx=10, pady=8)
         tk.Button(buttons, text="Закрыть", width=10,
@@ -1443,6 +1450,8 @@ class CircuitEditor:
                   command=on_new).pack(side=tk.RIGHT, padx=(0, 6))
         tk.Button(buttons, text="Структура", width=12,
                   command=on_structure).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="На схему", width=12,
+                  command=on_place).pack(side=tk.RIGHT, padx=(0, 6))
 
         listbox.bind("<Double-Button-1>", on_edit)
         window.bind("<Escape>", lambda event: window.destroy())
@@ -4640,6 +4649,18 @@ class CircuitEditor:
         definition = self._choose_cabinet()
         if not definition:
             return
+        self._place_cabinet(definition, target_container)
+
+    def _place_cabinet(self, definition, target_container=None):
+        """Размещает шкаф из каталога в центре видимой области схемы.
+
+        target_container — контейнер для привязки; если не указан, берётся
+        выбранный на схеме. Шкаф встаёт в свободный слот контейнера.
+        """
+        if not definition:
+            return
+        if target_container is None:
+            target_container = self._selected_container()
         width = self.canvas.winfo_width()
         height = self.canvas.winfo_height()
         if width < 50:
