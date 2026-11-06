@@ -2672,10 +2672,11 @@ class CircuitEditor:
                   pady=(4, 0))
         rows["row"] += 1
         if derived:
-            hint.config(text="Название, вид и типовой шкаф берутся из каталога "
-                             "шкафов; здесь меняются функции, ИЭУ и "
-                             "испытательные блоки. Шкаф состоит из комплектов; "
-                             "ИЭУ хранится внутри комплекта.")
+            hint.config(text="Вид и типовой шкаф берутся из каталога шкафов; "
+                             "название комплекта можно изменить — оно "
+                             "сохранится как правка этого комплекта. Здесь "
+                             "также меняются функции, ИЭУ и испытательные "
+                             "блоки.")
         else:
             hint.config(text="Шкаф состоит из комплектов. Комплект может быть "
                              "с ИЭУ или без; единственное ИЭУ в описании шкафа "
@@ -2784,8 +2785,9 @@ class CircuitEditor:
             index_spin.config(state=state)
             take_button.config(state=state)
             if derived:
+                # Название комплекта правится и у типового: оно хранится
+                # как правка (override) поверх данных шкафа.
                 kind_menu.config(state=tk.DISABLED)
-                name_entry.config(state=tk.DISABLED)
                 cabinet_menu.config(state=tk.DISABLED)
                 index_spin.config(state=tk.DISABLED)
                 take_button.config(state=tk.DISABLED)
