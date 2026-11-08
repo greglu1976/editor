@@ -7,3 +7,7 @@
 /standards
 # собранный артефакт: tools/build_structure.py
 /structure.json
+# готовая сборка (exe + db), см. PACKAGING.md
+/dist
+# папка данных, если её собрали прямо в репозитории
+/db

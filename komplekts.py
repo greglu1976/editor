@@ -699,6 +699,7 @@ def _write_catalog(data):
         if os.path.exists(USER_CATALOG_PATH):
             os.remove(USER_CATALOG_PATH)
         return
+    apppaths.ensure_db()
     with open(USER_CATALOG_PATH, "w", encoding="utf-8") as handle:
         json.dump(data, handle, ensure_ascii=False, indent=2)
 

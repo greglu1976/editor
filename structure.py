@@ -57,7 +57,7 @@ import apppaths
 import komplekts
 
 HERE = apppaths.app_dir()
-DEFAULT_PATH = os.path.join(HERE, "structure.json")
+DEFAULT_PATH = apppaths.data_path("structure.json")
 
 #: Разделы и служебные ключи формата v3.
 ID_FIELD = "id"

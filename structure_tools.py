@@ -18,10 +18,11 @@ import io
 import os
 import sys
 
+import apppaths
 import structure
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-TOOLS_DIR = os.path.join(ROOT, "tools")
+ROOT = apppaths.app_dir()
+TOOLS_DIR = apppaths.data_dir("tools")
 
 
 def _tool(name):

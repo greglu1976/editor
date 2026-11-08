@@ -38,8 +38,10 @@ import os
 import re
 import sys
 
+import apppaths
+
 HERE = os.path.dirname(os.path.abspath(__file__))
-STANDARDS_DIR = os.path.join(HERE, "standards_base")
+STANDARDS_DIR = apppaths.data_dir("standards_base")
 
 #: Раздел файла стандарта со всем содержимым.
 SECTION = "Содержимое стандарта"

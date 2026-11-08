@@ -22,6 +22,7 @@ import structure_tools
 import standards_sync
 import ui_theme
 import appicon
+import apppaths
 
 try:
     import pdf2json
@@ -10934,7 +10935,70 @@ class CircuitEditor:
             messagebox.showerror("Ошибка", f"Не удалось вставить файл:\n{e}")
 
 
+def selftest(report_path=None):
+    """Проверка сборки без окна: какие файлы данных нашлись и откуда.
+
+    Возвращает код возврата (0 — всё обязательное на месте). Результат
+    пишется в JSON рядом с программой: у окна без консоли stdout не видно,
+    поэтому проверку сборки удобно делать файлом.
+
+        Редактор схем.exe --selftest
+        Редактор схем.exe --selftest отчёт.json
+    """
+    files = ("cabinets.json", "cabs_signals.json", "cabs_analog.json",
+             "containers.json", "komplekts.json", "structure.json")
+    report = {"папка": apppaths.app_dir(), "данные": apppaths.db_dir(),
+              "сборка": apppaths.is_frozen(), "файлы": {}, "ошибки": []}
+    for name in files:
+        path = apppaths.data_path(name)
+        report["файлы"][name] = {
+            "путь": path,
+            "есть": os.path.exists(path),
+            "байт": (os.path.getsize(path) if os.path.exists(path) else 0),
+        }
+    try:
+        report["структура"] = {
+            "путь": structure.path(),
+            "шкафов": len(structure.cabinets()),
+        }
+    except Exception as exc:                       # noqa: BLE001
+        report["ошибки"].append("структура: %s" % exc)
+    try:
+        import standards_base
+        report["стандарты"] = len(standards_base.files())
+    except Exception as exc:                       # noqa: BLE001
+        report["ошибки"].append("стандарты: %s" % exc)
+    try:
+        import standards_editor
+        report["стандарты_редактор"] = standards_editor.available()
+    except Exception as exc:                       # noqa: BLE001
+        report["ошибки"].append("редактор стандартов: %s" % exc)
+    for name in ("cabinets.json", "structure.json"):
+        if not report["файлы"][name]["есть"]:
+            report["ошибки"].append("нет файла %s" % name)
+    report["итог"] = "ok" if not report["ошибки"] else "ошибки"
+
+    target = report_path or os.path.join(apppaths.app_dir(), "selftest.json")
+    try:
+        with open(target, "w", encoding="utf-8") as handle:
+            json.dump(report, handle, ensure_ascii=False, indent=2)
+    except OSError as exc:
+        print("не записан отчёт %s: %s" % (target, exc))
+    print("Итог: %s" % report["итог"])
+    for name, info in report["файлы"].items():
+        print("  %-20s %-7s %s" % (name, "есть" if info["есть"] else "нет",
+                                   info["путь"]))
+    for problem in report["ошибки"]:
+        print("  ошибка: %s" % problem)
+    print("Проверка записана: %s" % target)
+    return 0 if report["итог"] == "ok" else 1
+
+
 if __name__ == "__main__":
+    if "--selftest" in sys.argv:
+        index = sys.argv.index("--selftest")
+        argument = sys.argv[index + 1] if len(sys.argv) > index + 1 else None
+        raise SystemExit(selftest(argument))
     root = tk.Tk()
     app = CircuitEditor(root)
     root.mainloop()

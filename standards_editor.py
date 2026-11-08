@@ -30,10 +30,15 @@ import subprocess
 import sys
 import uuid
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+import apppaths
 
-#: Папка с инструментами стандартов (лежит рядом с редактором).
-FOLDER = os.path.join(ROOT, "standard_editor")
+#: Рабочая папка: рядом с exe в сборке, папка с модулями при обычном запуске.
+#: Здесь создаются ``output/.tmp`` и предложенные имена файлов.
+ROOT = apppaths.app_dir()
+
+#: Папка с инструментами стандартов: ``db/standard_editor`` рядом с exe
+#: (в сборке), внутри сборки onefile или рядом с исходниками.
+FOLDER = apppaths.data_dir("standard_editor")
 
 #: Каталог примеров изменений внутри неё.
 CHANGES_FOLDER = os.path.join(FOLDER, "changes_text")
@@ -197,7 +202,7 @@ def reset_cache():
 def standard_folders():
     """Папки, в которых ищутся JSON стандартов."""
     return (("standard_editor", FOLDER),
-            ("standards_base", os.path.join(ROOT, "standards_base")))
+            ("standards_base", apppaths.data_dir("standards_base")))
 
 
 def load(path):

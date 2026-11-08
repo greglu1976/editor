@@ -45,6 +45,8 @@ python3 standards_sync.py                # 6. сверка стандартов;
 python3 standards_editor.py --list       # 7. стандарты из standard_editor (мост интеграции)
 python3 standards_editor.py --assemble --out output/Редакция.json   # изменения → редакция
 python3 tests/test_standards_editor.py   # 8. тесты интеграции стандартов (--no-gui)
+python3 build_exe.py --check             # 9. что попадёт в папку db собранного приложения
+python3 tests/test_packaging.py          # 10. пути данных, db, сборка, selftest
 ```
 
 Шаги 1–2 кешируются: `standards/src/*.json`, `standards/text_cache/`,
@@ -71,8 +73,11 @@ python3 tests/test_standards_editor.py   # 8. тесты интеграции с
 [`tests/test_standards_base.py`](tests/test_standards_base.py),
 [`tests/test_standards_sync.py`](tests/test_standards_sync.py),
 [`tests/test_standards_editor.py`](tests/test_standards_editor.py),
+[`apppaths.py`](apppaths.py), [`build_exe.py`](build_exe.py),
+[`assets/editor.ico`](assets/editor.ico),
+[`tests/test_packaging.py`](tests/test_packaging.py),
 [`STRUCTURE.md`](STRUCTURE.md), [`STANDARDS_BASE.md`](STANDARDS_BASE.md),
-[`STANDARD_EDITOR.md`](STANDARD_EDITOR.md)
+[`STANDARD_EDITOR.md`](STANDARD_EDITOR.md), [`PACKAGING.md`](PACKAGING.md)
 и правки [`main.py`](main.py), [`cabs.py`](cabs.py), [`komplekts.py`](komplekts.py).
 
 Сам **`structure.json` — генерируемый артефакт, он в `.gitignore`**: после
@@ -81,6 +86,22 @@ python3 tests/test_standards_editor.py   # 8. тесты интеграции с
 же 13 шкафов, но без таблиц ИЭУ и полей стандартов. По той же причине вне git
 остаётся **`standard_editor/`** (инструменты и базы стандартов): редактор схем
 работает и без неё, но вкладка «Стандарты» сообщит, что папка не найдена.
+
+## Папка данных `db` и сборка exe
+
+Пути всех файлов данных идут через [`apppaths.py`](apppaths.py): сначала
+`db` рядом с программой, затем плоская раскладка (как в этом репозитории),
+затем данные, упакованные внутрь сборки onefile. Переменная окружения
+`EDITOR_DB` задаёт папку данных целиком — удобно для сетевого диска или
+нескольких копий структуры.
+
+Собранное приложение — это `Редактор схем.exe` и папка `db/` рядом с ним
+(около 16,6 МБ): каталоги, `structure.json`, `standards_base/`,
+`standard_editor/`, `tools/`. Внутрь exe данные не зашиваются, поэтому их
+можно править и переносить без пересборки. Сборка — `python build_exe.py`
+(PyInstaller, режим One Directory) или те же значения в auto-py-to-exe;
+проверка — `Редактор схем.exe --selftest`. Подробности и ограничения:
+[PACKAGING.md](PACKAGING.md).
 
 ## Формат
 
