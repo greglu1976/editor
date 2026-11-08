@@ -142,7 +142,7 @@ def test_gui():
         check(not fonts, "шрифтов Arial в главном окне нет (%d)" % len(fonts))
 
         expected = ["Главная", "Вид", "Шкафы", "Комплекты", "Контейнеры",
-                    "Структура", "Отчёты", "?"]
+                    "Структура", "Стандарты", "Отчёты", "?"]
         check(list(app._ribbon_pages) == expected,
               "вкладки ленты по порядку: %s" % ", ".join(app._ribbon_pages))
         structure_page = app._ribbon_pages["Структура"]
@@ -152,6 +152,15 @@ def test_gui():
               and any("Пересобрать" in label for label in labels)
               and any("Проверка" in label for label in labels),
               "на вкладке «Структура» есть проводник, сверка, сборка, проверка")
+        standards_page = app._ribbon_pages["Стандарты"]
+        labels = [button._base_text for button in _ribbon_cells(standards_page)]
+        check(any("Стандарты" in label for label in labels)
+              and any("Редактор изменений" in label for label in labels)
+              and any("Собрать редакцию" in label for label in labels)
+              and any("Новый стандарт" in label for label in labels)
+              and any("DOCX" in label for label in labels),
+              "на вкладке «Стандарты» есть список, редактор, сборка, "
+              "новый стандарт и DOCX")
 
         print("3. стабильность размеров")
         size = app._ribbon_size

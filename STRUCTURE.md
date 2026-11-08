@@ -42,6 +42,9 @@ python3 tools/check_structure.py         # 4. проверка иерархии,
 python3 tests/test_structure_docking.py  # 5. тесты: данные, схемы, окна редактора
 python3 tests/test_structure_docking.py --no-gui   # без tkinter (только данные)
 python3 standards_sync.py                # 6. сверка стандартов; --apply переносит поля
+python3 standards_editor.py --list       # 7. стандарты из standard_editor (мост интеграции)
+python3 standards_editor.py --assemble --out output/Редакция.json   # изменения → редакция
+python3 tests/test_standards_editor.py   # 8. тесты интеграции стандартов (--no-gui)
 ```
 
 Шаги 1–2 кешируются: `standards/src/*.json`, `standards/text_cache/`,
@@ -59,19 +62,25 @@ python3 standards_sync.py                # 6. сверка стандартов;
 В репозитории — код: [`structure.py`](structure.py) (модуль доступа),
 [`standards_base.py`](standards_base.py), [`standards_sync.py`](standards_sync.py),
 [`structure_tools.py`](structure_tools.py),
+[`standards_editor.py`](standards_editor.py),
+[`standards_ui.py`](standards_ui.py),
 [`tools/build_structure.py`](tools/build_structure.py),
 [`tools/check_structure.py`](tools/check_structure.py),
 [`tools/recover_kb_docs.py`](tools/recover_kb_docs.py),
 [`tests/test_structure_docking.py`](tests/test_structure_docking.py),
 [`tests/test_standards_base.py`](tests/test_standards_base.py),
 [`tests/test_standards_sync.py`](tests/test_standards_sync.py),
-[`STRUCTURE.md`](STRUCTURE.md), [`STANDARDS_BASE.md`](STANDARDS_BASE.md)
+[`tests/test_standards_editor.py`](tests/test_standards_editor.py),
+[`STRUCTURE.md`](STRUCTURE.md), [`STANDARDS_BASE.md`](STANDARDS_BASE.md),
+[`STANDARD_EDITOR.md`](STANDARD_EDITOR.md)
 и правки [`main.py`](main.py), [`cabs.py`](cabs.py), [`komplekts.py`](komplekts.py).
 
 Сам **`structure.json` — генерируемый артефакт, он в `.gitignore`**: после
 свежего клона его нужно собрать. Папка `/standards` с PDF и выгрузками тоже
 вне git, как и **`standards_base/`** с JSON стандартов: без неё сборка даст те
-же 13 шкафов, но без таблиц ИЭУ и полей стандартов.
+же 13 шкафов, но без таблиц ИЭУ и полей стандартов. По той же причине вне git
+остаётся **`standard_editor/`** (инструменты и базы стандартов): редактор схем
+работает и без неё, но вкладка «Стандарты» сообщит, что папка не найдена.
 
 ## Формат
 
@@ -199,7 +208,7 @@ structure.summary()
   «Закрыть» (**Esc**). Комплекты без ИЭУ — отдельный тип узла с подписью
   «без ИЭУ»; ИЭУ всегда вложено в комплект.
 
-Вкладка ленты **«Структура»** (между «Контейнеры» и «Отчёты») — инструменты
+Вкладка ленты **«Структура»** (между «Контейнеры» и «Стандарты») — инструменты
 работы с самой структурой и стандартами:
 
 | Кнопка | Действие |
@@ -214,6 +223,18 @@ structure.summary()
 `komplekts.visible_details()`, поэтому в карточке, отчёте и диалоге
 «Описание из стандарта…» видны функции, применимость, питания и прочее, но не
 номера таблиц.
+
+Вкладка ленты **«Стандарты»** (между «Структура» и «Отчёты») — работа с
+исходными стандартами СТО из папки `standard_editor`; подробности и API — в
+[STANDARD_EDITOR.md](STANDARD_EDITOR.md):
+
+| Кнопка | Действие |
+|---|---|
+| «Стандарты…» | список стандартов (шифр, шкафы, таблицы, изменения), двойной щелчок открывает редактор |
+| «Редактор изменений…» | `changes_gui.App` в отдельном окне редактора: дерево базы, операции `*.изм.txt`, проверка, сборка, DOCX |
+| «Собрать редакцию…» | база + все изменения каталога → JSON редакции с журналом операций |
+| «Новый стандарт…» | копия выбранного стандарта с новыми реквизитами, набором шкафов и заменами |
+| «DOCX…» | отчёт Word по стандарту или редакции (через Python с `python-docx`) |
 
 ### Что делает «Перечитать structure.json» (F5)
 
@@ -293,9 +314,11 @@ structure.summary()
    стандартов пустуют по определению — структура отражает то, что есть в
    каталоге. Два шкафа с одним ИЭУ (`shavr-04`, `shpa-110`) удалены
    пользовательскими правками `cabinets.json` и в структуру не входят.
-8. **Правка стандартов в GUI** не сделана: `standards_base/` только читается.
-   Структура и инструменты работы с ней (вкладка «Структура», сверка,
-   пересборка, проверка) готовы, окна редактирования — следующий этап.
+8. **Правка стандартов в самой структуре** не сделана: `standards_base/` только
+   читается при сборке. Для правки исходных стандартов есть вкладка
+   «Стандарты» (`standard_editor`): редактор изменений, сборка редакции и
+   новый стандарт на основе выбранного — см.
+   [STANDARD_EDITOR.md](STANDARD_EDITOR.md).
 
 ## Оформление и геометрия главного окна
 

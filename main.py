@@ -82,7 +82,7 @@ ELEMENT_TYPE_TITLES = {
 }
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
-APP_TITLE = "Редактор электрических схем v27.2"
+APP_TITLE = "Редактор электрических схем v28"
 
 #: Подпись разработчика в окне «Разработчик» (вкладка «?»).
 DEVELOPER = "(с) 2026 Лубов Г.А., \ndeepseek"
@@ -94,6 +94,8 @@ ABOUT_TEXT = (
     "трансформаторы, ЛЭП, заземления.\n"
     "• Шкафы РЗА с комплектами и ИЭУ, контейнеры КЭТ с раскладкой "
     "шкафов по слотам.\n"
+    "• Стандарты СТО: структура КЭТ → шкафы → комплекты, сверка со "
+    "стандартами, редактор изменений и отчёт Word.\n"
     "• Связи РЗА и аналоговые цепи, подписи и комментарии к чертежу.\n"
     "• Отчёты по схеме, выделению, шкафам и КЭТ, отчёт по НИР.\n"
     "• Экспорт в PDF и PNG, выгрузка SSD по МЭК 61850-6.\n\n"
@@ -486,6 +488,54 @@ def _ri_check(c):
     """Проверка: галочка в круге."""
     c.create_oval(4, 4, 28, 28, outline="black", width=2)
     c.create_line(10, 17, 15, 22, 23, 11, width=2)
+
+
+def _ri_standards(c):
+    """Стандарты: документ с загнутым углом."""
+    c.create_polygon(6, 4, 20, 4, 26, 10, 26, 28, 6, 28,
+                     outline="black", fill="", width=2)
+    c.create_line(20, 4, 20, 10, 26, 10, width=2)
+    c.create_line(10, 15, 22, 15, width=1)
+    c.create_line(10, 19, 22, 19, width=1)
+    c.create_line(10, 23, 17, 23, width=1)
+
+
+def _ri_edit_doc(c):
+    """Редактор изменений: документ и карандаш."""
+    c.create_polygon(3, 7, 15, 7, 19, 11, 19, 28, 3, 28,
+                     outline="black", fill="", width=2)
+    c.create_line(15, 7, 15, 11, 19, 11, width=1)
+    c.create_line(7, 24, 18, 13, width=2)
+    c.create_line(7, 24, 7, 27, width=1)
+    c.create_line(7, 27, 10, 27, width=1)
+    c.create_line(18, 13, 21, 16, width=2)
+
+
+def _ri_new_doc(c):
+    """Новый стандарт: документ с плюсом."""
+    c.create_rectangle(4, 3, 20, 28, outline="black", width=2)
+    c.create_line(8, 9, 16, 9, width=1)
+    c.create_line(8, 14, 16, 14, width=1)
+    c.create_line(22, 18, 30, 18, width=2)
+    c.create_line(26, 14, 26, 22, width=2)
+
+
+def _ri_merge(c):
+    """Сборка редакции: два листа и стрелка к общему результату."""
+    c.create_rectangle(3, 4, 13, 14, outline="black", width=2)
+    c.create_rectangle(8, 9, 18, 19, outline="black", width=1)
+    c.create_line(22, 5, 22, 22, width=2)
+    c.create_line(17, 17, 22, 24, width=2)
+    c.create_line(27, 17, 22, 24, width=2)
+
+
+def _ri_docx(c):
+    """Отчёт Word: страница с буквой W."""
+    c.create_rectangle(5, 4, 27, 28, outline="black", width=2)
+    c.create_line(9, 12, 12, 21, width=2)
+    c.create_line(12, 21, 16, 14, width=2)
+    c.create_line(16, 14, 20, 21, width=2)
+    c.create_line(20, 21, 23, 12, width=2)
 
 
 def _ri_about(c):
@@ -1007,6 +1057,7 @@ class CircuitEditor:
                               ("Комплекты", self._build_ribbon_komplekts),
                               ("Контейнеры", self._build_ribbon_containers),
                               ("Структура", self._build_ribbon_structure),
+                              ("Стандарты", self._build_ribbon_standards),
                               ("Отчёты", self._build_ribbon_reports),
                               ("?", self._build_ribbon_help)):
             self._ribbon_pages[name] = builder(content)
@@ -7974,6 +8025,62 @@ class CircuitEditor:
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)
         return page
+
+    def _build_ribbon_standards(self, parent):
+        page = tk.Frame(parent, bg="#f3f3f3")
+        self._ribbon_group(page, "Стандарты СТО", lambda row: [
+            self._ribbon_button(row, "Стандарты…", self.show_standards_window,
+                                _ri_standards, 92).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Редактор изменений…",
+                                self.open_standards_editor,
+                                _ri_edit_doc, 124).pack(side=tk.LEFT,
+                                                         padx=(4, 0)),
+        ])
+        self._ribbon_group(page, "Изменения", lambda row: [
+            self._ribbon_button(row, "Собрать редакцию…",
+                                self.show_assembly_window, _ri_merge, 118).pack(
+                                    side=tk.LEFT),
+            self._ribbon_button(row, "Новый стандарт…",
+                                self.show_new_standard_dialog, _ri_new_doc,
+                                116).pack(side=tk.LEFT, padx=(4, 0)),
+        ])
+        self._ribbon_group(page, "Отчёт", lambda row: [
+            self._ribbon_button(row, "DOCX…", self.show_docx_window,
+                                _ri_docx, 76).pack(side=tk.LEFT),
+        ])
+        tk.Label(page, text="Стандарты СТО в JSON (папка standard_editor):\n"
+                            "правка изменений *.изм.txt, сборка редакции,\n"
+                            "новый стандарт из выбранного и отчёт Word.",
+                 bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
+                 font=ui_theme.font(8), justify="left").pack(
+                     side=tk.LEFT, padx=12)
+        return page
+
+    # --------------------------------------------------- окна стандартов
+    def _standards_ui(self):
+        """Окна работы со стандартами (импорт по требованию)."""
+        import standards_ui
+        return standards_ui
+
+    def show_standards_window(self):
+        """Окно «Стандарты…»: список стандартов и действия с ними."""
+        return self._standards_ui().show_standards(self)
+
+    def open_standards_editor(self, base_path=None):
+        """Редактор изменений стандарта в окне редактора схем."""
+        return self._standards_ui().open_editor(self, base_path)
+
+    def show_new_standard_dialog(self, source_path=None):
+        """Окно «Новый стандарт…»: копия выбранного с правкой реквизитов."""
+        return self._standards_ui().show_new_standard(self, source_path)
+
+    def show_assembly_window(self, base_path=None):
+        """Окно «Собрать редакцию…»: база + все изменения каталога."""
+        return self._standards_ui().show_assembly(self, base_path)
+
+    def show_docx_window(self, json_path=None):
+        """Окно «Отчёт DOCX…» по стандарту или собранной редакции."""
+        return self._standards_ui().show_docx(self, json_path)
 
     def rebuild_structure(self, silent=False):
         """Пересобирает structure.json из каталога и standards_base."""
