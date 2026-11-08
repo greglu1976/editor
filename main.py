@@ -18,6 +18,8 @@ import komplekts
 import containers as ketlib
 import docxreport
 import structure
+import structure_tools
+import standards_sync
 import ui_theme
 import appicon
 
@@ -459,6 +461,31 @@ def _ri_nir(c):
     for y in (13, 17, 21):
         c.create_line(10, y, 23, y, width=1, fill="#666666")
     c.create_text(16, 25, text="НИР", font=("Arial", 6, "bold"))
+
+
+def _ri_structure(c):
+    """Структура: иерархия из трёх уровней."""
+    c.create_rectangle(3, 4, 15, 12, outline="black", width=2)
+    c.create_rectangle(17, 4, 29, 12, outline="black", width=2)
+    c.create_rectangle(10, 20, 22, 28, outline="black", width=2)
+    c.create_line(9, 12, 9, 16, width=1, fill="#666666")
+    c.create_line(9, 16, 23, 16, width=1, fill="#666666")
+    c.create_line(16, 16, 16, 20, width=1, fill="#666666")
+    c.create_line(23, 12, 23, 16, width=1, fill="#666666")
+
+
+def _ri_sync(c):
+    """Сверка: две стрелки по кругу (туда и обратно)."""
+    c.create_arc(5, 5, 27, 27, start=200, extent=140, style=tk.ARC, width=2)
+    c.create_arc(5, 5, 27, 27, start=20, extent=140, style=tk.ARC, width=2)
+    c.create_line(19, 3, 25, 6, width=2, fill="black")
+    c.create_line(13, 22, 7, 25, width=2, fill="black")
+
+
+def _ri_check(c):
+    """Проверка: галочка в круге."""
+    c.create_oval(4, 4, 28, 28, outline="black", width=2)
+    c.create_line(10, 17, 15, 22, 23, 11, width=2)
 
 
 def _ri_about(c):
@@ -979,6 +1006,7 @@ class CircuitEditor:
                               ("Шкафы", self._build_ribbon_cabinets),
                               ("Комплекты", self._build_ribbon_komplekts),
                               ("Контейнеры", self._build_ribbon_containers),
+                              ("Структура", self._build_ribbon_structure),
                               ("Отчёты", self._build_ribbon_reports),
                               ("?", self._build_ribbon_help)):
             self._ribbon_pages[name] = builder(content)
@@ -3007,7 +3035,18 @@ class CircuitEditor:
             body.bind("<Configure>", lambda event: canvas.configure(
                 scrollregion=canvas.bbox("all")))
             entries = {}
-            for index, (key, label) in enumerate(komplekts.DETAIL_LABELS):
+            # Поля-ссылки на таблицы и рисунки СТО (параметры ИЭУ, компоненты,
+            # схемы) здесь не правятся: их данные приходят из структуры, а в
+            # стандарте это только ссылка вроде «Таблица 5.2.14».
+            shown = [item for item in komplekts.DETAIL_LABELS
+                     if item[0] not in komplekts.REFERENCE_FIELDS]
+            tk.Label(body, text="Таблицы и рисунки стандарта (параметры ИЭУ, "
+                                "компоненты шкафа, схемы) берутся из структуры "
+                                "автоматически и здесь не редактируются.",
+                     anchor="w", fg="#808080", font=("Arial", 7),
+                     justify="left", wraplength=520).grid(
+                row=0, column=0, columnspan=2, sticky="w", pady=(0, 6))
+            for index, (key, label) in enumerate(shown, start=1):
                 tk.Label(body, text=label, anchor="w").grid(
                     row=index, column=0, sticky="nw", pady=2)
                 entry = tk.Entry(body, width=64)
@@ -3021,7 +3060,7 @@ class CircuitEditor:
                 window.destroy()
 
             buttons = tk.Frame(body)
-            buttons.grid(row=len(komplekts.DETAIL_LABELS), column=0,
+            buttons.grid(row=len(shown) + 1, column=0,
                          columnspan=2, sticky="e", pady=(8, 0))
             tk.Button(buttons, text="Отмена", width=10,
                       command=window.destroy).pack(side=tk.RIGHT)
@@ -4914,12 +4953,11 @@ class CircuitEditor:
                 lines.append("Комплекты: " + "; ".join(komplekt_parts))
             if cabinet.get("applicability"):
                 lines.append(f'Применимость: {cabinet["applicability"]}')
-            for field, label in komplekts.DETAIL_LABELS:
-                value = cabinet.get(field)
-                if value:
-                    if len(value) > 220:
-                        value = value[:217].rstrip() + "…"
-                    lines.append("{}: {}".format(label, value))
+            for label, value in komplekts.visible_details(cabinet):
+                text = str(value)
+                if len(text) > 220:
+                    text = text[:217].rstrip() + "…"
+                lines.append("{}: {}".format(label, text))
             if cabinet.get("source"):
                 lines.append(f'Источник: {cabinet["source"]}')
             if cabs.cabinet_tags(cabinet):
@@ -7911,6 +7949,236 @@ class CircuitEditor:
         self.canvas.tag_raise("search_highlight")
 
     # ================= ОТЧЁТЫ =================
+    # ---------- вкладка «Структура»: проводник, стандарты, сборка ----------
+    def _build_ribbon_structure(self, parent):
+        page = tk.Frame(parent, bg="#f3f3f3")
+        self._ribbon_group(page, "Проводник", lambda row: [
+            self._ribbon_button(row, "Структура…", self.show_structure_overview,
+                                _ri_structure, 84).pack(side=tk.LEFT),
+        ])
+        self._ribbon_group(page, "Стандарты", lambda row: [
+            self._ribbon_button(row, "Сверка…", self.show_standards_sync,
+                                _ri_sync, 76).pack(side=tk.LEFT),
+        ])
+        self._ribbon_group(page, "Сборка", lambda row: [
+            self._ribbon_button(row, "Пересобрать", self.rebuild_structure,
+                                _ri_redo, 92).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Проверка…", self.show_structure_check,
+                                _ri_check, 84).pack(side=tk.LEFT, padx=(4, 0)),
+        ])
+        tk.Label(page, text="КЭТ → шкафы → комплекты → ИЭУ.\n"
+                            "«Сверка…» — различия каталога и стандартов,\n"
+                            "перенос состава и полей; «Пересобрать» —\n"
+                            "structure.json заново из каталога и стандартов.",
+                 bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
+                 font=ui_theme.font(8), justify="left").pack(
+                     side=tk.LEFT, padx=12)
+        return page
+
+    def rebuild_structure(self, silent=False):
+        """Пересобирает structure.json из каталога и standards_base."""
+        result = structure_tools.rebuild()
+        if not result.get("ok"):
+            if not silent:
+                messagebox.showerror(
+                    "Структура", "Пересборка не удалась:\n%s"
+                    % (result.get("ошибка") or "неизвестная ошибка"))
+            return False
+        if not silent:
+            messagebox.showinfo("Структура", result.get("текст") or "Готово")
+        return True
+
+    def show_structure_check(self):
+        """Окно проверки структуры: иерархия, ссылки, стыковка со схемами."""
+        report = structure_tools.check()
+        text = structure_tools.check_text(report)
+        window = tk.Toplevel(self.root)
+        window.title("Проверка структуры")
+        window.transient(self.root)
+        window.geometry("880x620")
+        header = tk.Frame(window)
+        header.pack(fill=tk.X, padx=10, pady=(8, 4))
+        problems = report.get("проблемы") or []
+        tk.Label(header, anchor="w", justify="left",
+                 text=("Проблем не найдено: иерархия, признаки «есть ИЭУ», "
+                       "ссылки и стыковка со схемами в порядке."
+                       if not problems else
+                       "Проблем: %d — см. список ниже." % len(problems)),
+                 fg="#1f7a1f" if not problems else "#b00020",
+                 font=("Arial", 9, "bold")).pack(side=tk.LEFT)
+        body = tk.Frame(window)
+        body.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 6))
+        scroll = tk.Scrollbar(body, orient="vertical")
+        text_box = tk.Text(body, wrap="word", font=("Consolas", 9),
+                           yscrollcommand=scroll.set)
+        scroll.config(command=text_box.yview)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        text_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        text_box.insert("1.0", text)
+        text_box.config(state="disabled")
+        footer = tk.Frame(window)
+        footer.pack(fill=tk.X, padx=10, pady=(0, 8))
+        tk.Button(footer, text="Пересобрать", width=14,
+                  command=lambda: (self.rebuild_structure(silent=True),
+                                   window.destroy(),
+                                   self.show_structure_check())).pack(
+                      side=tk.LEFT)
+        tk.Button(footer, text="Закрыть", width=10,
+                  command=window.destroy).pack(side=tk.RIGHT)
+
+    def show_standards_sync(self):
+        """Окно сверки: каталог шкафов против standards_base."""
+        try:
+            items = standards_sync.diff()
+        except Exception as exc:                     # noqa: BLE001
+            messagebox.showerror(
+                "Сверка со стандартами",
+                "Не удалось прочитать standards_base:\n%s" % exc)
+            return
+        window = tk.Toplevel(self.root)
+        window.title("Стандарты и структура: сверка")
+        window.transient(self.root)
+        window.geometry("1120x660")
+
+        header = tk.Label(window, anchor="w", justify="left",
+                          font=("Arial", 9, "bold"))
+        header.pack(fill=tk.X, padx=10, pady=(8, 2))
+        hint = tk.Label(window, anchor="w", justify="left", fg="#666666",
+                        font=("Arial", 8),
+                        text="Слева шкафы из standards_base; справа различия "
+                             "с каталогом. «Применить» переносит состав и "
+                             "поля в cabinets.json, «Пересобрать» обновляет "
+                             "structure.json (таблицы ИЭУ всегда из стандарта).")
+        hint.pack(fill=tk.X, padx=10, pady=(0, 4))
+
+        only_diff = tk.BooleanVar(
+            value=bool(standards_sync.summary(items)["всего"]))
+        body = tk.Frame(window)
+        body.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 4))
+
+        left = tk.Frame(body)
+        left.pack(side=tk.LEFT, fill=tk.Y)
+        tree = ttk.Treeview(left, columns=("шифр", "комплекты", "различий"),
+                            show="headings", height=18, selectmode="browse")
+        for column, title, width in (("шифр", "Шифр", 150),
+                                     ("комплекты", "Комплекты", 100),
+                                     ("различий", "Различий", 80)):
+            tree.heading(column, text=title)
+            tree.column(column, width=width, anchor="w")
+        tree_scroll = tk.Scrollbar(left, orient="vertical", command=tree.yview)
+        tree.config(yscrollcommand=tree_scroll.set)
+        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.pack(side=tk.LEFT, fill=tk.Y)
+
+        right = tk.Frame(body)
+        right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(8, 0))
+        detail_scroll = tk.Scrollbar(right, orient="vertical")
+        detail = tk.Text(right, wrap="word", font=("Consolas", 9),
+                         yscrollcommand=detail_scroll.set)
+        detail_scroll.config(command=detail.yview)
+        detail_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        detail.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        detail.config(state="disabled")
+
+        footer = tk.Frame(window)
+        footer.pack(fill=tk.X, padx=10, pady=(0, 8))
+        status = tk.Label(footer, anchor="w", fg="#555555")
+        status.pack(side=tk.LEFT)
+
+        visible = []
+
+        def show_item(item):
+            detail.config(state="normal")
+            detail.delete("1.0", tk.END)
+            detail.insert("1.0", standards_sync.detail_text(item)
+                          if item else "Выберите шкаф в списке.")
+            detail.config(state="disabled")
+
+        def current():
+            selection = tree.selection()
+            if not selection:
+                return None
+            try:
+                return visible[int(selection[0])]
+            except (ValueError, IndexError):
+                return None
+
+        def fill(preserve=None):
+            nonlocal visible
+            tree.delete(*tree.get_children())
+            visible = []
+            counter = 0
+            for item in items:
+                if only_diff.get() and not item["всего"]:
+                    continue
+                counter += 1
+                kits = "%s → %s" % (item["комплектов_каталог"],
+                                    item["комплектов_стандарт"])
+                tree.insert("", tk.END, iid=str(len(visible)), values=(
+                    item["шифр"], kits, item["всего"]))
+                visible.append(item)
+            stats = standards_sync.summary(items)
+            header.config(text="Шкафов в стандартах: %d, с различиями: %d · "
+                               "различий: %d — состав: %d, поля: %d, "
+                               "в структуру: %d, таблицы: %d"
+                               % (stats["шкафов"], stats["с_различиями"],
+                                  stats["всего"], stats["состав"],
+                                  stats["поля"], stats["в_структуру"],
+                                  stats["таблицы"]))
+            if visible:
+                index = 0
+                if preserve:
+                    for number, item in enumerate(visible):
+                        if item["шифр"] == preserve:
+                            index = number
+                            break
+                tree.selection_set(str(index))
+                show_item(visible[index])
+            else:
+                show_item(None)
+
+        def apply_items(selected_only=False):
+            targets = [current()] if selected_only else list(items)
+            targets = [item for item in targets if item and item["всего"]]
+            if not targets:
+                status.config(text="Переносить нечего: различий нет.")
+                return
+            done = 0
+            for item in targets:
+                result = standards_sync.apply(item)
+                done += result.get("изменено", 0)
+            refresh_after = standards_sync.summary(standards_sync.diff())
+            status.config(text="Перенесено изменений: %d. Осталось различий: %d."
+                          % (done, refresh_after["всего"]))
+            if rebuild_after.get() and self.rebuild_structure(silent=True):
+                status.config(text=status.cget("text") + " Структура пересобрана.")
+            items[:] = standards_sync.diff()
+            fill(preserve=targets[0]["шифр"])
+
+        rebuild_after = tk.BooleanVar(value=True)
+        tk.Button(footer, text="Применить к выбранному", width=24,
+                  command=lambda: apply_items(True)).pack(side=tk.RIGHT)
+        tk.Button(footer, text="Применить ко всем", width=20,
+                  command=lambda: apply_items(False)).pack(side=tk.RIGHT,
+                                                         padx=(0, 6))
+        tk.Button(footer, text="Пересобрать", width=14,
+                  command=lambda: (self.rebuild_structure(silent=False),
+                                   items.__setitem__(slice(None),
+                                                     standards_sync.diff()),
+                                   fill())).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Checkbutton(footer, text="Пересобирать после применения",
+                       variable=rebuild_after).pack(side=tk.RIGHT, padx=(0, 12))
+        tk.Checkbutton(footer, text="Только с различиями",
+                       variable=only_diff, command=fill).pack(side=tk.RIGHT,
+                                                              padx=(0, 12))
+
+        tree.bind("<<TreeviewSelect>>",
+                  lambda event: show_item(current()))
+        window.bind("<F5>", lambda event: (items.__setitem__(
+            slice(None), standards_sync.diff()), fill()))
+        window.bind("<Escape>", lambda event: window.destroy())
+        fill()
+
     def _build_ribbon_reports(self, parent):
         page = tk.Frame(parent, bg="#f3f3f3")
         self._ribbon_group(page, "Схема", lambda row: [
@@ -8367,9 +8635,8 @@ class CircuitEditor:
         if info.get("its_functions"):
             general.append(["Функции ИТС",
                             ", ".join(info["its_functions"])])
-        for field, label in komplekts.DETAIL_LABELS:
-            if info.get(field):
-                general.append([label, info[field]])
+        for label, value in komplekts.visible_details(info):
+            general.append([label, value])
         if info.get("standard_title") or info.get("standard"):
             general.append(["Стандарт",
                             info.get("standard_title") or info.get("standard")])
@@ -9294,9 +9561,11 @@ class CircuitEditor:
                     komplekts.test_blocks_text(kit)])
         if info.get("applicability"):
             rows.append(["Применимость", str(info["applicability"])])
+        catalogue = cabs.find_cabinet(
+            getattr(cabinet, "cabinet_key", "") or "") or {}
         for field, label in komplekts.DETAIL_LABELS:
-            value = info.get(field) or (cabs.find_cabinet(
-                getattr(cabinet, "cabinet_key", "") or "") or {}).get(field)
+            value = (komplekts.detail_value(info, field)
+                     or komplekts.detail_value(catalogue, field))
             if value:
                 rows.append([label, str(value)])
         if signals.get("test_blocks") and with_blocks:

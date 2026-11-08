@@ -358,16 +358,69 @@ def check_schemes(problems, notes):
     return matched, checked, container_matched, container_checked
 
 
-def print_coverage(cabinets, all_kits, all_ieds, containers_list):
+def _coverage(cabinets, all_kits, all_ieds, containers_list):
+    """Заполнение полей по уровням: «уровень · поле» → «N / всего»."""
     groups = {"шкаф": cabinets, "комплект": all_kits,
               "ИЭУ": all_ieds, "КЭТ": containers_list}
-    print("заполнение полей:")
+    result = {}
     for level, fields in COVERAGE:
         entries = groups[level]
         for field in fields:
             count = sum(1 for entry in entries if _filled(entry, field))
-            print("  %-10s %-38s %4d / %d"
-                  % (level + " ·", field, count, len(entries)))
+            result["%s · %s" % (level, field)] = "%d / %d" % (count, len(entries))
+    return result
+
+
+def inspect(document=None):
+    """Проверка структуры одним словарём (для окна редактора).
+
+    Ключи: ``загружено``, ``версия``, ``контейнеры``, ``шкафы``, ``комплекты``,
+    ``с_иэу``, ``без_иэу``, ``иэу``, ``покрытие`` (каталог), ``без_комплектов``,
+    ``ссылки``, ``одно_иэу``, ``схемы``, ``покрытие_полей``, ``проблемы``,
+    ``замечания``. Текст для человека строит вызывающий код
+    (``structure_tools.check_text``), поэтому здесь только данные.
+    """
+    document = document if document is not None else structure.load()
+    if document is None:
+        return {"загружено": False, "проблемы": [
+            structure.error() or "structure.json не найден"], "замечания": []}
+    problems = []
+    notes = []
+    containers_list, cabinets = check_document(document, problems)
+    all_kits, all_ieds = check_cabinets(cabinets, problems)
+    forward, reverse = check_containers(containers_list, cabinets, problems)
+    catalog_cabinets, catalog_kits = check_catalog(
+        cabinets, all_kits, containers_list, problems)
+    singles, singles_clean = check_single_ied(cabinets, problems, notes)
+    matched, checked, cont_matched, cont_checked = check_schemes(problems, notes)
+
+    with_ied = sum(1 for kit in all_kits if structure.has_ied(kit))
+    no_kits = [c.get(ID) for c in cabinets if not c.get(KITS)]
+    return {
+        "загружено": True,
+        "версия": document.get("версия"),
+        "контейнеры": len(containers_list),
+        "шкафы": len(cabinets),
+        "комплекты": len(all_kits),
+        "с_иэу": with_ied,
+        "без_иэу": len(all_kits) - with_ied,
+        "иэу": len(all_ieds),
+        "покрытие": {
+            "шкафы": "%d / %d" % (len(cabinets), catalog_cabinets),
+            "комплекты": "%d / %d" % (len(all_kits), catalog_kits),
+            "КЭТ": "%d / %d" % (len(containers_list),
+                                len(containers.all_containers())),
+        },
+        "без_комплектов": no_kits,
+        "ссылки": {"КЭТ → шкафы": forward, "шкафы → КЭТ": reverse},
+        "одно_иэу": "%d / %d" % (singles_clean, singles),
+        "схемы": {"шкафы": "%d / %d" % (matched, checked),
+                  "КЭТ": "%d / %d" % (cont_matched, cont_checked)},
+        "покрытие_полей": _coverage(cabinets, all_kits, all_ieds,
+                                    containers_list),
+        "проблемы": problems,
+        "замечания": notes,
+    }
 
 
 def main(argv=None):
@@ -381,39 +434,33 @@ def main(argv=None):
         print("НЕ ЗАГРУЖЕНО: %s" % structure.error(), file=sys.stderr)
         return 2
 
-    problems = []
-    notes = []
-    containers_list, cabinets = check_document(document, problems)
-    all_kits, all_ieds = check_cabinets(cabinets, problems)
-    forward, reverse = check_containers(containers_list, cabinets, problems)
-    catalog_cabinets, catalog_kits = check_catalog(
-        cabinets, all_kits, containers_list, problems)
-    singles, singles_clean = check_single_ied(cabinets, problems, notes)
-    matched, checked, cont_matched, cont_checked = check_schemes(problems, notes)
-
-    with_ied = sum(1 for kit in all_kits if structure.has_ied(kit))
-    without_ied = len(all_kits) - with_ied
-    no_kits = [c.get(ID) for c in cabinets if not c.get(KITS)]
+    report = inspect(document)
+    problems = report["проблемы"]
+    notes = report["замечания"]
 
     if not args.quiet:
         print("structure.json: версия %s · %d КЭТ, %d шкафов, %d комплектов "
               "(%d с ИЭУ / %d без ИЭУ), %d ИЭУ"
-              % (document.get("версия") or "?", len(containers_list),
-                 len(cabinets), len(all_kits), with_ied, without_ied,
-                 len(all_ieds)))
-        print("покрытие каталога: шкафы %d/%d, комплекты %d/%d, КЭТ %d/%d"
-              % (len(cabinets), catalog_cabinets, len(all_kits), catalog_kits,
-                 len(containers_list), len(containers.all_containers())))
+              % (report["версия"], report["контейнеры"], report["шкафы"],
+                 report["комплекты"], report["с_иэу"], report["без_иэу"],
+                 report["иэу"]))
+        print("покрытие каталога: шкафы %s, комплекты %s, КЭТ %s"
+              % (report["покрытие"]["шкафы"], report["покрытие"]["комплекты"],
+                 report["покрытие"]["КЭТ"]))
+        no_kits = report["без_комплектов"]
         print("шкафов без комплектов: %d%s"
               % (len(no_kits), " — %s" % ", ".join(map(str, no_kits[:5]))
                  if no_kits else ""))
-        print("ссылки: КЭТ → шкафы %d, шкафы → КЭТ %d (все разрешены)"
-              % (forward, reverse))
-        print("одно ИЭУ в описании шкафа → в комплекте: %d/%d"
-              % (singles_clean, singles))
-        print("стыковка со схемами: шкафы %d/%d, КЭТ %d/%d"
-              % (matched, checked, cont_matched, cont_checked))
-        print_coverage(cabinets, all_kits, all_ieds, containers_list)
+        print("ссылки: КЭТ → шкафы %(КЭТ → шкафы)d, шкафы → КЭТ %(шкафы → КЭТ)d"
+              % report["ссылки"])
+        print("одно ИЭУ в описании шкафа → в комплекте: %s"
+              % report["одно_иэу"])
+        print("стыковка со схемами: шкафы %s, КЭТ %s"
+              % (report["схемы"]["шкафы"], report["схемы"]["КЭТ"]))
+        print("заполнение полей:")
+        for name, value in report["покрытие_полей"].items():
+            level, _, field = name.partition(" · ")
+            print("  %-10s %-38s %s" % (level + " ·", field, value))
         for note in notes[:10]:
             print("  ! %s" % note)
 

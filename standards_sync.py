@@ -1,0 +1,444 @@
+# -*- coding: utf-8 -*-
+"""Сверка каталога шкафов со стандартами ``standards_base/`` и перенос данных.
+
+Сравниваются три уровня:
+
+* **состав** — комплекты шкафа: каталог против карточки стандарта (не хватает
+  комплекта с ИЭУ2 → строка «+ комплект 2: ИЭУ2»);
+* **поля каталога** — те же поля, что правит пользователь в каталоге
+  (функции МП ИЭУ, функции ИТС, применимость, защищаемый элемент и т. д.);
+* **структура** — то, чего в каталоге нет вообще (назначение, ряды зажимов,
+  таблицы ИЭУ): такие строки попадают в ``structure.json`` только пересборкой.
+
+Каталог главнее стандарта: поле перезаписывается, только если в каталоге пусто
+или лежит ссылка на таблицу («Таблица 5.2.14»). Таблицы ИЭУ в каталог не
+переносятся никогда — их всегда берёт сборка структуры.
+
+    python standards_sync.py                  # план: что отличается
+    python standards_sync.py --apply          # перенести состав и поля
+    python standards_sync.py --apply --parts состав
+"""
+
+from __future__ import annotations
+
+import argparse
+import copy
+import json
+import sys
+
+import cabs
+import komplekts
+import standards_base
+import structure
+
+#: Пары «поле записи структуры» → «поле каталога» и «это список».
+#: ``None`` — поля в каталоге нет, оно живёт только в структуре.
+FIELD_MAP = (
+    ("функции МП ИЭУ", "mp_functions", False),
+    ("описание функций ИТС", "its_functions_desc", False),
+    ("функции ИТС", "its_functions", True),
+    ("применимость", "applicability", False),
+    ("защищаемый элемент", "protected", False),
+    ("управляемый элемент", "controlled", True),
+    ("архитектура ПС", "architecture", False),
+    ("вводы питания", "power_supply", True),
+    ("порты", "ports", True),
+    ("назначение", None, False),
+)
+
+#: Поля-таблицы: в каталоге их нет, они появляются в структуре.
+TABLE_FIELDS = ("ряды зажимов", "основные компоненты",
+                "параметры функций ИЭУ")
+
+#: Поля записи ИЭУ, которые не являются таблицами.
+IED_SKIP = ("обозначение", "тип", "описание", "источник")
+
+#: Группы строк различия.
+KIND_CATALOG = "поля"           # правится в каталоге
+KIND_STRUCTURE = "в структуру"  # появится только после пересборки
+
+
+# ---------------------------------------------------------------------------
+# Значения и их сравнение
+# ---------------------------------------------------------------------------
+def is_table(value):
+    """Значение — таблица (список строк-словарей)."""
+    return isinstance(value, (list, tuple)) and bool(value) and all(
+        isinstance(item, dict) for item in value)
+
+
+def rows_count(value):
+    return len(value) if isinstance(value, (list, tuple)) else 0
+
+
+def value_text(value, limit=120):
+    """Значение в одну строку: таблица — «таблица, N строк»."""
+    if value is None:
+        return "—"
+    if is_table(value):
+        return "таблица, %d строк" % rows_count(value)
+    if isinstance(value, (list, tuple)):
+        text = ", ".join(str(item) for item in value)
+    elif isinstance(value, dict):
+        text = ", ".join("%s: %s" % (key, item) for key, item in value.items())
+    else:
+        text = " ".join(str(value).split())
+    if len(text) > limit:
+        text = text[:limit - 3].rstrip() + "…"
+    return text or "—"
+
+
+def normalize(value):
+    """Значение для сравнения: без разницы «–/-», регистра и пробелов.
+
+    Строка «а; б» и список ``["а", "б"]`` считаются одним и тем же: каталог
+    хранит часть полей строкой, стандарт — списком.
+    """
+    if is_table(value):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    if isinstance(value, dict):
+        return json.dumps(value, ensure_ascii=False, sort_keys=True)
+    if isinstance(value, (list, tuple)):
+        return "\n".join(normalize(item) for item in value)
+    text = " ".join(str(value or "").split())
+    text = text.replace("–", "-").replace("—", "-")
+    parts = text.split(";") if ";" in text else [text]
+    return "\n".join(part.strip().lower() for part in parts if part.strip())
+
+
+def informative(value):
+    """В значении есть данные (а не пусто и не ссылка на таблицу)."""
+    return komplekts.is_informative(value)
+
+
+# ---------------------------------------------------------------------------
+# Индексы
+# ---------------------------------------------------------------------------
+def catalog_index():
+    """Шифр стандарта → запись каталога."""
+    index = {}
+    for cabinet in cabs.all_cabinets():
+        index[standards_base.norm_code(cabinet.get("code") or "")] = cabinet
+    return index
+
+
+def structure_records():
+    """Записи structure.json по ключу шкафа."""
+    document = structure.load() or {}
+    index = {}
+    for record in document.get(structure.CABINET_SECTION) or []:
+        key = record.get(structure.ID_FIELD)
+        if key:
+            index[key] = record
+    return index
+
+
+# ---------------------------------------------------------------------------
+# Различия
+# ---------------------------------------------------------------------------
+def composition(std_record, cabinet):
+    """Недостающие комплекты: «+ комплект 2: ИЭУ2»."""
+    rows = []
+    std_kits = std_record.get("комплекты") or []
+    cat_kits = cabinet.get("komplets") or []
+    for index, kit in enumerate(std_kits):
+        names = [str(ied.get("обозначение") or "ИЭУ")
+                 for ied in kit.get("иэу") or []]
+        if index >= len(cat_kits):
+            rows.append({"вид": "+", "поле": "комплект %d" % (index + 1),
+                         "было": "—", "стало": ", ".join(names) or "без ИЭУ"})
+            continue
+        cat_ieds = [str(ied.get("name") or "") for ied
+                    in (cat_kits[index].get("ieds") or [])]
+        if len(names) != len(cat_ieds):
+            rows.append({"вид": "~", "поле": "комплект %d" % (index + 1),
+                         "было": "%d ИЭУ" % len(cat_ieds),
+                         "стало": ", ".join(names) or "без ИЭУ"})
+    return rows
+
+
+def field_rows(std_record, cabinet, record=None):
+    """Различия по полям: каталог (или структура) против стандарта."""
+    rows = []
+    for field, catalog_key, _as_list in FIELD_MAP:
+        std_value = std_record.get(field)
+        if not informative(std_value):
+            continue
+        # Поле есть в каталоге только если у записи каталога есть такой ключ
+        # и значение в нём — настоящие данные, а не ссылка на таблицу.
+        catalog_has_field = bool(catalog_key) and catalog_key in (cabinet or {})
+        now_value = (cabinet or {}).get(catalog_key) if catalog_has_field else None
+        catalog = catalog_has_field and informative(now_value)
+        if catalog:
+            if normalize(now_value) != normalize(std_value):
+                rows.append({"вид": "~", "поле": field,
+                             "было": value_text(now_value),
+                             "стало": value_text(std_value),
+                             "каталог": True, "группа": KIND_CATALOG})
+            continue
+        # В каталоге поля нет или оно пустое/ссылочное: сравнить со структурой.
+        struct_value = (record or {}).get(field)
+        if informative(struct_value) and normalize(struct_value) \
+                == normalize(std_value):
+            continue
+        rows.append({"вид": "+", "поле": field,
+                     "было": value_text(struct_value),
+                     "стало": value_text(std_value),
+                     "каталог": False, "группа": KIND_STRUCTURE})
+    return rows
+
+
+def table_rows_diff(std_record, record=None):
+    """Сколько таблиц ИЭУ в структуре отличаются от стандарта."""
+    count = 0
+    std_kits = std_record.get("комплекты") or []
+    struct_kits = (record or {}).get("комплекты") or []
+    for index, kit in enumerate(std_kits):
+        struct_kit = struct_kits[index] if index < len(struct_kits) else {}
+        struct_ieds = struct_kit.get("иэу") or []
+        for ied_index, ied in enumerate(kit.get("иэу") or []):
+            struct_ied = struct_ieds[ied_index] \
+                if ied_index < len(struct_ieds) else {}
+            for field, value in ied.items():
+                if field in IED_SKIP or not value:
+                    continue
+                if normalize(struct_ied.get(field)) != normalize(value):
+                    count += 1
+    return count
+
+
+def cabinet_diff(card, cabinet, records=None):
+    """Одна карточка стандарта против каталога и структуры."""
+    key = (cabinet or {}).get("key") or standards_base.key_of_code(card["шифр"])
+    std_record = standards_base.record(card, key)
+    record = (records if records is not None else structure_records()).get(key)
+    std_kits = std_record.get("комплекты") or []
+    cat_kits = (cabinet or {}).get("komplets") or []
+    rows = field_rows(std_record, cabinet, record)
+    tables = table_rows_diff(std_record, record)
+    item = {
+        "шифр": card["шифр"],
+        "ключ": key,
+        "стандарт": card["стандарт"],
+        "раздел": card.get("раздел") or "",
+        "запись": std_record,
+        "каталог": cabinet,
+        "комплектов_каталог": len(cat_kits),
+        "комплектов_стандарт": len(std_kits),
+        "состав": composition(std_record, cabinet or {}),
+        "поля": rows,
+        "каталог_поля": [row for row in rows if row["каталог"]],
+        "структура": [row for row in rows if not row["каталог"]],
+        "таблицы": tables,
+    }
+    item["всего"] = (len(item["состав"]) + len(item["каталог_поля"])
+                     + len(item["структура"]) + tables)
+    return item
+
+
+def diff():
+    """Различия по всем шкафам стандартов, которые есть в каталоге."""
+    index = catalog_index()
+    records = structure_records()
+    items = []
+    for card in standards_base.cabinets():
+        cabinet = index.get(card["шифр"])
+        if cabinet is None:
+            continue
+        items.append(cabinet_diff(card, cabinet, records))
+    return items
+
+
+def summary(items=None):
+    """Сводка: сколько шкафов и различий по видам."""
+    items = diff() if items is None else items
+    result = {"шкафов": len(items), "с_различиями": 0, "состав": 0,
+              "поля": 0, "в_структуру": 0, "таблицы": 0, "всего": 0}
+    for item in items:
+        if item["всего"]:
+            result["с_различиями"] += 1
+        result["состав"] += len(item["состав"])
+        result["поля"] += len(item["каталог_поля"])
+        result["в_структуру"] += len(item["структура"])
+        result["таблицы"] += item["таблицы"]
+        result["всего"] += item["всего"]
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Перенос в каталог
+# ---------------------------------------------------------------------------
+def kits_from_standard(item):
+    """Комплекты, которых нет в каталоге (с ИЭУ из стандарта)."""
+    cabinet = item.get("каталог") or {}
+    std_record = item.get("запись") or {}
+    existing = len(cabinet.get("komplets") or [])
+    result = []
+    for index, kit in enumerate(std_record.get("комплекты") or []):
+        if index < existing:
+            continue
+        ieds = kit.get("иэу") or []
+        names = [str(ied.get("обозначение") or "ИЭУ") for ied in ieds]
+        functions = [str(name) for name in kit.get("функции РЗА") or []]
+        result.append({
+            "key": "",
+            "name": "Комплект %d" % (index + 1),
+            "kind": "typical",
+            "type": "МП РЗА",
+            "functions": functions,
+            "desc": ("%s: %s" % (", ".join(names), ", ".join(functions))
+                     if names and functions else ""),
+            "has_ied": bool(ieds),
+            "ieds": [{"name": name, "type": "МП РЗА", "desc": ""}
+                     for name in names],
+        })
+    return result
+
+
+def apply(item, parts=("состав", "поля")):
+    """Переносит состав и поля одного шкафа в cabinets.json."""
+    cabinet = item.get("каталог")
+    if not cabinet:
+        return {"изменено": 0, "шкаф": item.get("шифр")}
+    definition = copy.deepcopy(cabinet)
+    changed = 0
+    if "состав" in parts:
+        kits = list(definition.get("komplets") or [])
+        for kit in kits_from_standard(item):
+            kits.append(kit)
+            changed += 1
+        if kits:
+            definition["komplets"] = kits
+    if "поля" in parts:
+        std_record = item.get("запись") or {}
+        for field, catalog_key, _as_list in FIELD_MAP:
+            if not catalog_key:
+                continue
+            matches = [row for row in item["поля"]
+                       if row["поле"] == field and row["каталог"]]
+            if not matches:
+                continue
+            value = std_record.get(field)
+            if not informative(value):
+                continue
+            if normalize(definition.get(catalog_key)) == normalize(value):
+                continue
+            definition[catalog_key] = value
+            changed += 1
+    if changed:
+        cabs.save_cabinet(definition, cabinet.get("key"))
+    return {"изменено": changed, "шкаф": item.get("шифр")}
+
+
+def apply_all(parts=("состав", "поля"), items=None):
+    """Переносит различия по всем шкафам; возвращает список результатов."""
+    items = diff() if items is None else items
+    return [apply(item, parts) for item in items if item["всего"]]
+
+
+# ---------------------------------------------------------------------------
+# Текст для консоли и окна
+# ---------------------------------------------------------------------------
+def plan_text(items=None):
+    """Построчный план: что и где отличается."""
+    items = diff() if items is None else items
+    stats = summary(items)
+    lines = ["Шкафов в стандартах: %d, с различиями: %d"
+             % (stats["шкафов"], stats["с_различиями"]),
+             "различий: %d — состав: %d, поля: %d, в структуру: %d, "
+             "таблицы: %d" % (stats["всего"], stats["состав"],
+                              stats["поля"], stats["в_структуру"],
+                              stats["таблицы"])]
+    for item in items:
+        if not item["всего"]:
+            continue
+        heads = []
+        if item["состав"]:
+            heads.append("состав: %d" % len(item["состав"]))
+        catalog_rows = [row for row in item["поля"] if row["каталог"]]
+        if catalog_rows:
+            heads.append("поля: %d" % len(catalog_rows))
+        if item["структура"]:
+            heads.append("в структуру: %d" % len(item["структура"]))
+        if item["таблицы"]:
+            heads.append("таблицы: %d" % item["таблицы"])
+        lines.append("  %-16s %s" % (item["шифр"], "; ".join(heads)))
+    return "\n".join(lines)
+
+
+def detail_text(item):
+    """Подробности одного шкафа для окна сверки."""
+    if not item:
+        return ""
+    std = item.get("запись") or {}
+    header = "%s · %s" % (item["шифр"], item.get("стандарт") or "")
+    if item.get("раздел"):
+        header += " · раздел %s" % item["раздел"]
+    lines = [header,
+             "Комплектов: каталог %d → стандарт %d"
+             % (item["комплектов_каталог"], item["комплектов_стандарт"]),
+             ""]
+
+    def block(title, rows, empty="нет различий"):
+        lines.append(title.upper())
+        if not rows:
+            lines.append("  " + empty)
+        for row in rows:
+            lines.append("  %s %s" % (row["вид"], row["поле"]))
+            if row["вид"] == "~":
+                lines.append("      было:   %s" % row["было"])
+                lines.append("      станет: %s" % row["стало"])
+            else:
+                lines.append("      %s" % row["стало"])
+        lines.append("")
+
+    block("Состав", item["состав"])
+    block("Поля каталога", [row for row in item["поля"] if row["каталог"]])
+    block("Только в структуре (после пересборки)", item["структура"])
+    lines.append("ТАБЛИЦЫ ИЭУ")
+    if item["таблицы"]:
+        lines.append("  %d таблиц(ы) отсутствуют в структуре или отличаются — "
+                     "обновятся пересборкой" % item["таблицы"])
+    else:
+        lines.append("  структура совпадает со стандартом")
+    if std.get("наименование"):
+        lines.append("")
+        lines.append("Наименование: %s" % std["наименование"])
+    return "\n".join(lines)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Сверка каталога шкафов со standards_base и перенос данных")
+    parser.add_argument("--apply", action="store_true",
+                        help="перенести состав и поля в cabinets.json")
+    parser.add_argument("--parts", default="состав,поля",
+                        help="что переносить (состав, поля)")
+    parser.add_argument("--json", action="store_true",
+                        help="вывести различия в JSON")
+    args = parser.parse_args(argv)
+
+    error = standards_base.error()
+    if error:
+        print("standards_base: %s" % error, file=sys.stderr)
+        return 2
+    items = diff()
+    if args.json:
+        print(json.dumps(items, ensure_ascii=False, indent=1))
+        return 0
+    print(plan_text(items))
+    if args.apply:
+        parts = tuple(part.strip() for part in args.parts.split(",")
+                      if part.strip())
+        results = apply_all(parts, items)
+        changed = sum(result["изменено"] for result in results)
+        print("\nПеренесено изменений: %d в %d шкафах."
+              % (changed, len([result for result in results
+                               if result["изменено"]])))
+        print("Дальше: python tools/build_structure.py — таблицы ИЭУ и "
+              "остальные поля появятся в structure.json.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

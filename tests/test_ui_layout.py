@@ -141,6 +141,18 @@ def test_gui():
         check(not colors, "устаревших цветов в главном окне нет (%d)" % len(colors))
         check(not fonts, "шрифтов Arial в главном окне нет (%d)" % len(fonts))
 
+        expected = ["Главная", "Вид", "Шкафы", "Комплекты", "Контейнеры",
+                    "Структура", "Отчёты", "?"]
+        check(list(app._ribbon_pages) == expected,
+              "вкладки ленты по порядку: %s" % ", ".join(app._ribbon_pages))
+        structure_page = app._ribbon_pages["Структура"]
+        labels = [button._base_text for button in _ribbon_cells(structure_page)]
+        check(any("Структура" in label for label in labels)
+              and any("Сверка" in label for label in labels)
+              and any("Пересобрать" in label for label in labels)
+              and any("Проверка" in label for label in labels),
+              "на вкладке «Структура» есть проводник, сверка, сборка, проверка")
+
         print("3. стабильность размеров")
         size = app._ribbon_size
         tallest = max(page.winfo_reqheight()
@@ -169,7 +181,8 @@ def test_gui():
             ribbon_sizes.add((app._ribbon_content.winfo_width(),
                               app._ribbon_content.winfo_height()))
         check(len(actual) == 1,
-              "размер окна одинаков на всех 6 вкладках: %s" % sorted(actual))
+              "размер окна одинаков на всех %d вкладках: %s"
+              % (len(app._ribbon_pages), sorted(actual)))
         check(len(requested) == 1,
               "запрошенный размер окна тоже не меняется")
         check(len(ribbon_sizes) == 1,

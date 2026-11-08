@@ -126,8 +126,70 @@ _OVERRIDABLE = ("name", "type", "functions", "desc", "has_ied", "ieds",
                 "test_blocks", "test_block_list", "analog_inputs",
                 "tags") + DETAIL_FIELDS
 
+#: Поля, в которых стандарт держит только ссылку на таблицу («Таблица 5.2.14»)
+#: или рисунок («Рисунок 5.2.1»). Содержимое таких полей приходит из
+#: standards_base/build_structure, а не вводится руками, поэтому в окнах
+#: редактора они не показываются: там остаются перечень функций, применимость,
+#: назначение и прочие поля с настоящими данными.
+REFERENCE_FIELDS = (
+    "connection_scheme",    # поясняющая схема подключения
+    "general_view",         # эскиз общего вида
+    "structural_scheme",    # структурно-функциональная схема
+    "schematic",            # схема электрическая принципиальная
+    "parameters",           # основные параметры функций ИЭУ
+    "components",           # основные компоненты шкафа
+)
+
+#: Значение — ссылка на таблицу, рисунок или приложение стандарта.
+_REFERENCE_RE = re.compile(r"^\s*(таблиц|рисун|приложени)", re.IGNORECASE)
+
 #: Тег шкафов и комплектов из ещё не выпущенных (проектных) СТО.
 TAG_UNRELEASED = "Невыпущенные СТО"
+
+
+def is_reference_value(value):
+    """Значение поля — только ссылка на таблицу/рисунок/приложение СТО."""
+    if not isinstance(value, str):
+        return False
+    return bool(_REFERENCE_RE.match(value))
+
+
+def is_informative(value):
+    """В значении есть данные, а не только ссылка на таблицу стандарта."""
+    if isinstance(value, dict):
+        return bool(value)
+    if isinstance(value, (list, tuple)):
+        return any(is_informative(item) for item in value)
+    text = str(value or "").strip()
+    return bool(text) and not is_reference_value(text)
+
+
+def _is_table(value):
+    """Значение — таблица (список строк-словарей), а не текст поля."""
+    return (isinstance(value, (list, tuple)) and bool(value)
+            and all(isinstance(item, dict) for item in value))
+
+
+def detail_value(record, key):
+    """Значение описательного поля, если в нём есть данные (иначе None).
+
+    Таблицы пропускаются: в окнах и отчётах для полей `DETAIL_LABELS`
+    ожидается текст, а таблица показывается отдельным блоком.
+    """
+    value = (record or {}).get(key)
+    if _is_table(value):
+        return None
+    return value if is_informative(value) else None
+
+
+def visible_details(record, labels=DETAIL_LABELS):
+    """[(подпись, значение)] для окон и отчётов: без ссылок на таблицы."""
+    result = []
+    for key, label in labels:
+        value = detail_value(record, key)
+        if value:
+            result.append((label, value))
+    return result
 
 
 # ---------------------------------------------------------------------------

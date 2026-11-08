@@ -4919,6 +4919,1487 @@
       "communication": null,
       "notes": null,
       "group": "Прочие"
+    },
+    "shet-431-02-0": {
+      "key": "shet-431-02-0",
+      "code": "ШЭТ 431.02-0",
+      "name": "Комплект защит батареи статических конденсаторов",
+      "title": "Комплект защит батареи статических конденсаторов. АУВ, УРОВ",
+      "description": "Комплект защит батареи статических конденсаторов. АУВ, УРОВ",
+      "group": "СКРМ",
+      "standard_key": "skrm1",
+      "standard": "СТО 56947007-33.040.20.279-2019",
+      "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура I типа",
+      "voltage": "110–330 кВ",
+      "architecture": "I тип",
+      "protected": "БСК",
+      "controlled": [
+        "Выключатель БСК"
+      ],
+      "its_functions": [
+        "ДТЗ",
+        "ДТЗ НП",
+        "ЗВП",
+        "ЗПВГ",
+        "ЗМН",
+        "ЗПН",
+        "МТЗ ВН",
+        "ТЗОП ВН",
+        "ТЗНП ВН",
+        "ТЗНП НЕЙТ",
+        "РАС",
+        "АУВ",
+        "УРОВ"
+      ],
+      "applicability": "РУ 110-330 кВ с подключением БСК через один выключатель с/без ОСШ",
+      "source": "разд. 5.3, табл. 5.3.1",
+      "goose": true,
+      "komplets": [
+        {
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В БСК"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи ОВ"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи нейтрали"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи средней перемычки"
+            },
+            {
+              "block": "SG5",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток в цепи заземления нейтрали"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Цепи напряжения"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ufk, Uuf, Uhu",
+              "contacts": "4+1",
+              "note": ""
+            },
+            {
+              "block": "SG8",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Цепи напряжения ОВ"
+            },
+            {
+              "block": "SG9",
+              "signals": "Ufk, Uuf, Uhu",
+              "contacts": "4+1",
+              "note": ""
+            },
+            {
+              "block": "SG10",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В БСК"
+            }
+          ],
+          "desc": "Комплект защит батареи статических конденсаторов. АУВ, УРОВ",
+          "functions": [
+            "ДТЗ",
+            "ДТЗ НП",
+            "ЗВП",
+            "ЗПВГ",
+            "ЗМН",
+            "ЗПН",
+            "МТЗ ВН",
+            "ТЗОП ВН",
+            "ТЗНП ВН",
+            "ТЗНП НЕЙТР",
+            "ЗНР",
+            "БНН",
+            "РАС",
+            "УРОВ",
+            "ЗНФ",
+            "АУВ"
+          ],
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "МП РЗА",
+              "type": "МП РЗА",
+              "desc": "Комплект защит батареи статических конденсаторов. АУВ, УРОВ"
+            }
+          ],
+          "kind": "typical",
+          "name": "Комплект 1",
+          "test_block_list": [
+            {
+              "name": "SG1",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В БСК"
+            },
+            {
+              "name": "SG2",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи ОВ"
+            },
+            {
+              "name": "SG3",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи нейтрали"
+            },
+            {
+              "name": "SG4",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Токи средней перемычки"
+            },
+            {
+              "name": "SG5",
+              "circuits": "In",
+              "count": "2+1",
+              "note": "Ток в цепи заземления нейтрали"
+            },
+            {
+              "name": "SG6",
+              "circuits": "Ua, Ub, Uc",
+              "count": "4+1",
+              "note": "Цепи напряжения"
+            },
+            {
+              "name": "SG7",
+              "circuits": "Ufk, Uuf, Uhu",
+              "count": "4+1",
+              "note": ""
+            },
+            {
+              "name": "SG8",
+              "circuits": "Ua, Ub, Uc",
+              "count": "4+1",
+              "note": "Цепи напряжения ОВ"
+            },
+            {
+              "name": "SG9",
+              "circuits": "Ufk, Uuf, Uhu",
+              "count": "4+1",
+              "note": ""
+            },
+            {
+              "name": "SG10",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи В БСК"
+            }
+          ],
+          "type": "МП РЗА",
+          "key": "",
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-431-02-0",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 431.02-0",
+          "cabinet_name": "Комплект защит батареи статических конденсаторов",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        },
+        {
+          "key": "",
+          "name": "Комплект 2",
+          "kind": "typical",
+          "type": "МП РЗА",
+          "functions": [
+            "УРОВ",
+            "ЗНФ",
+            "АУВ",
+            "РАС"
+          ],
+          "desc": "ИЭУ2: УРОВ, ЗНФ, АУВ, РАС",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ2",
+              "type": "МП РЗА",
+              "desc": ""
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [],
+          "analog_inputs": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-431-02-0",
+          "cabinet_index": 1,
+          "cabinet_code": "ШЭТ 431.02-0",
+          "cabinet_name": "Комплект защит батареи статических конденсаторов",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        }
+      ],
+      "mp_functions": "ИЭУ1: ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, ЗНР, БНН, РАС; ИЭУ2: УРОВ, ЗНФ, АУВ, РАС",
+      "its_functions_desc": "ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, АУВ, УРОВ, РАС ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТ, РАС",
+      "power_supply": "питание оперативных цепей и ИЭУ1; питание оперативных цепей и ИЭУ2; питание цепей сигнализации ТТ; питание цепей сигнализации выключателя; питание цепей ЭМВ, ЭМО1; питание цепей ЭМО2; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+      "connection_scheme": "Рисунок 5.3.1",
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": "Рисунок 5.3.2",
+      "structural_scheme": "Рисунок 5.3.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    "shet-430-05-0": {
+      "key": "shet-430-05-0",
+      "code": "ШЭТ 430.05-0",
+      "name": "Комплект защит обмотки управления, компенсационной обмотки и ошиновки…",
+      "title": "Комплект защит обмотки управления, компенсационной обмотки и ошиновки компенсационной обмотки управляемого шунтирующего реактора с подмагничиванием",
+      "description": "Комплект защит обмотки управления, компенсационной обмотки и ошиновки компенсационной обмотки управляемого шунтирующего реактора с подмагничиванием",
+      "group": "СКРМ",
+      "standard_key": "skrm1",
+      "standard": "СТО 56947007-33.040.20.279-2019",
+      "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура I типа",
+      "voltage": "110–750 кВ",
+      "architecture": "I тип",
+      "protected": "Компенсационная обмотка и ее ошиновка, обмотка управления УШРП",
+      "controlled": [],
+      "its_functions": [
+        "МТЗ КОР",
+        "ТЗОП КОР",
+        "ТЗНП КОР",
+        "МТЗ НН",
+        "КИ НН",
+        "ДЗО НН",
+        "ДЗО КОР",
+        "МТЗ ОУР",
+        "ТК ЗДЗ",
+        "РАС"
+      ],
+      "applicability": "РУ 110-750 кВ",
+      "source": "разд. 5.6, табл. 5.6.1",
+      "goose": true,
+      "komplets": [
+        {
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи треугольника КОР"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи выводов КОР"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи ТМПо"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи ТМПр"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи заземленного вывода средней точки ОУР"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc, Uhk",
+              "contacts": "6+1",
+              "note": "Напряжения ТН ошиновки КОР"
+            }
+          ],
+          "desc": "Комплект защит обмотки управления, компенсационной обмотки и ошиновки компенсационной обмотки управляемого шунтирующего реактора с подмагничиванием",
+          "functions": [
+            "МТЗ КОР",
+            "ТЗОП КОР",
+            "ТЗНП КОР",
+            "МТЗ НН",
+            "КИ НН",
+            "БНН НН",
+            "ДЗО (НН, КОР)",
+            "МТЗ ОУР",
+            "ТК ЗДЗ",
+            "РАС"
+          ],
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "МП РЗА",
+              "type": "МП РЗА",
+              "desc": "Комплект защит обмотки управления, компенсационной обмотки и ошиновки компенсационной обмотки управляемого шунтирующего реактора с подмагничиванием"
+            }
+          ],
+          "kind": "typical",
+          "name": "Комплект 1",
+          "test_block_list": [
+            {
+              "name": "SG1",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Токи треугольника КОР"
+            },
+            {
+              "name": "SG2",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи выводов КОР"
+            },
+            {
+              "name": "SG3",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи ТМПо"
+            },
+            {
+              "name": "SG4",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Фазные токи ТМПр"
+            },
+            {
+              "name": "SG5",
+              "circuits": "Ia, Ib, Ic",
+              "count": "6+1",
+              "note": "Токи заземленного вывода средней точки ОУР"
+            },
+            {
+              "name": "SG6",
+              "circuits": "Ua, Ub, Uc, Uhk",
+              "count": "6+1",
+              "note": "Напряжения ТН ошиновки КОР"
+            }
+          ],
+          "type": "МП РЗА",
+          "key": "",
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-430-05-0",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 430.05-0",
+          "cabinet_name": "Комплект защит обмотки управления, компенсационной обмотки и ошиновки…",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        }
+      ],
+      "mp_functions": "МТЗ КОР, ТЗОП КОР, ТЗНП КОР, МТЗ НН, КИ НН, БНН НН, ДЗО (НН, КОР), МТЗ ОУР, ТК ЗДЗ, РАС",
+      "its_functions_desc": "МТЗ КОР, ТЗОП КОР, ТЗНП КОР, МТЗ НН, КИ НН, ДЗО НН, ДЗО КОР, МТЗ ОУР, ТК ЗДЗ, РАС",
+      "power_supply": "питание оперативных цепей и ИЭУ; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+      "connection_scheme": "Рисунок 5.6.1",
+      "components": "Таблица 5.6.13",
+      "additional_equipment": null,
+      "parameters": "Таблица 5.6.14",
+      "general_view": "Рисунок 5.6.2",
+      "structural_scheme": "Рисунок 5.6.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    "shet-431-06-0": {
+      "key": "shet-431-06-0",
+      "code": "ШЭТ 431.06-0",
+      "name": "Комплект защит КР",
+      "title": "Комплект защит КР. УРОВ, АУВ",
+      "description": "Комплект защит КР. УРОВ, АУВ",
+      "group": "СКРМ",
+      "standard_key": "skrm1",
+      "standard": "СТО 56947007-33.040.20.279-2019",
+      "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура I типа",
+      "voltage": null,
+      "architecture": "I тип",
+      "protected": "Компенсационный реактор",
+      "controlled": [
+        "Выключатель КР"
+      ],
+      "its_functions": [
+        "ДЗР",
+        "ГЗ",
+        "ТЗ",
+        "ДЗ",
+        "МТЗ",
+        "УРОВ",
+        "АУВ",
+        "РАС"
+      ],
+      "applicability": "Подключение к нейтрали линейного шунтирующего реактора",
+      "source": "разд. 5.7, табл. 5.7.1",
+      "goose": true,
+      "komplets": [
+        {
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток в нулевом проводе соединенных в «звезду» ТТ, встроенных в нейтральные выводы ШР"
+            },
+            {
+              "block": "SG2",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток ТТ со стороны высоковольтного ввода КР"
+            },
+            {
+              "block": "SG3",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток ТТ1 стороны нейтрали КР"
+            },
+            {
+              "block": "SG4",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток ТТ2 стороны нейтрали КР"
+            },
+            {
+              "block": "SG5",
+              "signals": "Un",
+              "contacts": "2+1",
+              "note": "Напряжение ТН стороны ВВ КР"
+            }
+          ],
+          "desc": "Комплект защит КР. УРОВ, АУВ",
+          "functions": [
+            "ДЗР",
+            "ГЗ",
+            "ТЗ",
+            "КИ ГЗ",
+            "КИ ТЗ",
+            "ДЗ",
+            "МТЗ",
+            "УРОВ",
+            "АУВ",
+            "РАС УРОВ"
+          ],
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "МП РЗА",
+              "type": "МП РЗА",
+              "desc": "Комплект защит КР. УРОВ, АУВ"
+            }
+          ],
+          "kind": "typical",
+          "name": "Комплект 1",
+          "test_block_list": [
+            {
+              "name": "SG1",
+              "circuits": "In",
+              "count": "2+1",
+              "note": "Ток в нулевом проводе соединенных в «звезду» ТТ, встроенных в нейтральные выводы ШР"
+            },
+            {
+              "name": "SG2",
+              "circuits": "In",
+              "count": "2+1",
+              "note": "Ток ТТ со стороны высоковольтного ввода КР"
+            },
+            {
+              "name": "SG3",
+              "circuits": "In",
+              "count": "2+1",
+              "note": "Ток ТТ1 стороны нейтрали КР"
+            },
+            {
+              "name": "SG4",
+              "circuits": "In",
+              "count": "2+1",
+              "note": "Ток ТТ2 стороны нейтрали КР"
+            },
+            {
+              "name": "SG5",
+              "circuits": "Un",
+              "count": "2+1",
+              "note": "Напряжение ТН стороны ВВ КР"
+            }
+          ],
+          "type": "МП РЗА",
+          "key": "",
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-431-06-0",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 431.06-0",
+          "cabinet_name": "Комплект защит КР",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        }
+      ],
+      "mp_functions": "ИЭУ1: ДЗР, ГЗ, ТЗ, КИ ГЗ, КИ ТЗ, ДЗ, МТЗ, УРОВ, АУВ, РАС; ИЭУ2: УРОВ, АУВ",
+      "its_functions_desc": "ДЗР, ГЗ, ТЗ, ДЗ, МТЗ, УРОВ, АУВ, РАС",
+      "power_supply": "питание оперативных цепей и ИЭУ; питание цепей сигнализации выключателя; питание цепей ГЗ, ТЗ КР; питание цепей ЭМВ, ЭМО1; питание цепей ЭМО2; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+      "connection_scheme": "Рисунок 5.7.1",
+      "components": "Таблица 5.7.13",
+      "additional_equipment": null,
+      "parameters": "Таблица 5.7.14",
+      "general_view": "Рисунок 5.7.2",
+      "structural_scheme": "Рисунок 5.7.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    "shet-431-01-1": {
+      "key": "shet-431-01-1",
+      "code": "ШЭТ 431.01-1",
+      "name": "Защиты БСК 110–330 кВ",
+      "title": "Комплект защит батареи статических конденсаторов 110-330 кВ, УРОВ, АУВ",
+      "description": "Шкаф защит батареи статических конденсаторов 110–330 кВ, УРОВ, АУВ",
+      "group": "СКРМ",
+      "standard_key": "skrm",
+      "standard": "СТО 56947007-33.040.20.280-2019",
+      "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура II типа",
+      "voltage": "110–330 кВ",
+      "architecture": "II тип",
+      "protected": "БСК 110–330 кВ",
+      "controlled": [
+        "Выключатель БСК"
+      ],
+      "its_functions": [
+        "ДТЗ",
+        "ДТЗ НП",
+        "ЗВП",
+        "ЗПВГ",
+        "ЗМН",
+        "ЗПН",
+        "МТЗ ВН",
+        "ТЗОП ВН",
+        "ТЗНП ВН",
+        "ТЗНП НЕЙТР",
+        "РАС"
+      ],
+      "applicability": "РУ 110-330 кВ: подключение БСК через один выключатель к системе шин с/без ОСШ; подключение БСК к РУ через два выключателя",
+      "source": "разд. 5.2, табл. 5.2.1",
+      "goose": true,
+      "komplets": [
+        {
+          "desc": "Защиты БСК, УРОВ и АУВ выключателя БСК",
+          "functions": [
+            "ДТЗ",
+            "ДТЗ НП",
+            "ЗВП",
+            "ЗПВГ",
+            "ЗМН",
+            "ЗПН",
+            "МТЗ ВН",
+            "ТЗОП ВН",
+            "ТЗНП ВН",
+            "ТЗНП НЕЙТР",
+            "ЗНР",
+            "БНН",
+            "РАС УРОВ",
+            "ЗНФ",
+            "АУВ"
+          ],
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ1",
+              "type": "МП РЗА",
+              "desc": "Защиты БСК, УРОВ и АУВ выключателя БСК"
+            }
+          ],
+          "kind": "typical",
+          "name": "Комплект 1",
+          "test_block_list": [
+            {
+              "name": "Испытательные блоки SG1 … SG4",
+              "circuits": "6 силовых цепей + 1 сигнальная цепь",
+              "count": "4",
+              "note": ""
+            },
+            {
+              "name": "Испытательный блок SG5",
+              "circuits": "2 силовые цепи + 1 сигнальная цепь",
+              "count": "1",
+              "note": ""
+            },
+            {
+              "name": "Испытательные блоки SG6 … SG9",
+              "circuits": "4 силовые цепи + 1 сигнальная цепь",
+              "count": "4",
+              "note": ""
+            }
+          ],
+          "type": "МП РЗА",
+          "key": "",
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "analog_inputs": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-431-01-1",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 431.01-1",
+          "cabinet_name": "Защиты БСК 110–330 кВ",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        }
+      ],
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": "питание ИЭУ; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+      "connection_scheme": "Рисунок 5.2.1",
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": "Рисунок 5.2.2",
+      "structural_scheme": "Рисунок 5.2.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    "shet-431-02-1": {
+      "key": "shet-431-02-1",
+      "code": "ШЭТ 431.02-1",
+      "name": "Защиты ШР 110–750 кВ",
+      "title": "Комплект защит шунтирующего реактора 110-750 кВ, УРОВ, АУВ",
+      "description": "Шкаф защит шунтирующего реактора 110–750 кВ, УРОВ, АУВ",
+      "group": "СКРМ",
+      "standard_key": "skrm",
+      "standard": "СТО 56947007-33.040.20.280-2019",
+      "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура II типа",
+      "voltage": "110–750 кВ",
+      "architecture": "II тип",
+      "protected": "ШР, УШРТ, сетевая обмотка УШРП 110–750 кВ",
+      "controlled": [
+        "Выключатель ШР"
+      ],
+      "its_functions": [
+        "ГЗ",
+        "ТЗ",
+        "КИВ",
+        "ДЗР",
+        "ПДЗР",
+        "МТЗ ВН",
+        "ТЗОП ВН",
+        "ТЗНП ВН",
+        "ТЗНП НВ",
+        "ЗНР",
+        "УРОВ",
+        "АУВ",
+        "РАС"
+      ],
+      "applicability": "РУ 110-750 кВ: подключение ШР, УШРП, УШРТ к РУ с/без ОСШ через один/два выключателя; -подключение ШР, УШРП, УШРТ к ЛЭП",
+      "source": "разд. 5.3, табл. 5.3.1",
+      "goose": true,
+      "komplets": [
+        {
+          "desc": "Защиты шунтирующего реактора, УРОВ и АУВ",
+          "functions": [
+            "ДЗР",
+            "ПДЗР",
+            "ГЗ",
+            "ТЗ",
+            "КИ ГЗ",
+            "КИ ТЗ",
+            "КИВ",
+            "МТЗ ВН",
+            "ТЗОП ВН",
+            "ТЗНП ВН",
+            "ТЗНП НВ",
+            "ЗНР",
+            "КОН ШР",
+            "РТПО",
+            "РАС АУР УРОВ",
+            "ЗНФ",
+            "АУВ"
+          ],
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ1",
+              "type": "МП РЗА",
+              "desc": "Защиты шунтирующего реактора, УРОВ и АУВ"
+            }
+          ],
+          "kind": "typical",
+          "name": "Комплект 1",
+          "test_block_list": [
+            {
+              "name": "Испытательные блоки SG1…SG8",
+              "circuits": "6 силовых цепей + 1 сигнальная цепь",
+              "count": "8",
+              "note": ""
+            }
+          ],
+          "type": "МП РЗА",
+          "key": "",
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "analog_inputs": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-431-02-1",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 431.02-1",
+          "cabinet_name": "Защиты ШР 110–750 кВ",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        }
+      ],
+      "mp_functions": "ИЭУ1: ДЗР, ПДЗР, ГЗ, ТЗ, КИ ГЗ, КИ ТЗ, КИВ, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НВ, ЗНР, КОН ШР, РТПО, РАС; ИЭУ2: АУР; ИЭУ3: УРОВ, ЗНФ, АУВ",
+      "its_functions_desc": "ГЗ, ТЗ, КИВ, ДЗР, ПДЗР, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НВ, ЗНР, УРОВ, АУВ, РАС",
+      "power_supply": "питание ИЭУ; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+      "connection_scheme": "Рисунок 5.3.1",
+      "components": "Таблица 5.3.13",
+      "additional_equipment": null,
+      "parameters": "Таблица 5.3.14",
+      "general_view": "Рисунок 5.3.2",
+      "structural_scheme": "Рисунок 5.3.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    "shet-430-03-1": {
+      "key": "shet-430-03-1",
+      "code": "ШЭТ 430.03-1",
+      "name": "Защиты УШРП 110–750 кВ",
+      "title": "Комплект защит компенсационной обмотки и её ошиновки, обмотки управления управляемого шунтирующего реактора с подмагничиванием 110-750 кВ",
+      "description": "Шкаф защит компенсационной обмотки, её ошиновки и обмотки управления УШРП 110–750 кВ",
+      "group": "СКРМ",
+      "standard_key": "skrm",
+      "standard": "СТО 56947007-33.040.20.280-2019",
+      "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура II типа",
+      "voltage": "110–750 кВ",
+      "architecture": "II тип",
+      "protected": "Компенсационная обмотка и ее ошиновка, обмотка управления УШРП",
+      "controlled": [],
+      "its_functions": [
+        "МТЗ КОР",
+        "ТЗОП КОР",
+        "ТЗНП КОР",
+        "МТЗ НН",
+        "КИ НН",
+        "ДЗО НН",
+        "ДЗО КОР",
+        "МТЗ ОУР",
+        "ТК ЗДЗ",
+        "РАС"
+      ],
+      "applicability": "РУ 110–750 кВ",
+      "source": "разд. 5.4, табл. 5.4.1",
+      "goose": true,
+      "komplets": [
+        {
+          "desc": "Защиты компенсационной обмотки и обмотки управления УШРП",
+          "functions": [
+            "МТЗ КОР",
+            "ТЗОП КОР",
+            "ТЗНП КОР",
+            "МТЗ НН",
+            "КИ НН",
+            "БНН НН",
+            "ДЗО (НН, КОР)",
+            "МТЗ ОУР",
+            "ТК ЗДЗ",
+            "РАС"
+          ],
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ1",
+              "type": "МП РЗА",
+              "desc": "Защиты компенсационной обмотки и обмотки управления УШРП"
+            }
+          ],
+          "kind": "typical",
+          "name": "Комплект 1",
+          "test_block_list": [
+            {
+              "name": "Испытательный блок SG1…SG6",
+              "circuits": "6 силовых цепей + 1 сигнальная цепь",
+              "count": "6",
+              "note": ""
+            }
+          ],
+          "type": "МП РЗА",
+          "key": "",
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "analog_inputs": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-430-03-1",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 430.03-1",
+          "cabinet_name": "Защиты УШРП 110–750 кВ",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        }
+      ],
+      "mp_functions": "МТЗ КОР, ТЗОП КОР, ТЗНП КОР, МТЗ НН, КИ НН, БНН НН, ДЗО (НН, КОР), МТЗ ОУР, ТК ЗДЗ, РАС",
+      "its_functions_desc": "МТЗ КОР, ТЗОП КОР, ТЗНП КОР, МТЗ НН, КИ НН, ДЗО НН, ДЗО КОР, МТЗ ОУР, ТК ЗДЗ, РАС",
+      "power_supply": "питание ИЭУ; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+      "connection_scheme": "Рисунок 5.4.1",
+      "components": "Таблица 5.4.13",
+      "additional_equipment": null,
+      "parameters": "Таблица 5.4.14",
+      "general_view": "Рисунок 5.4.2",
+      "structural_scheme": "Рисунок 5.4.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    "shet-431-01-2": {
+      "key": "shet-431-01-2",
+      "code": "ШЭТ 431.01-2",
+      "name": "Комплект защит батареи статических конденсаторов 110- 330 кВ, УРОВ, АУВ",
+      "title": "Комплект защит батареи статических конденсаторов 110- 330 кВ, УРОВ, АУВ",
+      "description": "Комплект защит батареи статических конденсаторов 110- 330 кВ, УРОВ, АУВ",
+      "group": "СКРМ",
+      "standard_key": "skrm3",
+      "standard": "СТО 56947007-33.040.20.281-2019",
+      "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура III типа",
+      "voltage": "110–330 кВ",
+      "architecture": "III тип",
+      "protected": "БСК 110-330 кВ",
+      "controlled": [
+        "Выключатель БСК"
+      ],
+      "its_functions": [
+        "ДТЗ",
+        "ДТЗ НП",
+        "ЗВП",
+        "ЗПВГ",
+        "ЗМН",
+        "ЗПН",
+        "МТЗ ВН",
+        "ТЗОП ВН",
+        "ТЗНП ВН",
+        "ТЗНП НЕЙТР",
+        "РАС"
+      ],
+      "applicability": "РУ 110-330 кВ: подключение БСК через один выключатель к системе шин с/без ОСШ; подключение БСК к РУ через два выключателя",
+      "source": "разд. 5.2, табл. 5.2.1",
+      "goose": true,
+      "komplets": [
+        {
+          "key": "",
+          "kind": "typical",
+          "name": "Комплект 1",
+          "type": "МП РЗА",
+          "functions": [
+            "ДТЗ",
+            "ДТЗ НП",
+            "ЗВП",
+            "ЗПВГ",
+            "ЗМН",
+            "ЗПН",
+            "МТЗ ВН",
+            "ТЗОП ВН",
+            "ТЗНП ВН",
+            "ТЗНП НЕЙТР",
+            "ЗНР",
+            "БНН УРОВ",
+            "ЗНФ",
+            "АУВ",
+            "РАС"
+          ],
+          "desc": "Комплект защит батареи статических конденсаторов 110- 330 кВ, УРОВ, АУВ",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ1",
+              "type": "МП РЗА",
+              "desc": ""
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [],
+          "analog_inputs": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-431-01-2",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 431.01-2",
+          "cabinet_name": "Комплект защит батареи статических конденсаторов 110- 330 кВ, УРОВ, АУВ",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        }
+      ],
+      "mp_functions": "ИЭУ1: ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, ЗНР, БНН; ИЭУ2: УРОВ, ЗНФ, АУВ, РАС",
+      "its_functions_desc": "ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, РАС",
+      "power_supply": "питание ИЭУ; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC); порт A шины процесса (Duplex LC); порт B шины процесса (Duplex LC)",
+      "connection_scheme": "Рисунок 5.2.1",
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": "Рисунок 5.2.2",
+      "structural_scheme": "Рисунок 5.2.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    "shet-431-02-2": {
+      "key": "shet-431-02-2",
+      "code": "ШЭТ 431.02-2",
+      "name": "Комплекс защит шунтирующего реактора 110-750 кВ, УРОВ, АУВ",
+      "title": "Комплекс защит шунтирующего реактора 110-750 кВ, УРОВ, АУВ",
+      "description": "Комплекс защит шунтирующего реактора 110-750 кВ, УРОВ, АУВ",
+      "group": "СКРМ",
+      "standard_key": "skrm3",
+      "standard": "СТО 56947007-33.040.20.281-2019",
+      "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура III типа",
+      "voltage": "110–750 кВ",
+      "architecture": "III тип",
+      "protected": "ШР, УШРТ, УШРП 110-750 кВ (включая управляющую обмотку, компенсационную обмотку и ее ошиновку)",
+      "controlled": [
+        "Выключатель ШР",
+        "УШРТ",
+        "УШРП"
+      ],
+      "its_functions": [
+        "ДЗР",
+        "ПДЗР",
+        "ГЗ",
+        "ТЗ",
+        "КИВ",
+        "МТЗ ВН",
+        "ТЗОП ВН",
+        "ТЗНП ВН",
+        "ТЗНП НВ",
+        "ЗНР",
+        "КОН ШР",
+        "МТЗ КОР",
+        "ТЗОП КОР",
+        "ТЗНП КОР",
+        "МТЗ НН",
+        "КИ НН",
+        "БНН НН",
+        "ДЗО НН",
+        "ДЗО КОР",
+        "МТЗ ОУР",
+        "ТК ЗДЗ",
+        "АУР",
+        "УРОВ",
+        "ЗНФ",
+        "АУВ",
+        "РАС"
+      ],
+      "applicability": "РУ 110-750 кВ: подключение ШР, УШРП, УШРТ к РУ с/без ОСШ через один/два выключателя; -подключение ШР, УШРП, УШРТ к ЛЭП",
+      "source": "разд. 5.3, табл. 5.3.1",
+      "goose": true,
+      "komplets": [
+        {
+          "key": "",
+          "kind": "typical",
+          "name": "Комплект 1",
+          "type": "МП РЗА",
+          "functions": [
+            "ДЗР",
+            "ПДЗР",
+            "ГЗ",
+            "ТЗ",
+            "КИ ГЗ",
+            "КИ ТЗ",
+            "КИВ",
+            "МТЗ ВН",
+            "ТЗОП ВН",
+            "ТЗНП ВН",
+            "ТЗНП НВ",
+            "ЗНР",
+            "КОН ШР",
+            "МТЗ КОР",
+            "ТЗОП КОР",
+            "ТЗНП КОР",
+            "МТЗ НН",
+            "КИ НН",
+            "БНН НН",
+            "ДЗО (НН, КОР)",
+            "МТЗ ОУР",
+            "ТК ЗДЗ",
+            "АУР",
+            "УРОВ",
+            "ЗНФ",
+            "АУВ",
+            "РАС АУР УРОВ"
+          ],
+          "desc": "Комплекс защит шунтирующего реактора 110-750 кВ, УРОВ, АУВ",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ1",
+              "type": "МП РЗА",
+              "desc": ""
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [],
+          "analog_inputs": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-431-02-2",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 431.02-2",
+          "cabinet_name": "Комплекс защит шунтирующего реактора 110-750 кВ, УРОВ, АУВ",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        },
+        {
+          "key": "",
+          "name": "Комплект 2",
+          "kind": "typical",
+          "type": "МП РЗА",
+          "functions": [
+            "ДЗР",
+            "ПДЗР",
+            "ГЗ",
+            "ТЗ",
+            "КИ ГЗ",
+            "КИ ТЗ",
+            "КИВ",
+            "МТЗ ВН",
+            "ТЗОП ВН",
+            "ТЗНП ВН",
+            "ТЗНП НВ",
+            "ЗНР",
+            "КОН ШР",
+            "МТЗ КОР",
+            "ТЗОП КОР",
+            "ТЗНП КОР",
+            "МТЗ НН",
+            "КИ НН",
+            "БНН НН",
+            "ДЗО (НН, КОР)",
+            "МТЗ ОУР",
+            "ТК ЗДЗ",
+            "АУР",
+            "УРОВ",
+            "ЗНФ",
+            "АУВ",
+            "РАС"
+          ],
+          "desc": "ИЭУ2: ДЗР, ПДЗР, ГЗ, ТЗ, КИ ГЗ, КИ ТЗ, КИВ, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НВ, ЗНР, КОН ШР, МТЗ КОР, ТЗОП КОР, ТЗНП КОР, МТЗ НН, КИ НН, БНН НН, ДЗО (НН, КОР), МТЗ ОУР, ТК ЗДЗ, АУР, УРОВ, ЗНФ, АУВ, РАС",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ2",
+              "type": "МП РЗА",
+              "desc": ""
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [],
+          "analog_inputs": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-431-02-2",
+          "cabinet_index": 1,
+          "cabinet_code": "ШЭТ 431.02-2",
+          "cabinet_name": "Комплекс защит шунтирующего реактора 110-750 кВ, УРОВ, АУВ",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        }
+      ],
+      "mp_functions": "ИЭУ1: ДЗР, ПДЗР, ГЗ, ТЗ, КИ ГЗ, КИ ТЗ, КИВ, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НВ, ЗНР, КОН ШР, МТЗ КОР, ТЗОП КОР, ТЗНП КОР, МТЗ НН, КИ НН, БНН НН, ДЗО (НН, КОР), МТЗ ОУР, ТК ЗДЗ, АУР, УРОВ, ЗНФ, АУВ, РАС; ИЭУ2: АУР; ИЭУ3: УРОВ, ЗНФ, АУВ",
+      "its_functions_desc": "ДЗР, ПДЗР, ГЗ, ТЗ, КИВ, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НВ, ЗНР, КОН ШР, МТЗ КОР, ТЗОП КОР, ТЗНП КОР, МТЗ НН, КИ НН, БНН НН, ДЗО НН, ДЗО КОР, МТЗ ОУР, ТК ЗДЗ, АУР, УРОВ, ЗНФ, АУВ, РАС",
+      "power_supply": "питание ИЭУ1; питание ИЭУ2; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC); порт A шины процесса (Duplex LC); порт B шины процесса (Duplex LC)",
+      "connection_scheme": "Рисунок 5.3.1",
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": "Рисунок 5.3.2",
+      "structural_scheme": "Рисунок 5.3.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    "shet-431-03-2": {
+      "key": "shet-431-03-2",
+      "code": "ШЭТ 431.03-2",
+      "name": "Комплект защит компенсационного реактора, УРОВ, АУВ",
+      "title": "Комплект защит компенсационного реактора, УРОВ, АУВ",
+      "description": "Комплект защит компенсационного реактора, УРОВ, АУВ",
+      "group": "СКРМ",
+      "standard_key": "skrm3",
+      "standard": "СТО 56947007-33.040.20.281-2019",
+      "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура III типа",
+      "voltage": null,
+      "architecture": "III тип",
+      "protected": "КР",
+      "controlled": [
+        "Выключатель КР"
+      ],
+      "its_functions": [
+        "ДЗР",
+        "ГЗ",
+        "ТЗ",
+        "ДЗ",
+        "МТЗ",
+        "УРОВ",
+        "АУВ",
+        "РАС"
+      ],
+      "applicability": "Подключение к нейтрали линейного шунтирующего реактора",
+      "source": "разд. 5.4, табл. 5.4.1",
+      "goose": true,
+      "komplets": [
+        {
+          "key": "",
+          "kind": "typical",
+          "name": "Комплект 1",
+          "type": "МП РЗА",
+          "functions": [
+            "ДЗР",
+            "ГЗ",
+            "ТЗ",
+            "КИ ГЗ",
+            "КИ ТЗ",
+            "ДЗ",
+            "МТЗ",
+            "УРОВ",
+            "АУВ",
+            "РАС"
+          ],
+          "desc": "Комплект защит компенсационного реактора, УРОВ, АУВ",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ1",
+              "type": "МП РЗА",
+              "desc": ""
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [],
+          "analog_inputs": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "shet-431-03-2",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 431.03-2",
+          "cabinet_name": "Комплект защит компенсационного реактора, УРОВ, АУВ",
+          "cabinet_group": "СКРМ",
+          "source": "user"
+        }
+      ],
+      "mp_functions": "ДЗР, ГЗ, ТЗ, КИ ГЗ, КИ ТЗ, ДЗ, МТЗ, УРОВ, АУВ, РАС",
+      "its_functions_desc": "ДЗР, ГЗ, ТЗ, ДЗ, МТЗ, УРОВ, АУВ, РАС",
+      "power_supply": "питание ИЭУ; освещение шкафа",
+      "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC); порт A шины процесса (Duplex LC); порт B шины процесса (Duplex LC)",
+      "connection_scheme": "Рисунок 5.4.1",
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": "Рисунок 5.4.2",
+      "structural_scheme": "Рисунок 5.4.3",
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     }
   },
   "deleted": [

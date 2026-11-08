@@ -80,6 +80,7 @@ sys.path.insert(0, ROOT)
 import cabs                # noqa: E402  каталог шкафов редактора
 import komplekts           # noqa: E402  каталог комплектов редактора
 import containers          # noqa: E402  каталог КЭТ
+import standards_base      # noqa: E402  стандарты СТО (standards_base/)
 
 SRC_DIR = os.path.join(ROOT, "standards", "src")
 EXTRACTED = os.path.join(ROOT, "standards", "extracted.json")
@@ -96,6 +97,33 @@ K_KITS = "комплекты"             # вложенные комплект�
 K_IEDS = "иэу"                   # вложенные ИЭУ в комплекте
 K_HAS_IED = "есть ИЭУ"           # обязательный признак комплекта
 K_SOURCE = "источник"
+
+# --- стандарты СТО из standards_base/ -------------------------------------
+#: Поля шкафа, которые дополняются из карточки стандарта: «поле записи» →
+#: «поле каталога» (None — в каталоге такого поля нет). Правка каталога всегда
+#: главнее: перезаписываются только пустые места и ссылки на таблицы.
+STANDARD_CABINET_KEYS = (
+    ("назначение", None),
+    ("функции МП ИЭУ", "mp_functions"),
+    ("функции ИТС", "its_functions"),
+    ("описание функций ИТС", "its_functions_desc"),
+    ("применимость", "applicability"),
+    ("защищаемый элемент", "protected"),
+    ("управляемый элемент", "controlled"),
+    ("архитектура ПС", "architecture"),
+    ("вводы питания", "power_supply"),
+    ("порты", "ports"),
+    ("ряды зажимов", None),
+    ("основные компоненты", "components"),
+    ("параметры функций ИЭУ", "parameters"),
+)
+
+#: Поля комплекта, которые дополняются из карточки стандарта.
+STANDARD_KIT_FIELDS = ("назначение", "функции РЗА", "входные аналоговые измерения",
+                       "внутренние дискретные цепи")
+
+#: Поля записи ИЭУ, которые не переносятся из стандарта.
+STANDARD_IED_SKIP = ("обозначение", "тип", "описание", K_SOURCE)
 
 #: Поля таблицы «Входные аналоговые измерения».
 ANALOG_ROW = ("Испытательный блок", "Аналоговые измерения",
@@ -561,6 +589,118 @@ def build_cabinet(cabinet, kit_records, kb_record, extracted, container_ids):
 # Сборка документа
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Стандарты СТО (standards_base/)
+# ---------------------------------------------------------------------------
+
+def is_informative(value):
+    """В значении есть данные (а не пусто и не ссылка на таблицу)."""
+    return komplekts.is_informative(value)
+
+
+def standard_card(cabinet):
+    """Карточка стандарта для шкафа каталога (по шифру) или None."""
+    return standards_base.cabinet((cabinet or {}).get("code") or "")
+
+
+def merge_standard_cabinet(record, std_record, cabinet=None):
+    """Дополняет запись шкафа полями карточки стандарта.
+
+    Каталог главнее: поле перезаписывается, только если в каталоге такого
+    поля нет, оно пустое или в нём ссылка на таблицу/рисунок
+    («Таблица 5.2.14»). Возвращает число заполненных полей.
+    """
+    filled = 0
+    for field, catalog_key in STANDARD_CABINET_KEYS:
+        value = std_record.get(field)
+        if not is_informative(value):
+            continue
+        if catalog_key and is_informative((cabinet or {}).get(catalog_key)):
+            continue
+        if record.get(field) == value:
+            continue
+        record[field] = value
+        filled += 1
+    return filled
+
+
+def standard_ied_record(ied):
+    """Запись ИЭУ из карточки стандарта (только таблицы, без типа и описания)."""
+    record = {"обозначение": ied.get("обозначение") or "ИЭУ"}
+    tables = 0
+    for field, value in ied.items():
+        if field in STANDARD_IED_SKIP or not is_informative(value):
+            continue
+        record[field] = value
+        tables += 1
+    if tables:
+        record[K_SOURCE] = "standards_base: таблицы СТО"
+    return record, tables
+
+
+def merge_standard_ieds(kit_records, std_record):
+    """Таблицы ИЭУ из стандарта: стандарт главнее исходников по ИЭУ.
+
+    Для шкафов, покрытых ``standards_base/``, таблицы берутся из карточки
+    стандарта целиком (она полнее «тонких» выгрузок), поэтому повторная
+    сборка даёт тот же результат. Возвращает число заполненных таблиц.
+    """
+    added = 0
+    for index, std_kit in enumerate(std_record.get(K_KITS) or []):
+        if index >= len(kit_records):
+            continue
+        targets = kit_records[index].get(K_IEDS) or []
+        for ied_index, std_ied in enumerate(std_kit.get(K_IEDS) or []):
+            if ied_index >= len(targets):
+                continue
+            target = targets[ied_index]
+            filled = 0
+            for field, value in std_ied.items():
+                if field in STANDARD_IED_SKIP or not is_informative(value):
+                    continue
+                if target.get(field) == value:
+                    continue
+                target[field] = value
+                filled += 1
+            if filled:
+                target[K_SOURCE] = "standards_base: таблицы СТО"
+                added += filled
+    return added
+
+
+def standard_kit_record(std_record, kit, index, cabinet_key):
+    """Запись комплекта, которого нет в каталоге (состав из стандарта)."""
+    ieds = kit.get(K_IEDS) or []
+    record = {
+        K_ID: komplekts.typical_key(cabinet_key, index),
+        K_NUMBER: index + 1,
+        "вид": "Типовой",
+        "полное имя": kit.get("полное имя") or ("Комплект %d" % (index + 1)),
+        K_HAS_IED: bool(ieds),
+    }
+    for field in STANDARD_KIT_FIELDS:
+        value = kit.get(field)
+        if is_informative(value):
+            record[field] = value
+    if ieds:
+        record[K_IEDS] = [standard_ied_record(ied)[0] for ied in ieds]
+    record[K_SOURCE] = "standards_base: %s" % (std_record.get("стандарт") or "СТО")
+    return record
+
+
+def merge_standard_kits(kit_records, std_record, cabinet_key):
+    """Добавляет комплекты, которых нет в каталоге. Возвращает их число."""
+    existing = len(kit_records)
+    added = []
+    for index, kit in enumerate(std_record.get(K_KITS) or []):
+        if index < existing:
+            continue
+        kit_records.append(standard_kit_record(std_record, kit, index,
+                                               cabinet_key))
+        added.append(kit_records[-1])
+    return added
+
+
 def coverage_of(record, prefix, fields):
     """Счётчики заполнения полей записи."""
     result = {}
@@ -709,6 +849,25 @@ def main(argv=None):
                                        entry_overlay,
                                        sorted(cabinet_containers.get(key, [])))
 
+        # Стандарты СТО (standards_base/): поля шкафа, недостающие комплекты
+        # состава и таблицы ИЭУ. Каталог главнее — заполняются только пустые
+        # места и ссылки на таблицы, поэтому повторная сборка ничего не меняет.
+        std_card = standard_card(cabinet)
+        if std_card is not None:
+            std_record = standards_base.record(std_card, key)
+            coverage["шкафов: standards_base"] += 1
+            coverage["standards_base: поля шкафа"] += merge_standard_cabinet(
+                cabinet_record, std_record, cabinet)
+            kits_in_record = cabinet_record.setdefault(K_KITS, [])
+            added_kits = merge_standard_kits(kits_in_record, std_record, key)
+            if added_kits:
+                coverage["standards_base: комплекты"] += len(added_kits)
+                coverage["комплектов"] += len(added_kits)
+                coverage["комплектов с ИЭУ"] += sum(
+                    1 for kit in added_kits if kit.get(K_HAS_IED))
+            coverage["standards_base: таблицы ИЭУ"] += merge_standard_ieds(
+                kits_in_record, std_record)
+
         # На уровне шкафа остаётся только то, что нельзя отнести к одному
         # комплекту (несколько комплектов с несколькими ИЭУ).
         if not kb_ied_list and (gin or gout):
@@ -768,6 +927,9 @@ def main(argv=None):
             if os.path.exists(EXTRACTED) else None,
             "нормативы": sorted(os.path.basename(p) for p in
                                 glob.glob(os.path.join(ROOT, "standards", "*.pdf"))),
+            "стандарты (standards_base)": sorted(
+                os.path.basename(path) for path in standards_base.files())
+                if coverage["шкафов: standards_base"] else [],
         },
         "контейнеры": container_records,
         "шкафы": cabinet_records,
@@ -779,6 +941,8 @@ def main(argv=None):
         del result["источники"]["исходные таблицы по ИЭУ"]
     if not result["источники"]["нормативы"]:
         del result["источники"]["нормативы"]
+    if not result["источники"]["стандарты (standards_base)"]:
+        del result["источники"]["стандарты (standards_base)"]
 
     with open(args.out, "w", encoding="utf-8") as handle:
         json.dump(result, handle, ensure_ascii=False, indent=1)
@@ -791,6 +955,13 @@ def main(argv=None):
              coverage["комплектов"], coverage["комплектов с ИЭУ"],
              coverage["комплектов без ИЭУ"], coverage["иэу"],
              size / 1048576.0, args.out))
+    if coverage["шкафов: standards_base"]:
+        print("standards_base: %d шкафов, %d полей шкафов, %d новых "
+              "комплектов, %d таблиц ИЭУ"
+              % (coverage["шкафов: standards_base"],
+                 coverage["standards_base: поля шкафа"],
+                 coverage["standards_base: комплекты"],
+                 coverage["standards_base: таблицы ИЭУ"]))
     orphan = sorted(set(kb) - {norm_code(c.get("code")) for c in cabinets})
     if orphan:
         print("исходники без пары в каталоге: %s" % orphan)
@@ -803,7 +974,8 @@ def main(argv=None):
     if args.stats:
         print("\nЗаполнение:")
         for name, count in sorted(coverage.items()):
-            if name in ("шкафов", "комплектов", "иэу"):
+            if name in ("шкафов", "комплектов", "иэу") \
+                    or name.startswith("standards_base"):
                 print("  %-42s %5d" % (name, count))
             else:
                 total = (coverage["иэу"] if name.startswith("иэу:")

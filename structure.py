@@ -54,6 +54,7 @@ import os
 import re
 
 import apppaths
+import komplekts
 
 HERE = apppaths.app_dir()
 DEFAULT_PATH = os.path.join(HERE, "structure.json")
@@ -76,6 +77,14 @@ SUPPORTED_VERSIONS = (2, 3)
 _SERVICE_FIELDS = frozenset((ID_FIELD, NUMBER_FIELD, KITS_FIELD,
                              CABINETS_FIELD))
 
+#: Поля, в которых стандарт держит только ссылку на таблицу или рисунок
+#: («Таблица 5.2.14»): в окнах редактора скрываются, если данных нет.
+_REFERENCE_KEYS = frozenset((
+    "поясняющая схема подключения", "эскиз общего вида",
+    "структурно-функциональная схема", "схема электрическая принципиальная",
+    "параметры функций ИЭУ", "основные компоненты",
+))
+
 _document = None
 _document_path = None
 _error = None
@@ -87,10 +96,17 @@ def path():
 
 
 def load(force=False, path=None):
-    """Читает и кэширует structure.json; None, если файла нет/он испорчен."""
+    """Читает и кэширует structure.json; None, если файла нет/он испорчен.
+
+    Без аргументов возвращает уже загруженный документ, даже если он был
+    загружен из другого файла явным ``load(path=...)``: иначе ``cabinet()``
+    после такого вызова молча перечитывал бы файл по умолчанию.
+    """
     global _document, _document_path, _error, _index
-    target = path or DEFAULT_PATH
-    if _document is not None and not force and target == (_document_path or target):
+    target = path or _document_path or DEFAULT_PATH
+    if (_document is not None and not force
+            and os.path.abspath(target)
+            == os.path.abspath(_document_path or DEFAULT_PATH)):
         return _document
     try:
         with open(target, encoding="utf-8") as handle:
@@ -354,6 +370,11 @@ def _clean_row(row):
             if value not in (None, "", [], {})}
 
 
+def _informative(value):
+    """В значении есть данные, а не только ссылка на таблицу стандарта."""
+    return komplekts.is_informative(value)
+
+
 def _render_row(row, indent):
     """Строка таблицы в одну строку текста: «поле: значение | …»."""
     parts = ["%s: %s" % (name, value)
@@ -376,11 +397,13 @@ def _render_ied(record, indent, lines):
         lines.append(body)
 
 
-def format_record(record, indent="", show_tables=True):
+def format_record(record, indent="", show_tables=True, show_references=False):
     """Человекочитаемое представление записи (шкафа, комплекта, ИЭУ, КЭТ).
 
     Вложенные «комплекты»/«шкафы» не выводятся (их показывает вызывающий
-    код); вложенные «иэу» выводятся как подпункты.
+    код); вложенные «иэу» выводятся как подпункты. ``show_references=False``
+    скрывает поля, в которых стандарт держит только ссылку на таблицу или
+    рисунок («Таблица 5.2.14») — в окнах редактора они не нужны.
     """
     if not record:
         return ""
@@ -388,6 +411,9 @@ def format_record(record, indent="", show_tables=True):
     for name, value in record.items():
         if name in _SERVICE_FIELDS:
             continue
+        if name in _REFERENCE_KEYS and not show_references:
+            if not _informative(value):
+                continue
         if name == CONTAINERS_FIELD:            # обратная ссылка шкафа
             if value:
                 lines.append("%sвходит в КЭТ: %s" % (indent, ", ".join(value)))
