@@ -691,8 +691,10 @@ class CommentDialog(tk.Toplevel):
 
     def _center(self, parent):
         self.update_idletasks()
-        x = parent.winfo_rootx() + max(0, (parent.winfo_width() - self.winfo_width()) // 2)
-        y = parent.winfo_rooty() + max(0, (parent.winfo_height() - self.winfo_height()) // 3)
+        width = max(self.winfo_width(), self.winfo_reqwidth())
+        height = max(self.winfo_height(), self.winfo_reqheight())
+        x = parent.winfo_rootx() + max(0, (parent.winfo_width() - width) // 2)
+        y = parent.winfo_rooty() + max(0, (parent.winfo_height() - height) // 3)
         self.geometry("+{}+{}".format(x, y))
 
     def show(self):
@@ -774,8 +776,10 @@ class SsdOptionsDialog(tk.Toplevel):
 
     def _center(self, parent):
         self.update_idletasks()
-        x = parent.winfo_rootx() + max(0, (parent.winfo_width() - self.winfo_width()) // 2)
-        y = parent.winfo_rooty() + max(0, (parent.winfo_height() - self.winfo_height()) // 3)
+        width = max(self.winfo_width(), self.winfo_reqwidth())
+        height = max(self.winfo_height(), self.winfo_reqheight())
+        x = parent.winfo_rootx() + max(0, (parent.winfo_width() - width) // 2)
+        y = parent.winfo_rooty() + max(0, (parent.winfo_height() - height) // 3)
         self.geometry("+{}+{}".format(x, y))
 
     def show(self):
@@ -3119,6 +3123,7 @@ class CircuitEditor:
             tk.Button(buttons, text="Готово", width=10,
                       command=accept_details).pack(side=tk.RIGHT, padx=(0, 6))
             window.bind("<Escape>", lambda event: window.destroy())
+            self._place_window(window, dialog)
             window.grab_set()
 
         default_kind = "typical" if definition.get("standard_key") else "custom"
@@ -3382,13 +3387,25 @@ class CircuitEditor:
                  justify="left").pack(side=tk.LEFT, padx=12)
         return page
 
+    def _place_window(self, window, parent=None):
+        """Поставить окно на тот же монитор, что и родитель.
+
+        Координаты считаются от прямоугольника родителя. Без явной позиции
+        оконный менеджер ставит новое окно на основной монитор, даже если
+        редактор открыт на другом.
+        """
+        parent = parent or self.root
+        window.update_idletasks()
+        width = max(window.winfo_width(), window.winfo_reqwidth())
+        height = max(window.winfo_height(), window.winfo_reqheight())
+        x = parent.winfo_rootx() + max(
+            0, (parent.winfo_width() - width) // 2)
+        y = parent.winfo_rooty() + max(
+            0, (parent.winfo_height() - height) // 4)
+        window.geometry("+%d+%d" % (x, y))
+
     def _center_dialog(self, dialog):
-        dialog.update_idletasks()
-        width = dialog.winfo_width()
-        height = dialog.winfo_height()
-        x = self.root.winfo_rootx() + max(0, (self.root.winfo_width() - width) // 2)
-        y = self.root.winfo_rooty() + max(0, (self.root.winfo_height() - height) // 5)
-        dialog.geometry(f"+{x}+{y}")
+        self._place_window(dialog)
         try:
             dialog.grab_set()
         except tk.TclError:
@@ -8133,6 +8150,7 @@ class CircuitEditor:
                       side=tk.LEFT)
         tk.Button(footer, text="Закрыть", width=10,
                   command=window.destroy).pack(side=tk.RIGHT)
+        self._place_window(window)
 
     def show_standards_sync(self):
         """Окно сверки: каталог шкафов против standards_base."""
@@ -8286,6 +8304,7 @@ class CircuitEditor:
             slice(None), standards_sync.diff()), fill()))
         window.bind("<Escape>", lambda event: window.destroy())
         fill()
+        self._place_window(window)
 
     def _build_ribbon_reports(self, parent):
         page = tk.Frame(parent, bg="#f3f3f3")

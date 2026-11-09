@@ -115,6 +115,27 @@ import node_table as nt  # noqa: E402
 
 BASE_DEFAULT = os.path.join(ROOT, "СТО 56947007-33.040.20.279-2019.json")
 CHANGES_DEFAULT = os.path.join(ROOT, "changes_text")
+
+
+def _place_over_parent(window, parent):
+    """Поставить окно на тот же монитор, что и родитель.
+
+    Без явных координат оконный менеджер ставит новое окно на основной
+    монитор, даже если редактор открыт на другом.
+    """
+    try:
+        window.update_idletasks()
+        width = max(window.winfo_width(), window.winfo_reqwidth())
+        height = max(window.winfo_height(), window.winfo_reqheight())
+        x = parent.winfo_rootx() + max(
+            0, (parent.winfo_width() - width) // 2)
+        y = parent.winfo_rooty() + max(
+            0, (parent.winfo_height() - height) // 4)
+        window.geometry("+%d+%d" % (x, y))
+    except tk.TclError:
+        pass
+
+
 HEADER_ORDER = list(ce.HEADER.keys())
 VERBS = ["ЗАМЕНИТЬ", "ИЗМЕНИТЬ ПОЛЯ", "ДОБАВИТЬ", "ДУБЛИРОВАТЬ",
          "ОТМЕНИТЬ", "УДАЛИТЬ", "ПЕРЕИМЕНОВАТЬ"]
@@ -460,6 +481,7 @@ class NodeGridView(ttk.Frame):
         ttk.Button(bf, text="Отмена", command=dlg.destroy).pack(side="right")
         ttk.Button(bf, text="OK", command=ok).pack(side="right", padx=4)
         dlg.bind("<Escape>", lambda ev: dlg.destroy())
+        _place_over_parent(dlg, self.winfo_toplevel())
         dlg.grab_set()
         t.focus_set()
         self.wait_window(dlg)
@@ -633,6 +655,7 @@ class CopyEditor(tk.Toplevel):
             self.grid_view.load(self.value, self.base_path, label)
         self.protocol("WM_DELETE_WINDOW", self.close)
         self.transient(master)
+        _place_over_parent(self, master)
         self.lift()
 
     # ------------------------------------------------------------------
@@ -802,6 +825,7 @@ class NewStandardDialog(tk.Toplevel):
         if self.sources:
             self._select(0)
         self.protocol("WM_DELETE_WINDOW", self.destroy)
+        _place_over_parent(self, app.root)
         self.grab_set()
 
     # ------------------------------------------------------------------ UI
@@ -1867,6 +1891,7 @@ class App:
         ttk.Button(btns, text="Отмена", command=dlg.destroy).pack(side="left",
                                                                   padx=6)
         dlg.protocol("WM_DELETE_WINDOW", dlg.destroy)
+        _place_over_parent(dlg, self.root)
         dlg.grab_set()
         dlg.wait_window()
         return result["value"]
@@ -2418,6 +2443,7 @@ class App:
         t.pack(fill="both", expand=True, padx=6, pady=6)
         t.insert("1.0", (ce.__doc__ or "").strip())
         t.configure(state="disabled")
+        _place_over_parent(w, self.root)
 
     def show_about(self):
         messagebox.showinfo(

@@ -38,6 +38,28 @@ def _toplevel(app, title):
     return window
 
 
+def _place_on_parent(window, parent):
+    """Поставить окно на тот же монитор, где родитель.
+
+    Позиция считается от прямоугольника родителя: окно центрируется по нему,
+    а если оно больше — прижимается к левому верхнему углу. Без явных
+    координат оконный менеджер ставит новое окно на основной монитор, даже
+    если редактор открыт на другом.
+    """
+    try:
+        window.update_idletasks()
+        width, height = window.winfo_width(), window.winfo_height()
+        px, py = parent.winfo_rootx(), parent.winfo_rooty()
+        pw, ph = parent.winfo_width(), parent.winfo_height()
+        if width <= 1 or height <= 1 or pw <= 1 or ph <= 1:
+            return
+        x = px + max(0, (pw - width) // 2)
+        y = py + max(0, (ph - height) // 2)
+        window.geometry("+%d+%d" % (x, y))
+    except tk.TclError:
+        pass
+
+
 def _button(parent, text, command, width=0, side=tk.LEFT, padx=(0, 4)):
     button = tk.Button(parent, text=text, command=command,
                        font=ui_theme.font(9))
@@ -139,6 +161,7 @@ class StandardsWindow(tk.Toplevel):
         self._items = {}
         self._build()
         self.reload()
+        _place_on_parent(self, getattr(app, "root", app))
 
     # ------------------------------------------------------------------ UI
     def _build(self):
@@ -334,6 +357,7 @@ def open_editor(app, base_path=None):
         return None
     window = tk.Toplevel(parent)
     window.title("Редактор изменений стандарта")
+    window.transient(parent)
     try:
         editor = gui.App(window)
     except Exception as exc:                        # noqa: BLE001
@@ -344,6 +368,7 @@ def open_editor(app, base_path=None):
             % (exc, traceback.format_exc()[-1200:]), parent=parent)
         return None
     window._std_editor = editor
+    _place_on_parent(window, parent)
     target = base_path or se.default_base()
     if target and os.path.isfile(target):
         try:
@@ -399,6 +424,7 @@ class NewStandardWindow(tk.Toplevel):
             self.grab_set()
         except tk.TclError:
             pass
+        _place_on_parent(self, getattr(app, "root", app))
 
     # ------------------------------------------------------------------ UI
     def _label(self, item):
@@ -692,6 +718,7 @@ class AssemblyWindow(tk.Toplevel):
         self.var_out.set(os.path.join(se.ROOT, "output",
                                       "Редакция_с_изменениями.json"))
         self.refresh_changes()
+        _place_on_parent(self, getattr(app, "root", app))
 
     def _build(self):
         pad = {"padx": 10}
@@ -850,6 +877,7 @@ class DocxWindow(tk.Toplevel):
         self.var_toc = tk.BooleanVar(value=True)
         self._build()
         self.hint()
+        _place_on_parent(self, getattr(app, "root", app))
 
     def _build(self):
         pad = {"padx": 10}
