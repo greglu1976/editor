@@ -269,15 +269,22 @@ def test_import_missing():
 
 def test_change_rows():
     print("7. построчный перенос изменений")
-    item = next(item for item in standards_sync.diff()
-                if item["шифр"] == "ШЭТ 140.11-1")
+    # Шкаф с различием выбираем по данным, а не по шифру: после переноса
+    # значений в стандарт конкретный шкаф может перестать различаться.
+    pairs = [(item, change)
+             for item in standards_sync.diff()
+             for change in standards_sync.row_changes(item)
+             if change["поле"] == "применимость"
+             and change["можно_в_структуру"] and change["можно_в_стандарт"]]
+    check(bool(pairs), "есть поле «применимость» с различием в обе стороны")
+    if not pairs:
+        return
+    item, applicability = pairs[0]
     changes = standards_sync.row_changes(item)
     check(len(changes) == item["всего"],
           "строк изменений: %d = всего %d" % (len(changes), item["всего"]))
     check(all(change["группа"] in ("Поле", "Состав", "Таблица")
               for change in changes), "у каждой строки есть группа")
-    applicability = next(change for change in changes
-                         if change["поле"] == "применимость")
     check(applicability["можно_в_структуру"]
           and applicability["можно_в_стандарт"],
           "поле с обеими сторонами переносится в обе стороны")
@@ -300,26 +307,27 @@ def test_change_rows():
         cabs.save_cabinet = original_save
 
     tmp = tempfile.mkdtemp()
-    source = os.path.join(standards_base.STANDARDS_DIR,
-                          "СТО (проект) Раздел 4.16, т. 1, ред. 2.json")
-    shutil.copy(source, os.path.join(tmp, os.path.basename(source)))
+    code = item["шифр"]
+    card = standards_base.cabinet(code)
+    source = os.path.join(standards_base.STANDARDS_DIR, card["файл"])
+    shutil.copy(source, os.path.join(tmp, card["файл"]))
     original_dir = standards_base.STANDARDS_DIR
     standards_base.STANDARDS_DIR = tmp
     standards_base.reload()
     try:
         fresh = next(item for item in standards_sync.diff()
-                     if item["шифр"] == "ШЭТ 140.11-1")
+                     if item["шифр"] == code)
         change = next(change for change in standards_sync.row_changes(fresh)
                       if change["поле"] == "применимость")
         result = standards_sync.apply_change(fresh, change, "в стандарт")
         check(result["ok"] and not result.get("пересобрать"),
               "перенос в стандарт: %s" % result["текст"])
         after = next(item for item in standards_sync.diff()
-                     if item["шифр"] == "ШЭТ 140.11-1")
+                     if item["шифр"] == code)
         check(not [row for row in standards_sync.row_changes(after)
                    if row["поле"] == "применимость"],
               "после переноса строка различия исчезла")
-        check(standards_base.record(standards_base.cabinet("ШЭТ 140.11-1"))
+        check(standards_base.record(standards_base.cabinet(code))
               .get("применимость") == change["значение_структура"],
               "значение записано в JSON стандарта")
     finally:

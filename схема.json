@@ -1,0 +1,41 @@
+{
+    "elements": [
+        {
+            "id": "BR7116",
+            "type": "breaker",
+            "name": "Q1",
+            "x": 380,
+            "y": 170,
+            "rotation": 0
+        },
+        {
+            "id": "DI182f",
+            "type": "disconnector",
+            "name": "QS1",
+            "x": 500,
+            "y": 280,
+            "rotation": 0
+        }
+    ],
+    "connections": [
+        {
+            "node_from": "N_BR7116_bot",
+            "node_to": "N_DI182f_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "BR7116",
+            "element_to": "DI182f",
+            "points": [
+                [
+                    380.0,
+                    260.0
+                ]
+            ]
+        }
+    ],
+    "view": {
+        "zoom": 1.4861,
+        "offset_x": -179.91,
+        "offset_y": -104.8
+    }
+}

@@ -565,6 +565,22 @@ def _ri_analog(c):
     c.create_text(16, 8, text="~", font=("Arial", 11, "bold"), fill="#7b1fa2")
 
 
+def _ri_props(c):
+    """Свойства связи: три ползунка настроек."""
+    for y, knob in ((8, 12), (16, 22), (24, 16)):
+        c.create_line(5, y, 27, y, width=2, fill="#7b1fa2")
+        c.create_oval(knob - 3, y - 3, knob + 3, y + 3,
+                      fill="white", outline="#7b1fa2", width=2)
+
+
+def _ri_props(c):
+    """Свойства связи: три ползунка настроек."""
+    for y, knob in ((8, 12), (16, 22), (24, 16)):
+        c.create_line(5, y, 27, y, width=2, fill="#7b1fa2")
+        c.create_oval(knob - 3, y - 3, knob + 3, y + 3,
+                      fill="white", outline="#7b1fa2", width=2)
+
+
 def _ri_protlink(c):
     c.create_line(6, 26, 24, 8, width=2, arrow=tk.LAST)
     c.create_oval(22, 4, 28, 10, outline="black", width=1)
@@ -867,6 +883,11 @@ class CircuitEditor:
 
         self.elements = {}    
         self.connections = [] 
+        # Выбранная связь (dict из self.connections) и перетаскиваемая
+        # опорная точка: (связь, номер точки в link["points"]).
+        self.selected_connection = None
+        self._dragging_point = None
+        self._point_drag_changed = False
         
         # --- ВЫДЕЛЕНИЕ И БУФЕР ОБМЕНА ---
         self.current_tool = "select"
@@ -884,6 +905,10 @@ class CircuitEditor:
         # Перетаскивание группы
         self.dragging_group = False
         self.drag_offsets = {}
+        # Начальные позиции элементов и исходные изломы их связей: маршрут
+        # сдвигается вместе с элементом, а не остаётся на месте
+        self._drag_start_positions = {}
+        self._drag_route_points = {}
         # Состояние до начала перетаскивания/ресайза: пишем в историю,
         # только если элемент действительно сдвинулся
         self._pre_change_state = None
@@ -943,6 +968,10 @@ class CircuitEditor:
         self.protection_links = []
         self.analog_links = []          # [{"from": "id#комплект", "to": ref}]
         self.show_analog = True         # линии аналоговых цепей и порты «AI»
+        # Выбранная аналоговая связь (dict из self.analog_links) и экранные
+        # прямоугольники её подписей — по ним двойной клик открывает свойства
+        self.selected_analog = None
+        self._analog_label_boxes = []
         self._analog_start = None       # ("komplekt", id, index) | ("equipment", id, None)
         self.show_protection = True     # стрелки комплект→узел и ромбы-узлы
         self.show_cabinets = True       # сами шкафы
@@ -1012,6 +1041,8 @@ class CircuitEditor:
                               "на вкладке «Главная», панель «Инструменты».\n"
                               "Комментарий к чертежу — панель «Аннотации».\n"
                               "Средняя кнопка мыши — панорама.\n"
+                              "Клик по связи — выбор, двойной клик —\n"
+                              "излом, Delete — удалить.\n"
                               "Ctrl+F — поиск, R — вращение,\n"
                               "Esc — снять выделение и режим «Выбрать».",
                  bg=ui_theme.PALETTE, fg=ui_theme.TEXT_MUTED,
@@ -5335,6 +5366,49 @@ class CircuitEditor:
                 return point(index)
         return (element.x, element.y)
 
+    # ================= ОПОРНЫЕ ТОЧКИ АНАЛОГОВЫХ СВЯЗЕЙ =================
+    # Как и у проводов, геометрия аналоговой цепи — необязательное поле
+    # "points": [[x, y], ...] между концами. Связность и направление
+    # (from → to) по-прежнему задаются только ссылками на комплект/ТТ/ТН,
+    # поэтому файлы без "points" остаются прямыми линиями.
+
+    def _analog_route(self, link):
+        """Мировые точки аналоговой связи: конец «from» → изломы → «to»."""
+        start = self._analog_ref_point((link or {}).get("from"))
+        end = self._analog_ref_point((link or {}).get("to"))
+        if start is None or end is None:
+            return []
+        route = [tuple(start)]
+        route.extend((point[0], point[1])
+                     for point in self._clean_points(link.get("points")))
+        route.append(tuple(end))
+        return route
+
+    @staticmethod
+    def _path_midpoint(points):
+        """Точка на половине длины ломаной: (x, y, ux, uy) или None."""
+        segments = []
+        total = 0.0
+        for start, end in zip(points, points[1:]):
+            length = math.hypot(end[0] - start[0], end[1] - start[1])
+            segments.append((start, end, length))
+            total += length
+        if total < 1e-6:
+            return None
+        half = total / 2.0
+        passed = 0.0
+        for start, end, length in segments:
+            if length < 1e-9:
+                continue
+            if passed + length >= half:
+                t = (half - passed) / length
+                return (start[0] + (end[0] - start[0]) * t,
+                        start[1] + (end[1] - start[1]) * t,
+                        (end[0] - start[0]) / length,
+                        (end[1] - start[1]) / length)
+            passed += length
+        return None
+
     def _analog_ports(self):
         """Порты аналоговых цепей всех комплектов: (шкаф, номер, точка)."""
         for element in self.elements.values():
@@ -5368,24 +5442,60 @@ class CircuitEditor:
         return None
 
     def _analog_link_at(self, sx, sy):
-        """Связь аналоговых цепей под курсором (для удаления кликом)."""
+        """Связь аналоговых цепей под курсором (для выбора и удаления)."""
         if not self.show_analog:
             return None
         tolerance = max(6.0, 7.0 * self.zoom)
         best = None
         best_distance = None
         for link in self.analog_links:
-            start = self._analog_ref_point(link.get("from"))
-            end = self._analog_ref_point(link.get("to"))
-            if start is None or end is None:
+            points = self._analog_route(link)
+            if len(points) < 2:
                 continue
-            x1, y1 = self.world_to_screen(*start)
-            x2, y2 = self.world_to_screen(*end)
-            distance = self._point_segment_distance(sx, sy, x1, y1, x2, y2)
-            if distance <= tolerance and (best_distance is None
-                                          or distance < best_distance):
-                best, best_distance = link, distance
+            for index in range(len(points) - 1):
+                x1, y1 = self.world_to_screen(*points[index])
+                x2, y2 = self.world_to_screen(*points[index + 1])
+                distance = self._point_segment_distance(sx, sy, x1, y1, x2, y2)
+                if distance <= tolerance and (best_distance is None
+                                              or distance < best_distance):
+                    best, best_distance = link, distance
         return best
+
+    def _analog_segment_at(self, sx, sy):
+        """Сегмент аналоговой связи: (связь, номер) — куда вставить излом."""
+        if not self.show_analog:
+            return None
+        tolerance = max(4.0, 6.0 * self.zoom)
+        best, best_distance = None, tolerance
+        for link in self.analog_links:
+            points = self._analog_route(link)
+            for index in range(len(points) - 1):
+                x1, y1 = self.world_to_screen(*points[index])
+                x2, y2 = self.world_to_screen(*points[index + 1])
+                distance = self._point_segment_distance(sx, sy, x1, y1, x2, y2)
+                if distance <= best_distance:
+                    best, best_distance = (link, index), distance
+        return best
+
+    def _analog_point_at(self, sx, sy):
+        """Маркер излома выбранной аналоговой связи: (связь, номер)."""
+        link = self.selected_analog
+        if link is None or link not in self.analog_links:
+            return None
+        radius = max(5.0, 6.0 * self.zoom)
+        for index, point in enumerate(link.get("points") or []):
+            px, py = self.world_to_screen(point[0], point[1])
+            if math.hypot(sx - px, sy - py) <= radius:
+                return (link, index)
+        return None
+
+    def _analog_label_at(self, sx, sy):
+        """Связь, подпись цепей которой под курсором (двойной клик — свойства)."""
+        for link, box in self._analog_label_boxes:
+            if box and box[0] - 2 <= sx <= box[2] + 2 \
+                    and box[1] - 2 <= sy <= box[3] + 2:
+                return link
+        return None
 
     def _on_analog_click(self, event):
         """Клик в режиме «Аналоговые цепи»: комплект ↔ ТТ/ТН или комплект."""
@@ -5512,6 +5622,7 @@ class CircuitEditor:
 
     def _draw_analog_links(self):
         """Порты «AI», фиолетовые связи со стрелкой и подписями цепей."""
+        self._analog_label_boxes = []
         if not self.show_analog:
             return
         color = self.ANALOG_COLOR
@@ -5547,48 +5658,66 @@ class CircuitEditor:
         font_size = max(1, int(6 * self.zoom))
         seen_pairs = {}
         for link in self.analog_links:
-            start = self._analog_ref_point(link.get("from"))
-            end = self._analog_ref_point(link.get("to"))
-            if start is None or end is None:
+            route = self._analog_route(link)
+            if len(route) < 2:
                 continue
-            x1, y1 = self.world_to_screen(*start)
-            x2, y2 = self.world_to_screen(*end)
-            distance = math.hypot(x2 - x1, y2 - y1)
-            if distance < 1e-6:
-                continue
-            # между одними узлами может быть несколько связей —
-            # разводим их параллельно, чтобы все были видны
+            points = [self.world_to_screen(*point) for point in route]
+            # между одними узлами может быть несколько прямых связей —
+            # разводим их параллельно, чтобы все были видны; у ломаной
+            # геометрию задал пользователь, её не сдвигаем
             pair = tuple(sorted((str(link.get("from")), str(link.get("to")))))
             index = seen_pairs.get(pair, 0)
             seen_pairs[pair] = index + 1
-            ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
-            if index:
+            if index and len(points) == 2:
+                x1, y1 = points[0]
+                x2, y2 = points[1]
+                distance = math.hypot(x2 - x1, y2 - y1)
+                if distance < 1e-6:
+                    continue
+                ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
                 side = 1 if index % 2 else -1
                 step = 4.5 * self.zoom * ((index + 1) // 2) * side
-                x1 += -uy * step
-                y1 += ux * step
-                x2 += -uy * step
-                y2 += ux * step
-            line_x = x2 - ux * arrow_size * 0.9
-            line_y = y2 - uy * arrow_size * 0.9
-            self.canvas.create_line(x1, y1, line_x, line_y, fill=color,
-                                    width=width, dash=(6, 3),
+                points = [(x1 - uy * step, y1 + ux * step),
+                          (x2 - uy * step, y2 + ux * step)]
+            selected = link is self.selected_analog
+            line_width = width + (max(1, int(1.0 * self.zoom))
+                                  if selected else 0)
+
+            # последний сегмент укорачивается под острие стрелки
+            last_x, last_y = points[-1]
+            prev_x, prev_y = points[-2]
+            tail = math.hypot(last_x - prev_x, last_y - prev_y)
+            if tail < 1e-6:
+                continue
+            ux, uy = (last_x - prev_x) / tail, (last_y - prev_y) / tail
+            coords = []
+            for x, y in points[:-1]:
+                coords.extend((x, y))
+            coords.extend((last_x - ux * arrow_size * 0.9,
+                           last_y - uy * arrow_size * 0.9))
+            self.canvas.create_line(*coords, fill=color, width=line_width,
+                                    dash=(6, 3), joinstyle=tk.MITER,
                                     tags="analog_link")
-            self._draw_arrowhead(x1, y1, x2, y2, color, arrow_size,
-                                 "analog_link")
-            self.canvas.create_oval(x1 - dot, y1 - dot, x1 + dot, y1 + dot,
+            self._draw_arrowhead(prev_x, prev_y, last_x, last_y, color,
+                                 arrow_size, "analog_link")
+            start_x, start_y = points[0]
+            self.canvas.create_oval(start_x - dot, start_y - dot,
+                                    start_x + dot, start_y + dot,
                                     fill=color, outline="white",
                                     tags="analog_link")
             signals = self._analog_signals_text(link)
             if signals:
-                mid_x = (x1 + x2) / 2.0
-                mid_y = (y1 + y2) / 2.0
-                self.canvas.create_text(mid_x - uy * 11 * self.zoom,
-                                        mid_y + ux * 11 * self.zoom,
-                                        text=signals, fill=color,
-                                        font=("Arial", font_size),
-                                        anchor="center",
-                                        tags="analog_label")
+                middle = self._path_midpoint(points)
+                if middle is not None:
+                    mid_x, mid_y, mx, my = middle
+                    item = self.canvas.create_text(
+                        mid_x - my * 11 * self.zoom,
+                        mid_y + mx * 11 * self.zoom,
+                        text=signals, fill=color,
+                        font=("Arial", font_size),
+                        anchor="center", tags="analog_label")
+                    self._analog_label_boxes.append(
+                        (link, self.canvas.bbox(item)))
 
         # 3. Подсветка начатой связи
         if self._analog_start is not None:
@@ -5602,6 +5731,20 @@ class CircuitEditor:
                 self.canvas.create_oval(px - r, py - r, px + r, py + r,
                                         outline="red", width=2,
                                         tags="analog_start")
+
+    def _draw_analog_points(self):
+        """Квадратные маркеры изломов выбранной аналоговой связи."""
+        link = self.selected_analog
+        if link is None or link not in self.analog_links:
+            return
+        radius = max(3.0, 4.0 * self.zoom)
+        for point in link.get("points") or []:
+            px, py = self.world_to_screen(point[0], point[1])
+            self.canvas.create_rectangle(
+                px - radius, py - radius, px + radius, py + radius,
+                fill="white", outline=self.ANALOG_COLOR,
+                width=max(1, int(1.5 * self.zoom)),
+                tags="analog_point")
 
     def _hover_analog(self, event):
         """Подсветка порта/ТТ-ТН и «резиновая» линия при создании связи."""
@@ -5654,6 +5797,17 @@ class CircuitEditor:
         title = getattr(element, "title", "") or ""
         return "{} ({}{})".format(element.name, kind,
                                   ", " + title if title and title != kind else "")
+
+    def edit_selected_analog(self):
+        """Свойства выбранной аналоговой связи (кнопка «Свойства цепи»)."""
+        link = self.selected_analog
+        if link is None or link not in self.analog_links:
+            messagebox.showinfo(
+                "Аналоговые цепи",
+                "Выберите связь аналоговых цепей на схеме инструментом "
+                "«Выбрать» (клик по линии), затем откройте свойства.")
+            return
+        self.edit_analog_link(link)
 
     def edit_analog_link(self, link):
         """Свойства связи аналоговых цепей: цепи напряжения и тока."""
@@ -5767,6 +5921,18 @@ class CircuitEditor:
         link["current"] = current
         self.redraw_all()
 
+    def _analog_record(self, link):
+        """Запись аналоговой связи для JSON: ссылки, цепи и изломы."""
+        record = {"from": link.get("from", ""), "to": link.get("to", "")}
+        for field in ("voltage", "current"):
+            value = link.get(field)
+            if isinstance(value, str) and value.strip():
+                record[field] = value.strip()
+        points = self._clean_points(link.get("points"))
+        if points:
+            record["points"] = points
+        return record
+
     def _build_analog_links(self, links, id_mapping=None):
         """Проверяет и (при вставке) переназначает связи аналоговых цепей."""
         result = []
@@ -5811,6 +5977,9 @@ class CircuitEditor:
                 value = link.get(field)
                 if isinstance(value, str) and value.strip():
                     entry[field] = value.strip()
+            points = self._clean_points(link.get("points"))
+            if points:
+                entry["points"] = points
             result.append(entry)
         return result
 
@@ -5940,6 +6109,8 @@ class CircuitEditor:
         self.link_start = None
         self.dragging_group = False
         self.drag_offsets = {}
+        self._drag_start_positions = {}
+        self._drag_route_points = {}
         self.resizing_element = None
         self.resize_handle = None
         self.selection_start = None
@@ -5949,6 +6120,11 @@ class CircuitEditor:
         self._resize_changed = False
         self._dragging_label = None
         self._label_drag_changed = False
+        self.selected_connection = None
+        self.selected_analog = None
+        self._analog_label_boxes = []
+        self._dragging_point = None
+        self._point_drag_changed = False
         self._protection_start = None
         self._bind_start = None
         self._analog_start = None
@@ -6510,7 +6686,7 @@ class CircuitEditor:
             first = self._split_ref(link.get("from"))[0]
             second = self._split_ref(link.get("to"))[0]
             if first in selected_set and second in selected_set:
-                self.clipboard_analog.append(dict(link))
+                self.clipboard_analog.append(copy.deepcopy(link))
 
     def paste_selection(self, event=None):
         if self.clipboard is None:
@@ -6598,7 +6774,13 @@ class CircuitEditor:
                     port_to = None
                 
                 if port_from and port_to:
-                    self.create_connection(new_from, new_to, port_from, port_to)
+                    created = self.create_connection(
+                        new_from, new_to, port_from, port_to)
+                    if created is not None and conn.get("points"):
+                        created["points"] = [
+                            [round(point[0] + offset_x, 1),
+                             round(point[1] + offset_y, 1)]
+                            for point in self._clean_points(conn["points"])]
 
         # Привязка шкафов внутри скопированного контейнера — по новым id
         for container in pasted_containers:
@@ -6609,9 +6791,15 @@ class CircuitEditor:
         self._sync_containers()
 
         # Аналоговые цепи внутри вставленного фрагмента
-        self.analog_links.extend(
-            self._build_analog_links(getattr(self, "clipboard_analog", []),
-                                     id_mapping))
+        pasted_analog = self._build_analog_links(
+            getattr(self, "clipboard_analog", []), id_mapping)
+        for link in pasted_analog:
+            if link.get("points"):
+                link["points"] = [
+                    [round(point[0] + offset_x, 1),
+                     round(point[1] + offset_y, 1)]
+                    for point in link["points"]]
+        self.analog_links.extend(pasted_analog)
 
         self.selected_elements = new_selected
         self.redraw_all()
@@ -6631,16 +6819,22 @@ class CircuitEditor:
         for c in self.connections:
             if c["from"] in self.elements and c["to"] in self.elements:
                 valid_connections.append(c)
-                el1 = self.elements[c["from"]]
-                el2 = self.elements[c["to"]]
-                
-                p1_data = el1.ports.get(c.get("port_from"), {"x": el1.x, "y": el1.y})
-                p2_data = el2.ports.get(c.get("port_to"), {"x": el2.x, "y": el2.y})
-                
-                x1, y1 = self.world_to_screen(p1_data["x"], p1_data["y"])
-                x2, y2 = self.world_to_screen(p2_data["x"], p2_data["y"])
-                c["canvas_id"] = self.canvas.create_line(x1, y1, x2, y2, width=max(1, int(2*self.zoom)), fill="black")
+                points = self._connection_points(c)
+                if len(points) < 2:
+                    continue
+                coords = []
+                for x, y in points:
+                    coords.extend(self.world_to_screen(x, y))
+                selected = c is self.selected_connection
+                c["canvas_id"] = self.canvas.create_line(
+                    *coords,
+                    width=max(1, int((2.5 if selected else 2) * self.zoom)),
+                    fill="#1565c0" if selected else "black",
+                    joinstyle=tk.MITER, capstyle=tk.ROUND)
         self.connections = valid_connections
+        if self.selected_connection is not None \
+                and self.selected_connection not in valid_connections:
+            self.selected_connection = None
                 
         # 2. Контейнеры КЭТ и линии привязки слотов к шкафам
         if self.show_containers:
@@ -6661,7 +6855,10 @@ class CircuitEditor:
             if el.type == "node" and not self.show_all_nodes:
                 continue
             el.draw(self.canvas, self.zoom, self.offset_x, self.offset_y)
-            
+
+        # 2б. Маркеры изломов выбранной связи — поверх элементов
+        self._draw_connection_points()
+
         # 3. Маркеры шины
         for el_id in self.selected_elements:
             if el_id in self.elements:
@@ -6709,6 +6906,10 @@ class CircuitEditor:
 
         # 4б. Аналоговые цепи: комплект → ТТ/ТН (или комплект), фиолетовым
         self._draw_analog_links()
+        if self.selected_analog is not None \
+                and self.selected_analog not in self.analog_links:
+            self.selected_analog = None
+        self._draw_analog_points()
 
         # 5. Рамка выделения
         highlight_color = "wheat4"
@@ -6897,6 +7098,22 @@ class CircuitEditor:
 
     def delete_selected(self, event=None):
         """Удаляет выделенные элементы (и все их связи) одним действием."""
+        if self.selected_connection is not None:
+            connection = self.selected_connection
+            self.selected_connection = None
+            if connection in self.connections:
+                self._push_undo()
+                self.connections.remove(connection)
+            self.redraw_all()
+            return
+        if self.selected_analog is not None:
+            link = self.selected_analog
+            self.selected_analog = None
+            if link in self.analog_links:
+                self._push_undo()
+                self.analog_links.remove(link)
+            self.redraw_all()
+            return
         if not self.selected_elements:
             # Нет элементов — возможно, выделена записка комментария
             comment = self._comment_by_id(self.selected_comment)
@@ -7150,6 +7367,16 @@ class CircuitEditor:
             self._canvas_tooltip = None
         self._canvas_tooltip_target = None
 
+    # ================= ОПОРНЫЕ ТОЧКИ СВЯЗЕЙ (ПОЛИЛИНИЯ) =================
+    # Геометрия провода хранится необязательным полем "points": [[x, y], ...]
+    # в мировых координатах — только изломы МЕЖДУ портами. Топология связи
+    # по-прежнему определяется исключительно element_from/port_from и
+    # element_to/port_to, поэтому:
+    #   * файлы без "points" читаются как прямая линия (обратная совместимость);
+    #   * изломы не меняют связность и не влияют на экспорт SCD/ИИ-разбор;
+    #   * пустой список не пишется в JSON — поле появляется только при правке.
+    # Маркеры рисуются только у выбранной связи, чтобы не заслонять чертёж.
+
     @staticmethod
     def _point_segment_distance(px, py, x1, y1, x2, y2):
         dx, dy = x2 - x1, y2 - y1
@@ -7159,29 +7386,127 @@ class CircuitEditor:
         t = max(0.0, min(1.0, t))
         return math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
 
+    @staticmethod
+    def _clean_points(value):
+        """Опорные точки связи: [[x, y], ...]; битые пары отбрасываются."""
+        result = []
+        if not isinstance(value, (list, tuple)):
+            return result
+        for item in value:
+            if not isinstance(item, (list, tuple)) or len(item) != 2:
+                continue
+            try:
+                x, y = float(item[0]), float(item[1])
+            except (TypeError, ValueError):
+                continue
+            result.append([round(x, 1), round(y, 1)])
+        return result
+
+    def _connection_points(self, connection):
+        """Мировые точки маршрута связи: порт → изломы → порт."""
+        first = self.elements.get((connection or {}).get("from"))
+        second = self.elements.get((connection or {}).get("to"))
+        if first is None or second is None:
+            return []
+        port1 = first.ports.get(connection.get("port_from")) \
+            or {"x": first.x, "y": first.y}
+        port2 = second.ports.get(connection.get("port_to")) \
+            or {"x": second.x, "y": second.y}
+        points = [(port1["x"], port1["y"])]
+        points.extend((point[0], point[1])
+                      for point in connection.get("points") or [])
+        points.append((port2["x"], port2["y"]))
+        return points
+
+    def _remember_drag_routes(self):
+        """Запоминает изломы связей, привязанных к выделенным элементам."""
+        self._drag_start_positions = {
+            el_id: (self.elements[el_id].x, self.elements[el_id].y)
+            for el_id in self.selected_elements if el_id in self.elements}
+        self._drag_route_points = {}
+        # Провода и аналоговые цепи: у аналоговых конец — ссылка «id#комплект»
+        for link in list(self.connections) + list(self.analog_links):
+            if not link.get("points"):
+                continue
+            anchors = (self._split_ref(link.get("from"))[0],
+                       self._split_ref(link.get("to"))[0])
+            if any(anchor in self.selected_elements for anchor in anchors):
+                self._drag_route_points[id(link)] = (
+                    link,
+                    [list(point) for point in link["points"]],
+                    anchors)
+
+    def _shift_drag_routes(self):
+        """Сдвигает изломы вместе с элементом-источником связи."""
+        for link, original, anchors in self._drag_route_points.values():
+            anchor = next((item for item in anchors
+                           if item in self._drag_start_positions), None)
+            if anchor is None:
+                continue
+            element = self.elements.get(anchor)
+            if element is None:
+                continue
+            dx = element.x - self._drag_start_positions[anchor][0]
+            dy = element.y - self._drag_start_positions[anchor][1]
+            link["points"] = [
+                [round(point[0] + dx, 1), round(point[1] + dy, 1)]
+                for point in original]
+
+    def _connection_point_at(self, sx, sy):
+        """Маркер излома выбранной связи под курсором: (связь, номер)."""
+        connection = self.selected_connection
+        if connection is None or connection not in self.connections:
+            return None
+        radius = max(5.0, 6.0 * self.zoom)
+        for index, point in enumerate(connection.get("points") or []):
+            px, py = self.world_to_screen(point[0], point[1])
+            if math.hypot(sx - px, sy - py) <= radius:
+                return (connection, index)
+        return None
+
+    def _connection_segment_at(self, sx, sy):
+        """Сегмент связи под курсором: (связь, номер сегмента) или None.
+
+        Номер сегмента — индекс, перед которым вставляется новая точка:
+        сегмент 0 идёт от порта «from» к первой точке.
+        """
+        tolerance = max(4.0, 6.0 * self.zoom)
+        best, best_dist = None, tolerance
+        for connection in self.connections:
+            points = self._connection_points(connection)
+            for index in range(len(points) - 1):
+                x1, y1 = self.world_to_screen(*points[index])
+                x2, y2 = self.world_to_screen(*points[index + 1])
+                dist = self._point_segment_distance(sx, sy, x1, y1, x2, y2)
+                if dist <= best_dist:
+                    best, best_dist = (connection, index), dist
+        return best
+
+    def _draw_connection_points(self):
+        """Квадратные маркеры изломов выбранной связи."""
+        connection = self.selected_connection
+        if connection is None or connection not in self.connections:
+            return
+        points = connection.get("points") or []
+        if not points:
+            return
+        radius = max(3.0, 4.0 * self.zoom)
+        for point in points:
+            px, py = self.world_to_screen(point[0], point[1])
+            self.canvas.create_rectangle(
+                px - radius, py - radius, px + radius, py + radius,
+                fill="white", outline="#1565c0",
+                width=max(1, int(1.5 * self.zoom)),
+                tags="connection_point")
+
     def _connection_at(self, sx, sy):
         """Связь, проходящая в пределах нескольких пикселей от курсора.
 
         Раньше здесь использовался canvas.find_closest без порога: любой клик
         «где-то рядом» с проводом удалял связь. Теперь попадание строго по линии.
         """
-        tolerance = max(4.0, 6.0 * self.zoom)
-        best, best_dist = None, tolerance
-        for c in self.connections:
-            el1 = self.elements.get(c.get("from"))
-            el2 = self.elements.get(c.get("to"))
-            if not el1 or not el2:
-                continue
-            p1 = el1.ports.get(c.get("port_from"))
-            p2 = el2.ports.get(c.get("port_to"))
-            if not p1 or not p2:
-                continue
-            x1, y1 = self.world_to_screen(p1["x"], p1["y"])
-            x2, y2 = self.world_to_screen(p2["x"], p2["y"])
-            dist = self._point_segment_distance(sx, sy, x1, y1, x2, y2)
-            if dist <= best_dist:
-                best, best_dist = c, dist
-        return best
+        hit = self._connection_segment_at(sx, sy)
+        return hit[0] if hit else None
 
     def on_left_click(self, event):
         self.canvas.focus_set()
@@ -7196,6 +7521,21 @@ class CircuitEditor:
 
         # ОБРАБОТКА ИНСТРУМЕНТА SELECT
         if self.current_tool == "select":
+
+            # А0) МАРКЕР ИЗЛОМА ВЫБРАННОЙ СВЯЗИ — начинаем перетаскивание
+            point_hit = (self._connection_point_at(event.x, event.y)
+                         or self._analog_point_at(event.x, event.y))
+            if point_hit is not None:
+                connection, index = point_hit
+                self._dragging_point = (connection, index)
+                self._point_drag_changed = False
+                self._pre_change_state = self._capture_state()
+                self.canvas.config(cursor="fleur")
+                return
+
+            # выбор связи снимается кликом мимо неё
+            self.selected_connection = None
+            self.selected_analog = None
 
             # А) ЗАПИСКА КОММЕНТАРИЯ — перетаскивается как отдельный объект
             comment = self._comment_at(event.x, event.y)
@@ -7239,13 +7579,33 @@ class CircuitEditor:
 
             clicked_el = self._element_at(event.x, event.y)
 
-            # В) УДАЛЕНИЕ СВЯЗИ — только при точном попадании в линию
-            #    и только если под курсором нет элемента
+            # В) СВЯЗЬ: клик — выбрать, Ctrl+клик — удалить
+            #    (только при точном попадании в линию и не по элементу)
             if clicked_el is None:
-                conn_to_delete = self._connection_at(event.x, event.y)
-                if conn_to_delete is not None:
-                    self._push_undo()
-                    self.connections.remove(conn_to_delete)
+                connection = self._connection_at(event.x, event.y)
+                if connection is not None:
+                    if self._ctrl_click(event):
+                        self._push_undo()
+                        self.connections.remove(connection)
+                        if self.selected_connection is connection:
+                            self.selected_connection = None
+                    else:
+                        self.selected_connection = connection
+                        self.selected_elements = []
+                    self.redraw_all()
+                    return
+
+                # Аналоговая связь: клик — выбрать, Ctrl+клик — удалить
+                link = self._analog_link_at(event.x, event.y)
+                if link is not None:
+                    if self._ctrl_click(event):
+                        self._push_undo()
+                        self.analog_links.remove(link)
+                        if self.selected_analog is link:
+                            self.selected_analog = None
+                    else:
+                        self.selected_analog = link
+                        self.selected_elements = []
                     self.redraw_all()
                     return
 
@@ -7271,6 +7631,7 @@ class CircuitEditor:
                 for el_id in self.selected_elements:
                     el = self.elements[el_id]
                     self.drag_offsets[el_id] = (wx - el.x, wy - el.y)
+                self._remember_drag_routes()
 
                 self.redraw_all()
                 return
@@ -7366,7 +7727,63 @@ class CircuitEditor:
             self.edit_comment(comment)
             return
 
-        # Двойной клик по линии аналоговых цепей — свойства связи (U/I)
+        # Двойной клик по маркеру — удалить излом выбранной связи
+        point_hit = (self._connection_point_at(event.x, event.y)
+                     or self._analog_point_at(event.x, event.y))
+        if point_hit is not None:
+            connection, index = point_hit
+            points = connection.get("points") or []
+            if 0 <= index < len(points):
+                self._push_undo()
+                del points[index]
+                if not points:
+                    connection.pop("points", None)
+                self.redraw_all()
+            return
+
+        # Двойной клик по подписи аналоговой цепи — свойства связи (U/I)
+        link = self._analog_label_at(event.x, event.y)
+        if link is not None:
+            self.selected_analog = link
+            self.edit_analog_link(link)
+            return
+
+        # Двойной клик по проводу — вставить опорную точку в этом месте
+        segment = self._connection_segment_at(event.x, event.y)
+        if segment is not None:
+            connection, index = segment
+            wx, wy = self.screen_to_world(event.x, event.y)
+            wx, wy = self.snap(wx, wy)
+            self._push_undo()
+            self.selected_connection = connection
+            connection.setdefault("points", []).insert(
+                index, [round(wx, 1), round(wy, 1)])
+            self.redraw_all()
+            return
+
+        # В инструменте «Аналог. цепи» двойной клик по линии — свойства
+        if self.current_tool == "analog":
+            link = self._analog_link_at(event.x, event.y)
+            if link is not None:
+                self.selected_analog = link
+                self.edit_analog_link(link)
+                return
+
+        # Двойной клик по линии аналоговой цепи — вставить опорную точку
+        segment = self._analog_segment_at(event.x, event.y)
+        if segment is not None:
+            link, index = segment
+            wx, wy = self.screen_to_world(event.x, event.y)
+            wx, wy = self.snap(wx, wy)
+            self._push_undo()
+            self.selected_analog = link
+            self.selected_connection = None
+            link.setdefault("points", []).insert(
+                index, [round(wx, 1), round(wy, 1)])
+            self.redraw_all()
+            return
+
+        # Остальные точки связи (например, острие стрелки) — свойства
         link = self._analog_link_at(event.x, event.y)
         if link is not None:
             self.edit_analog_link(link)
@@ -7410,6 +7827,19 @@ class CircuitEditor:
         # Перекрестие должно двигаться и при перетаскивании: события Motion
         # во время нажатой кнопки не приходят, только B1-Motion.
         self._draw_crosshair(event)
+        # ПЕРЕТАСКИВАНИЕ ОПОРНОЙ ТОЧКИ СВЯЗИ
+        if self._dragging_point is not None:
+            connection, index = self._dragging_point
+            points = connection.get("points") or []
+            if 0 <= index < len(points):
+                wx, wy = self.screen_to_world(event.x, event.y)
+                wx, wy = self.snap(wx, wy)
+                new_point = [round(wx, 1), round(wy, 1)]
+                if points[index] != new_point:
+                    points[index] = new_point
+                    self._point_drag_changed = True
+                    self.redraw_all()
+            return
         # ПЕРЕТАСКИВАНИЕ ЗАПИСКИ КОММЕНТАРИЯ
         if self._dragging_comment is not None:
             comment = self._comment_by_id(self._dragging_comment)
@@ -7458,6 +7888,8 @@ class CircuitEditor:
                         el.generate_ports()
                         self._drag_changed = True
 
+            if self._drag_route_points:
+                self._shift_drag_routes()
             self.redraw_all()
             return
 
@@ -7496,6 +7928,19 @@ class CircuitEditor:
             return
 
     def on_release(self, event):
+        # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ОПОРНОЙ ТОЧКИ СВЯЗИ
+        if self._dragging_point is not None:
+            if self._point_drag_changed:
+                self.undo_manager.push_state(self._pre_change_state)
+                self._mark_modified()
+            self._dragging_point = None
+            self._point_drag_changed = False
+            self._pre_change_state = None
+            self.canvas.config(cursor="arrow" if self.current_tool == "select"
+                               else "crosshair")
+            self.redraw_all()
+            return
+
         # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ЗАПИСКИ
         if self._dragging_comment is not None:
             if self._comment_drag_changed:
@@ -7556,6 +8001,8 @@ class CircuitEditor:
             self._drag_changed = False
             self._pre_change_state = None
             self.drag_offsets = {}
+            self._drag_start_positions = {}
+            self._drag_route_points = {}
             return
 
         # ЗАВЕРШЕНИЕ ИЗМЕНЕНИЯ РАЗМЕРА ШИНЫ
@@ -7625,12 +8072,14 @@ class CircuitEditor:
     def create_connection(self, id1, id2, port1, port2):
         for c in self.connections:
             if (c["from"] == id1 and c["to"] == id2 and c.get("port_from") == port1 and c.get("port_to") == port2):
-                return
-        self.connections.append({
+                return c
+        connection = {
             "from": id1, "to": id2, 
             "port_from": port1, "port_to": port2, 
             "canvas_id": None
-        })
+        }
+        self.connections.append(connection)
+        return connection
 
     def clear_all(self):
         if messagebox.askyesno("Очистить", "Удалить всю схему?"):
@@ -10357,18 +10806,13 @@ class CircuitEditor:
 
         # 2. Провода между выводами элементов — под символами
         for connection in self.connections:
-            first = self.elements.get(connection.get("from"))
-            second = self.elements.get(connection.get("to"))
-            if first is None or second is None:
+            points = self._connection_points(connection)
+            if len(points) < 2:
                 continue
-            port1 = first.ports.get(connection.get("port_from"))
-            port2 = second.ports.get(connection.get("port_to"))
-            if port1 is None:
-                port1 = {"x": first.x, "y": first.y}
-            if port2 is None:
-                port2 = {"x": second.x, "y": second.y}
-            canvas.create_line(port1["x"], port1["y"], port2["x"], port2["y"],
-                               fill="black", width=2)
+            coords = []
+            for x, y in points:
+                coords.extend((x, y))
+            canvas.create_line(*coords, fill="black", width=2)
 
         visible = [element for element in self.elements.values()
                    if not (element.type == "cabinet"
@@ -10412,26 +10856,50 @@ class CircuitEditor:
         # 7. Аналоговые цепи
         if self.show_analog:
             for link in self.analog_links:
-                start = self._analog_ref_point(link.get("from"))
-                end = self._analog_ref_point(link.get("to"))
-                if start is None or end is None:
+                route = self._analog_route(link)
+                if len(route) < 2:
                     continue
-                x1, y1 = start
-                x2, y2 = end
-                distance = math.hypot(x2 - x1, y2 - y1)
+                last_x, last_y = route[-1]
+                prev_x, prev_y = route[-2]
+                distance = math.hypot(last_x - prev_x, last_y - prev_y)
                 if distance < 1e-6:
                     continue
-                self._export_arrow(canvas, x1, y1, x2, y2,
-                                   fill=self.ANALOG_COLOR, width=1, dash=(6, 3))
-                ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
+                ux, uy = ((last_x - prev_x) / distance,
+                          (last_y - prev_y) / distance)
+                coords = []
+                for x, y in route[:-1]:
+                    coords.extend((x, y))
+                coords.extend((last_x - ux * 5.4, last_y - uy * 5.4))
+                canvas.create_line(*coords, fill=self.ANALOG_COLOR,
+                                   width=1, dash=(6, 3))
+                self._export_arrowhead(canvas, prev_x, prev_y,
+                                       last_x, last_y,
+                                       fill=self.ANALOG_COLOR)
                 signals = self._analog_signals_text(link)
                 if signals:
-                    canvas.create_text((x1 + x2) / 2.0 - uy * 11,
-                                       (y1 + y2) / 2.0 + ux * 11,
-                                       text=signals, fill=self.ANALOG_COLOR,
-                                       font=("Arial", 6), anchor="center")
+                    middle = self._path_midpoint(route)
+                    if middle is not None:
+                        mid_x, mid_y, mx, my = middle
+                        canvas.create_text(mid_x - my * 11, mid_y + mx * 11,
+                                           text=signals, fill=self.ANALOG_COLOR,
+                                           font=("Arial", 6), anchor="center")
         # 8. Комментарии к чертежу — поверх схемы
         self._draw_comment_scene(canvas)
+
+    @staticmethod
+    def _export_arrowhead(canvas, x1, y1, x2, y2, fill, size=9.0):
+        """Треугольное острие стрелки в точке (x2, y2)."""
+        distance = math.hypot(x2 - x1, y2 - y1)
+        if distance < 1e-6:
+            return
+        ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
+        base_x, base_y = x2 - ux * size, y2 - uy * size
+        half = size * 0.45
+        canvas.create_polygon(
+            x2, y2,
+            base_x - uy * half, base_y + ux * half,
+            base_x + uy * half, base_y - ux * half,
+            fill=fill, outline=fill)
 
     @staticmethod
     def _export_arrow(canvas, x1, y1, x2, y2, fill, width=1.0, size=9.0,
@@ -10446,14 +10914,7 @@ class CircuitEditor:
             kwargs["dash"] = dash
         canvas.create_line(x1, y1, x2 - ux * size * 0.6, y2 - uy * size * 0.6,
                            **kwargs)
-        base_x, base_y = x2 - ux * size, y2 - uy * size
-        half = size * 0.45
-        canvas.create_polygon(
-            x2, y2,
-            base_x - uy * half, base_y + ux * half,
-            base_x + uy * half, base_y - ux * half,
-            fill=fill, outline=fill)
-
+        __class__._export_arrowhead(canvas, x1, y1, x2, y2, fill, size)
     def _draw_protection_scene(self, canvas):
         """Защитные узлы оборудования и стрелки комплект → узел для экспорта."""
         if not self.show_protection:
@@ -10743,14 +11204,18 @@ class CircuitEditor:
             p2 = el2.ports.get(c.get("port_to"))
             if not p1 or not p2:
                 continue
-            data["connections"].append({
+            record = {
                 "node_from": p1["node_id"],
                 "node_to": p2["node_id"],
                 "port_from": c["port_from"],
                 "port_to": c["port_to"],
                 "element_from": el1.id,
                 "element_to": el2.id
-            })
+            }
+            points = self._clean_points(c.get("points"))
+            if points:
+                record["points"] = points
+            data["connections"].append(record)
 
         # Ссылка на подложку: по ней схема открывается вместе с чертежом
         if self.underlay:
@@ -10762,7 +11227,8 @@ class CircuitEditor:
         if self.protection_links:
             data["protection_links"] = [dict(link) for link in self.protection_links]
         if self.analog_links:
-            data["analog_links"] = [dict(link) for link in self.analog_links]
+            data["analog_links"] = [self._analog_record(link)
+                                    for link in self.analog_links]
         # Комментарии к чертежу: точка привязки, вид и текст
         if self.comments:
             data["comments"] = [
@@ -10981,11 +11447,15 @@ class CircuitEditor:
             port1 = self._resolve_port(el1, c.get("port_from"), c.get("node_from"))
             port2 = self._resolve_port(el2, c.get("port_to"), c.get("node_to"))
             if port1 and port2:
-                connections.append({
+                entry = {
                     "from": el1.id, "to": el2.id,
                     "port_from": port1, "port_to": port2,
                     "canvas_id": None
-                })
+                }
+                points = self._clean_points(c.get("points"))
+                if points:
+                    entry["points"] = points
+                connections.append(entry)
         return connections
 
     @staticmethod
@@ -11096,7 +11566,13 @@ class CircuitEditor:
                                                  conn.get("port_to"), conn.get("node_to"))
 
                     if port_from and port_to:
-                        self.create_connection(new_from, new_to, port_from, port_to)
+                        created = self.create_connection(
+                            new_from, new_to, port_from, port_to)
+                        if created is not None and conn.get("points"):
+                            created["points"] = [
+                                [round(point[0] + offset_x, 1),
+                                 round(point[1] + offset_y, 1)]
+                                for point in self._clean_points(conn["points"])]
 
             # 3-бис. Привязка шкафов внутри вставленных контейнеров
             for container in inserted_containers:
@@ -11109,6 +11585,12 @@ class CircuitEditor:
             # 3-бис. Аналоговые цепи внутри вставленного фрагмента
             inserted_analog = self._build_analog_links(
                 data.get("analog_links", []), id_mapping)
+            for link in inserted_analog:
+                if link.get("points"):
+                    link["points"] = [
+                        [round(point[0] + offset_x, 1),
+                         round(point[1] + offset_y, 1)]
+                        for point in link["points"]]
             existing_analog = {(link["from"], link["to"])
                                for link in self.analog_links}
             for link in inserted_analog:
