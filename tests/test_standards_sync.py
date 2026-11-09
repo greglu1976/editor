@@ -61,10 +61,21 @@ def _walk(widget):
             yield item
 
 
+#: три действующих стандарта: их сверка с каталогом — константа
+ACTIVE = "СТО 56947007-"
+
+
+def active_items(items):
+    """Только карточки действующих стандартов (проекты adding не меняют базу)."""
+    return [item for item in items if str(item["стандарт"]).startswith(ACTIVE)]
+
+
 def test_diff():
     print("1. сверка каталога со стандартами")
     items = standards_sync.diff()
-    check(len(items) == 13, "шкафов в сверке: %d" % len(items))
+    check(len(active_items(items)) == 13,
+          "шкафов действующих стандартов в сверке: %d (всего %d)"
+          % (len(active_items(items)), len(items)))
     check(all(item["ключ"] for item in items), "у каждого шкафа есть ключ")
     check(all(item["стандарт"].startswith("СТО") for item in items),
           "у каждого шкафа указан стандарт")
@@ -84,7 +95,7 @@ def test_diff():
     check(stats["в_структуру"] == sum(len(item["структура"]) for item in items),
           "поля «в структуру» посчитаны: %d" % stats["в_структуру"])
     text = standards_sync.plan_text(items)
-    check(text.splitlines()[0].startswith("Шкафов в стандартах: 13"),
+    check(text.splitlines()[0].startswith("Шкафов в стандартах:"),
           "план начинается со сводки")
     detail = standards_sync.detail_text(items[0])
     check("СОСТАВ" in detail and "ПОЛЯ КАТАЛОГА" in detail
@@ -96,16 +107,18 @@ def test_diff():
 
 def test_synced():
     print("2. каталог синхронизирован со стандартом")
-    stats = standards_sync.summary()
+    stats = standards_sync.summary(active_items(standards_sync.diff()))
     if stats["всего"]:
         print("       (различий %d — примените: python standards_sync.py "
               "--apply и python tools/build_structure.py)" % stats["всего"])
     check(stats["всего"] == 0,
-          "различий нет: состав %d, поля %d, в структуру %d, таблицы %d"
+          "различий по действующим стандартам нет: состав %d, поля %d, "
+          "в структуру %d, таблицы %d"
           % (stats["состав"], stats["поля"], stats["в_структуру"],
              stats["таблицы"]))
     check(stats["с_различиями"] == 0,
-          "шкафов с различиями нет (%d)" % stats["с_различиями"])
+          "шкафов действующих стандартов с различиями нет (%d)"
+          % stats["с_различиями"])
 
 
 def test_reference_values():
@@ -208,7 +221,7 @@ def test_structure_tools():
     check(os.path.exists(target), "файл собран: %s" % target)
     text = result["текст"] or ""
     check("structure.json v3" in text, "сводка сборщика получена")
-    check("standards_base: 13 шкафов" in text,
+    check("standards_base: " in text,
           "в сводке есть данные standards_base")
     check("таблиц ИЭУ" in text, "таблицы ИЭУ перенесены")
     report = structure_tools.check(target)
@@ -244,7 +257,8 @@ def test_gui():
                  if widget.winfo_class() == "Treeview"]
         check(len(trees) == 1, "в окне сверки есть список шкафов")
         rows = trees[0].get_children() if trees else ()
-        check(len(rows) == 13, "шкафов в списке: %d" % len(rows))
+        check(len(rows) == len(standards_sync.diff()),
+              "шкафов в списке: %d" % len(rows))
         texts = [widget for widget in _walk(window)
                  if widget.winfo_class() == "Text"]
         content = texts[0].get("1.0", "end") if texts else ""

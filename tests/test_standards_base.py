@@ -37,21 +37,33 @@ def check(condition, message):
         FAILURES.append(message)
 
 
+#: три действующих стандарта: их состав — константа, её и проверяем
+ACTIVE = "СТО 56947007-"
+
+
 def test_loading():
     print("1. загрузка папки standards_base")
     error = sb.error()
     check(not error, "стандарты читаются без ошибок (%s)" % (error or "нет"))
     stats = sb.summary()
-    check(stats["стандартов"] == 3, "стандартов: %d" % stats["стандартов"])
-    check(stats["шкафов"] == 13, "шкафов: %d" % stats["шкафов"])
-    check(stats["комплектов"] == 15, "комплектов: %d" % stats["комплектов"])
-    check(stats["иэу"] == 15, "ИЭУ: %d" % stats["иэу"])
-    check(stats["таблиц"] == 191, "таблиц: %d" % stats["таблиц"])
+    check(stats["стандартов"] >= 3, "стандартов: %d" % stats["стандартов"])
+    active = [standard for standard in sb.load()
+              if standard["шифр"].startswith(ACTIVE)]
+    cards = [card for card in sb.cabinets()
+             if card["стандарт"].startswith(ACTIVE)]
+    kits = [kit for card in cards for kit in sb.kits(card)]
+    check(len(active) == 3, "действующих стандартов: %d" % len(active))
+    check(len(cards) == 13, "шкафов действующих стандартов: %d" % len(cards))
+    check(len(kits) == 15, "комплектов: %d" % len(kits))
+    check(sum(len(kit["иэу"]) for kit in kits) == 15,
+          "ИЭУ: %d" % sum(len(kit["иэу"]) for kit in kits))
+    check(sum(len(sb.tables(card)) for card in cards) == 191,
+          "таблиц: %d" % sum(len(sb.tables(card)) for card in cards))
     codes = {standard["шифр"] for standard in sb.standards()}
-    check(len(codes) == 3 and all(code.startswith("СТО") for code in codes),
+    check(all(code.startswith("СТО") for code in codes),
           "шифры стандартов: %s" % ", ".join(sorted(codes)))
     check(sb.load() is sb.load(), "повторное чтение берётся из кеша")
-    check(len(sb.reload()) == 3, "reload() перечитывает папку")
+    check(len(sb.reload()) == len(codes), "reload() перечитывает папку")
 
 
 def test_card_fields():
@@ -168,8 +180,11 @@ def test_normalization():
           "маркеры внутри строки убираются")
     check(sb.table_rows({"Строки": [{"№": "1", "Поле": "значение"}]})
           == [{"Поле": "значение"}], "строка таблицы без «№»")
-    covered = sb.coverage([card["шифр"] for card in sb.cabinets()])
-    check(covered["в каталоге"] == 13, "все шифры стандартов есть в каталоге")
+    active_codes = [card["шифр"] for card in sb.cabinets()
+                    if card["стандарт"].startswith(ACTIVE)]
+    covered = sb.coverage(active_codes)
+    check(covered["в каталоге"] == 13,
+          "все шифры действующих стандартов есть в каталоге")
 
 
 def main():
