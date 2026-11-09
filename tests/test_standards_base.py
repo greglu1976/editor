@@ -37,8 +37,13 @@ def check(condition, message):
         FAILURES.append(message)
 
 
-#: три действующих стандарта: их состав — константа, её и проверяем
+#: действующие стандарты: их состав — константа, её и проверяем
+#: (279, 280-2019, 280-XXXX «Изменение 1», 281)
 ACTIVE = "СТО 56947007-"
+ACTIVE_STANDARDS = 4
+ACTIVE_CARDS = 15
+ACTIVE_KITS = 19
+ACTIVE_TABLES = 219
 
 
 def test_loading():
@@ -52,12 +57,14 @@ def test_loading():
     cards = [card for card in sb.cabinets()
              if card["стандарт"].startswith(ACTIVE)]
     kits = [kit for card in cards for kit in sb.kits(card)]
-    check(len(active) == 3, "действующих стандартов: %d" % len(active))
-    check(len(cards) == 13, "шкафов действующих стандартов: %d" % len(cards))
-    check(len(kits) == 15, "комплектов: %d" % len(kits))
-    check(sum(len(kit["иэу"]) for kit in kits) == 15,
+    check(len(active) == ACTIVE_STANDARDS,
+          "действующих стандартов: %d" % len(active))
+    check(len(cards) == ACTIVE_CARDS,
+          "шкафов действующих стандартов: %d" % len(cards))
+    check(len(kits) == ACTIVE_KITS, "комплектов: %d" % len(kits))
+    check(sum(len(kit["иэу"]) for kit in kits) == ACTIVE_KITS,
           "ИЭУ: %d" % sum(len(kit["иэу"]) for kit in kits))
-    check(sum(len(sb.tables(card)) for card in cards) == 191,
+    check(sum(len(sb.tables(card)) for card in cards) == ACTIVE_TABLES,
           "таблиц: %d" % sum(len(sb.tables(card)) for card in cards))
     codes = {standard["шифр"] for standard in sb.standards()}
     check(all(code.startswith("СТО") for code in codes),
@@ -183,7 +190,7 @@ def test_normalization():
     active_codes = [card["шифр"] for card in sb.cabinets()
                     if card["стандарт"].startswith(ACTIVE)]
     covered = sb.coverage(active_codes)
-    check(covered["в каталоге"] == 13,
+    check(covered["в каталоге"] == ACTIVE_CARDS,
           "все шифры действующих стандартов есть в каталоге")
 
 

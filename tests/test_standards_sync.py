@@ -18,8 +18,10 @@
    с именем ИЭУ и функциями;
 5. ``apply``: пишет в каталог только изменившиеся поля и новые комплекты,
    повторный вызов на тех же данных ничего не меняет;
-6. ``structure_tools``: пересборка во временный файл, проверка и текст отчёта;
-7. окна «Сверка…» и «Проверка…»: открываются, показывают списки и отчёт.
+6. ``import_missing``: шкафы standards_base, которых нет в каталоге, получают
+   запись каталога (ключ, стандарт, комплекты, ИЭУ) и добавляются один раз;
+7. ``structure_tools``: пересборка во временный файл, проверка и текст отчёта;
+8. окна «Сверка…» и «Проверка…»: открываются, показывают списки и отчёт.
 """
 
 from __future__ import annotations
@@ -28,6 +30,7 @@ import argparse
 import copy
 import os
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -61,8 +64,10 @@ def _walk(widget):
             yield item
 
 
-#: три действующих стандарта: их сверка с каталогом — константа
+#: действующие стандарты: их сверка с каталогом — константа
+#: (13 шкафов СТО + 2 шкафа редакции 280-XXXX «Изменение 1»)
 ACTIVE = "СТО 56947007-"
+ACTIVE_CABINETS = 15
 
 
 def active_items(items):
@@ -73,7 +78,7 @@ def active_items(items):
 def test_diff():
     print("1. сверка каталога со стандартами")
     items = standards_sync.diff()
-    check(len(active_items(items)) == 13,
+    check(len(active_items(items)) == ACTIVE_CABINETS,
           "шкафов действующих стандартов в сверке: %d (всего %d)"
           % (len(active_items(items)), len(items)))
     check(all(item["ключ"] for item in items), "у каждого шкафа есть ключ")
@@ -211,8 +216,56 @@ def test_apply():
         cabs.save_cabinet = original
 
 
+def test_import_missing():
+    print("6. шкафы стандартов, которых нет в каталоге")
+    tmp = tempfile.mkdtemp()
+    original = cabs.USER_CATALOG_PATH
+    cabs.USER_CATALOG_PATH = os.path.join(tmp, "cabinets.json")
+    try:
+        missing = standards_sync.missing_cabinets()
+        check(bool(missing), "во временном каталоге нет шкафов: %d" % len(missing))
+        card = next(card for card in missing if card["шифр"] == "ШЭТ 431.21-1")
+        entry = standards_sync.catalog_entry(card)
+        check(entry["key"] == "shet-431-21-1",
+              "ключ из шифра: %s" % entry["key"])
+        check(entry["standard_key"] == "skrm" and entry["group"] == "СКРМ",
+              "редакция 280-XXXX попала в стандарт skrm (СКРМ)")
+        check(entry["name"] == "Шкаф защит батареи статических конденсаторов "
+                               "110-330 кВ, УРОВ, АУВ",
+              "наименование из карточки: %s" % entry.get("name"))
+        check(len(entry["komplets"]) == 2,
+              "комплектов в записи: %d" % len(entry["komplets"]))
+        check([ied["name"] for ied in entry["komplets"][0]["ieds"]] == ["ИЭУ1"]
+              and [ied["name"] for ied in entry["komplets"][1]["ieds"]]
+              == ["ИЭУ2"],
+              "ИЭУ комплектов перенесены из стандарта")
+        check("ДТЗ" in entry["komplets"][0]["functions"],
+              "функции комплекта перенесены")
+        check(entry["goose"] is True, "признак GOOSE определён по таблицам ИЭУ")
+
+        result = standards_sync.import_missing([card])
+        check([item["шифр"] for item in result["добавлено"]] == ["ШЭТ 431.21-1"]
+              and not result["ошибки"],
+              "шкаф добавлен: %s" % result["добавлено"])
+        saved = cabs.find_cabinet("shet-431-21-1")
+        check(saved is not None and saved.get("code") == "ШЭТ 431.21-1",
+              "шкаф появился в каталоге")
+        check(card["шифр"] not in
+              [item["шифр"] for item in standards_sync.missing_cabinets()],
+              "повторно шкаф в отсутствующие не попадает")
+        again = standards_sync.import_missing([card])
+        check(not again["добавлено"] and again["ошибки"],
+              "повторное добавление отклонено: %s" % again["ошибки"])
+    finally:
+        cabs.USER_CATALOG_PATH = original
+    result = structure_tools.add_missing_standards()
+    check(result["ok"] and not result["добавлено"],
+          "в рабочем каталоге новых шкафов нет: %s"
+          % result["текст"].splitlines()[0])
+
+
 def test_structure_tools():
-    print("6. пересборка и проверка структуры")
+    print("7. пересборка и проверка структуры")
     target_dir = os.path.join(ROOT, "output", "_sync_test")
     os.makedirs(target_dir, exist_ok=True)
     target = os.path.join(target_dir, "structure.json")
@@ -240,7 +293,7 @@ def test_structure_tools():
 
 
 def test_gui():
-    print("7. окна сверки и проверки")
+    print("8. окна сверки и проверки")
     import main
     root = tk.Tk()
     try:
@@ -257,8 +310,12 @@ def test_gui():
                  if widget.winfo_class() == "Treeview"]
         check(len(trees) == 1, "в окне сверки есть список шкафов")
         rows = trees[0].get_children() if trees else ()
-        check(len(rows) == len(standards_sync.diff()),
-              "шкафов в списке: %d" % len(rows))
+        # Флажок «Только с различиями» включён, если различия вообще есть.
+        items = standards_sync.diff()
+        expected = len([item for item in items if item["всего"]]) \
+            if standards_sync.summary(items)["всего"] else len(items)
+        check(len(rows) == expected,
+              "шкафов в списке: %d (ожидалось %d)" % (len(rows), expected))
         texts = [widget for widget in _walk(window)
                  if widget.winfo_class() == "Text"]
         content = texts[0].get("1.0", "end") if texts else ""
@@ -329,6 +386,7 @@ def main(argv=None):
     test_reference_values()
     test_kits_from_standard()
     test_apply()
+    test_import_missing()
     test_structure_tools()
     if not args.no_gui and tk is not None:
         test_gui()

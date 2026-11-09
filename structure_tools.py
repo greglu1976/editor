@@ -8,6 +8,8 @@ GUI не запускает Python отдельным процессом, а в�
     rebuild()      — пересобрать structure.json (dict: ok/текст/ошибка)
     check()        — отчёт проверки (dict из check_structure.inspect)
     check_text()   — тот же отчёт в виде текста для окна
+    add_missing_standards() — шкафы standards_base, которых нет в каталоге:
+                   добавить в cabinets.json и пересобрать structure.json
 """
 
 from __future__ import annotations
@@ -60,6 +62,43 @@ def rebuild(path=None):
     structure.load(force=True, path=target)
     return {"ok": True, "текст": text or "structure.json пересобран",
             "путь": target, "ошибка": None}
+
+
+def add_missing_standards():
+    """Добавляет в каталог шкафы standards_base, которых там нет.
+
+    После добавления пересобирает ``structure.json`` — иначе новые шкафы
+    останутся только в ``cabinets.json``. Возвращает ``ok``, ``текст``,
+    ``добавлено`` и ``ошибки``.
+    """
+    import standards_sync
+    result = standards_sync.import_missing()
+    added = result.get("добавлено") or []
+    errors = list(result.get("ошибки") or [])
+    lines = []
+    if added:
+        lines.append("Добавлено в каталог: %d" % len(added))
+        for item in added:
+            lines.append("  + %s (%s)" % (item["шифр"], item["ключ"]))
+    else:
+        lines.append("Новых шкафов нет: все шкафы standards_base уже в каталоге.")
+    if errors:
+        lines.append("")
+        lines.append("Не добавлены (%d):" % len(errors))
+        lines.extend("  • " + message for message in errors)
+    ok = not errors
+    if added:
+        built = rebuild()
+        lines.append("")
+        if built.get("ok"):
+            lines.append("Структура пересобрана: %s"
+                         % (built.get("текст") or "готово"))
+        else:
+            ok = False
+            lines.append("Пересборка не удалась: %s"
+                         % (built.get("ошибка") or "неизвестная ошибка"))
+    return {"ok": ok, "текст": "\n".join(lines), "добавлено": added,
+            "ошибки": errors}
 
 
 def check(path=None):
@@ -141,8 +180,12 @@ def plan_text(items=None):
 
 
 def main(argv=None):
-    """Проверка из консоли: python structure_tools.py [--rebuild]."""
+    """Проверка из консоли: python structure_tools.py [--rebuild|--add]."""
     argv = list(sys.argv[1:] if argv is None else argv)
+    if "--add" in argv:
+        result = add_missing_standards()
+        print(result.get("текст"))
+        return 0 if result.get("ok") else 1
     if "--rebuild" in argv:
         result = rebuild()
         print(result.get("текст") or result.get("ошибка"))

@@ -8028,6 +8028,10 @@ class CircuitEditor:
         self._ribbon_group(page, "Стандарты", lambda row: [
             self._ribbon_button(row, "Сверка…", self.show_standards_sync,
                                 _ri_sync, 76).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Добавить из СТО",
+                                self.add_missing_to_structure,
+                                _ri_new_doc, 120).pack(side=tk.LEFT,
+                                                        padx=(4, 0)),
         ])
         self._ribbon_group(page, "Сборка", lambda row: [
             self._ribbon_button(row, "Пересобрать", self.rebuild_structure,
@@ -8038,7 +8042,9 @@ class CircuitEditor:
         tk.Label(page, text="КЭТ → шкафы → комплекты → ИЭУ.\n"
                             "«Сверка…» — различия каталога и стандартов,\n"
                             "перенос состава и полей; «Пересобрать» —\n"
-                            "structure.json заново из каталога и стандартов.",
+                            "structure.json заново из каталога и стандартов.\n"
+                            "«Добавить из СТО» — шкафы standards_base, которых\n"
+                            "нет в каталоге, в каталог и в structure.json.",
                  bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)
@@ -8112,6 +8118,16 @@ class CircuitEditor:
         if not silent:
             messagebox.showinfo("Структура", result.get("текст") or "Готово")
         return True
+
+    def add_missing_to_structure(self):
+        """Добавляет шкафы standards_base, которых нет в каталоге, и пересобирает структуру."""
+        result = structure_tools.add_missing_standards()
+        text = result.get("текст") or "Готово"
+        if result.get("ok"):
+            messagebox.showinfo("Структура", text)
+        else:
+            messagebox.showwarning("Структура", text)
+        return result
 
     def show_structure_check(self):
         """Окно проверки структуры: иерархия, ссылки, стыковка со схемами."""

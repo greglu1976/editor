@@ -17,6 +17,7 @@
     python standards_sync.py                  # план: что отличается
     python standards_sync.py --apply          # перенести состав и поля
     python standards_sync.py --apply --parts состав
+    python standards_sync.py --add            # шкафы стандартов, которых нет в каталоге
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import re
 import sys
 
 import cabs
@@ -337,6 +339,132 @@ def apply_all(parts=("состав", "поля"), items=None):
 
 
 # ---------------------------------------------------------------------------
+# Шкафы стандартов, которых нет в каталоге
+# ---------------------------------------------------------------------------
+#: Хвост шифра СТО, который не входит в номер: год («-2019») или «-XXXX».
+_STANDARD_TAIL = re.compile(r"^(?:X{2,}|Х{2,}|\d{4})$")
+
+
+def _standard_number(code):
+    """Номер СТО без года: «СТО …20.280-XXXX» → «СТО …20.280»."""
+    text = standards_base.norm_code(code)
+    head, sep, tail = text.rpartition("-")
+    if sep and _STANDARD_TAIL.match(tail.strip()):
+        return head.strip()
+    return ""
+
+
+def standard_info(code):
+    """Ключ и группа стандарта по его шифру.
+
+    Ключ ищется в ``cabs.STANDARDS`` по номеру СТО: у 280-XXXX и 280-2019
+    номер общий, поэтому обе редакции попадают в группу «СКРМ». Для
+    незнакомого стандарта ключ строится из шифра, группа остаётся пустой.
+    """
+    number = _standard_number(code)
+    if number:
+        for key, standard in cabs.STANDARDS.items():
+            if _standard_number(standard.get("code")) == number:
+                return key, standard.get("group") or ""
+    return standards_base.key_of_code(code), ""
+
+
+def standard_title(code):
+    """Полное название стандарта из шапки файла standards_base."""
+    wanted = standards_base.norm_code(code)
+    for header in standards_base.standards():
+        if standards_base.norm_code(header["шифр"]) == wanted:
+            return header.get("обозначение") or ""
+    return ""
+
+
+def missing_cabinets():
+    """Карточки стандартов, шифров которых нет в каталоге шкафов."""
+    index = catalog_index()
+    return [card for card in standards_base.cabinets()
+            if card["шифр"] not in index]
+
+
+def _join(value):
+    """Список → строка через «; » (каталог хранит питания и порты строкой)."""
+    if isinstance(value, (list, tuple)):
+        return "; ".join(str(item) for item in value if str(item).strip())
+    return value
+
+
+def _has_goose(record):
+    for kit in record.get("комплекты") or []:
+        for ied in kit.get("иэу") or []:
+            if "входные GOOSE" in ied or "выходные GOOSE" in ied:
+                return True
+    return False
+
+
+def catalog_entry(card):
+    """Карточка стандарта → запись каталога для ``cabs.save_cabinet``."""
+    key = standards_base.key_of_code(card["шифр"])
+    record = standards_base.record(card, key)
+    standard_key, group = standard_info(card["стандарт"])
+    entry = {
+        "key": key,
+        "code": card["шифр"],
+        "name": (record.get("наименование") or card.get("заголовок")
+                 or card["шифр"]),
+        "title": card.get("заголовок") or "",
+        "description": record.get("назначение") or "",
+        "group": group,
+        "standard_key": standard_key,
+        "standard": card["стандарт"],
+        "standard_title": standard_title(card["стандарт"]),
+        "architecture": record.get("архитектура ПС") or "",
+        "protected": record.get("защищаемый элемент") or "",
+        "controlled": record.get("управляемый элемент") or [],
+        "its_functions": record.get("функции ИТС") or [],
+        "applicability": record.get("применимость") or "",
+        "source": ("разд. %s" % card["раздел"]) if card.get("раздел") else "",
+        "goose": _has_goose(record),
+        "komplets": kits_from_standard({"каталог": {}, "запись": record}),
+        "mp_functions": record.get("функции МП ИЭУ") or "",
+        "its_functions_desc": record.get("описание функций ИТС") or "",
+        "power_supply": _join(record.get("вводы питания")),
+        "ports": _join(record.get("порты")),
+        "connection_scheme": record.get("поясняющая схема подключения") or "",
+        "general_view": record.get("эскиз общего вида") or "",
+        "structural_scheme": record.get("структурно-функциональная схема") or "",
+    }
+    return {name: value for name, value in entry.items()
+            if value not in (None, "", [], {})}
+
+
+def import_missing(cards=None):
+    """Добавляет в каталог шкафы стандартов, которых в нём нет.
+
+    Возвращает ``{"добавлено": [{"шифр", "ключ"}], "ошибки": [текст]}``.
+    Таблицы ИЭУ в каталог не пишутся — их переносит пересборка структуры.
+    """
+    cards = missing_cabinets() if cards is None else list(cards)
+    taken = {cabinet.get("key") for cabinet in cabs.all_cabinets()}
+    added, errors = [], []
+    for card in cards:
+        try:
+            entry = catalog_entry(card)
+            if not entry.get("key"):
+                errors.append("%s: не удалось построить ключ" % card["шифр"])
+                continue
+            if entry["key"] in taken:
+                errors.append("%s: ключ %s уже занят"
+                              % (card["шифр"], entry["key"]))
+                continue
+            key = cabs.save_cabinet(entry)
+        except Exception as exc:                   # noqa: BLE001
+            errors.append("%s: %s" % (card["шифр"], exc))
+            continue
+        taken.add(key)
+        added.append({"шифр": card["шифр"], "ключ": key})
+    return {"добавлено": added, "ошибки": errors}
+
+
+# ---------------------------------------------------------------------------
 # Текст для консоли и окна
 # ---------------------------------------------------------------------------
 def plan_text(items=None):
@@ -416,12 +544,25 @@ def main(argv=None):
                         help="что переносить (состав, поля)")
     parser.add_argument("--json", action="store_true",
                         help="вывести различия в JSON")
+    parser.add_argument("--add", action="store_true",
+                        help="добавить в каталог шкафы, которых в нём нет")
     args = parser.parse_args(argv)
 
     error = standards_base.error()
     if error:
         print("standards_base: %s" % error, file=sys.stderr)
         return 2
+    if args.add:
+        result = import_missing()
+        added = result["добавлено"]
+        print("Добавлено шкафов: %d" % len(added))
+        for item in added:
+            print("  + %s (%s)" % (item["шифр"], item["ключ"]))
+        for message in result["ошибки"]:
+            print("  ! %s" % message)
+        if added:
+            print("Дальше: python tools/build_structure.py")
+        return 0 if not result["ошибки"] else 1
     items = diff()
     if args.json:
         print(json.dumps(items, ensure_ascii=False, indent=1))
