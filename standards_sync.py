@@ -148,14 +148,17 @@ def composition(std_record, cabinet):
                  for ied in kit.get("иэу") or []]
         if index >= len(cat_kits):
             rows.append({"вид": "+", "поле": "комплект %d" % (index + 1),
-                         "было": "—", "стало": ", ".join(names) or "без ИЭУ"})
+                         "было": "—", "стало": ", ".join(names) or "без ИЭУ",
+                         "значение_каталог": None, "значение_стандарт": kit})
             continue
         cat_ieds = [str(ied.get("name") or "") for ied
                     in (cat_kits[index].get("ieds") or [])]
         if len(names) != len(cat_ieds):
             rows.append({"вид": "~", "поле": "комплект %d" % (index + 1),
                          "было": "%d ИЭУ" % len(cat_ieds),
-                         "стало": ", ".join(names) or "без ИЭУ"})
+                         "стало": ", ".join(names) or "без ИЭУ",
+                         "значение_каталог": cat_kits[index],
+                         "значение_стандарт": kit})
     return rows
 
 
@@ -176,7 +179,9 @@ def field_rows(std_record, cabinet, record=None):
                 rows.append({"вид": "~", "поле": field,
                              "было": value_text(now_value),
                              "стало": value_text(std_value),
-                             "каталог": True, "группа": KIND_CATALOG})
+                             "каталог": True, "группа": KIND_CATALOG,
+                             "значение_каталог": now_value,
+                             "значение_стандарт": std_value})
             continue
         # В каталоге поля нет или оно пустое/ссылочное: сравнить со структурой.
         struct_value = (record or {}).get(field)
@@ -186,13 +191,15 @@ def field_rows(std_record, cabinet, record=None):
         rows.append({"вид": "+", "поле": field,
                      "было": value_text(struct_value),
                      "стало": value_text(std_value),
-                     "каталог": False, "группа": KIND_STRUCTURE})
+                     "каталог": False, "группа": KIND_STRUCTURE,
+                     "значение_структура": struct_value,
+                     "значение_стандарт": std_value})
     return rows
 
 
-def table_rows_diff(std_record, record=None):
-    """Сколько таблиц ИЭУ в структуре отличаются от стандарта."""
-    count = 0
+def table_changes(std_record, record=None):
+    """Таблицы ИЭУ, которые в структуре отличаются от стандарта."""
+    rows = []
     std_kits = std_record.get("комплекты") or []
     struct_kits = (record or {}).get("комплекты") or []
     for index, kit in enumerate(std_kits):
@@ -201,12 +208,21 @@ def table_rows_diff(std_record, record=None):
         for ied_index, ied in enumerate(kit.get("иэу") or []):
             struct_ied = struct_ieds[ied_index] \
                 if ied_index < len(struct_ieds) else {}
+            name = ied.get("обозначение") or ("ИЭУ%d" % (ied_index + 1))
             for field, value in ied.items():
                 if field in IED_SKIP or not value:
                     continue
-                if normalize(struct_ied.get(field)) != normalize(value):
-                    count += 1
-    return count
+                now = struct_ied.get(field)
+                if normalize(now) == normalize(value):
+                    continue
+                rows.append({
+                    "поле": "%s · %s" % (name, field),
+                    "было": value_text(now),
+                    "стало": value_text(value),
+                    "значение_структура": now,
+                    "значение_стандарт": value,
+                })
+    return rows
 
 
 def cabinet_diff(card, cabinet, records=None):
@@ -217,7 +233,7 @@ def cabinet_diff(card, cabinet, records=None):
     std_kits = std_record.get("комплекты") or []
     cat_kits = (cabinet or {}).get("komplets") or []
     rows = field_rows(std_record, cabinet, record)
-    tables = table_rows_diff(std_record, record)
+    tables = table_changes(std_record, record)
     item = {
         "шифр": card["шифр"],
         "ключ": key,
@@ -231,10 +247,11 @@ def cabinet_diff(card, cabinet, records=None):
         "поля": rows,
         "каталог_поля": [row for row in rows if row["каталог"]],
         "структура": [row for row in rows if not row["каталог"]],
-        "таблицы": tables,
+        "таблицы": len(tables),
+        "таблицы_строки": tables,
     }
     item["всего"] = (len(item["состав"]) + len(item["каталог_поля"])
-                     + len(item["структура"]) + tables)
+                     + len(item["структура"]) + len(tables))
     return item
 
 
@@ -462,6 +479,134 @@ def import_missing(cards=None):
         taken.add(key)
         added.append({"шифр": card["шифр"], "ключ": key})
     return {"добавлено": added, "ошибки": errors}
+
+
+# ---------------------------------------------------------------------------
+# Построчный перенос различий
+# ---------------------------------------------------------------------------
+def _catalog_key(field):
+    """Поле каталога для поля записи (None — поле живёт только в структуре)."""
+    for name, key, _as_list in FIELD_MAP:
+        if name == field:
+            return key
+    return None
+
+
+def row_changes(item):
+    """Различия шкафа построчно, со значениями обеих сторон.
+
+    ``можно_в_структуру`` / ``можно_в_стандарт`` показывают, поддерживается
+    ли направление, ``причина`` объясняет отказ.
+    """
+    changes = []
+    for row in item.get("состав") or []:
+        changes.append({
+            "группа": "Состав",
+            "поле": row["поле"],
+            "вид": row["вид"],
+            "значение_структура": row.get("было"),
+            "значение_стандарт": row.get("стало"),
+            "можно_в_структуру": True,
+            "можно_в_стандарт": False,
+            "причина": "обратный перенос удалил бы комплект из стандарта",
+        })
+    for row in item.get("поля") or []:
+        catalog = bool(row.get("каталог"))
+        structure_value = row.get("значение_каталог") if catalog \
+            else row.get("значение_структура")
+        key = _catalog_key(row["поле"])
+        changes.append({
+            "группа": "Поле",
+            "поле": row["поле"],
+            "вид": row["вид"],
+            "значение_структура": structure_value,
+            "значение_стандарт": row.get("значение_стандарт"),
+            "можно_в_структуру": bool(key),
+            "можно_в_стандарт": structure_value not in (None, "", [], {}),
+            "причина": "" if key else "поле живёт только в структуре",
+        })
+    for row in item.get("таблицы_строки") or []:
+        changes.append({
+            "группа": "Таблица",
+            "поле": row["поле"],
+            "вид": "~",
+            "значение_структура": row.get("значение_структура"),
+            "значение_стандарт": row.get("значение_стандарт"),
+            "можно_в_структуру": True,
+            "можно_в_стандарт": False,
+            "причина": "таблицы ИЭУ переносятся только из стандарта",
+        })
+    return changes
+
+
+def _field_to_structure(item, change):
+    """Значение стандарта → поле каталога."""
+    field = change["поле"]
+    key = _catalog_key(field)
+    if not key:
+        return {"ok": False, "текст": "поле «%s» живёт только в структуре"
+                                      % field}
+    cabinet = item.get("каталог") or {}
+    definition = copy.deepcopy(cabinet)
+    definition[key] = change.get("значение_стандарт")
+    cabs.save_cabinet(definition, cabinet.get("key"))
+    return {"ok": True, "текст": "«%s» → каталог" % field,
+            "пересобрать": True}
+
+
+def _kit_to_structure(item, change):
+    """Комплект стандарта → каталог (вместе с недостающими до него)."""
+    match = re.search(r"(\d+)", change.get("поле") or "")
+    if not match:
+        return {"ok": False, "текст": "не удалось определить номер комплекта"}
+    number = int(match.group(1))
+    cabinet = item.get("каталог") or {}
+    record = copy.deepcopy(item.get("запись") or {})
+    record["комплекты"] = (record.get("комплекты") or [])[:number]
+    new = kits_from_standard({"каталог": cabinet, "запись": record})
+    if not new:
+        return {"ok": False, "текст": "комплект %d уже есть в каталоге"
+                                      % number}
+    definition = copy.deepcopy(cabinet)
+    definition["komplets"] = list(cabinet.get("komplets") or []) + new
+    cabs.save_cabinet(definition, cabinet.get("key"))
+    return {"ok": True, "текст": "комплект %d → каталог" % number,
+            "пересобрать": True}
+
+
+def apply_change(item, change, direction="в структуру"):
+    """Переносит одну строку различия в структуру или в стандарт.
+
+    Возвращает ``ok``, ``текст`` и ``пересобрать`` — нужно ли обновить
+    ``structure.json`` после записи.
+    """
+    group = change.get("группа")
+    field = change.get("поле")
+    if direction == "в структуру":
+        if group == "Поле":
+            return _field_to_structure(item, change)
+        if group == "Состав":
+            return _kit_to_structure(item, change)
+        if group == "Таблица":
+            return {"ok": True, "текст": "таблицы ИЭУ берутся из стандарта — "
+                                         "нужна пересборка",
+                    "пересобрать": True}
+        return {"ok": False, "текст": "неизвестная группа «%s»" % group}
+    if group != "Поле":
+        return {"ok": False, "текст": change.get("причина")
+                or "обратный перенос для этой строки не поддерживается"}
+    value = change.get("значение_структура")
+    if value in (None, "", [], {}):
+        return {"ok": False, "текст": "в структуре нет значения для «%s»"
+                                      % field}
+    result = standards_base.update_card(item["шифр"], {field: value})
+    if result["ошибка"]:
+        return {"ok": False, "текст": result["ошибка"]}
+    if not result["поля"]:
+        return {"ok": False, "текст": "в стандарте нет поля «%s»" % field}
+    return {"ok": True, "текст": "«%s» записано в %s"
+                                 % (field, result["файл"]),
+            "пересобрать": False}
 
 
 # ---------------------------------------------------------------------------

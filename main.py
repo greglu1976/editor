@@ -8188,7 +8188,8 @@ class CircuitEditor:
         hint = tk.Label(window, anchor="w", justify="left", fg="#666666",
                         font=("Arial", 8),
                         text="Слева шкафы из standards_base; справа различия "
-                             "с каталогом. «Применить» переносит состав и "
+                             "с каталогом. Двойной щелчок открывает список "
+                             "изменений шкафа. «Применить» переносит состав и "
                              "поля в cabinets.json, «Пересобрать» обновляет "
                              "structure.json (таблицы ИЭУ всегда из стандарта).")
         hint.pack(fill=tk.X, padx=10, pady=(0, 4))
@@ -8316,11 +8317,190 @@ class CircuitEditor:
 
         tree.bind("<<TreeviewSelect>>",
                   lambda event: show_item(current()))
+
+        def open_changes(event=None):
+            if event is not None and tree.identify_region(
+                    event.x, event.y) not in ("cell", "tree"):
+                return
+            item = current()
+            if item is None:
+                return
+            code = item["шифр"]
+
+            def refresh():
+                items[:] = standards_sync.diff()
+                fill(preserve=code)
+
+            self.show_sync_changes(code, on_change=refresh, parent=window)
+
+        tree.bind("<Double-1>", open_changes)
         window.bind("<F5>", lambda event: (items.__setitem__(
             slice(None), standards_sync.diff()), fill()))
         window.bind("<Escape>", lambda event: window.destroy())
         fill()
         self._place_window(window)
+
+    def show_sync_changes(self, code, on_change=None, parent=None):
+        """Окно изменений шкафа: перенос строк в структуру и обратно.
+
+        Открывается двойным щелчком в окне «Сверка…». «→ В структуру» берёт
+        значение стандарта, «→ В стандарт» — значение структуры (каталога)
+        и записывает его в JSON стандарта.
+        """
+        parent = parent or self.root
+        window = tk.Toplevel(self.root)
+        window.title("Изменения шкафа %s" % code)
+        window.transient(parent)
+        window.geometry("1060x580")
+
+        header = tk.Label(window, anchor="w", justify="left",
+                          font=("Arial", 9, "bold"))
+        header.pack(fill=tk.X, padx=10, pady=(8, 2))
+        tk.Label(window, anchor="w", justify="left", fg="#666666",
+                 font=("Arial", 8),
+                 text="Слева — структура (каталог), справа — стандарт. "
+                      "«→ В структуру» переносит значение стандарта, "
+                      "«→ В стандарт» — значение структуры; файл стандарта "
+                      "при этом изменяется.").pack(fill=tk.X, padx=10,
+                                                    pady=(0, 4))
+
+        body = tk.Frame(window)
+        body.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 4))
+        tree = ttk.Treeview(body,
+                            columns=("группа", "поле", "структура", "стандарт"),
+                            show="headings", selectmode="browse", height=16)
+        for column, title, width in (("группа", "Группа", 70),
+                                     ("поле", "Поле", 210),
+                                     ("структура", "Структура", 340),
+                                     ("стандарт", "Стандарт", 340)):
+            tree.heading(column, text=title)
+            tree.column(column, width=width, anchor="w")
+        scroll = tk.Scrollbar(body, orient="vertical", command=tree.yview)
+        tree.config(yscrollcommand=scroll.set)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        preview = tk.Text(window, height=7, wrap="word", font=("Consolas", 9))
+        preview.pack(fill=tk.X, padx=10, pady=(0, 4))
+        preview.config(state="disabled")
+
+        footer = tk.Frame(window)
+        footer.pack(fill=tk.X, padx=10, pady=(0, 8))
+        status = tk.Label(footer, anchor="w", fg="#555555")
+        status.pack(side=tk.LEFT)
+
+        rebuild_after = tk.BooleanVar(value=True)
+        state = {"item": None}
+        visible = []
+
+        def load_rows(preserve=None):
+            nonlocal visible
+            fresh = next((candidate for candidate in standards_sync.diff()
+                          if candidate["шифр"] == code), None)
+            state["item"] = fresh
+            tree.delete(*tree.get_children())
+            visible = []
+            if fresh is None:
+                header.config(text="Шкаф %s не найден в standards_base." % code)
+                status.config(text="")
+                return
+            changes = standards_sync.row_changes(fresh)
+            header.config(text="%s · %s · различий: %d"
+                               % (fresh["шифр"], fresh["стандарт"],
+                                  len(changes)))
+            for change in changes:
+                tree.insert("", tk.END, iid=str(len(visible)), values=(
+                    change["группа"], change["поле"],
+                    standards_sync.value_text(change["значение_структура"]),
+                    standards_sync.value_text(change["значение_стандарт"])))
+                visible.append(change)
+            if not changes:
+                status.config(text="Различий нет: структура и стандарт "
+                                   "совпадают.")
+                return
+            index = 0
+            if preserve:
+                for number, change in enumerate(visible):
+                    if change["поле"] == preserve:
+                        index = number
+                        break
+            tree.selection_set(str(index))
+            tree.focus(str(index))
+
+        def current():
+            selection = tree.selection()
+            if not selection:
+                return None
+            try:
+                return visible[int(selection[0])]
+            except (ValueError, IndexError):
+                return None
+
+        def sync_buttons(event=None):
+            change = current()
+            for button, flag in ((to_structure, "можно_в_структуру"),
+                                 (to_standard, "можно_в_стандарт")):
+                enabled = bool(change) and bool(change.get(flag))
+                button.config(state=tk.NORMAL if enabled else tk.DISABLED)
+            if change and change.get("причина"):
+                status.config(text=change["причина"])
+            preview.config(state="normal")
+            preview.delete("1.0", tk.END)
+            if change:
+                preview.insert("1.0", "%s · %s\n\nСтруктура:\n%s\n\n"
+                                      "Стандарт:\n%s"
+                               % (change["группа"], change["поле"],
+                                  standards_sync.value_text(
+                                      change["значение_структура"], 600),
+                                  standards_sync.value_text(
+                                      change["значение_стандарт"], 600)))
+            preview.config(state="disabled")
+
+        def transfer(direction):
+            change = current()
+            item = state["item"]
+            if change is None or item is None:
+                return
+            if direction == "в стандарт" and not messagebox.askyesno(
+                    "Стандарт",
+                    "Записать значение в файл стандарта %s?\n"
+                    "Файл standards_base будет изменён." % code,
+                    parent=window):
+                return
+            result = standards_sync.apply_change(item, change, direction)
+            text = result.get("текст") or ""
+            if not result.get("ok"):
+                status.config(text=text)
+                return
+            if result.get("пересобрать") and rebuild_after.get():
+                built = structure_tools.rebuild()
+                if built.get("ok"):
+                    text += " · структура пересобрана"
+                else:
+                    text += " · пересборка не удалась: %s" % (
+                        built.get("ошибка") or "неизвестная ошибка")
+            load_rows(preserve=change.get("поле"))
+            sync_buttons()
+            status.config(text=text)
+            if on_change:
+                on_change()
+        to_structure = tk.Button(footer, text="→ В структуру", width=16,
+                                 command=lambda: transfer("в структуру"))
+        to_standard = tk.Button(footer, text="→ В стандарт", width=16,
+                                command=lambda: transfer("в стандарт"))
+        tk.Button(footer, text="Закрыть", width=10,
+                  command=window.destroy).pack(side=tk.RIGHT)
+        to_standard.pack(side=tk.RIGHT, padx=(0, 6))
+        to_structure.pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Checkbutton(footer, text="Пересобирать после переноса",
+                       variable=rebuild_after).pack(side=tk.RIGHT,
+                                                    padx=(0, 12))
+
+        tree.bind("<<TreeviewSelect>>", sync_buttons)
+        window.bind("<Escape>", lambda event: window.destroy())
+        load_rows()
+        sync_buttons()
+        self._place_window(window, parent)
 
     def _build_ribbon_reports(self, parent):
         page = tk.Frame(parent, bg="#f3f3f3")

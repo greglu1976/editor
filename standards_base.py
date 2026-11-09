@@ -626,6 +626,112 @@ def record(card, cabinet_id=None):
             if value not in (None, "", [], {})}
 
 
+#: Поле записи → названия в «Описании шкафа» (для записи обратно в стандарт).
+FIELD_NAMES = {field: names for field, names, _as_list in CABINET_FIELDS}
+FIELD_NAMES.update(dict(FIGURE_FIELDS))
+
+
+def _description_key(description, names):
+    """Ключ «Описания шкафа» для поля: точное совпадение, затем по началу."""
+    keys = list((description or {}).keys())
+    for name in names:
+        want = norm_key(name)
+        for key in keys:
+            if norm_key(key) == want:
+                return key
+    for name in names:
+        want = norm_key(name)
+        if not want:
+            continue
+        for key in keys:
+            found = norm_key(key)
+            if found.startswith(want) \
+                    and (len(found) == len(want) or found[len(want)] in " ("):
+                return key
+    return None
+
+
+def _format_field_value(existing, value):
+    """Значение в том же виде, в каком поле хранится в стандарте."""
+    if isinstance(existing, list):
+        if isinstance(value, (list, tuple)):
+            return [str(item).strip() for item in value if str(item).strip()]
+        return split_list(value)
+    if isinstance(value, (list, tuple)):
+        return "; ".join(str(item).strip() for item in value
+                         if str(item).strip())
+    return clean_text(value)
+
+
+def update_card(code, updates):
+    """Записывает поля карточки стандарта обратно в её JSON-файл.
+
+    ``updates`` — {поле записи: значение}. «назначение» пишется в блок
+    «Назначение шкафа», остальные — в «Описание шкафа» (ключ ищется с
+    учётом сносок «[16]»). Файл пишется целиком (отступ 2, как в папке) и
+    перечитывается. Возвращает ``файл``, ``поля`` (сколько записано),
+    ``пропущено`` (нет такого поля) и ``ошибка``.
+    """
+    result = {"файл": None, "поля": 0, "пропущено": [], "ошибка": None}
+    card = cabinet(code)
+    if card is None:
+        result["ошибка"] = "карточка %s не найдена" % code
+        return result
+    standard = None
+    for entry in load():
+        if norm_code(entry["шифр"]) == norm_code(card["стандарт"]):
+            standard = entry
+            break
+    if standard is None:
+        result["ошибка"] = "стандарт %s не найден" % card["стандарт"]
+        return result
+    path = standard["путь"]
+    result["файл"] = standard["файл"]
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except Exception as exc:                      # noqa: BLE001
+        result["ошибка"] = "%s: %s" % (standard["файл"], exc)
+        return result
+    block = None
+    for item in (data.get(SECTION) or {}).values():
+        if isinstance(item, dict) \
+                and norm_code(item.get(CODE_FIELD)) == card["шифр"]:
+            block = item
+            break
+    if block is None:
+        result["ошибка"] = "в файле нет карточки %s" % card["шифр"]
+        return result
+    description = block.get(DESCRIPTION_FIELD)
+    if not isinstance(description, dict):
+        description = block[DESCRIPTION_FIELD] = {}
+    for field, value in (updates or {}).items():
+        if field == "назначение":
+            block["Назначение шкафа"] = clean_text(value)
+            result["поля"] += 1
+            continue
+        key = _description_key(description, FIELD_NAMES.get(field) or ())
+        if key is None:
+            result["пропущено"].append(field)
+            continue
+        description[key] = _format_field_value(description[key], value)
+        result["поля"] += 1
+    if result["поля"]:
+        temporary = path + ".tmp"
+        try:
+            mode = os.stat(path).st_mode
+            with open(temporary, "w", encoding="utf-8") as handle:
+                json.dump(data, handle, ensure_ascii=False, indent=2)
+                handle.write("\n")
+            os.chmod(temporary, mode)
+            os.replace(temporary, path)
+        except Exception as exc:                  # noqa: BLE001
+            result["ошибка"] = "%s: %s" % (standard["файл"], exc)
+            return result
+        reload()
+    return result
+
+
 def _unique(items):
     """Список без повторов, порядок сохраняется."""
     seen = set()

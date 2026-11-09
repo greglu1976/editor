@@ -20,8 +20,10 @@
    повторный вызов на тех же данных ничего не меняет;
 6. ``import_missing``: шкафы standards_base, которых нет в каталоге, получают
    запись каталога (ключ, стандарт, комплекты, ИЭУ) и добавляются один раз;
-7. ``structure_tools``: пересборка во временный файл, проверка и текст отчёта;
-8. окна «Сверка…» и «Проверка…»: открываются, показывают списки и отчёт.
+7. построчный перенос: ``row_changes`` и ``apply_change`` двигают поле в
+   каталог и обратно в JSON стандарта, таблицы — только из стандарта;
+8. ``structure_tools``: пересборка во временный файл, проверка и текст отчёта;
+9. окна «Сверка…» и «Проверка…»: открываются, показывают списки и отчёт.
 """
 
 from __future__ import annotations
@@ -29,6 +31,7 @@ from __future__ import annotations
 import argparse
 import copy
 import os
+import shutil
 import sys
 import tempfile
 
@@ -264,8 +267,74 @@ def test_import_missing():
           % result["текст"].splitlines()[0])
 
 
+def test_change_rows():
+    print("7. построчный перенос изменений")
+    item = next(item for item in standards_sync.diff()
+                if item["шифр"] == "ШЭТ 140.11-1")
+    changes = standards_sync.row_changes(item)
+    check(len(changes) == item["всего"],
+          "строк изменений: %d = всего %d" % (len(changes), item["всего"]))
+    check(all(change["группа"] in ("Поле", "Состав", "Таблица")
+              for change in changes), "у каждой строки есть группа")
+    applicability = next(change for change in changes
+                         if change["поле"] == "применимость")
+    check(applicability["можно_в_структуру"]
+          and applicability["можно_в_стандарт"],
+          "поле с обеими сторонами переносится в обе стороны")
+
+    saved = []
+    original_save = cabs.save_cabinet
+    cabs.save_cabinet = lambda definition, key=None: saved.append(
+        (copy.deepcopy(definition), key))
+    try:
+        result = standards_sync.apply_change(item, applicability,
+                                            "в структуру")
+        check(result["ok"] and result.get("пересобрать"),
+              "перенос в структуру: %s" % result["текст"])
+        check(len(saved) == 1
+              and saved[0][0]["applicability"]
+              == applicability["значение_стандарт"],
+              "поле каталога получило значение стандарта")
+        check(saved[0][1] == item["ключ"], "передан ключ шкафа")
+    finally:
+        cabs.save_cabinet = original_save
+
+    tmp = tempfile.mkdtemp()
+    source = os.path.join(standards_base.STANDARDS_DIR,
+                          "СТО (проект) Раздел 4.16, т. 1, ред. 2.json")
+    shutil.copy(source, os.path.join(tmp, os.path.basename(source)))
+    original_dir = standards_base.STANDARDS_DIR
+    standards_base.STANDARDS_DIR = tmp
+    standards_base.reload()
+    try:
+        fresh = next(item for item in standards_sync.diff()
+                     if item["шифр"] == "ШЭТ 140.11-1")
+        change = next(change for change in standards_sync.row_changes(fresh)
+                      if change["поле"] == "применимость")
+        result = standards_sync.apply_change(fresh, change, "в стандарт")
+        check(result["ok"] and not result.get("пересобрать"),
+              "перенос в стандарт: %s" % result["текст"])
+        after = next(item for item in standards_sync.diff()
+                     if item["шифр"] == "ШЭТ 140.11-1")
+        check(not [row for row in standards_sync.row_changes(after)
+                   if row["поле"] == "применимость"],
+              "после переноса строка различия исчезла")
+        check(standards_base.record(standards_base.cabinet("ШЭТ 140.11-1"))
+              .get("применимость") == change["значение_структура"],
+              "значение записано в JSON стандарта")
+    finally:
+        standards_base.STANDARDS_DIR = original_dir
+        standards_base.reload()
+
+    table = {"группа": "Таблица", "поле": "ИЭУ1 · входные GOOSE",
+             "причина": "таблицы ИЭУ переносятся только из стандарта"}
+    result = standards_sync.apply_change(item, table, "в стандарт")
+    check(not result["ok"] and "только из стандарта" in result["текст"],
+          "обратный перенос таблицы отклонён с причиной")
+
+
 def test_structure_tools():
-    print("7. пересборка и проверка структуры")
+    print("8. пересборка и проверка структуры")
     target_dir = os.path.join(ROOT, "output", "_sync_test")
     os.makedirs(target_dir, exist_ok=True)
     target = os.path.join(target_dir, "structure.json")
@@ -293,7 +362,7 @@ def test_structure_tools():
 
 
 def test_gui():
-    print("8. окна сверки и проверки")
+    print("9. окна сверки и проверки")
     import main
     root = tk.Tk()
     try:
@@ -321,6 +390,40 @@ def test_gui():
         content = texts[0].get("1.0", "end") if texts else ""
         check("СОСТАВ" in content or "ТАБЛИЦЫ ИЭУ" in content,
               "подробности выбранного шкафа показаны")
+
+        check(bool(trees[0].bind("<Double-1>")),
+              "двойной щелчок по шкафу привязан")
+        target = next(item for item in standards_sync.diff()
+                      if any(change["можно_в_структуру"]
+                             and change["можно_в_стандарт"]
+                             for change in standards_sync.row_changes(item)))
+        app.show_sync_changes(target["шифр"])
+        root.update()
+        detail = next(widget for widget in root.winfo_children()
+                      if isinstance(widget, tk.Toplevel)
+                      and widget.title().startswith("Изменения шкафа"))
+        detail_trees = [widget for widget in _walk(detail)
+                        if widget.winfo_class() == "Treeview"]
+        check(bool(detail_trees)
+              and len(detail_trees[0].get_children())
+              == target["всего"],
+              "в окне изменений: %d строк"
+              % (len(detail_trees[0].get_children()) if detail_trees else 0))
+        buttons = {str(widget.cget("text")): widget for widget in _walk(detail)
+                   if widget.winfo_class() == "Button"}
+        check("→ В структуру" in buttons and "→ В стандарт" in buttons,
+              "в окне есть перенос в обе стороны")
+        changes = standards_sync.row_changes(target)
+        index = next(number for number, change in enumerate(changes)
+                     if change["можно_в_структуру"]
+                     and change["можно_в_стандарт"])
+        detail_trees[0].selection_set(detail_trees[0].get_children()[index])
+        detail_trees[0].event_generate("<<TreeviewSelect>>")
+        root.update()
+        check(str(buttons["→ В структуру"].cget("state")) == "normal"
+              and str(buttons["→ В стандарт"].cget("state")) == "normal",
+              "для поля с двумя значениями доступны обе кнопки")
+        detail.destroy()
         window.destroy()
         root.update()
 
@@ -387,6 +490,7 @@ def main(argv=None):
     test_kits_from_standard()
     test_apply()
     test_import_missing()
+    test_change_rows()
     test_structure_tools()
     if not args.no_gui and tk is not None:
         test_gui()
