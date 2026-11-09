@@ -22,10 +22,12 @@
 
 from __future__ import annotations
 
+import copy
 import glob
 import importlib
 import json
 import os
+import re
 import subprocess
 import sys
 import uuid
@@ -451,6 +453,88 @@ def write_json(data, path, indent=2):
         json.dump(data, handle, ensure_ascii=False, indent=indent)
         handle.write("\n")
     return os.path.getsize(path)
+
+
+# ---------------------------------------------------------------------------
+# Сброс пометок редакции
+# ---------------------------------------------------------------------------
+#: Поля, которые ``apply_changes`` добавляет в отменённый элемент.
+REVISION_FIELDS = ("Статус", "Основание", "Действует до", "Изменение")
+
+#: Идентификатор изменения: «ИЗМ-1», «Изм 2», «CHG_3».
+_CHANGE_ID = re.compile(r"^[A-Za-zА-Яа-яЁё]{2,}[-_ ]?\d", re.UNICODE)
+
+#: Ссылка на изменение внутри текста: «ИЗМ-1», «изм 2».
+_CHANGE_REF = re.compile(r"(?<![А-Яа-яЁёA-Za-z])ИЗМ[-_ ]?\d+(?!\d)",
+                         re.IGNORECASE | re.UNICODE)
+
+
+def _is_revision_mark(node):
+    """Словарь — отменённый элемент, помеченный движком изменений."""
+    change = node.get("Изменение")
+    if not isinstance(change, str) or not _CHANGE_ID.match(change.strip()):
+        return False
+    return any(field in node for field in ("Статус", "Основание", "Действует до"))
+
+
+def _clean_change_refs(text):
+    """Убрать из текста ссылки на изменения и лишние скобки/пробелы."""
+    if not isinstance(text, str) or "изм" not in text.lower():
+        return text, 0
+    result, count = _CHANGE_REF.subn("", text)
+    if not count:
+        return text, 0
+    result = re.sub(r"[ \t]{2,}", " ", result)
+    result = re.sub(r"\s+([,.;:)\]])", r"\1", result)
+    result = re.sub(r"([(\[])\s+", r"\1", result)
+    result = re.sub(r"\(\s*\)|\[\s*\]", "", result)
+    return result.strip(), count
+
+
+def strip_revision(data):
+    """Убрать из стандарта пометки редакции, оставив внесённые изменения.
+
+    Удаляет блок ``Редакция``, служебные поля, которые движок добавляет
+    в элементы, отменённые операцией ``DEPRECATED`` («Статус», «Основание»,
+    «Действует до», «Изменение»), и ссылки на изменения в тексте
+    («Дополнительный ввод (ИЗМ-1)» → «Дополнительный ввод»). Сами элементы,
+    замены, добавления и удаления остаются — получается обычный JSON
+    стандарта.
+
+    Возвращает ``(clean, report)``; исходный ``data`` не меняется.
+    """
+    clean = copy.deepcopy(data)
+    report = {"блок редакции": False, "изменений": 0,
+              "элементов": 0, "полей": 0, "ссылок": 0}
+    if isinstance(clean, dict):
+        revision = clean.pop("Редакция", None)
+        if revision is not None:
+            report["блок редакции"] = True
+            if isinstance(revision, dict):
+                report["изменений"] = len(
+                    revision.get("Применённые изменения") or [])
+
+    def walk(node):
+        if isinstance(node, dict):
+            if _is_revision_mark(node):
+                for field in REVISION_FIELDS:
+                    if field in node:
+                        del node[field]
+                        report["полей"] += 1
+                report["элементов"] += 1
+            for key, value in node.items():
+                node[key] = walk(value)
+            return node
+        if isinstance(node, list):
+            return [walk(value) for value in node]
+        if isinstance(node, str):
+            text, count = _clean_change_refs(node)
+            report["ссылок"] += count
+            return text
+        return node
+
+    walk(clean)
+    return clean, report
 
 
 # ---------------------------------------------------------------------------

@@ -172,6 +172,7 @@ class StandardsWindow(tk.Toplevel):
                 self._new_standard, width=28)
         _button(actions, "Собрать редакцию…", self._assemble, width=20)
         _button(actions, "Проверить изменения", self._check_changes, width=20)
+        _button(actions, "Сбросить пометки…", self._strip_revision, width=20)
         _button(actions, "Отчёт DOCX…", self._docx, width=16)
 
         log_frame, self.log = _text_box(self, height=7)
@@ -266,6 +267,49 @@ class StandardsWindow(tk.Toplevel):
                 lines.append("Изменений применено: %d, операций: %d"
                              % (result["изменений"], result["операций"]))
         _set_text(self.log, "\n".join(lines))
+
+    def _strip_revision(self):
+        item = self.selected()
+        if not item:
+            _set_text(self.log, "Стандарт не выбран.")
+            return
+        try:
+            data = se.load(item["путь"])
+        except Exception as exc:                    # noqa: BLE001
+            messagebox.showerror(
+                "Сброс пометок",
+                "Не удалось прочитать стандарт:\n%s" % exc, parent=self)
+            return
+        clean, report = se.strip_revision(data)
+        if not report["блок редакции"] and not report["полей"] \
+                and not report["ссылок"]:
+            _set_text(self.log, "Пометок редакции нет: %s" % item["имя"])
+            return
+        name = os.path.splitext(item["имя"])[0] + " (без пометок).json"
+        path = filedialog.asksaveasfilename(
+            parent=self, title="Сохранить стандарт без пометок",
+            initialdir=os.path.dirname(item["путь"]), initialfile=name,
+            defaultextension=".json",
+            filetypes=[("JSON стандарта", "*.json"), ("Все файлы", "*.*")])
+        if not path:
+            return
+        try:
+            size = se.write_json(clean, path)
+        except OSError as exc:
+            messagebox.showerror(
+                "Сброс пометок",
+                "Не удалось записать файл:\n%s" % exc, parent=self)
+            return
+        lines = [
+            "Пометки редакции удалены: %s" % item["имя"],
+            "Изменений в блоке «Редакция»: %d, очищено элементов: %d, "
+            "полей: %d, ссылок в тексте: %d"
+            % (report["изменений"], report["элементов"], report["полей"],
+               report["ссылок"]),
+            "Записан: %s (%.1f КБ)" % (path, size / 1024.0),
+        ]
+        _set_text(self.log, "\n".join(lines))
+        messagebox.showinfo("Сброс пометок", "\n".join(lines), parent=self)
 
     def _docx(self):
         item = self.selected()
