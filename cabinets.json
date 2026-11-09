@@ -625,7 +625,7 @@
         "УРОВ"
       ],
       "applicability": "РУ 35 кВ (ГОСТ Р 59279 и [14]), схема РУ № 35-9",
-      "architecture": "II тип",
+      "architecture": "II типа",
       "source": "разд. 5.3, табл. 5.2",
       "goose": true,
       "tags": [
