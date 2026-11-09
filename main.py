@@ -971,6 +971,8 @@ class CircuitEditor:
         # Выбранная аналоговая связь (dict из self.analog_links) и экранные
         # прямоугольники её подписей — по ним двойной клик открывает свойства
         self.selected_analog = None
+        self.selected_protection = None      # выбранная связь защит (dict)
+        self.selected_container_link = None  # (id контейнера, номер слота)
         self._analog_label_boxes = []
         self._analog_start = None       # ("komplekt", id, index) | ("equipment", id, None)
         self.show_protection = True     # стрелки комплект→узел и ромбы-узлы
@@ -4251,12 +4253,25 @@ class CircuitEditor:
                     return (container.id, index)
         return None
 
+    def _container_route(self, container, index, cabinet):
+        """Мировые точки связи контейнера: слот → изломы → шкаф."""
+        if index < 0 or index >= container.slot_count():
+            return []
+        points = getattr(container, "link_points", []) or []
+        offset = points[index] if index < len(points) else None
+        route = [container.slot_center(index)]
+        route.extend((point[0], point[1])
+                     for point in self._clean_points(offset))
+        route.append(self._cabinet_bind_point(cabinet))
+        return route
+
     def _container_link_segment(self, container, index, cabinet):
         """Отрезок линии привязки в экранных координатах: слот → шкаф."""
-        slot_x, slot_y = container.slot_center(index)
-        end_x, end_y = self._cabinet_bind_point(cabinet)
-        return (self.world_to_screen(slot_x, slot_y),
-                self.world_to_screen(end_x, end_y))
+        route = self._container_route(container, index, cabinet)
+        if len(route) < 2:
+            return (None, None)
+        return (self.world_to_screen(*route[0]),
+                self.world_to_screen(*route[-1]))
 
     def _container_link_at(self, sx, sy):
         """Линия привязки под курсором: (id контейнера, номер слота) или None."""
@@ -4270,10 +4285,58 @@ class CircuitEditor:
                 cabinet = self.elements.get(cabinet_id) if cabinet_id else None
                 if cabinet is None or cabinet.type != "cabinet":
                     continue
-                (x1, y1), (x2, y2) = self._container_link_segment(
-                    container, index, cabinet)
-                if self._point_segment_distance(sx, sy, x1, y1, x2, y2) <= tolerance:
-                    return (container.id, index)
+                route = self._container_route(container, index, cabinet)
+                if len(route) < 2:
+                    continue
+                for seg in range(len(route) - 1):
+                    x1, y1 = self.world_to_screen(*route[seg])
+                    x2, y2 = self.world_to_screen(*route[seg + 1])
+                    if self._point_segment_distance(
+                            sx, sy, x1, y1, x2, y2) <= tolerance:
+                        return (container.id, index)
+        return None
+
+    def _container_segment_at(self, sx, sy):
+        """Сегмент связи контейнера: (контейнер, слот, номер) — вставка излома."""
+        if not self.show_containers:
+            return None
+        tolerance = max(4.0, 6.0 * self.zoom)
+        best, best_distance = None, tolerance
+        for container in self._containers():
+            for index in range(container.slot_count()):
+                cabinet_id = (container.cabinets[index]
+                              if index < len(container.cabinets) else "")
+                cabinet = self.elements.get(cabinet_id) if cabinet_id else None
+                if cabinet is None or cabinet.type != "cabinet":
+                    continue
+                route = self._container_route(container, index, cabinet)
+                for seg in range(len(route) - 1):
+                    x1, y1 = self.world_to_screen(*route[seg])
+                    x2, y2 = self.world_to_screen(*route[seg + 1])
+                    distance = self._point_segment_distance(
+                        sx, sy, x1, y1, x2, y2)
+                    if distance <= best_distance:
+                        best, best_distance = (container, index, seg), distance
+        return best
+
+    def _container_point_at(self, sx, sy):
+        """Маркер излома выбранной связи контейнера.
+
+        Возвращает (kind, (контейнер, слот), номер) или None.
+        """
+        if self.selected_container_link is None:
+            return None
+        container_id, slot = self.selected_container_link
+        container = self.elements.get(container_id)
+        if container is None or container.type != "container":
+            return None
+        if slot < 0 or slot >= len(getattr(container, "link_points", [])):
+            return None
+        radius = max(5.0, 6.0 * self.zoom)
+        for index, point in enumerate(container.link_points[slot]):
+            px, py = self.world_to_screen(point[0], point[1])
+            if math.hypot(sx - px, sy - py) <= radius:
+                return ("container", (container, slot), index)
         return None
 
     def _draw_container_links(self):
@@ -4290,12 +4353,24 @@ class CircuitEditor:
                 cabinet = self.elements.get(cabinet_id) if cabinet_id else None
                 if cabinet is None or cabinet.type != "cabinet":
                     continue
-                (x1, y1), (x2, y2) = self._container_link_segment(
-                    container, index, cabinet)
-                self.canvas.create_line(x1, y1, x2, y2, fill=color,
-                                        width=width, tags="container_link")
-                self.canvas.create_oval(x1 - radius, y1 - radius,
-                                        x1 + radius, y1 + radius,
+                route = self._container_route(container, index, cabinet)
+                if len(route) < 2:
+                    continue
+                selected = (self.selected_container_link
+                            == (container.id, index))
+                line_width = width + (max(1, int(1.0 * self.zoom))
+                                     if selected else 0)
+                coords = []
+                for point in route:
+                    px, py = self.world_to_screen(*point)
+                    coords.extend((px, py))
+                self.canvas.create_line(*coords, fill=color,
+                                        width=line_width,
+                                        joinstyle=tk.MITER,
+                                        tags="container_link")
+                sx1, sy1 = self.world_to_screen(*route[0])
+                self.canvas.create_oval(sx1 - radius, sy1 - radius,
+                                        sx1 + radius, sy1 + radius,
                                         fill=color, outline="white",
                                         tags="container_link")
 
@@ -4316,6 +4391,25 @@ class CircuitEditor:
                 self.canvas.create_oval(px - r, py - r, px + r, py + r,
                                         outline="red", width=2,
                                         tags="container_link_start")
+
+    def _draw_container_points(self):
+        """Квадратные маркеры изломов выбранной связи контейнера."""
+        if self.selected_container_link is None:
+            return
+        container_id, slot = self.selected_container_link
+        container = self.elements.get(container_id)
+        if container is None or container.type != "container":
+            return
+        if slot < 0 or slot >= len(getattr(container, "link_points", [])):
+            return
+        radius = max(3.0, 4.0 * self.zoom)
+        for point in container.link_points[slot]:
+            px, py = self.world_to_screen(point[0], point[1])
+            self.canvas.create_rectangle(
+                px - radius, py - radius, px + radius, py + radius,
+                fill="white", outline="#a0522d",
+                width=max(1, int(1.5 * self.zoom)),
+                tags="container_point")
 
     @staticmethod
     def _ctrl_click(event):
@@ -4391,6 +4485,8 @@ class CircuitEditor:
                 if container is not None:
                     self._push_undo()
                     container.cabinets[link[1]] = ""
+                    if link[1] < len(container.link_points):
+                        container.link_points[link[1]] = []
                     self._sync_containers()
                     self.redraw_all()
                 return
@@ -4402,6 +4498,8 @@ class CircuitEditor:
                 if container is not None and container.cabinets[slot[1]]:
                     self._push_undo()
                     container.cabinets[slot[1]] = ""
+                    if slot[1] < len(container.link_points):
+                        container.link_points[slot[1]] = []
                     self._sync_containers()
                     self.redraw_all()
                     return
@@ -5196,24 +5294,77 @@ class CircuitEditor:
         return (cabinet.ports.get(f"komplekt{index}")
                 or cabinet.ports.get(f"ied{index}"))
 
+    def _protection_route(self, link):
+        """Мировые точки связи защиты: порт комплекта → изломы → узел."""
+        cabinet_id, _, index = self._link_ref(link).partition("#")
+        cabinet = self.elements.get(cabinet_id)
+        element = self.elements.get(link.get("element"))
+        if cabinet is None or element is None or cabinet.type != "cabinet":
+            return []
+        port = self._komplekt_port(cabinet, index)
+        if not port:
+            return []
+        route = [(port["x"], port["y"])]
+        route.extend((point[0], point[1])
+                     for point in self._clean_points(link.get("points")))
+        route.append((element.x, element.y))
+        return route
+
     def _protection_link_at(self, sx, sy):
         if not self.show_protection or not self.show_cabinets:
             return None
         tolerance = max(4.0, 5.0 * self.zoom)
+        best = None
+        best_distance = None
         for link in self.protection_links:
-            cabinet_id, _, index = self._link_ref(link).partition("#")
-            cabinet = self.elements.get(cabinet_id)
-            element = self.elements.get(link["element"])
-            if not cabinet or not element:
+            points = self._protection_route(link)
+            if len(points) < 2:
                 continue
-            port = self._komplekt_port(cabinet, index)
-            if not port:
-                continue
-            x1, y1 = self.world_to_screen(port["x"], port["y"])
-            x2, y2 = self.world_to_screen(element.x, element.y)
-            if self._point_segment_distance(sx, sy, x1, y1, x2, y2) <= tolerance:
-                return link
+            for index in range(len(points) - 1):
+                x1, y1 = self.world_to_screen(*points[index])
+                x2, y2 = self.world_to_screen(*points[index + 1])
+                distance = self._point_segment_distance(sx, sy, x1, y1, x2, y2)
+                if distance <= tolerance and (best_distance is None
+                                              or distance < best_distance):
+                    best, best_distance = link, distance
+        return best
+
+    def _protection_segment_at(self, sx, sy):
+        """Сегмент связи защиты: (связь, номер) — куда вставить излом."""
+        if not self.show_protection or not self.show_cabinets:
+            return None
+        tolerance = max(4.0, 6.0 * self.zoom)
+        best, best_distance = None, tolerance
+        for link in self.protection_links:
+            points = self._protection_route(link)
+            for index in range(len(points) - 1):
+                x1, y1 = self.world_to_screen(*points[index])
+                x2, y2 = self.world_to_screen(*points[index + 1])
+                distance = self._point_segment_distance(sx, sy, x1, y1, x2, y2)
+                if distance <= best_distance:
+                    best, best_distance = (link, index), distance
+        return best
+
+    def _protection_point_at(self, sx, sy):
+        """Маркер излома выбранной связи защиты: (kind, связь, номер)."""
+        link = self.selected_protection
+        if link is None or link not in self.protection_links:
+            return None
+        radius = max(5.0, 6.0 * self.zoom)
+        for index, point in enumerate(link.get("points") or []):
+            px, py = self.world_to_screen(point[0], point[1])
+            if math.hypot(sx - px, sy - py) <= radius:
+                return ("link", link, index)
         return None
+
+    def _protection_record(self, link):
+        """Запись связи защиты для JSON: ссылки и изломы."""
+        record = {"komplekt": link.get("komplekt", ""),
+                  "element": link.get("element", "")}
+        points = self._clean_points(link.get("points"))
+        if points:
+            record["points"] = points
+        return record
 
     def _on_protection_click(self, event):
         """Клик в режиме «Связь РЗА»: комплект → защитный узел (или наоборот)."""
@@ -5280,7 +5431,9 @@ class CircuitEditor:
             if self._link_ref(link) == komplekt_ref and link["element"] == element_id:
                 return
         self._push_undo()
-        self.protection_links.append({"komplekt": komplekt_ref, "element": element_id})
+        self.protection_links.append({"komplekt": komplekt_ref,
+                                     "element": element_id, "points": []})
+        return self.protection_links[-1]
 
     def _draw_protection(self):
         """Защитные узлы на оборудовании и стрелки комплект → узел."""
@@ -5299,19 +5452,20 @@ class CircuitEditor:
 
         if self.show_cabinets:
             for link in self.protection_links:
-                cabinet_id, _, index = self._link_ref(link).partition("#")
-                cabinet = self.elements.get(cabinet_id)
-                element = self.elements.get(link["element"])
-                if not cabinet or not element or cabinet.type != "cabinet":
+                route = self._protection_route(link)
+                if len(route) < 2:
                     continue
-                port = self._komplekt_port(cabinet, index)
-                if not port:
-                    continue
-                x1, y1 = self.world_to_screen(port["x"], port["y"])
-                x2, y2 = self.world_to_screen(element.x, element.y)
-                self.canvas.create_line(x1, y1, x2, y2, fill="#1f4e79",
-                                        width=max(1, int(1.5 * self.zoom)),
-                                        arrow=tk.LAST, tags="protection_link")
+                selected = link is self.selected_protection
+                width = max(1, int(1.5 * self.zoom)) + (
+                    max(1, int(1.0 * self.zoom)) if selected else 0)
+                coords = []
+                for point in route:
+                    px, py = self.world_to_screen(*point)
+                    coords.extend((px, py))
+                self.canvas.create_line(
+                    *coords, fill="#1f4e79", width=width,
+                    arrow=tk.LAST, joinstyle=tk.MITER,
+                    tags="protection_link")
 
         if self._protection_start is not None:
             if self._protection_start[0] == "komplekt":
@@ -5330,6 +5484,20 @@ class CircuitEditor:
                     r = max(4.0, 6.0 * self.zoom)
                     self.canvas.create_oval(px - r, py - r, px + r, py + r,
                                             outline="red", width=2, tags="protection_start")
+
+    def _draw_protection_points(self):
+        """Квадратные маркеры изломов выбранной связи защиты."""
+        link = self.selected_protection
+        if link is None or link not in self.protection_links:
+            return
+        radius = max(3.0, 4.0 * self.zoom)
+        for point in link.get("points") or []:
+            px, py = self.world_to_screen(point[0], point[1])
+            self.canvas.create_rectangle(
+                px - radius, py - radius, px + radius, py + radius,
+                fill="white", outline="#1f4e79",
+                width=max(1, int(1.5 * self.zoom)),
+                tags="protection_point")
 
     # ================= АНАЛОГОВЫЕ ЦЕПИ (КОМПЛЕКТ ↔ ТТ/ТН ИЛИ КОМПЛЕКТ) =========
     # Связь аналоговых цепей — направленная: у каждого комплекта шкафа есть
@@ -5486,7 +5654,7 @@ class CircuitEditor:
         for index, point in enumerate(link.get("points") or []):
             px, py = self.world_to_screen(point[0], point[1])
             if math.hypot(sx - px, sy - py) <= radius:
-                return (link, index)
+                return ("link", link, index)
         return None
 
     def _analog_label_at(self, sx, sy):
@@ -6122,6 +6290,8 @@ class CircuitEditor:
         self._label_drag_changed = False
         self.selected_connection = None
         self.selected_analog = None
+        self.selected_protection = None      # выбранная связь защит (dict)
+        self.selected_container_link = None  # (id контейнера, номер слота)
         self._analog_label_boxes = []
         self._dragging_point = None
         self._point_drag_changed = False
@@ -6788,6 +6958,9 @@ class CircuitEditor:
                                   for cabinet_id in container.cabinets]
             while len(container.cabinets) < container.slot_count():
                 container.cabinets.append("")
+            # изломы линий привязки не переносятся (мировые координаты
+            # указывали бы на старые позиции шкафов) — оставляем прямыми
+            container.link_points = [[] for _ in range(container.slot_count())]
         self._sync_containers()
 
         # Аналоговые цепи внутри вставленного фрагмента
@@ -6903,6 +7076,10 @@ class CircuitEditor:
 
         # 4a. Защитные узлы и стрелки комплект → узел
         self._draw_protection()
+        if self.selected_protection is not None \
+                and self.selected_protection not in self.protection_links:
+            self.selected_protection = None
+        self._draw_protection_points()
 
         # 4б. Аналоговые цепи: комплект → ТТ/ТН (или комплект), фиолетовым
         self._draw_analog_links()
@@ -6910,6 +7087,14 @@ class CircuitEditor:
                 and self.selected_analog not in self.analog_links:
             self.selected_analog = None
         self._draw_analog_points()
+
+        # 4в. Маркеры изломов выбранной связи контейнера
+        if self.selected_container_link is not None:
+            container_id, _slot = self.selected_container_link
+            container = self.elements.get(container_id)
+            if container is None or container.type != "container":
+                self.selected_container_link = None
+        self._draw_container_points()
 
         # 5. Рамка выделения
         highlight_color = "wheat4"
@@ -7112,6 +7297,26 @@ class CircuitEditor:
             if link in self.analog_links:
                 self._push_undo()
                 self.analog_links.remove(link)
+            self.redraw_all()
+            return
+        if self.selected_protection is not None:
+            link = self.selected_protection
+            self.selected_protection = None
+            if link in self.protection_links:
+                self._push_undo()
+                self.protection_links.remove(link)
+            self.redraw_all()
+            return
+        if self.selected_container_link is not None:
+            container_id, slot = self.selected_container_link
+            self.selected_container_link = None
+            container = self.elements.get(container_id)
+            if container is not None and container.type == "container":
+                self._push_undo()
+                container.cabinets[slot] = ""
+                if slot < len(container.link_points):
+                    container.link_points[slot] = []
+                self._sync_containers()
             self.redraw_all()
             return
         if not self.selected_elements:
@@ -7453,7 +7658,7 @@ class CircuitEditor:
                 for point in original]
 
     def _connection_point_at(self, sx, sy):
-        """Маркер излома выбранной связи под курсором: (связь, номер)."""
+        """Маркер излома выбранной связи под курсором: (kind, связь, номер)."""
         connection = self.selected_connection
         if connection is None or connection not in self.connections:
             return None
@@ -7461,7 +7666,7 @@ class CircuitEditor:
         for index, point in enumerate(connection.get("points") or []):
             px, py = self.world_to_screen(point[0], point[1])
             if math.hypot(sx - px, sy - py) <= radius:
-                return (connection, index)
+                return ("link", connection, index)
         return None
 
     def _connection_segment_at(self, sx, sy):
@@ -7524,10 +7729,11 @@ class CircuitEditor:
 
             # А0) МАРКЕР ИЗЛОМА ВЫБРАННОЙ СВЯЗИ — начинаем перетаскивание
             point_hit = (self._connection_point_at(event.x, event.y)
-                         or self._analog_point_at(event.x, event.y))
+                         or self._analog_point_at(event.x, event.y)
+                         or self._protection_point_at(event.x, event.y)
+                         or self._container_point_at(event.x, event.y))
             if point_hit is not None:
-                connection, index = point_hit
-                self._dragging_point = (connection, index)
+                self._dragging_point = tuple(point_hit)
                 self._point_drag_changed = False
                 self._pre_change_state = self._capture_state()
                 self.canvas.config(cursor="fleur")
@@ -7536,6 +7742,8 @@ class CircuitEditor:
             # выбор связи снимается кликом мимо неё
             self.selected_connection = None
             self.selected_analog = None
+            self.selected_protection = None
+            self.selected_container_link = None
 
             # А) ЗАПИСКА КОММЕНТАРИЯ — перетаскивается как отдельный объект
             comment = self._comment_at(event.x, event.y)
@@ -7605,6 +7813,40 @@ class CircuitEditor:
                             self.selected_analog = None
                     else:
                         self.selected_analog = link
+                        self.selected_elements = []
+                    self.redraw_all()
+                    return
+
+                # Связь защиты: клик — выбрать, Ctrl+клик — удалить
+                plink = self._protection_link_at(event.x, event.y)
+                if plink is not None:
+                    if self._ctrl_click(event):
+                        self._push_undo()
+                        self.protection_links.remove(plink)
+                        if self.selected_protection is plink:
+                            self.selected_protection = None
+                    else:
+                        self.selected_protection = plink
+                        self.selected_elements = []
+                    self.redraw_all()
+                    return
+
+                # Связь контейнера: клик — выбрать, Ctrl+клик — отвязать
+                clink = self._container_link_at(event.x, event.y)
+                if clink is not None:
+                    container_id, slot = clink
+                    if self._ctrl_click(event):
+                        container = self.elements.get(container_id)
+                        if container is not None:
+                            self._push_undo()
+                            container.cabinets[slot] = ""
+                            if slot < len(container.link_points):
+                                container.link_points[slot] = []
+                            self._sync_containers()
+                            if self.selected_container_link == clink:
+                                self.selected_container_link = None
+                    else:
+                        self.selected_container_link = clink
                         self.selected_elements = []
                     self.redraw_all()
                     return
@@ -7729,15 +7971,26 @@ class CircuitEditor:
 
         # Двойной клик по маркеру — удалить излом выбранной связи
         point_hit = (self._connection_point_at(event.x, event.y)
-                     or self._analog_point_at(event.x, event.y))
+                     or self._analog_point_at(event.x, event.y)
+                     or self._protection_point_at(event.x, event.y)
+                     or self._container_point_at(event.x, event.y))
         if point_hit is not None:
-            connection, index = point_hit
-            points = connection.get("points") or []
+            kind, target, index = point_hit
+            if kind == "container":
+                container, slot = target
+                points = container.link_points[slot]
+            else:
+                points = target.get("points") or []
             if 0 <= index < len(points):
                 self._push_undo()
                 del points[index]
-                if not points:
-                    connection.pop("points", None)
+                if kind == "container":
+                    container.link_points[slot] = points
+                    if not points:
+                        container.link_points[slot] = []
+                else:
+                    if not points:
+                        target.pop("points", None)
                 self.redraw_all()
             return
 
@@ -7780,6 +8033,35 @@ class CircuitEditor:
             self.selected_connection = None
             link.setdefault("points", []).insert(
                 index, [round(wx, 1), round(wy, 1)])
+            self.redraw_all()
+            return
+
+        # Двойной клик по линии защиты — вставить опорную точку
+        segment = self._protection_segment_at(event.x, event.y)
+        if segment is not None:
+            link, index = segment
+            wx, wy = self.screen_to_world(event.x, event.y)
+            wx, wy = self.snap(wx, wy)
+            self._push_undo()
+            self.selected_protection = link
+            self.selected_connection = None
+            link.setdefault("points", []).insert(
+                index, [round(wx, 1), round(wy, 1)])
+            self.redraw_all()
+            return
+
+        # Двойной клик по линии привязки контейнера — вставить опорную точку
+        segment = self._container_segment_at(event.x, event.y)
+        if segment is not None:
+            container, slot, index = segment
+            wx, wy = self.screen_to_world(event.x, event.y)
+            wx, wy = self.snap(wx, wy)
+            self._push_undo()
+            self.selected_container_link = (container.id, slot)
+            self.selected_connection = None
+            points = container.link_points[slot]
+            points.insert(index, [round(wx, 1), round(wy, 1)])
+            container.link_points[slot] = points
             self.redraw_all()
             return
 
@@ -7829,14 +8111,20 @@ class CircuitEditor:
         self._draw_crosshair(event)
         # ПЕРЕТАСКИВАНИЕ ОПОРНОЙ ТОЧКИ СВЯЗИ
         if self._dragging_point is not None:
-            connection, index = self._dragging_point
-            points = connection.get("points") or []
+            kind, target, index = self._dragging_point
+            if kind == "container":
+                container, slot = target
+                points = container.link_points[slot]
+            else:
+                points = target.get("points") or []
             if 0 <= index < len(points):
                 wx, wy = self.screen_to_world(event.x, event.y)
                 wx, wy = self.snap(wx, wy)
                 new_point = [round(wx, 1), round(wy, 1)]
                 if points[index] != new_point:
                     points[index] = new_point
+                    if kind == "container":
+                        container.link_points[slot] = points
                     self._point_drag_changed = True
                     self.redraw_all()
             return
@@ -10933,17 +11221,17 @@ class CircuitEditor:
         if not self.show_cabinets:
             return
         for link in self.protection_links:
-            cabinet_id, _, index = self._link_ref(link).partition("#")
-            cabinet = self.elements.get(cabinet_id)
-            element = self.elements.get(link.get("element"))
-            if not cabinet or not element or cabinet.type != "cabinet":
+            route = self._protection_route(link)
+            if len(route) < 2:
                 continue
-            port = self._komplekt_port(cabinet, index)
-            if not port:
-                continue
-            self._export_arrow(canvas, port["x"], port["y"],
-                               element.x, element.y, fill="#1f4e79",
-                               width=1.5)
+            for start, end in zip(route, route[1:]):
+                if end == route[-1]:
+                    self._export_arrow(canvas, start[0], start[1],
+                                       end[0], end[1], fill="#1f4e79",
+                                       width=1.5)
+                else:
+                    canvas.create_line(start[0], start[1], end[0], end[1],
+                                      fill="#1f4e79", width=1.5)
 
     def _export_geometry(self, a4_min=True):
         """Размер листа и преобразование мира в лист для экспорта.
@@ -11192,6 +11480,11 @@ class CircuitEditor:
                     "slots": el.slot_count(),
                     "info": dict(getattr(el, "info", {})),
                     "cabinets": list(getattr(el, "cabinets", [])),
+                    "link_points": [
+                        self._clean_points(points)
+                        for points in getattr(el, "link_points",
+                                             [[] for _ in range(el.slot_count())])
+                    ],
                 }
             data["elements"].append(item)
 
@@ -11225,7 +11518,8 @@ class CircuitEditor:
                 "visible": bool(self.show_underlay),
             }
         if self.protection_links:
-            data["protection_links"] = [dict(link) for link in self.protection_links]
+            data["protection_links"] = [self._protection_record(link)
+                                       for link in self.protection_links]
         if self.analog_links:
             data["analog_links"] = [self._analog_record(link)
                                     for link in self.analog_links]
@@ -11408,6 +11702,11 @@ class CircuitEditor:
         while len(el.cabinets) < el.slot_count():
             el.cabinets.append("")
         el.slot_labels = [""] * el.slot_count()
+        raw_points = payload.get("link_points") or []
+        el.link_points = [self._clean_points(p) if p else []
+                          for p in raw_points[:el.slot_count()]]
+        while len(el.link_points) < el.slot_count():
+            el.link_points.append([])
         el.info = dict(payload.get("info") or {})
 
     def _build_protection_links(self, links, id_mapping=None):
@@ -11433,7 +11732,8 @@ class CircuitEditor:
                     or f"ied{index}" in cabinet.ports):
                 continue
             result.append({"komplekt": f"{cabinet_id}#{index}",
-                           "element": element_id})
+                           "element": element_id,
+                           "points": self._clean_points(link.get("points"))})
         return result
 
     def _build_connections(self, data, elements):
@@ -11580,6 +11880,8 @@ class CircuitEditor:
                                       for cabinet_id in container.cabinets]
                 while len(container.cabinets) < container.slot_count():
                     container.cabinets.append("")
+                # изломы линий привязки не переносятся — оставляем прямыми
+                container.link_points = [[] for _ in range(container.slot_count())]
             self._sync_containers()
 
             # 3-бис. Аналоговые цепи внутри вставленного фрагмента
@@ -11607,6 +11909,11 @@ class CircuitEditor:
             for link in inserted_links:
                 key = (self._link_ref(link), link["element"])
                 if key not in existing:
+                    if link.get("points"):
+                        link["points"] = [
+                            [round(point[0] + offset_x, 1),
+                             round(point[1] + offset_y, 1)]
+                            for point in self._clean_points(link["points"])]
                     self.protection_links.append(link)
                     existing.add(key)
 

@@ -1472,6 +1472,9 @@ class Container(Component):
         self.slots = 7
         self.cabinets = [""] * self.slots
         self.slot_labels = [""] * self.slots
+        # link_points[i] — опорные точки линии привязки слота i (пустой
+        # список = прямая слот → шкаф). Хранится параллельно cabinets.
+        self.link_points = [[] for _ in range(self.slots)]
         self.info = {}
         self.generate_ports()
 
@@ -1489,6 +1492,7 @@ class Container(Component):
             self.slots = 7
         self.cabinets = [""] * self.slots
         self.slot_labels = [""] * self.slots
+        self.link_points = [[] for _ in range(self.slots)]
         self.info = {
             key: definition.get(key)
             for key in ("code", "name", "title", "description", "group",
@@ -1505,6 +1509,8 @@ class Container(Component):
         self.slots = slots
         self.cabinets = (list(self.cabinets) + [""] * slots)[:slots]
         self.slot_labels = (list(self.slot_labels) + [""] * slots)[:slots]
+        self.link_points = (list(getattr(self, "link_points", []))
+                            + [[] for _ in range(slots)])[:slots]
 
     def slot_count(self):
         return max(1, min(self.MAX_SLOTS, int(self.slots or 1)))
@@ -1550,7 +1556,9 @@ class Container(Component):
             return index
         if previous is not None:
             self.cabinets[previous] = ""
+            self.link_points[previous] = []
         self.cabinets[index] = cabinet_id
+        self.link_points[index] = []
         return index
 
     def unbind(self, cabinet_id):
@@ -1559,11 +1567,13 @@ class Container(Component):
         if index is None:
             return False
         self.cabinets[index] = ""
+        self.link_points[index] = []
         return True
 
     def clear_bindings(self):
         self.cabinets = [""] * self.slot_count()
         self.slot_labels = [""] * self.slot_count()
+        self.link_points = [[] for _ in range(self.slot_count())]
 
     # -------------------------------------------------------- геометрия
     def _rect(self):
