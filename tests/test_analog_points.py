@@ -199,7 +199,7 @@ def test_edit(app):
     app.redraw_all()
     sx, sy = app.world_to_screen(400.0, 200.0)
     app.on_left_click(_event(sx, sy))
-    check(app._dragging_point == (link, 0),
+    check(app._dragging_point == ("link", link, 0),
           "нажатие на маркер начинает перетаскивание")
     nx, ny = app.world_to_screen(360.0, 240.0)
     app.on_drag(_event(nx, ny))

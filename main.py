@@ -5358,12 +5358,15 @@ class CircuitEditor:
         return None
 
     def _protection_record(self, link):
-        """Запись связи защиты для JSON: ссылки и изломы."""
+        """Запись связи защиты для JSON: ссылки, изломы и примечание."""
         record = {"komplekt": link.get("komplekt", ""),
                   "element": link.get("element", "")}
         points = self._clean_points(link.get("points"))
         if points:
             record["points"] = points
+        note = (link.get("note") or "").strip()
+        if note:
+            record["note"] = note
         return record
 
     def _on_protection_click(self, event):
@@ -6088,6 +6091,218 @@ class CircuitEditor:
         link["voltage"] = voltage
         link["current"] = current
         self.redraw_all()
+
+    def _protection_endpoints(self, link):
+        """Подпись связи РЗА: «комплект шкафа → оборудование»."""
+        cabinet_id, _, index = self._link_ref(link).partition("#")
+        cabinet = self.elements.get(cabinet_id)
+        element = self.elements.get(link.get("element"))
+        if cabinet is not None:
+            left = "{} · комплект {}".format(cabinet.name, int(index) + 1)
+        else:
+            left = cabinet_id
+        right = element.name if element is not None else link.get("element")
+        return "{}   →   {}".format(left, right)
+
+    def edit_protection_link(self, link):
+        """Свойства связи защиты: примечание (назначение) и удаление."""
+        if link is None:
+            return
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Связь РЗА — свойства")
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+
+        tk.Label(dialog, anchor="w", fg="#1f4e79",
+                 font=("Arial", 9, "bold"),
+                 text=self._protection_endpoints(link)).pack(
+            fill=tk.X, padx=10, pady=(8, 0))
+        tk.Label(dialog, anchor="w", fg="#777777", font=("Arial", 7),
+                 text="Стрелка на схеме показывает защиту оборудования"
+                 ).pack(fill=tk.X, padx=10)
+
+        note_var = tk.StringVar(value=(link.get("note") or ""))
+        form = tk.Frame(dialog, padx=10, pady=4)
+        form.pack(fill=tk.BOTH, expand=True)
+        tk.Label(form, text="Примечание (назначение):", anchor="w"
+                 ).pack(anchor="w", pady=(8, 0))
+        note_entry = tk.Entry(form, textvariable=note_var, width=46)
+        note_entry.pack(fill=tk.X, pady=(2, 0))
+
+        result = {"ok": False, "delete": False}
+
+        def accept(event=None):
+            result["ok"] = True
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        def remove():
+            result["delete"] = True
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(6, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Сохранить", width=12,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="Удалить связь", width=14,
+                  command=remove).pack(side=tk.LEFT)
+        dialog.bind("<Return>", accept)
+        dialog.bind("<Escape>", cancel)
+        try:
+            note_entry.focus_set()
+        except tk.TclError:
+            pass
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+
+        if result["delete"]:
+            if link in self.protection_links:
+                self._push_undo()
+                self.protection_links.remove(link)
+                if self.selected_protection is link:
+                    self.selected_protection = None
+                self.redraw_all()
+            return
+        if not result["ok"]:
+            return
+        note = note_var.get().strip()
+        if note == (link.get("note") or "").strip():
+            return
+        self._push_undo()
+        if note:
+            link["note"] = note
+        else:
+            link.pop("note", None)
+        self.redraw_all()
+
+    def _container_slot_endpoints(self, container, slot):
+        """Подпись связи контейнера: «контейнер · слот N → шкаф»."""
+        cabinet_id = (container.cabinets[slot]
+                     if slot < len(container.cabinets) else "")
+        cabinet = self.elements.get(cabinet_id) if cabinet_id else None
+        right = cabinet.name if cabinet is not None else "(пусто)"
+        return "{} · слот {}   →   {}".format(
+            container.name or container.code, slot + 1, right)
+
+    def edit_container_link(self, container, slot):
+        """Свойства связи контейнера: подпись слота и отвязка шкафа."""
+        if container is None or slot < 0 or slot >= container.slot_count():
+            return
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Связь контейнера — свойства слота")
+        dialog.transient(self.root)
+        dialog.resizable(False, False)
+
+        tk.Label(dialog, anchor="w", fg="#a0522d",
+                 font=("Arial", 9, "bold"),
+                 text=self._container_slot_endpoints(container, slot)).pack(
+            fill=tk.X, padx=10, pady=(8, 0))
+
+        label_var = tk.StringVar(
+            value=(container.slot_labels[slot]
+                   if slot < len(container.slot_labels) else ""))
+        form = tk.Frame(dialog, padx=10, pady=4)
+        form.pack(fill=tk.BOTH, expand=True)
+        tk.Label(form, text="Подпись шкафа в слоте:", anchor="w"
+                 ).pack(anchor="w", pady=(8, 0))
+        label_entry = tk.Entry(form, textvariable=label_var, width=46)
+        label_entry.pack(fill=tk.X, pady=(2, 0))
+
+        result = {"ok": False, "unbind": False}
+
+        def accept(event=None):
+            result["ok"] = True
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        def unbind():
+            result["unbind"] = True
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(6, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Сохранить", width=12,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        tk.Button(buttons, text="Отвязать шкаф", width=14,
+                  command=unbind).pack(side=tk.LEFT)
+        dialog.bind("<Return>", accept)
+        dialog.bind("<Escape>", cancel)
+        try:
+            label_entry.focus_set()
+        except tk.TclError:
+            pass
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+
+        if result["unbind"]:
+            cabinet_id = (container.cabinets[slot]
+                         if slot < len(container.cabinets) else "")
+            if cabinet_id:
+                self._push_undo()
+                container.cabinets[slot] = ""
+                if slot < len(container.link_points):
+                    container.link_points[slot] = []
+                self._sync_containers()
+                if self.selected_container_link == (container.id, slot):
+                    self.selected_container_link = None
+                self.redraw_all()
+            return
+        if not result["ok"]:
+            return
+        new_label = label_var.get().strip()
+        if new_label == (container.slot_labels[slot]
+                         if slot < len(container.slot_labels) else ""):
+            return
+        self._push_undo()
+        container.set_slot_label(slot, new_label)
+        self._sync_containers()
+        self.redraw_all()
+
+    def _link_at(self, sx, sy):
+        """Верхняя связь под курсором: (вид, объект) или None.
+
+        Виды: ``analog`` — связь аналоговых цепей, ``protection`` — связь
+        защиты, ``container`` — (контейнер, слот), ``wire`` — провод.
+        Порядок проверки отдаёт приоритет связям с данными (аналоговым,
+        защиты, контейнера), чтобы провод не перехватывал клик.
+        """
+        link = self._analog_link_at(sx, sy)
+        if link is not None:
+            return ("analog", link)
+        link = self._protection_link_at(sx, sy)
+        if link is not None:
+            return ("protection", link)
+        link = self._container_link_at(sx, sy)
+        if link is not None:
+            container = self.elements.get(link[0])
+            if container is not None and container.type == "container":
+                return ("container", (container, link[1]))
+        connection = self._connection_at(sx, sy)
+        if connection is not None:
+            return ("wire", connection)
+        return None
+
+    def edit_link_data(self, kind, obj):
+        """Открывает окно данных связи нужного вида (правый клик)."""
+        if kind == "analog":
+            self.selected_analog = obj
+            self.edit_analog_link(obj)
+        elif kind == "protection":
+            self.selected_protection = obj
+            self.edit_protection_link(obj)
+        elif kind == "container":
+            container, slot = obj
+            self.selected_container_link = (container.id, slot)
+            self.edit_container_link(container, slot)
+        # wire — данных для окна нет
 
     def _analog_record(self, link):
         """Запись аналоговой связи для JSON: ссылки, цепи и изломы."""
@@ -8310,6 +8525,11 @@ class CircuitEditor:
         if comment is not None:
             self._push_undo()
             self.delete_comment(comment)
+            return
+        # Правая кнопка по связи — окно с её данными (если они есть)
+        link = self._link_at(event.x, event.y)
+        if link is not None and link[0] != "wire":
+            self.edit_link_data(*link)
             return
         clicked_el = self._element_at(event.x, event.y)
         if clicked_el:
@@ -11480,6 +11700,7 @@ class CircuitEditor:
                     "slots": el.slot_count(),
                     "info": dict(getattr(el, "info", {})),
                     "cabinets": list(getattr(el, "cabinets", [])),
+                    "slot_labels": list(getattr(el, "slot_labels", [])),
                     "link_points": [
                         self._clean_points(points)
                         for points in getattr(el, "link_points",
@@ -11702,6 +11923,9 @@ class CircuitEditor:
         while len(el.cabinets) < el.slot_count():
             el.cabinets.append("")
         el.slot_labels = [""] * el.slot_count()
+        raw_labels = payload.get("slot_labels") or []
+        if raw_labels and len(raw_labels) == el.slot_count():
+            el.slot_labels = [str(label) for label in raw_labels]
         raw_points = payload.get("link_points") or []
         el.link_points = [self._clean_points(p) if p else []
                           for p in raw_points[:el.slot_count()]]
@@ -11731,9 +11955,13 @@ class CircuitEditor:
                     f"komplekt{index}" in cabinet.ports
                     or f"ied{index}" in cabinet.ports):
                 continue
-            result.append({"komplekt": f"{cabinet_id}#{index}",
-                           "element": element_id,
-                           "points": self._clean_points(link.get("points"))})
+            entry = {"komplekt": f"{cabinet_id}#{index}",
+                     "element": element_id,
+                     "points": self._clean_points(link.get("points"))}
+            note = (link.get("note") or "").strip()
+            if note:
+                entry["note"] = note
+            result.append(entry)
         return result
 
     def _build_connections(self, data, elements):

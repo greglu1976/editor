@@ -147,7 +147,7 @@ def test_hit(app):
     app.redraw_all()
 
     sx, sy = app.world_to_screen(100.0, 60.0)
-    check(app._connection_point_at(sx + 2, sy - 1) == (connection, 0),
+    check(app._connection_point_at(sx + 2, sy - 1) == ("link", connection, 0),
           "маркер излома находится под курсором")
     check(app._connection_point_at(sx + 40, sy + 40) is None,
           "мимо маркера — None")
@@ -200,7 +200,7 @@ def test_edit(app):
     app.redraw_all()
     sx, sy = app.world_to_screen(100.0, 60.0)
     app.on_left_click(_event(sx, sy))
-    check(app._dragging_point == (connection, 0),
+    check(app._dragging_point == ("link", connection, 0),
           "нажатие на маркер начинает перетаскивание")
     nx, ny = app.world_to_screen(180.0, 40.0)
     app.on_drag(_event(nx, ny))
