@@ -182,11 +182,30 @@ def detail_value(record, key):
     return value if is_informative(value) else None
 
 
+def functions_text(value):
+    """«Основные функции МП ИЭУ» одной строкой без подписей «ИЭУ1:»/«ИЭУ2:».
+
+    Значение бывает списком (по строке на устройство) или строкой, где
+    функции ИЭУ подписаны префиксами. В окнах и отчётах нужен единый
+    перечень функций без разбивки по устройствам.
+    """
+    if isinstance(value, (list, tuple)):
+        text = "; ".join(str(item).strip() for item in value
+                         if str(item).strip())
+    else:
+        text = str(value or "").strip()
+    text = re.sub(r"ИЭУ\s*\d+\s*:\s*", "", text)
+    text = re.sub(r"\s*;\s*", "; ", text)
+    return re.sub(r"\s{2,}", " ", text).strip()
+
+
 def visible_details(record, labels=DETAIL_LABELS):
     """[(подпись, значение)] для окон и отчётов: без ссылок на таблицы."""
     result = []
     for key, label in labels:
         value = detail_value(record, key)
+        if key == "mp_functions":
+            value = functions_text(value) if value else value
         if value:
             result.append((label, value))
     return result

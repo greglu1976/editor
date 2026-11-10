@@ -10836,6 +10836,8 @@ class CircuitEditor:
         for field, label in komplekts.DETAIL_LABELS:
             value = (komplekts.detail_value(info, field)
                      or komplekts.detail_value(catalogue, field))
+            if field == "mp_functions":
+                value = komplekts.functions_text(value) if value else value
             if value:
                 rows.append([label, str(value)])
         if signals.get("test_blocks") and with_blocks:
