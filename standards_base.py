@@ -230,16 +230,13 @@ def split_items(value):
 
 
 def format_functions(value):
-    """Функции МП ИЭУ: список по ИЭУ → «ИЭУ1: …; ИЭУ2: …»."""
+    """Функции МП ИЭУ: список по ИЭУ → «…; …» (без префикса ИЭУ)."""
     if isinstance(value, (list, tuple)):
         items = [" ".join(str(item).split()) for item in value
                  if str(item).strip()]
         if not items:
             return ""
-        if len(items) == 1:
-            return items[0]
-        return "; ".join("ИЭУ%d: %s" % (number, item)
-                         for number, item in enumerate(items, start=1))
+        return "; ".join(items)
     return clean_text(value)
 
 
@@ -579,10 +576,7 @@ def record(card, cabinet_id=None):
                 continue
             kit_record[name] = value
         if kit["поля"].get("функции РЗА") and len(kit_list) > 1:
-            aggregated_mp.append(
-                "%s: %s" % (kit["иэу"][0]["обозначение"],
-                            ", ".join(kit["поля"]["функции РЗА"]))
-                if kit["иэу"] else ", ".join(kit["поля"]["функции РЗА"]))
+            aggregated_mp.append(", ".join(kit["поля"]["функции РЗА"]))
         for field, rows in kit["таблицы"].items():
             rows_list = table_rows(rows)
             if rows_list:

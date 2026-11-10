@@ -145,9 +145,9 @@ def test_kit_models():
     check(len([name for name, value in second["иэу"][0].items()
                if isinstance(value, list)]) >= 8,
           "у второго ИЭУ есть свои таблицы")
-    check(two["функции МП ИЭУ"].startswith("ИЭУ1:")
-          and "; ИЭУ2:" in two["функции МП ИЭУ"],
-          "функции шкафа подписаны по ИЭУ")
+    check(not two["функции МП ИЭУ"].startswith("ИЭУ")
+          and "; " in two["функции МП ИЭУ"],
+          "функции шкафа объединены без префикса ИЭУ")
 
 
 def test_record():
