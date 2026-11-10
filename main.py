@@ -10543,18 +10543,11 @@ class CircuitEditor:
         return rows
 
     def _nir_functions_text(self, cabinet):
-        """Функции шкафа одной строкой: «ИЭУ 1: …; ИЭУ 2: …»."""
-        parts = []
+        """Функции шкафа одной строкой: все устройства без префикса ИЭУ."""
+        functions = []
         for kit in getattr(cabinet, "komplets", []):
-            functions = ", ".join(kit.get("functions") or [])
-            if not functions:
-                continue
-            devices = self._nir_device_text(kit)
-            if devices and devices != "—":
-                parts.append("{}: {}".format(devices, functions))
-            else:
-                parts.append(functions)
-        return "; ".join(parts) or "—"
+            functions.extend(kit.get("functions") or [])
+        return ", ".join(functions) or "—"
 
     def _nir_target(self):
         """Что описывает отчёт: (контейнер, шкафы, ошибка)."""
@@ -10813,9 +10806,6 @@ class CircuitEditor:
             rows.append(["Управляемые элементы",
                          ", ".join(info["controlled"])])
         functions = self._nir_functions_text(cabinet)
-        if functions:
-            # каждый ИЭУ — с новой строки, чтобы функции читались построчно
-            functions = functions.replace("; ", ";\n")
         rows.append(["Функции ИЭУ", functions or "—"])
         rows.append(["Комплектов / ИЭУ", "{} / {}".format(
             len(kits),
