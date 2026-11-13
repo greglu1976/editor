@@ -68,7 +68,12 @@
 					<upperValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000022_AAEB_4bb4_9635_53EF22B024AF" value="1"/>
 					<type xmi:idref="EAC__string"/>
 				</ownedAttribute>
-				<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_dst455F6C_681A_4092_B184_A0306D6A4088" visibility="public" association="EAID_58455F6C_681A_4092_B184_A0306D6A4088" isStatic="false" isReadOnly="false" isDerived="false" isOrdered="false" isUnique="true" isDerivedUnion="false" aggregation="none">
+								<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_STD0001_0000_4000_8000_000000000001" name="standard" visibility="public" isStatic="false" isReadOnly="false" isDerived="false" isOrdered="false" isUnique="true" isDerivedUnion="false">
+					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI900001_STD0001" value="1"/>
+					<upperValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI900002_STD0001" value="1"/>
+					<type xmi:idref="EAC__string"/>
+				</ownedAttribute>
+<ownedAttribute xmi:type="uml:Property" xmi:id="EAID_dst455F6C_681A_4092_B184_A0306D6A4088" visibility="public" association="EAID_58455F6C_681A_4092_B184_A0306D6A4088" isStatic="false" isReadOnly="false" isDerived="false" isOrdered="false" isUnique="true" isDerivedUnion="false" aggregation="none">
 					<type xmi:idref="EAID_E63C75B1_7261_47c0_B112_DE9E1B3FD858"/>
 					<lowerValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000023__681A_4092_B184_A0306D6A4088" value="1"/>
 					<upperValue xmi:type="uml:LiteralInteger" xmi:id="EAID_LI000024__681A_4092_B184_A0306D6A4088" value="3"/>
@@ -976,7 +981,22 @@
 						<tags/>
 						<xrefs/>
 					</attribute>
-				</attributes>
+									<attribute xmi:idref="EAID_STD0001_0000_4000_8000_000000000001" name="standard" scope="Public">
+						<initial/>
+						<documentation/>
+						<model ea_localid="99" ea_guid="{STD00001-0000-4000-8000-000000000001}"/>
+						<properties type="string" collection="false" static="0" duplicates="0" changeability="changeable"/>
+						<coords ordered="0"/>
+						<containment containment="Not Specified" position="7"/>
+						<stereotype/>
+						<bounds lower="1" upper="1"/>
+						<options/>
+						<style value="&#1057;&#1090;&#1072;&#1085;&#1076;&#1072;&#1088;&#1090; (&#1092;&#1072;&#1081;&#1083; DOCX)"/>
+						<styleex value="volatile=0;"/>
+						<tags/>
+						<xrefs/>
+					</attribute>
+</attributes>
 				<links>
 					<Aggregation xmi:id="EAID_58455F6C_681A_4092_B184_A0306D6A4088" start="EAID_65D3C53B_96F0_4c5b_B3DF_DF14AB29986D" end="EAID_E63C75B1_7261_47c0_B112_DE9E1B3FD858"/>
 					<Dependency xmi:id="EAID_6075CE40_C023_419b_B2C6_6600744088B1" start="EAID_65D3C53B_96F0_4c5b_B3DF_DF14AB29986D" end="EAID_57926A36_3EA9_4a1e_8274_7903BBAD0490"/>

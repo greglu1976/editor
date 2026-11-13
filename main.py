@@ -1096,6 +1096,7 @@ class CircuitEditor:
                               ("Контейнеры", self._build_ribbon_containers),
                               ("Структура", self._build_ribbon_structure),
                               ("Стандарты", self._build_ribbon_standards),
+                              ("UML тест", self._build_ribbon_uml_test),
                               ("Отчёты", self._build_ribbon_reports),
                               ("?", self._build_ribbon_help)):
             self._ribbon_pages[name] = builder(content)
@@ -9036,6 +9037,38 @@ class CircuitEditor:
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)
         return page
+
+    def _build_ribbon_uml_test(self, parent):
+        page = tk.Frame(parent, bg="#f3f3f3")
+        self._ribbon_group(page, "UML-шкафы", lambda row: [
+            self._ribbon_button(row, "Тестовый чертёж…",
+                                self.show_uml_test_drawing,
+                                _ri_shield, 116).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Сборка шкафа…",
+                                self.show_uml_assembly,
+                                _ri_merge, 108).pack(side=tk.LEFT,
+                                                     padx=(4, 0)),
+        ])
+        tk.Label(page, text="Отдельное окно и холст по EA/cabinets_uml.json:\n"
+                            "вынос шкафов на чертёж и сборка новых шкафов\n"
+                            "из существующих UML-комплектов.",
+                 bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
+                 font=ui_theme.font(8), justify="left").pack(
+                     side=tk.LEFT, padx=12)
+        return page
+
+    def _ea_uml_ui(self):
+        """Изолированный тестовый чертёж UML-шкафов (импорт по требованию)."""
+        import ea_uml_test
+        return ea_uml_test
+
+    def show_uml_test_drawing(self):
+        """Открывает отдельный тестовый чертёж UML-шкафов."""
+        return self._ea_uml_ui().show_test_window(self.root)
+
+    def show_uml_assembly(self):
+        """Открывает сборку шкафа из UML-комплектов в отдельном окне."""
+        return self._ea_uml_ui().show_assembly_window(self.root)
 
     # --------------------------------------------------- окна стандартов
     def _standards_ui(self):

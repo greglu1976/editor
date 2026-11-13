@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "default_plugin": "ea_cabinets",
+  "plugins": [
+    {
+      "id": "ea_cabinets",
+      "title": "Шкафы EA",
+      "description": "UML-выгрузка шкафов раздела 4.16, том 5: Cabinet, Kit, IED и связанные сущности.",
+      "schema": "EA/structure.xml",
+      "data": "EA/cabinets_uml.json",
+      "module": "structures.ea_cabinets",
+      "factory": "create_plugin",
+      "enabled": true,
+      "status": "Готов",
+      "settings": {
+        "root_key": "шкафы",
+        "root_class": "Cabinet"
+      }
+    },
+    {
+      "id": "sto",
+      "title": "СТО",
+      "description": "Будущая UML-схема стандартов СТО: отдельный плагин и отдельная выгрузка данных.",
+      "schema": "EA/structure_sto.xml",
+      "data": "EA/standards_uml.json",
+      "module": "structures.sto",
+      "factory": "create_plugin",
+      "enabled": true,
+      "status": "Ожидает UML-схему",
+      "settings": {
+        "root_key": "стандарты",
+        "root_class": "Standard"
+      }
+    },
+    {
+      "id": "containers",
+      "title": "Контейнеры",
+      "description": "Будущая UML-схема контейнеров: отдельный плагин и отдельная выгрузка данных.",
+      "schema": "EA/structure_containers.xml",
+      "data": "EA/containers_uml.json",
+      "module": "structures.containers",
+      "factory": "create_plugin",
+      "enabled": true,
+      "status": "Ожидает UML-схему",
+      "settings": {
+        "root_key": "контейнеры",
+        "root_class": "Container"
+      }
+    }
+  ]
+}
