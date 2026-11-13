@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Перенос данных проекта СТО из docx в JSON по структуре модели EA (EA/structure.xml).
+Перенос данных проекта СТО из docx в JSON по структуре модели EA (EA/structure.eapx).
 
 Структура JSON повторяет классы модели:
-  Standard -> Section -> Subsection -> Clause -> Subclause (+ Table/TableRow/Figure/Paragraph)
-  Standard -> Cabinet -> Kit -> IED (+ Component/PowerSupply/CabinetReport/TerminalBlock)
+  Standard -> Section -> Subsection -> Clause -> Subclause (+ Table/TableRow/Figure)
+  Standard -> Cabinet -> Kit -> IED (+ Port/Component/PowerSupply/TerminalBlock)
 
-Таблицы попадают в дерево документа (Section/Subsection) целиком, а данные шкафов
-дополнительно разбираются в типизированные коллекции IED.
+Данные хранятся один раз — в Cabinet. Таблицы шкафов в дереве документа
+(Section/Subsection) остаются только формой: номер, название, ссылка, шапка
+(для «Описание ШЭТ» — ключи с пустыми значениями) и ссылка `cabinet` на шифр
+шкафа, из которого берутся строки. Таблицы вне шкафов (термины, сокращения,
+применимость) остаются с данными — им неоткуда их подтягивать.
 
 Запуск:
     python3 EA/docx2json.py [docx] [json]
@@ -108,16 +111,25 @@ class DocBuilder:
         self.pending_caption = None
         self.pending_fig = None
         self.started = False
+        self.sub_text = ""
 
     # -- контейнеры --------------------------------------------------------------
 
+    def _flush_text(self):
+        """Текст подраздела без класса Paragraph — в content раздела."""
+        if not self.sub_text:
+            return
+        if self.section is not None:
+            self.section["content"] = (self.section["content"] + "\n" + self.sub_text).strip("\n")
+        self.sub_text = ""
+
     def add_section(self, number, header, style):
+        self._flush_text()
         sec = {
             "number": number,
             "header": header,
             "header_style": style,
             "content": "",
-            "paragraphs": [],
             "subsections": [],
             "tables": [],
             "figures": [],
@@ -128,13 +140,13 @@ class DocBuilder:
         return sec
 
     def add_subsection(self, header, style):
+        self._flush_text()
         self.sub_no += 1
         self.cl_no = 0
         sub = {
             "number": f"{self.section['number']}.{self.sub_no}",
             "header": header,
             "header_style": style,
-            "paragraphs": [],
             "clauses": [],
             "tables": [],
             "figures": [],
@@ -146,6 +158,9 @@ class DocBuilder:
     def add_clause(self, text, style):
         self.cl_no += 1
         base = self.subsection["number"] if self.subsection else self.section["number"]
+        if self.sub_text:
+            text = (self.sub_text + "\n" + text).strip("\n")
+            self.sub_text = ""
         cl = {
             "number": f"{base}.{self.cl_no}",
             "content": text,
@@ -166,12 +181,9 @@ class DocBuilder:
         if self.clause is not None:
             self.clause["content"] = (self.clause["content"] + "\n" + text).strip("\n")
         elif self.subsection is not None:
-            self.subsection["paragraphs"].append({"content": text})
+            self.sub_text = (self.sub_text + "\n" + text).strip("\n")
         elif self.section is not None:
-            if not self.section["subsections"]:
-                self.section["content"] = (self.section["content"] + "\n" + text).strip("\n")
-            else:
-                self.section["paragraphs"].append({"content": text})
+            self.section["content"] = (self.section["content"] + "\n" + text).strip("\n")
 
     def container(self):
         return self.subsection or self.section
@@ -241,6 +253,7 @@ class DocBuilder:
             self.add_paragraph(text)
 
     def result(self):
+        self._flush_text()
         return self.standard
 
 
@@ -276,6 +289,26 @@ def table_by_caption(sub, needle):
         if needle.lower() in t["name"].lower():
             return t
     return None
+
+
+def form_rows(table):
+    """Форма таблицы шкафа для СТО: шапка без данных (строки берутся из Cabinet).
+
+    У «Описание ШЭТ» шапки нет — форма это ключи первого столбца, значения
+    подставляет шкаф. У остальных таблиц остаются только строки шапки.
+    """
+    if "описание шэт" in table["name"].lower():
+        form = []
+        for row in table["rows"]:
+            cells = list(row["content"])
+            form.append({
+                "content": [cells[0]] + [""] * (len(cells) - 1) if cells else [],
+                "is_header_first_row": row["is_header_first_row"],
+                "is_header_second_row": row["is_header_second_row"],
+            })
+        return form
+    return [row for row in table["rows"]
+            if row["is_header_first_row"] or row["is_header_second_row"]]
 
 
 def parse_description(table):
@@ -430,9 +463,14 @@ def parse_outgoing_goose(table):
             "name": c[0],
             "info_model": clean(c[1]),
             "destination": c[2],
+            "note": "",
+            "status": "",
+            "KT": "",
+            "cus": "",
+            "rdu": "",
+            "RAS": "",
             "DO": do,
             "DA": da,
-            "note": "",
         })
     return datasets
 
@@ -454,6 +492,9 @@ def parse_outgoing_reports(table):
             continue
         datasets[current].append({
             "name": c[0],
+            "info_model": "",
+            "destination": "",
+            "note": "",
             "status": c[1],
             "KT": c[2],
             "cus": c[3],
@@ -461,7 +502,6 @@ def parse_outgoing_reports(table):
             "RAS": c[5],
             "DO": c[6],
             "DA": c[7],
-            "note": "",
         })
     return datasets
 
@@ -576,15 +616,6 @@ def build_cabinet(sub):
     components_table = table_by_caption(sub, "Основные компоненты")
     components = parse_components(components_table) if components_table else []
 
-    report = {
-        "cab_cypher": cypher,
-        "architecture": find_value(desc, "Архитектура"),
-        "cab_name": find_value(desc, "Наименование шкафа"),
-        "controllable_element": find_value(desc, "Управляемый элемент"),
-        "protected_element": find_value(desc, "Защищаемый элемент"),
-        "components": components,
-    }
-
     ied = {
         "number": 1,
         "analog_inputs": [],
@@ -594,8 +625,6 @@ def build_cabinet(sub):
         "datasets": [],
         "ports": [],
         "functional_buttons": [],
-        "outcoming_reports": [],
-        "outcoming_messages": [],
         "leds": [],
         "control_commands": [],
         "functions": [],
@@ -652,7 +681,6 @@ def build_cabinet(sub):
             "note": item["note"],
             "signals": goose.get(name, []),
         })
-        ied["outcoming_messages"].append({"dataset": name})
     for item in rpt_defs:
         name = item["dataset"]
         ied["datasets"].append({
@@ -663,14 +691,6 @@ def build_cabinet(sub):
             "mapping": item["purpose"],
             "note": item["note"],
             "signals": reports.get(name, []),
-        })
-        ied["outcoming_reports"].append({
-            "mapping": item["purpose"],
-            "sender": item["sender"],
-            "id": item["id"],
-            "message_class": item["class"],
-            "note": item["note"],
-            "dataset": name,
         })
     # наборы данных, для которых нет строки в таблице сообщений
     for name, signals in goose.items():
@@ -701,9 +721,8 @@ def build_cabinet(sub):
         "scope": find_value(desc, "Область применения"),
         "description": sub["clauses"][0]["content"] if sub["clauses"] else "",
         "type": "ШЭТ",
-        "tag": None,
-        "group": None,
-        "cabinet_report": report,
+        "tag": "",
+        "group": "",
         "power_supplies": parse_power_supplies(find_value(desc, "Вводы питания")),
         "components": components,
         "terminal_blocks": [],
@@ -711,8 +730,8 @@ def build_cabinet(sub):
             "number": 1,
             "description": "Комплект ИЭУ шкафа",
             "type": "ИЭУ",
-            "tag": None,
-            "group": None,
+            "tag": "",
+            "group": "",
             "ieds": [ied],
         }],
         "containers": [],
@@ -765,8 +784,15 @@ def main():
     for section in data["sections"]:
         for sub in section["subsections"]:
             cabinet = build_cabinet(sub)
-            if cabinet:
-                data["cabinets"].append(cabinet)
+            if not cabinet:
+                continue
+            data["cabinets"].append(cabinet)
+            for table in sub["tables"]:
+                form = {key: table[key] for key in ("number", "name", "reference")}
+                form["cabinet"] = cabinet["cypher"]
+                form["rows"] = form_rows(table)
+                table.clear()
+                table.update(form)
 
     strip_service_keys(data)
     dst.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
