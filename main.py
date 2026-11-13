@@ -9035,8 +9035,9 @@ class CircuitEditor:
         tk.Label(page, text="Стандарты СТО в JSON (папка standard_editor):\n"
                             "правка изменений *.изм.txt, сборка редакции,\n"
                             "новый стандарт из выбранного и отчёт Word.\n"
-                            "«СТО (EA)…» — новая структура: дерево документа,\n"
-                            "таблицы собираются из шкафов (папка EA).",
+                            "«СТО (EA)…» — новая структура (папка EA):\n"
+                            "таблицы собираются из шкафов, шкаф и комплект\n"
+                            "ставятся на схему, новый стандарт и DOCX.",
                  bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)
