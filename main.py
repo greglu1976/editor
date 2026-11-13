@@ -9012,6 +9012,9 @@ class CircuitEditor:
         self._ribbon_group(page, "Стандарты СТО", lambda row: [
             self._ribbon_button(row, "Стандарты…", self.show_standards_window,
                                 _ri_standards, 92).pack(side=tk.LEFT),
+            self._ribbon_button(row, "СТО (EA)…", self.show_ea_standards,
+                                _ri_structure, 96).pack(side=tk.LEFT,
+                                                        padx=(4, 0)),
             self._ribbon_button(row, "Редактор изменений…",
                                 self.open_standards_editor,
                                 _ri_edit_doc, 124).pack(side=tk.LEFT,
@@ -9031,7 +9034,9 @@ class CircuitEditor:
         ])
         tk.Label(page, text="Стандарты СТО в JSON (папка standard_editor):\n"
                             "правка изменений *.изм.txt, сборка редакции,\n"
-                            "новый стандарт из выбранного и отчёт Word.",
+                            "новый стандарт из выбранного и отчёт Word.\n"
+                            "«СТО (EA)…» — новая структура: дерево документа,\n"
+                            "таблицы собираются из шкафов (папка EA).",
                  bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)
@@ -9046,6 +9051,11 @@ class CircuitEditor:
     def show_standards_window(self):
         """Окно «Стандарты…»: список стандартов и действия с ними."""
         return self._standards_ui().show_standards(self)
+
+    def show_ea_standards(self, path=None):
+        """Окно «СТО (EA)…»: стандарт в новой структуре (таблицы из шкафов)."""
+        import ea_ui
+        return ea_ui.show(self, path)
 
     def open_standards_editor(self, base_path=None):
         """Редактор изменений стандарта в окне редактора схем."""

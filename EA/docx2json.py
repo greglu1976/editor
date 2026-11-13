@@ -295,9 +295,11 @@ def form_rows(table):
     """Форма таблицы шкафа для СТО: шапка без данных (строки берутся из Cabinet).
 
     У «Описание ШЭТ» шапки нет — форма это ключи первого столбца, значения
-    подставляет шкаф. У остальных таблиц остаются только строки шапки.
+    подставляет шкаф. У остальных таблиц остаются строки шапки: одна, а у
+    таблиц с двухъярусной шапкой («Ряды зажимов», «исходящих отчетов») — две.
     """
-    if "описание шэт" in table["name"].lower():
+    name = table["name"].lower()
+    if "описание шэт" in name:
         form = []
         for row in table["rows"]:
             cells = list(row["content"])
@@ -307,8 +309,8 @@ def form_rows(table):
                 "is_header_second_row": row["is_header_second_row"],
             })
         return form
-    return [row for row in table["rows"]
-            if row["is_header_first_row"] or row["is_header_second_row"]]
+    height = 2 if ("ряды зажимов" in name or "исходящих отчетов" in name) else 1
+    return table["rows"][:height]
 
 
 def parse_description(table):

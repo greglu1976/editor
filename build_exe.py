@@ -76,6 +76,7 @@ README = """Папка данных «Редактора схем»
   komplekts.json       комплекты (появляется после первой правки каталога)
   structure.json       структура v3: КЭТ → шкафы → комплекты → ИЭУ
   standards_base/      стандарты СТО в JSON (сверка и сборка структуры)
+  EA/                  стандарты СТО в структуре EA (таблицы из шкафов)
   standard_editor/     редактор изменений стандартов и его базы
   tools/               сборщик и проверка structure.json
 
@@ -100,6 +101,10 @@ def plan():
     for path in sorted(glob.glob(os.path.join(base, "*.json"))):
         items.append((path, os.path.join("standards_base",
                                          os.path.basename(path)), False))
+
+    ea = os.path.join(ROOT, "EA")
+    for path in sorted(glob.glob(os.path.join(ea, "*.json"))):
+        items.append((path, os.path.join("EA", os.path.basename(path)), False))
 
     editor = os.path.join(ROOT, "standard_editor")
     for name in STANDARD_MODULES:

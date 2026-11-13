@@ -74,11 +74,14 @@ python3 tests/test_packaging.py          # 10. пути данных, db, сбо
 [`tests/test_standards_base.py`](tests/test_standards_base.py),
 [`tests/test_standards_sync.py`](tests/test_standards_sync.py),
 [`tests/test_standards_editor.py`](tests/test_standards_editor.py),
+[`ea_standard.py`](ea_standard.py), [`ea_ui.py`](ea_ui.py),
+[`tests/test_ea_standard.py`](tests/test_ea_standard.py),
 [`apppaths.py`](apppaths.py), [`build_exe.py`](build_exe.py),
 [`assets/editor.ico`](assets/editor.ico),
 [`tests/test_packaging.py`](tests/test_packaging.py),
 [`STRUCTURE.md`](STRUCTURE.md), [`STANDARDS_BASE.md`](STANDARDS_BASE.md),
-[`STANDARD_EDITOR.md`](STANDARD_EDITOR.md), [`PACKAGING.md`](PACKAGING.md)
+[`STANDARD_EDITOR.md`](STANDARD_EDITOR.md), [`EA_STANDARD.md`](EA_STANDARD.md),
+[`PACKAGING.md`](PACKAGING.md)
 и правки [`main.py`](main.py), [`cabs.py`](cabs.py), [`komplekts.py`](komplekts.py).
 
 Сам **`structure.json` — генерируемый артефакт, он в `.gitignore`**: после

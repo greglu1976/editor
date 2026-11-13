@@ -2372,17 +2372,6 @@
                   ],
                   "is_header_first_row": true,
                   "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение б/к ОР БСК",
-                    "XSWI.Pos.stVal,\nXSWI.Pos.q",
-                    "ПДС ОР БСК",
-                    "2",
-                    "-"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
                 }
               ]
             },
@@ -2894,17 +2883,6 @@
                   ],
                   "is_header_first_row": true,
                   "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Срабатывание сигнального контакта ГЗ",
-                    "SIML.GasInsAlm.stVal,\nSIML.GasInsAlm.q",
-                    "ПДС ШР ф.А,\nПДС ШР ф.В,\nПДС ШР ф.С,\nПДС ШР ф.Р,",
-                    "2",
-                    "+"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
                 }
               ]
             },
@@ -3416,17 +3394,6 @@
                   ],
                   "is_header_first_row": true,
                   "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Срабатывание сигнального контакта ГЗ",
-                    "SIML.GasInsAlm.stVal,\nSIML.GasInsAlm.q",
-                    "ПДС ШР",
-                    "2",
-                    "+"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
                 }
               ]
             },
@@ -3938,17 +3905,6 @@
                   ],
                   "is_header_first_row": true,
                   "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Срабатывание сигнального контакта ГЗ",
-                    "SIML.GasInsAlm.stVal,\nSIML.GasInsAlm.q",
-                    "ПДС КР",
-                    "2",
-                    "+"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
                 }
               ]
             },

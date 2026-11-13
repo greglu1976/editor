@@ -13,6 +13,7 @@
         komplekts.json       комплекты (появляется после первой правки)
         structure.json       структура v3
         standards_base/      стандарты СТО в JSON
+        EA/                  стандарты СТО в структуре EA
         standard_editor/     инструменты стандартов: модули, базы, изменения
         tools/               build_structure.py, check_structure.py
         schemes/             примеры схем (необязательно)
