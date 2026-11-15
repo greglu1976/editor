@@ -148,21 +148,13 @@ def test_gui():
         structure_page = app._ribbon_pages["Структура"]
         labels = [button._base_text for button in _ribbon_cells(structure_page)]
         check(any("Структура" in label for label in labels)
-              and any("Сверка" in label for label in labels)
-              and any("Добавить из СТО" in label for label in labels)
               and any("Пересобрать" in label for label in labels)
               and any("Проверка" in label for label in labels),
-              "на вкладке «Структура» есть проводник, сверка, добавление "
-              "из стандартов, сборка, проверка")
+              "на вкладке «Структура» есть проводник, сборка и проверка")
         standards_page = app._ribbon_pages["Стандарты"]
         labels = [button._base_text for button in _ribbon_cells(standards_page)]
-        check(any("Стандарты" in label for label in labels)
-              and any("Редактор изменений" in label for label in labels)
-              and any("Собрать редакцию" in label for label in labels)
-              and any("Новый стандарт" in label for label in labels)
-              and any("DOCX" in label for label in labels),
-              "на вкладке «Стандарты» есть список, редактор, сборка, "
-              "новый стандарт и DOCX")
+        check(any("СТО" in label for label in labels),
+              "на вкладке «Стандарты» есть кнопка «СТО (EA)…»")
 
         print("3. стабильность размеров")
         size = app._ribbon_size

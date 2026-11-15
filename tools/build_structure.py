@@ -80,7 +80,7 @@ sys.path.insert(0, ROOT)
 import cabs                # noqa: E402  каталог шкафов редактора
 import komplekts           # noqa: E402  каталог комплектов редактора
 import containers          # noqa: E402  каталог КЭТ
-import standards_base      # noqa: E402  стандарты СТО (standards_base/)
+import ea_standard         # noqa: E402  стандарты СТО в формате EA
 
 SRC_DIR = os.path.join(ROOT, "standards", "src")
 EXTRACTED = os.path.join(ROOT, "standards", "extracted.json")
@@ -98,7 +98,7 @@ K_IEDS = "иэу"                   # вложенные ИЭУ в компле�
 K_HAS_IED = "есть ИЭУ"           # обязательный признак комплекта
 K_SOURCE = "источник"
 
-# --- стандарты СТО из standards_base/ -------------------------------------
+# --- стандарты СТО из папки EA/ (ea_standard.py) --------------------------
 #: Поля шкафа, которые дополняются из карточки стандарта: «поле записи» →
 #: «поле каталога» (None — в каталоге такого поля нет). Правка каталога всегда
 #: главнее: перезаписываются только пустые места и ссылки на таблицы.
@@ -590,7 +590,7 @@ def build_cabinet(cabinet, kit_records, kb_record, extracted, container_ids):
 # ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
-# Стандарты СТО (standards_base/)
+# Стандарты СТО в формате EA (ea_standard.py)
 # ---------------------------------------------------------------------------
 
 def is_informative(value):
@@ -600,7 +600,7 @@ def is_informative(value):
 
 def standard_card(cabinet):
     """Карточка стандарта для шкафа каталога (по шифру) или None."""
-    return standards_base.cabinet((cabinet or {}).get("code") or "")
+    return ea_standard.cabinet_by_code((cabinet or {}).get("code") or "")
 
 
 def merge_standard_cabinet(record, std_record, cabinet=None):
@@ -634,14 +634,14 @@ def standard_ied_record(ied):
         record[field] = value
         tables += 1
     if tables:
-        record[K_SOURCE] = "standards_base: таблицы СТО"
+        record[K_SOURCE] = "EA: таблицы СТО"
     return record, tables
 
 
 def merge_standard_ieds(kit_records, std_record):
     """Таблицы ИЭУ из стандарта: стандарт главнее исходников по ИЭУ.
 
-    Для шкафов, покрытых ``standards_base/``, таблицы берутся из карточки
+    Для шкафов, покрытых ``EA/*.json``, таблицы берутся из карточки
     стандарта целиком (она полнее «тонких» выгрузок), поэтому повторная
     сборка даёт тот же результат. Возвращает число заполненных таблиц.
     """
@@ -663,7 +663,7 @@ def merge_standard_ieds(kit_records, std_record):
                 target[field] = value
                 filled += 1
             if filled:
-                target[K_SOURCE] = "standards_base: таблицы СТО"
+                target[K_SOURCE] = "EA: таблицы СТО"
                 added += filled
     return added
 
@@ -684,7 +684,7 @@ def standard_kit_record(std_record, kit, index, cabinet_key):
             record[field] = value
     if ieds:
         record[K_IEDS] = [standard_ied_record(ied)[0] for ied in ieds]
-    record[K_SOURCE] = "standards_base: %s" % (std_record.get("стандарт") or "СТО")
+    record[K_SOURCE] = "EA: %s" % (std_record.get("стандарт") or "СТО")
     return record
 
 
@@ -849,23 +849,33 @@ def main(argv=None):
                                        entry_overlay,
                                        sorted(cabinet_containers.get(key, [])))
 
-        # Стандарты СТО (standards_base/): поля шкафа, недостающие комплекты
-        # состава и таблицы ИЭУ. Каталог главнее — заполняются только пустые
-        # места и ссылки на таблицы, поэтому повторная сборка ничего не меняет.
+        # Стандарты СТО в формате EA: поля шкафа, комплекты и таблицы ИЭУ.
+        # Каталог главнее — заполняются только пустые места, поэтому
+        # повторная сборка ничего не меняет.
         std_card = standard_card(cabinet)
         if std_card is not None:
-            std_record = standards_base.record(std_card, key)
-            coverage["шкафов: standards_base"] += 1
-            coverage["standards_base: поля шкафа"] += merge_standard_cabinet(
+            std_code = ""
+            for spath in ea_standard.files():
+                sdata = ea_standard.load(spath)
+                scode = sdata.get("code", "")
+                for cab in ea_standard.cabinets(sdata):
+                    if (cab.get("cypher") or "").lower() == (std_card.get("cypher") or "").lower():
+                        std_code = scode
+                        break
+                if std_code:
+                    break
+            std_record = ea_standard.record(std_card, std_code, key)
+            coverage["шкафов: EA"] += 1
+            coverage["EA: поля шкафа"] += merge_standard_cabinet(
                 cabinet_record, std_record, cabinet)
             kits_in_record = cabinet_record.setdefault(K_KITS, [])
             added_kits = merge_standard_kits(kits_in_record, std_record, key)
             if added_kits:
-                coverage["standards_base: комплекты"] += len(added_kits)
+                coverage["EA: комплекты"] += len(added_kits)
                 coverage["комплектов"] += len(added_kits)
                 coverage["комплектов с ИЭУ"] += sum(
                     1 for kit in added_kits if kit.get(K_HAS_IED))
-            coverage["standards_base: таблицы ИЭУ"] += merge_standard_ieds(
+            coverage["EA: таблицы ИЭУ"] += merge_standard_ieds(
                 kits_in_record, std_record)
 
         # На уровне шкафа остаётся только то, что нельзя отнести к одному
@@ -927,9 +937,9 @@ def main(argv=None):
             if os.path.exists(EXTRACTED) else None,
             "нормативы": sorted(os.path.basename(p) for p in
                                 glob.glob(os.path.join(ROOT, "standards", "*.pdf"))),
-            "стандарты (standards_base)": sorted(
-                os.path.basename(path) for path in standards_base.files())
-                if coverage["шкафов: standards_base"] else [],
+            "стандарты (EA)": sorted(
+                os.path.basename(path) for path in ea_standard.files())
+                if coverage["шкафов: EA"] else [],
         },
         "контейнеры": container_records,
         "шкафы": cabinet_records,
@@ -941,8 +951,8 @@ def main(argv=None):
         del result["источники"]["исходные таблицы по ИЭУ"]
     if not result["источники"]["нормативы"]:
         del result["источники"]["нормативы"]
-    if not result["источники"]["стандарты (standards_base)"]:
-        del result["источники"]["стандарты (standards_base)"]
+    if not result["источники"]["стандарты (EA)"]:
+        del result["источники"]["стандарты (EA)"]
 
     with open(args.out, "w", encoding="utf-8") as handle:
         json.dump(result, handle, ensure_ascii=False, indent=1)
@@ -955,13 +965,13 @@ def main(argv=None):
              coverage["комплектов"], coverage["комплектов с ИЭУ"],
              coverage["комплектов без ИЭУ"], coverage["иэу"],
              size / 1048576.0, args.out))
-    if coverage["шкафов: standards_base"]:
-        print("standards_base: %d шкафов, %d полей шкафов, %d новых "
+    if coverage["шкафов: EA"]:
+        print("EA: %d шкафов, %d полей шкафов, %d новых "
               "комплектов, %d таблиц ИЭУ"
-              % (coverage["шкафов: standards_base"],
-                 coverage["standards_base: поля шкафа"],
-                 coverage["standards_base: комплекты"],
-                 coverage["standards_base: таблицы ИЭУ"]))
+              % (coverage["шкафов: EA"],
+                 coverage["EA: поля шкафа"],
+                 coverage["EA: комплекты"],
+                 coverage["EA: таблицы ИЭУ"]))
     orphan = sorted(set(kb) - {norm_code(c.get("code")) for c in cabinets})
     if orphan:
         print("исходники без пары в каталоге: %s" % orphan)
@@ -975,7 +985,7 @@ def main(argv=None):
         print("\nЗаполнение:")
         for name, count in sorted(coverage.items()):
             if name in ("шкафов", "комплектов", "иэу") \
-                    or name.startswith("standards_base"):
+                    or name.startswith("EA:"):
                 print("  %-42s %5d" % (name, count))
             else:
                 total = (coverage["иэу"] if name.startswith("иэу:")

@@ -19,10 +19,8 @@ import containers as ketlib
 import docxreport
 import structure
 import structure_tools
-import standards_sync
-import ui_theme
-import appicon
 import apppaths
+import ui_theme
 
 try:
     import pdf2json
@@ -33,6 +31,11 @@ try:
     import pngexport
 except Exception:  # экспорт в PNG требует Pillow — без него просто нет кнопки
     pngexport = None
+
+try:
+    import appicon
+except Exception:
+    appicon = None
 
 
 # Префиксы обозначений по типу элемента — единый источник для добавления,
@@ -477,66 +480,17 @@ def _ri_structure(c):
     c.create_line(23, 12, 23, 16, width=1, fill="#666666")
 
 
-def _ri_sync(c):
-    """Сверка: две стрелки по кругу (туда и обратно)."""
-    c.create_arc(5, 5, 27, 27, start=200, extent=140, style=tk.ARC, width=2)
-    c.create_arc(5, 5, 27, 27, start=20, extent=140, style=tk.ARC, width=2)
-    c.create_line(19, 3, 25, 6, width=2, fill="black")
-    c.create_line(13, 22, 7, 25, width=2, fill="black")
-
-
 def _ri_check(c):
     """Проверка: галочка в круге."""
     c.create_oval(4, 4, 28, 28, outline="black", width=2)
     c.create_line(10, 17, 15, 22, 23, 11, width=2)
 
 
-def _ri_standards(c):
-    """Стандарты: документ с загнутым углом."""
-    c.create_polygon(6, 4, 20, 4, 26, 10, 26, 28, 6, 28,
-                     outline="black", fill="", width=2)
-    c.create_line(20, 4, 20, 10, 26, 10, width=2)
-    c.create_line(10, 15, 22, 15, width=1)
-    c.create_line(10, 19, 22, 19, width=1)
-    c.create_line(10, 23, 17, 23, width=1)
-
-
-def _ri_edit_doc(c):
-    """Редактор изменений: документ и карандаш."""
-    c.create_polygon(3, 7, 15, 7, 19, 11, 19, 28, 3, 28,
-                     outline="black", fill="", width=2)
-    c.create_line(15, 7, 15, 11, 19, 11, width=1)
-    c.create_line(7, 24, 18, 13, width=2)
-    c.create_line(7, 24, 7, 27, width=1)
-    c.create_line(7, 27, 10, 27, width=1)
-    c.create_line(18, 13, 21, 16, width=2)
-
-
-def _ri_new_doc(c):
-    """Новый стандарт: документ с плюсом."""
-    c.create_rectangle(4, 3, 20, 28, outline="black", width=2)
-    c.create_line(8, 9, 16, 9, width=1)
-    c.create_line(8, 14, 16, 14, width=1)
-    c.create_line(22, 18, 30, 18, width=2)
-    c.create_line(26, 14, 26, 22, width=2)
-
-
-def _ri_merge(c):
-    """Сборка редакции: два листа и стрелка к общему результату."""
-    c.create_rectangle(3, 4, 13, 14, outline="black", width=2)
-    c.create_rectangle(8, 9, 18, 19, outline="black", width=1)
-    c.create_line(22, 5, 22, 22, width=2)
-    c.create_line(17, 17, 22, 24, width=2)
-    c.create_line(27, 17, 22, 24, width=2)
-
-
-def _ri_docx(c):
-    """Отчёт Word: страница с буквой W."""
-    c.create_rectangle(5, 4, 27, 28, outline="black", width=2)
-    c.create_line(9, 12, 12, 21, width=2)
-    c.create_line(12, 21, 16, 14, width=2)
-    c.create_line(16, 14, 20, 21, width=2)
-    c.create_line(20, 21, 23, 12, width=2)
+def _ri_redo(c):
+    """Пересборка: круговая стрелка."""
+    c.create_oval(4, 4, 28, 28, outline="black", width=2)
+    c.create_line(26, 14, 20, 8, width=2)
+    c.create_line(26, 14, 20, 20, width=2)
 
 
 def _ri_about(c):
@@ -2183,6 +2137,9 @@ class CircuitEditor:
                   command=reload_structure).pack(side=tk.LEFT, padx=(6, 0))
         tk.Button(buttons, text="Сводка", width=10,
                   command=lambda: show_summary()).pack(side=tk.LEFT, padx=(6, 0))
+        tk.Button(buttons, text="Обновить из стандартов (EA)", width=24,
+                  command=lambda: (self.rebuild_from_standards(), build_tree())
+                  ).pack(side=tk.LEFT, padx=(6, 0))
         tk.Button(buttons, text="Закрыть", width=10,
                   command=window.destroy).pack(side=tk.RIGHT)
 
@@ -8975,33 +8932,24 @@ class CircuitEditor:
         self.canvas.tag_raise("search_highlight")
 
     # ================= ОТЧЁТЫ =================
-    # ---------- вкладка «Структура»: проводник, стандарты, сборка ----------
+    # ---------- вкладка «Структура»: проводник, сборка --------------------
     def _build_ribbon_structure(self, parent):
         page = tk.Frame(parent, bg="#f3f3f3")
         self._ribbon_group(page, "Проводник", lambda row: [
             self._ribbon_button(row, "Структура…", self.show_structure_overview,
                                 _ri_structure, 84).pack(side=tk.LEFT),
         ])
-        self._ribbon_group(page, "Стандарты", lambda row: [
-            self._ribbon_button(row, "Сверка…", self.show_standards_sync,
-                                _ri_sync, 76).pack(side=tk.LEFT),
-            self._ribbon_button(row, "Добавить из СТО",
-                                self.add_missing_to_structure,
-                                _ri_new_doc, 120).pack(side=tk.LEFT,
-                                                        padx=(4, 0)),
-        ])
         self._ribbon_group(page, "Сборка", lambda row: [
             self._ribbon_button(row, "Пересобрать", self.rebuild_structure,
                                 _ri_redo, 92).pack(side=tk.LEFT),
             self._ribbon_button(row, "Проверка…", self.show_structure_check,
                                 _ri_check, 84).pack(side=tk.LEFT, padx=(4, 0)),
+            self._ribbon_button(row, "Обновить из СТО", self.rebuild_from_standards,
+                                _ri_redo, 110).pack(side=tk.LEFT, padx=(4, 0)),
         ])
         tk.Label(page, text="КЭТ → шкафы → комплекты → ИЭУ.\n"
-                            "«Сверка…» — различия каталога и стандартов,\n"
-                            "перенос состава и полей; «Пересобрать» —\n"
-                            "structure.json заново из каталога и стандартов.\n"
-                            "«Добавить из СТО» — шкафы standards_base, которых\n"
-                            "нет в каталоге, в каталог и в structure.json.",
+                            "«Пересобрать» — structure.json заново из каталога.\n"
+                            "«Проверка…» — иерархия, ссылки, стыковка со схемами.",
                  bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)
@@ -9009,73 +8957,80 @@ class CircuitEditor:
 
     def _build_ribbon_standards(self, parent):
         page = tk.Frame(parent, bg="#f3f3f3")
-        self._ribbon_group(page, "Стандарты СТО", lambda row: [
-            self._ribbon_button(row, "Стандарты…", self.show_standards_window,
-                                _ri_standards, 92).pack(side=tk.LEFT),
+        self._ribbon_group(page, "Редактор", lambda row: [
             self._ribbon_button(row, "СТО (EA)…", self.show_ea_standards,
-                                _ri_structure, 96).pack(side=tk.LEFT,
-                                                        padx=(4, 0)),
-            self._ribbon_button(row, "Редактор изменений…",
-                                self.open_standards_editor,
-                                _ri_edit_doc, 124).pack(side=tk.LEFT,
-                                                         padx=(4, 0)),
+                                _ri_structure, 96).pack(side=tk.LEFT),
         ])
-        self._ribbon_group(page, "Изменения", lambda row: [
-            self._ribbon_button(row, "Собрать редакцию…",
-                                self.show_assembly_window, _ri_merge, 118).pack(
-                                    side=tk.LEFT),
-            self._ribbon_button(row, "Новый стандарт…",
-                                self.show_new_standard_dialog, _ri_new_doc,
-                                116).pack(side=tk.LEFT, padx=(4, 0)),
-        ])
-        self._ribbon_group(page, "Отчёт", lambda row: [
-            self._ribbon_button(row, "DOCX…", self.show_docx_window,
-                                _ri_docx, 76).pack(side=tk.LEFT),
-        ])
-        tk.Label(page, text="Стандарты СТО в JSON (папка standard_editor):\n"
-                            "правка изменений *.изм.txt, сборка редакции,\n"
-                            "новый стандарт из выбранного и отчёт Word.\n"
-                            "«СТО (EA)…» — новая структура (папка EA):\n"
+        tk.Label(page, text="«СТО (EA)…» — стандарт в новой структуре (папка EA):\n"
                             "таблицы собираются из шкафов, шкаф и комплект\n"
-                            "ставятся на схему, новый стандарт и DOCX.",
+                            "ставятся на схему, новый стандарт и DOCX —\n"
+                            "в окне «СТО (EA)…».",
                  bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)
         return page
 
     # --------------------------------------------------- окна стандартов
-    def _standards_ui(self):
-        """Окна работы со стандартами (импорт по требованию)."""
-        import standards_ui
-        return standards_ui
-
-    def show_standards_window(self):
-        """Окно «Стандарты…»: список стандартов и действия с ними."""
-        return self._standards_ui().show_standards(self)
-
     def show_ea_standards(self, path=None):
         """Окно «СТО (EA)…»: стандарт в новой структуре (таблицы из шкафов)."""
         import ea_ui
         return ea_ui.show(self, path)
 
-    def open_standards_editor(self, base_path=None):
-        """Редактор изменений стандарта в окне редактора схем."""
-        return self._standards_ui().open_editor(self, base_path)
+    def rebuild_from_standards(self):
+        """Обновляет каталог по всем EA-стандартам и пересобирает structure.json."""
+        import ea_standard as es
+        import ea_catalog
 
-    def show_new_standard_dialog(self, source_path=None):
-        """Окно «Новый стандарт…»: копия выбранного с правкой реквизитов."""
-        return self._standards_ui().show_new_standard(self, source_path)
+        files = es.files()
+        if not files:
+            messagebox.showinfo("Обновить структуру",
+                                "В папке EA/ нет ни одного стандарта.\n"
+                                "Добавьте JSON-файл стандарта и повторите.")
+            return
 
-    def show_assembly_window(self, base_path=None):
-        """Окно «Собрать редакцию…»: база + все изменения каталога."""
-        return self._standards_ui().show_assembly(self, base_path)
+        total_updated = 0
+        total_created = 0
+        total_kits = 0
+        processed = []
 
-    def show_docx_window(self, json_path=None):
-        """Окно «Отчёт DOCX…» по стандарту или собранной редакции."""
-        return self._standards_ui().show_docx(self, json_path)
+        for path in files:
+            try:
+                data = es.load(path)
+                stats = ea_catalog.update_standard_cabinets(data)
+                total_updated += stats.get("updated", 0)
+                total_created += stats.get("created", 0)
+                total_kits += stats.get("kits", 0)
+                processed.append(os.path.basename(path))
+            except Exception as exc:
+                messagebox.showerror(
+                    "Обновить структуру",
+                    "Ошибка при обработке стандарта:\n%s\n\n%s"
+                    % (os.path.basename(path), exc))
+                return
+
+        result = structure_tools.rebuild()
+        if not result.get("ok"):
+            messagebox.showerror(
+                "Обновить структуру",
+                "Пересборка structure.json не удалась:\n%s"
+                % (result.get("ошибка") or "неизвестная ошибка"))
+            return
+
+        self.redraw_all()
+        names = "\n".join("  • %s" % n for n in processed)
+        messagebox.showinfo(
+            "Обновить структуру",
+            "Каталог синхронизирован по %d стандарт(ам):\n%s\n\n"
+            "Шкафов обновлено: %d\n"
+            "Шкафов создано:   %d\n"
+            "Комплектов:       %d\n\n"
+            "%s"
+            % (len(processed), names,
+               total_updated, total_created, total_kits,
+               result.get("текст") or "structure.json пересобран"))
 
     def rebuild_structure(self, silent=False):
-        """Пересобирает structure.json из каталога и standards_base."""
+        """Пересобирает structure.json из каталога (папка EA)."""
         result = structure_tools.rebuild()
         if not result.get("ok"):
             if not silent:
@@ -9086,16 +9041,6 @@ class CircuitEditor:
         if not silent:
             messagebox.showinfo("Структура", result.get("текст") or "Готово")
         return True
-
-    def add_missing_to_structure(self):
-        """Добавляет шкафы standards_base, которых нет в каталоге, и пересобирает структуру."""
-        result = structure_tools.add_missing_standards()
-        text = result.get("текст") or "Готово"
-        if result.get("ok"):
-            messagebox.showinfo("Структура", text)
-        else:
-            messagebox.showwarning("Структура", text)
-        return result
 
     def show_structure_check(self):
         """Окно проверки структуры: иерархия, ссылки, стыковка со схемами."""
@@ -9136,339 +9081,6 @@ class CircuitEditor:
                   command=window.destroy).pack(side=tk.RIGHT)
         self._place_window(window)
 
-    def show_standards_sync(self):
-        """Окно сверки: каталог шкафов против standards_base."""
-        try:
-            items = standards_sync.diff()
-        except Exception as exc:                     # noqa: BLE001
-            messagebox.showerror(
-                "Сверка со стандартами",
-                "Не удалось прочитать standards_base:\n%s" % exc)
-            return
-        window = tk.Toplevel(self.root)
-        window.title("Стандарты и структура: сверка")
-        window.transient(self.root)
-        window.geometry("1120x660")
-
-        header = tk.Label(window, anchor="w", justify="left",
-                          font=("Arial", 9, "bold"))
-        header.pack(fill=tk.X, padx=10, pady=(8, 2))
-        hint = tk.Label(window, anchor="w", justify="left", fg="#666666",
-                        font=("Arial", 8),
-                        text="Слева шкафы из standards_base; справа различия "
-                             "с каталогом. Двойной щелчок открывает список "
-                             "изменений шкафа. «Применить» переносит состав и "
-                             "поля в cabinets.json, «Пересобрать» обновляет "
-                             "structure.json (таблицы ИЭУ всегда из стандарта).")
-        hint.pack(fill=tk.X, padx=10, pady=(0, 4))
-
-        only_diff = tk.BooleanVar(
-            value=bool(standards_sync.summary(items)["всего"]))
-        body = tk.Frame(window)
-        body.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 4))
-
-        left = tk.Frame(body)
-        left.pack(side=tk.LEFT, fill=tk.Y)
-        tree = ttk.Treeview(left, columns=("шифр", "комплекты", "различий"),
-                            show="headings", height=18, selectmode="browse")
-        for column, title, width in (("шифр", "Шифр", 150),
-                                     ("комплекты", "Комплекты", 100),
-                                     ("различий", "Различий", 80)):
-            tree.heading(column, text=title)
-            tree.column(column, width=width, anchor="w")
-        tree_scroll = tk.Scrollbar(left, orient="vertical", command=tree.yview)
-        tree.config(yscrollcommand=tree_scroll.set)
-        tree_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        tree.pack(side=tk.LEFT, fill=tk.Y)
-
-        right = tk.Frame(body)
-        right.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(8, 0))
-        detail_scroll = tk.Scrollbar(right, orient="vertical")
-        detail = tk.Text(right, wrap="word", font=("Consolas", 9),
-                         yscrollcommand=detail_scroll.set)
-        detail_scroll.config(command=detail.yview)
-        detail_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        detail.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        detail.config(state="disabled")
-
-        footer = tk.Frame(window)
-        footer.pack(fill=tk.X, padx=10, pady=(0, 8))
-        status = tk.Label(footer, anchor="w", fg="#555555")
-        status.pack(side=tk.LEFT)
-
-        visible = []
-
-        def show_item(item):
-            detail.config(state="normal")
-            detail.delete("1.0", tk.END)
-            detail.insert("1.0", standards_sync.detail_text(item)
-                          if item else "Выберите шкаф в списке.")
-            detail.config(state="disabled")
-
-        def current():
-            selection = tree.selection()
-            if not selection:
-                return None
-            try:
-                return visible[int(selection[0])]
-            except (ValueError, IndexError):
-                return None
-
-        def fill(preserve=None):
-            nonlocal visible
-            tree.delete(*tree.get_children())
-            visible = []
-            counter = 0
-            for item in items:
-                if only_diff.get() and not item["всего"]:
-                    continue
-                counter += 1
-                kits = "%s → %s" % (item["комплектов_каталог"],
-                                    item["комплектов_стандарт"])
-                tree.insert("", tk.END, iid=str(len(visible)), values=(
-                    item["шифр"], kits, item["всего"]))
-                visible.append(item)
-            stats = standards_sync.summary(items)
-            header.config(text="Шкафов в стандартах: %d, с различиями: %d · "
-                               "различий: %d — состав: %d, поля: %d, "
-                               "в структуру: %d, таблицы: %d"
-                               % (stats["шкафов"], stats["с_различиями"],
-                                  stats["всего"], stats["состав"],
-                                  stats["поля"], stats["в_структуру"],
-                                  stats["таблицы"]))
-            if visible:
-                index = 0
-                if preserve:
-                    for number, item in enumerate(visible):
-                        if item["шифр"] == preserve:
-                            index = number
-                            break
-                tree.selection_set(str(index))
-                show_item(visible[index])
-            else:
-                show_item(None)
-
-        def apply_items(selected_only=False):
-            targets = [current()] if selected_only else list(items)
-            targets = [item for item in targets if item and item["всего"]]
-            if not targets:
-                status.config(text="Переносить нечего: различий нет.")
-                return
-            done = 0
-            for item in targets:
-                result = standards_sync.apply(item)
-                done += result.get("изменено", 0)
-            refresh_after = standards_sync.summary(standards_sync.diff())
-            status.config(text="Перенесено изменений: %d. Осталось различий: %d."
-                          % (done, refresh_after["всего"]))
-            if rebuild_after.get() and self.rebuild_structure(silent=True):
-                status.config(text=status.cget("text") + " Структура пересобрана.")
-            items[:] = standards_sync.diff()
-            fill(preserve=targets[0]["шифр"])
-
-        rebuild_after = tk.BooleanVar(value=True)
-        tk.Button(footer, text="Применить к выбранному", width=24,
-                  command=lambda: apply_items(True)).pack(side=tk.RIGHT)
-        tk.Button(footer, text="Применить ко всем", width=20,
-                  command=lambda: apply_items(False)).pack(side=tk.RIGHT,
-                                                         padx=(0, 6))
-        tk.Button(footer, text="Пересобрать", width=14,
-                  command=lambda: (self.rebuild_structure(silent=False),
-                                   items.__setitem__(slice(None),
-                                                     standards_sync.diff()),
-                                   fill())).pack(side=tk.RIGHT, padx=(0, 6))
-        tk.Checkbutton(footer, text="Пересобирать после применения",
-                       variable=rebuild_after).pack(side=tk.RIGHT, padx=(0, 12))
-        tk.Checkbutton(footer, text="Только с различиями",
-                       variable=only_diff, command=fill).pack(side=tk.RIGHT,
-                                                              padx=(0, 12))
-
-        tree.bind("<<TreeviewSelect>>",
-                  lambda event: show_item(current()))
-
-        def open_changes(event=None):
-            if event is not None and tree.identify_region(
-                    event.x, event.y) not in ("cell", "tree"):
-                return
-            item = current()
-            if item is None:
-                return
-            code = item["шифр"]
-
-            def refresh():
-                items[:] = standards_sync.diff()
-                fill(preserve=code)
-
-            self.show_sync_changes(code, on_change=refresh, parent=window)
-
-        tree.bind("<Double-1>", open_changes)
-        window.bind("<F5>", lambda event: (items.__setitem__(
-            slice(None), standards_sync.diff()), fill()))
-        window.bind("<Escape>", lambda event: window.destroy())
-        fill()
-        self._place_window(window)
-
-    def show_sync_changes(self, code, on_change=None, parent=None):
-        """Окно изменений шкафа: перенос строк в структуру и обратно.
-
-        Открывается двойным щелчком в окне «Сверка…». «→ В структуру» берёт
-        значение стандарта, «→ В стандарт» — значение структуры (каталога)
-        и записывает его в JSON стандарта.
-        """
-        parent = parent or self.root
-        window = tk.Toplevel(self.root)
-        window.title("Изменения шкафа %s" % code)
-        window.transient(parent)
-        window.geometry("1060x580")
-
-        header = tk.Label(window, anchor="w", justify="left",
-                          font=("Arial", 9, "bold"))
-        header.pack(fill=tk.X, padx=10, pady=(8, 2))
-        tk.Label(window, anchor="w", justify="left", fg="#666666",
-                 font=("Arial", 8),
-                 text="Слева — структура (каталог), справа — стандарт. "
-                      "«→ В структуру» переносит значение стандарта, "
-                      "«→ В стандарт» — значение структуры; файл стандарта "
-                      "при этом изменяется.").pack(fill=tk.X, padx=10,
-                                                    pady=(0, 4))
-
-        body = tk.Frame(window)
-        body.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 4))
-        tree = ttk.Treeview(body,
-                            columns=("группа", "поле", "структура", "стандарт"),
-                            show="headings", selectmode="browse", height=16)
-        for column, title, width in (("группа", "Группа", 70),
-                                     ("поле", "Поле", 210),
-                                     ("структура", "Структура", 340),
-                                     ("стандарт", "Стандарт", 340)):
-            tree.heading(column, text=title)
-            tree.column(column, width=width, anchor="w")
-        scroll = tk.Scrollbar(body, orient="vertical", command=tree.yview)
-        tree.config(yscrollcommand=scroll.set)
-        scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        preview = tk.Text(window, height=7, wrap="word", font=("Consolas", 9))
-        preview.pack(fill=tk.X, padx=10, pady=(0, 4))
-        preview.config(state="disabled")
-
-        footer = tk.Frame(window)
-        footer.pack(fill=tk.X, padx=10, pady=(0, 8))
-        status = tk.Label(footer, anchor="w", fg="#555555")
-        status.pack(side=tk.LEFT)
-
-        rebuild_after = tk.BooleanVar(value=True)
-        state = {"item": None}
-        visible = []
-
-        def load_rows(preserve=None):
-            nonlocal visible
-            fresh = next((candidate for candidate in standards_sync.diff()
-                          if candidate["шифр"] == code), None)
-            state["item"] = fresh
-            tree.delete(*tree.get_children())
-            visible = []
-            if fresh is None:
-                header.config(text="Шкаф %s не найден в standards_base." % code)
-                status.config(text="")
-                return
-            changes = standards_sync.row_changes(fresh)
-            header.config(text="%s · %s · различий: %d"
-                               % (fresh["шифр"], fresh["стандарт"],
-                                  len(changes)))
-            for change in changes:
-                tree.insert("", tk.END, iid=str(len(visible)), values=(
-                    change["группа"], change["поле"],
-                    standards_sync.value_text(change["значение_структура"]),
-                    standards_sync.value_text(change["значение_стандарт"])))
-                visible.append(change)
-            if not changes:
-                status.config(text="Различий нет: структура и стандарт "
-                                   "совпадают.")
-                return
-            index = 0
-            if preserve:
-                for number, change in enumerate(visible):
-                    if change["поле"] == preserve:
-                        index = number
-                        break
-            tree.selection_set(str(index))
-            tree.focus(str(index))
-
-        def current():
-            selection = tree.selection()
-            if not selection:
-                return None
-            try:
-                return visible[int(selection[0])]
-            except (ValueError, IndexError):
-                return None
-
-        def sync_buttons(event=None):
-            change = current()
-            for button, flag in ((to_structure, "можно_в_структуру"),
-                                 (to_standard, "можно_в_стандарт")):
-                enabled = bool(change) and bool(change.get(flag))
-                button.config(state=tk.NORMAL if enabled else tk.DISABLED)
-            if change and change.get("причина"):
-                status.config(text=change["причина"])
-            preview.config(state="normal")
-            preview.delete("1.0", tk.END)
-            if change:
-                preview.insert("1.0", "%s · %s\n\nСтруктура:\n%s\n\n"
-                                      "Стандарт:\n%s"
-                               % (change["группа"], change["поле"],
-                                  standards_sync.value_text(
-                                      change["значение_структура"], 600),
-                                  standards_sync.value_text(
-                                      change["значение_стандарт"], 600)))
-            preview.config(state="disabled")
-
-        def transfer(direction):
-            change = current()
-            item = state["item"]
-            if change is None or item is None:
-                return
-            if direction == "в стандарт" and not messagebox.askyesno(
-                    "Стандарт",
-                    "Записать значение в файл стандарта %s?\n"
-                    "Файл standards_base будет изменён." % code,
-                    parent=window):
-                return
-            result = standards_sync.apply_change(item, change, direction)
-            text = result.get("текст") or ""
-            if not result.get("ok"):
-                status.config(text=text)
-                return
-            if result.get("пересобрать") and rebuild_after.get():
-                built = structure_tools.rebuild()
-                if built.get("ok"):
-                    text += " · структура пересобрана"
-                else:
-                    text += " · пересборка не удалась: %s" % (
-                        built.get("ошибка") or "неизвестная ошибка")
-            load_rows(preserve=change.get("поле"))
-            sync_buttons()
-            status.config(text=text)
-            if on_change:
-                on_change()
-        to_structure = tk.Button(footer, text="→ В структуру", width=16,
-                                 command=lambda: transfer("в структуру"))
-        to_standard = tk.Button(footer, text="→ В стандарт", width=16,
-                                command=lambda: transfer("в стандарт"))
-        tk.Button(footer, text="Закрыть", width=10,
-                  command=window.destroy).pack(side=tk.RIGHT)
-        to_standard.pack(side=tk.RIGHT, padx=(0, 6))
-        to_structure.pack(side=tk.RIGHT, padx=(0, 6))
-        tk.Checkbutton(footer, text="Пересобирать после переноса",
-                       variable=rebuild_after).pack(side=tk.RIGHT,
-                                                    padx=(0, 12))
-
-        tree.bind("<<TreeviewSelect>>", sync_buttons)
-        window.bind("<Escape>", lambda event: window.destroy())
-        load_rows()
-        sync_buttons()
-        self._place_window(window, parent)
 
     def _build_ribbon_reports(self, parent):
         page = tk.Frame(parent, bg="#f3f3f3")
@@ -12197,15 +11809,10 @@ def selftest(report_path=None):
     except Exception as exc:                       # noqa: BLE001
         report["ошибки"].append("структура: %s" % exc)
     try:
-        import standards_base
-        report["стандарты"] = len(standards_base.files())
+        import ea_standard
+        report["стандарты"] = len(ea_standard.files())
     except Exception as exc:                       # noqa: BLE001
         report["ошибки"].append("стандарты: %s" % exc)
-    try:
-        import standards_editor
-        report["стандарты_редактор"] = standards_editor.available()
-    except Exception as exc:                       # noqa: BLE001
-        report["ошибки"].append("редактор стандартов: %s" % exc)
     for name in ("cabinets.json", "structure.json"):
         if not report["файлы"][name]["есть"]:
             report["ошибки"].append("нет файла %s" % name)

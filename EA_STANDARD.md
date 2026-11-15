@@ -1,14 +1,10 @@
 # Стандарты СТО в структуре EA
 
-Новая ветка работы со стандартами: JSON собирается по модели
-`EA/structure.eapx` (`EA/docx2json.py`), а редактор схем читает его через
-`ea_standard.py`: показывает в окне `ea_ui.py`, ставит шкафы и комплекты на
-схему (`ea_catalog.py`), делает новый стандарт на базе выбранного
+Работа со стандартами: JSON собирается по модели `EA/structure.eapx`
+(`EA/docx2json.py`), а редактор схем читает его через `ea_standard.py`:
+показывает в окне `ea_ui.py`, ставит шкафы и комплекты на схему
+(`ea_catalog.py`), делает новый стандарт на базе выбранного
 (`ea_new_standard.py`) и выгружает документ в Word (`ea_docx.py`).
-
-Старая ветка (`standards_base/`, `standards_editor.py`, `standards_ui.py`,
-`standard_editor/`) пока работает как раньше и **новой веткой не
-используется**. План её удаления — в конце файла.
 
 ## Формат
 
@@ -102,40 +98,13 @@ python tests/test_ea_standard.py --no-gui     # тесты без окна
 `standard_editor/run_changes_gui.bat`, `cat/`, `rza_catalog/`. В README —
 что это было и как вернуть.
 
-## Удаление старой ветки
+## Поддержка контейнеров
 
-Старая ветка — это два разных слоя, удалять их нужно по очереди.
+Поле `containers` в карточке шкафа (`ea_standard.py`) — массив id контейнеров КЭТ,
+в которые входит шкаф. Оно используется в `ea_standard.record()` для формирования
+записи `structure.json` v3, где шкафы содержат массив `контейнеры` с обратными
+ссылками на КЭТ.
 
-**Слой 1. Окна и редактор изменений** (удаляется без влияния на данные):
-
-- `standards_editor.py`, `standards_ui.py`;
-- `standard_editor/` целиком (включая `changes_gui.py`, `apply_changes.py`,
-  базы `*.json`, `changes_text/`);
-- кнопки «Стандарты…», «Редактор изменений…», «Собрать редакцию…»,
-  «Новый стандарт…», «DOCX…» и методы `show_standards_window`,
-  `open_standards_editor`, `show_new_standard_dialog`,
-  `show_assembly_window`, `show_docx_window` в `main.py`;
-- `tests/test_standards_editor.py`.
-
-**Слой 2. Данные и сборка структуры** (удалять только после переноса):
-
-- `standards_base.py`, `standards_base/*.json`, `standards_sync.py`,
-  окно «Сверка…» и кнопка «Добавить из СТО»;
-- `tests/test_standards_base.py`, `tests/test_standards_sync.py`;
-- `tools/build_structure.py` сейчас читает `standards_base` — перед удалением
-  его нужно переключить на `ea_standard` (поля карточек и таблицы ИЭУ) или
-  собирать `structure.json` без стандартов;
-- `build_exe.py`: убрать копирование `standards_base/` и `standard_editor/`,
-  оставить `EA/`.
-
-Проверка после каждого шага:
-
-```bash
-python tests/test_ea_standard.py --no-gui
-python tests/test_structure_docking.py --no-gui
-python tools/check_structure.py
-```
-
-Пока слой 2 не перенесён, `standards_base/` — источник данных для
-`structure.json`, поэтому удалять его нельзя, даже если окна стандартов уже
-убраны.
+Поле заполняется автоматически при сборке стандарта из шкафа: если у шкафа в JSON
+есть `containers`, они копируются в запись v3. При необходимости можно добавлять
+контейнеры в карточку шкафа вручную или через `ea_catalog.ensure_catalog()`.

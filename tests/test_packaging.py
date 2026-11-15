@@ -114,16 +114,12 @@ def test_plan():
     print("2. план сборки")
     errors, warnings, items = build_exe.check()
     check(not errors, "обязательные файлы на месте (%d ошибок)" % len(errors))
-    check(len(items) > 20, "в плане %d файлов" % len(items))
+    check(len(items) >= 7, "в плане %d файлов" % len(items))
     targets = {item["цель"] for item in items}
     for name in ("cabinets.json", "structure.json", "cabs_signals.json"):
         check(name in targets, "в db попадёт %s" % name)
-    check(any(target.startswith("standards_base" + os.sep) for target in targets),
-          "стандарты СТО попадают в db/standards_base")
-    check(any(target.startswith("standard_editor" + os.sep) for target in targets),
-          "инструменты стандартов попадают в db/standard_editor")
-    check("standard_editor/_parse" not in " ".join(targets),
-          "черновики _parse в сборку не попадают")
+    check(any(target.startswith("EA" + os.sep) for target in targets),
+          "стандарты EA попадают в db/EA")
     check({os.path.join("tools", "build_structure.py"),
            os.path.join("tools", "check_structure.py")} <= targets,
           "сборщик и проверка структуры попадают в db/tools")
@@ -136,20 +132,15 @@ def test_stage():
     path, copied, skipped = build_exe.stage(target, quiet=True)
     check(os.path.normcase(path) == os.path.normcase(target),
           "папка собрана по указанному пути")
-    check(copied > 20, "скопировано файлов: %d" % copied)
+    check(copied >= 7, "скопировано файлов: %d" % copied)
     for name in ("cabinets.json", "structure.json", "cabs_signals.json",
                  "README.txt"):
         check(os.path.exists(os.path.join(target, name)),
               "в db есть %s" % name)
-    check(os.path.isdir(os.path.join(target, "standards_base")),
-          "в db есть папка standards_base")
-    check(os.path.isfile(os.path.join(target, "standard_editor",
-                                      "apply_changes.py")),
-          "в db есть движок изменений")
+    check(os.path.isdir(os.path.join(target, "EA")),
+          "в db есть папка EA")
     check(os.path.isfile(os.path.join(target, "tools", "build_structure.py")),
           "в db есть сборщик структуры")
-    check(not os.path.isdir(os.path.join(target, "standard_editor", "_parse")),
-          "черновиков _parse в db нет")
 
     size = sum(os.path.getsize(os.path.join(base, name))
                for base, _, names in os.walk(target) for name in names)
@@ -162,32 +153,28 @@ def test_modules_use_db():
     code = "\n".join((
         "import os",
         "import apppaths, cabs, komplekts, containers, structure",
-        "import standards_base, standards_editor, structure_tools",
+        "import ea_standard, structure_tools",
         "print(os.path.normcase(structure.DEFAULT_PATH))",
         "print(os.path.normcase(cabs.USER_CATALOG_PATH))",
         "print(os.path.normcase(komplekts.USER_CATALOG_PATH))",
         "print(os.path.normcase(containers.USER_CATALOG_PATH))",
-        "print(os.path.normcase(standards_base.STANDARDS_DIR))",
-        "print(os.path.normcase(standards_editor.FOLDER))",
+        "print(os.path.normcase(ea_standard.FOLDER))",
         "print(os.path.normcase(structure_tools.TOOLS_DIR))",
         "print(len(structure.cabinets()))",
-        "print(len(standards_base.files()))",
     ))
     result = child(code, {"EDITOR_DB": target})
     lines = result.stdout.strip().splitlines()
-    check(result.returncode == 0 and len(lines) == 9,
+    check(result.returncode == 0 and len(lines) == 7,
           "модули загрузились с EDITOR_DB: %s"
           % (result.stderr.strip()[:80] or "ok"))
-    if len(lines) == 9:
+    if len(lines) == 7:
         db = os.path.normcase(os.path.abspath(target))
         for index, name in enumerate(("structure.json", "cabinets.json",
                                       "komplekts.json", "containers.json",
-                                      "standards_base", "standard_editor",
-                                      "tools")):
+                                      "EA", "tools")):
             check(lines[index].startswith(db),
                   "%s берётся из db" % name)
-        check(int(lines[7]) > 300, "шкафов из db: %s" % lines[7])
-        check(int(lines[8]) == 3, "стандартов из db: %s" % lines[8])
+        check(int(lines[6]) > 300, "шкафов из db: %s" % lines[6])
 
 
 def test_selftest():
@@ -215,10 +202,8 @@ def test_selftest():
     check(data.get("структура", {}).get("шкафов", 0) > 300,
           "структура прочитана: %s шкафов"
           % data.get("структура", {}).get("шкафов"))
-    check(data.get("стандарты") == 3,
+    check(data.get("стандарты") >= 1,
           "стандарты прочитаны: %s" % data.get("стандарты"))
-    check(data.get("стандарты_редактор") is True,
-          "редактор стандартов доступен")
     check(data["сборка"] is False, "обычный запуск не помечен как сборка")
 
 
@@ -311,16 +296,11 @@ def test_modules_have_no_flat_paths():
     check(os.path.normcase(structure.DEFAULT_PATH)
           == os.path.normcase(apppaths.data_path("structure.json")),
           "structure.DEFAULT_PATH = apppaths.data_path")
-    import standards_base
-    check(os.path.normcase(standards_base.STANDARDS_DIR)
-          == os.path.normcase(apppaths.data_dir("standards_base")),
-          "standards_base.STANDARDS_DIR = apppaths.data_dir")
-    import standards_editor
-    check(os.path.normcase(standards_editor.FOLDER)
-          == os.path.normcase(apppaths.data_dir("standard_editor")),
-          "standards_editor.FOLDER = apppaths.data_dir")
-    for name in ("structure.py", "standards_base.py", "standards_editor.py",
-                 "structure_tools.py"):
+    import ea_standard
+    check(os.path.normcase(ea_standard.FOLDER)
+          == os.path.normcase(apppaths.data_dir("EA")),
+          "ea_standard.FOLDER = apppaths.data_dir")
+    for name in ("structure.py", "ea_standard.py", "structure_tools.py"):
         source = open(os.path.join(ROOT, name), encoding="utf-8").read()
         flat = 'os.path.join(os.path.dirname(os.path.abspath(__file__)), "structure.json")'
         check(flat not in source, "%s не собирает путь к structure.json" % name)

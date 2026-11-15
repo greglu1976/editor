@@ -577,6 +577,269 @@ def validate(data):
 
 
 # ---------------------------------------------------------------------------
+# Запись v3 (совместимость с build_structure.py)
+# ---------------------------------------------------------------------------
+
+#: Поля шкафа EA → ключи записи v3.
+_EA_CABINET_KEYS = (
+    ("cypher", "шифр"),
+    ("architecture", "архитектура ПС"),
+    ("name", "наименование"),
+    ("controllable_element", "управляемый элемент"),
+    ("protected_element", "защищаемый элемент"),
+    ("scope", "применимость"),
+    ("type", "тип"),
+    ("description", "описание"),
+)
+
+#: Поля IED EA → ключи записи v3.
+_EA_IED_KEYS = (
+    ("analog_inputs", "входные аналоговые измерения"),
+    ("inner_discrete_circuits", "внутренние дискретные цепи"),
+    ("incoming_goose_signals", "входящие GOOSE сообщения"),
+    ("osc_analog_signals", "аналоговые значения"),
+    ("functional_buttons", "функциональные клавиши"),
+    ("leds", "светодиодная сигнализация"),
+    ("control_commands", "команды управления от АСУ ТП"),
+    ("datasets", "отчеты в АСУ ТП"),
+    ("functions", "параметры функций ИЭУ"),
+)
+
+
+def _ea_table_rows(field):
+    """Конвертировать поле IED в список строк v3."""
+    def builder(ied):
+        items = ied.get(field) or []
+        if not items:
+            return []
+        rows = []
+        for item in items:
+            row = [_text(v) for v in item.values()]
+            rows.append(row)
+        return rows
+    return builder
+
+
+def _ea_goose_rows(ied):
+    """Выходные GOOSE — из datasets (class != '-')."""
+    rows = []
+    for dataset in ied.get("datasets") or []:
+        if dataset.get("class") == "-":
+            continue
+        for signal in dataset.get("signals") or []:
+            rows.append([
+                _text(signal.get("name")),
+                _text(signal.get("info_model")),
+                _text(signal.get("destination")),
+            ])
+    return rows
+
+
+def _ea_report_rows(ied):
+    """Отчёты в АСУ ТП — из datasets (class == '-')."""
+    rows = []
+    for dataset in ied.get("datasets") or []:
+        if dataset.get("class") != "-":
+            continue
+        for signal in dataset.get("signals") or []:
+            rows.append([
+                _text(signal.get("name")),
+                _text(signal.get("status")),
+                _text(signal.get("KT")),
+                _text(signal.get("cus")),
+                _text(signal.get("rdu")),
+                _text(signal.get("RAS")),
+                _text(signal.get("DO")),
+                _text(signal.get("DA")),
+            ])
+    return rows
+
+
+def _ea_function_params(ied):
+    """Параметры функций ИЭУ — из functions[].parameters[]."""
+    rows = []
+    for func in ied.get("functions") or []:
+        path = _text(func.get("russian_path"))
+        name = _text(func.get("name"))
+        label = name if not path or path == name else "%s / %s" % (path, name)
+        rows.append([label, "", ""])
+        for param in func.get("parameters") or []:
+            rows.append([
+                _text(param.get("name")),
+                _text(param.get("description")),
+                _text(param.get("conditions")),
+            ])
+    return rows
+
+
+def _ea_terminal_blocks(cabinet):
+    """Ряды зажимов из terminal_blocks."""
+    rows = []
+    for block in cabinet.get("terminal_blocks") or []:
+        for row in block.get("rows") or []:
+            location = _text(row.get("location"))
+            if location:
+                rows.append([location, "", "", "", ""])
+            for terminal in row.get("terminals") or []:
+                rows.append([
+                    _text(terminal.get("number")),
+                    _text(terminal.get("quantity")),
+                    _text(terminal.get("function_type")),
+                    _text(terminal.get("connection_type")),
+                    _text(terminal.get("purpose")),
+                ])
+    return rows
+
+
+def _ea_components(cabinet):
+    """Основные компоненты."""
+    rows = []
+    for comp in cabinet.get("components") or []:
+        rows.append([
+            _text(comp.get("name")),
+            _text(comp.get("description")),
+            _text(comp.get("quantity")),
+        ])
+    return rows
+
+
+def _ea_power_supplies(cabinet):
+    """Вводы питания — список PURPOSE через '; '."""
+    return "; ".join(
+        p.get("purpose", "") for p in cabinet.get("power_supplies") or []
+    )
+
+
+def _ea_ports(ied):
+    """Цифровые порты ИЭУ."""
+    return "; ".join(p.get("description", "") for p in ied.get("ports") or [])
+
+
+def _ea_mp_functions(ied):
+    """Основные функции МП ИЭУ."""
+    return _function_names(ied.get("functions") or [], "isMainFunction")
+
+
+def _ea_its_functions(ied):
+    """Функции ИТС."""
+    return _function_names(ied.get("functions") or [], "isInITS")
+
+
+def record(cabinet_item, standard_code=None, cabinet_id=None):
+    """Карточка шкафа EA → запись ``structure.json`` v3.
+
+    ``cabinet_id`` — ключ каталога (например ``shet-431-11-1``); тогда
+    ``id`` и ключи комплектов совпадают с каталогом.
+
+    Возвращает dict с полями: ``id``, ``шифр``, ``архитектура ПС``,
+    ``наименование``, ``защищаемый элемент``, ``управляемый элемент``,
+    ``применимость``, ``вводы питания``, ``порты``, ``основные компоненты``,
+    ``ряды зажимов``, ``функции МП ИЭУ``, ``функции ИТС``, ``комплекты``,
+    ``стандарт``.
+    """
+    import komplekts
+
+    ied = _ied(cabinet_item)
+    key = cabinet_id or cabinet_item.get("cypher", "")
+
+    # --- карточка шкафа ---
+    result = {"id": key, "шифр": cabinet_item.get("cypher", "")}
+
+    for ea_key, v3_key in _EA_CABINET_KEYS:
+        value = cabinet_item.get(ea_key)
+        if value and str(value).strip():
+            result[v3_key] = str(value).strip()
+
+    if ied:
+        mp = _ea_mp_functions(ied)
+        if mp:
+            result["функции МП ИЭУ"] = mp
+        its = _ea_its_functions(ied)
+        if its:
+            result["функции ИТС"] = its
+        ps = _ea_power_supplies(cabinet_item)
+        if ps:
+            result["вводы питания"] = ps
+        ports = _ea_ports(ied)
+        if ports:
+            result["порты"] = ports
+
+    # компоненты и зажимы
+    comps = _ea_components(cabinet_item)
+    if comps:
+        result["основные компоненты"] = comps
+    term = _ea_terminal_blocks(cabinet_item)
+    if term:
+        result["ряды зажимов"] = term
+
+    # --- комплекты и ИЭУ ---
+    kit_items = cabinet_item.get("kits") or []
+    kit_records = []
+    for kit_idx, kit in enumerate(kit_items):
+        ieds = kit.get("ieds") or []
+        kit_record = {
+            "id": komplekts.typical_key(key, kit_idx),
+            "номер": kit.get("number", kit_idx + 1),
+            "полное имя": kit.get("description", "Комплект %d" % (kit_idx + 1)),
+            "есть ИЭУ": bool(ieds),
+        }
+        if ieds:
+            ied = ieds[0]
+            ied_record = {"обозначение": ied.get("number", "ИЭУ")}
+            for ea_key, v3_key in _EA_IED_KEYS:
+                builder = {
+                    "analog_inputs": _ea_table_rows("analog_inputs"),
+                    "inner_discrete_circuits": _ea_table_rows("inner_discrete_circuits"),
+                    "incoming_goose_signals": _ea_table_rows("incoming_goose_signals"),
+                    "osc_analog_signals": _ea_table_rows("osc_analog_signals"),
+                    "functional_buttons": _ea_table_rows("functional_buttons"),
+                    "leds": _ea_table_rows("leds"),
+                    "control_commands": _ea_table_rows("control_commands"),
+                    "datasets": _ea_report_rows,
+                    "functions": _ea_function_params,
+                }.get(ea_key)
+                if builder:
+                    rows = builder(ied)
+                    if rows:
+                        ied_record[v3_key] = rows
+            # выходные GOOSE — из datasets (class != '-')
+            goose = _ea_goose_rows(ied)
+            if goose:
+                ied_record["выходные GOOSE"] = goose
+            if ied_record:
+                ied_record.pop("обозначение")  # уберём пустую, если ничего нет
+                ied_record["обозначение"] = ied.get("number", "ИЭУ")
+            kit_record["иэу"] = [ied_record]
+
+        kit_records.append(kit_record)
+
+    if kit_records:
+        result["комплекты"] = kit_records
+
+    if standard_code:
+        result["стандарт"] = standard_code
+
+    # контейнеры (на будущее)
+    containers = cabinet_item.get("containers") or []
+    if containers:
+        result["контейнеры"] = containers
+
+    return {k: v for k, v in result.items()
+            if v not in (None, "", [], {})}
+
+
+def cabinet_by_code(code):
+    """Шкаф EA по шифру из всех файлов стандарта."""
+    code = code.lower()
+    for path in files():
+        data = load(path)
+        for cab in cabinets(data):
+            if (cab.get("cypher") or "").lower() == code:
+                return cab
+    return None
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 def _print_table(headers, rows, limit=0):

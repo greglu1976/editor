@@ -29,6 +29,7 @@ import ea_catalog              # noqa: E402
 import ea_docx                 # noqa: E402
 import ea_new_standard as ns   # noqa: E402
 import ea_standard as es       # noqa: E402
+import komplekts               # noqa: E402
 
 try:
     import tkinter as tk
@@ -122,6 +123,33 @@ def test_catalog_new(data):
               "повторное обращение не создаёт дубль")
     finally:
         cabs.USER_CATALOG_PATH = old_path
+
+
+def test_catalog_sync(data):
+    """Обновление шкафов и комплектов по стандарту EA."""
+    old_cabs = cabs.USER_CATALOG_PATH
+    old_kits = komplekts.USER_CATALOG_PATH
+    tmp_cabs = tempfile.mktemp(suffix=".json")
+    tmp_kits = tempfile.mktemp(suffix=".json")
+    cabs.USER_CATALOG_PATH = tmp_cabs
+    komplekts.USER_CATALOG_PATH = tmp_kits
+    try:
+        stats = ea_catalog.update_standard_cabinets(data)
+        check(stats["updated"] + stats["created"] == 4,
+              "обновлено/создано 4 шкафа стандарта")
+        check(stats["kits"] == 4, "в стандарте 4 комплекта")
+        check(len(stats["cabinets"]) == 4, "все 4 шифра шкафов в отчёте")
+        for cypher in stats["cabinets"]:
+            found = ea_catalog.find_catalog_cabinet(data, {"cypher": cypher})
+            check(found is not None, "шкаф %s найден в каталоге" % cypher)
+            check(len(found.get("komplets") or []) >= 1,
+                  "у шкафа %s есть комплекты" % cypher)
+    finally:
+        cabs.USER_CATALOG_PATH = old_cabs
+        komplekts.USER_CATALOG_PATH = old_kits
+        for p in (tmp_cabs, tmp_kits):
+            if os.path.exists(p):
+                os.remove(p)
 
 
 # ---------------------------------------------------------------------------
@@ -233,13 +261,9 @@ def test_archive():
                  "README.md"):
         check(os.path.exists(os.path.join(archive, name)),
               "в архиве: %s" % name)
-    for name in ("standard_editor/_parse", "standard_editor/example.json",
-                 "standard_editor/run_changes_gui.bat", "cat"):
+    for name in ("standard_editor", "standards_base", "cat"):
         check(not os.path.exists(os.path.join(ROOT, name)),
               "убрано с прежнего места: %s" % name)
-    check(os.path.isfile(os.path.join(ROOT, "standard_editor",
-                                      "make_standard.py")),
-          "редактор изменений старой ветки на месте")
 
 
 # ---------------------------------------------------------------------------
@@ -316,6 +340,12 @@ def test_gui(data):
               % len(window.table["columns"]))
         check(hasattr(window, "export_docx"), "в окне есть выгрузка DOCX")
         check(hasattr(window, "new_standard"), "в окне есть новый стандарт")
+        check(hasattr(window, "update_cabinets_and_kits"),
+              "в окне есть метод обновления шкафов и комплектов")
+        check(hasattr(window, "btn_sync"),
+              "в окне есть кнопка обновления шкафов и комплектов")
+        check(window.btn_sync.cget("text") == "Обновить шкафы и комплекты по данному стандарту",
+              "кнопка имеет текст «Обновить шкафы и комплекты по данному стандарту»")
 
         dialog = ea_ui.NewStandardDialog(window)
         root.update()
@@ -332,6 +362,58 @@ def test_gui(data):
         root.destroy()
 
 
+# ---------------------------------------------------------------------------
+# 6. Обновление всей структуры из стандартов
+# ---------------------------------------------------------------------------
+def test_rebuild_from_standards():
+    """Метод rebuild_from_standards существует и логика синхронизации работает."""
+    print("6. rebuild_from_standards — обновление каталога по всем EA-стандартам")
+    old_cabs = cabs.USER_CATALOG_PATH
+    old_kits = komplekts.USER_CATALOG_PATH
+    tmp_cabs = tempfile.mktemp(suffix=".json")
+    tmp_kits = tempfile.mktemp(suffix=".json")
+    cabs.USER_CATALOG_PATH = tmp_cabs
+    komplekts.USER_CATALOG_PATH = tmp_kits
+    try:
+        files = es.files()
+        check(len(files) >= 1, "в папке EA/ есть хотя бы один стандарт")
+        total_updated = 0
+        total_created = 0
+        total_kits = 0
+        for path in files:
+            data = es.load(path)
+            stats = ea_catalog.update_standard_cabinets(data)
+            total_updated += stats.get("updated", 0)
+            total_created += stats.get("created", 0)
+            total_kits += stats.get("kits", 0)
+        check(total_updated + total_created >= 4,
+              "обновлено/создано шкафов по всем стандартам: %d"
+              % (total_updated + total_created))
+        check(total_kits >= 4,
+              "комплектов по всем стандартам: %d" % total_kits)
+    finally:
+        cabs.USER_CATALOG_PATH = old_cabs
+        komplekts.USER_CATALOG_PATH = old_kits
+        for p in (tmp_cabs, tmp_kits):
+            if os.path.exists(p):
+                os.remove(p)
+
+
+def test_main_method_exists():
+    """Метод rebuild_from_standards прописан в main.py."""
+    print("7. метод rebuild_from_standards в CircuitEditor")
+    main_path = os.path.join(ROOT, "main.py")
+    with open(main_path, encoding="utf-8") as fh:
+        source = fh.read()
+    check("def rebuild_from_standards(self)" in source,
+          "метод rebuild_from_standards определён в main.py")
+    check("rebuild_from_standards" in source and
+          "\"Обновить из СТО\"" in source,
+          "кнопка «Обновить из СТО» зарегистрирована в ленте")
+    check("\"Обновить из стандартов (EA)\"" in source,
+          "кнопка «Обновить из стандартов (EA)» есть в окне структуры")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
@@ -339,9 +421,12 @@ def main(argv=None):
     data = es.load()
     test_catalog(data)
     test_catalog_new(data)
+    test_catalog_sync(data)
     test_new_standard(data)
     test_docx(data)
     test_archive()
+    test_rebuild_from_standards()
+    test_main_method_exists()
     if not args.no_gui:
         test_gui(data)
     print("")

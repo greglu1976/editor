@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import re
 import sys
 
@@ -241,6 +242,93 @@ def ensure_catalog(data, cabinet_item):
     return cabs.find_cabinet(key) or record
 
 
+def update_cabinet(data, cabinet_item):
+    """Обновляет шкаф и его комплекты в каталоге по стандарту EA.
+
+    Если шкаф с таким шифром уже есть в каталоге, обновляет его атрибуты
+    и комплекты из стандарта, сбрасывая устаревшие переопределения
+    типовых комплектов. Если шкафа нет — создаёт новую запись.
+    Возвращает (key, created: bool).
+    """
+    found = find_catalog_cabinet(data, cabinet_item)
+    rec = catalog_record(data, cabinet_item)
+    if found is None:
+        key = cabs.save_cabinet(rec)
+        return key, True
+
+    key = found["key"]
+    merged = copy.deepcopy(found)
+    for field in ("code", "name", "title", "description", "protected",
+                  "controlled", "its_functions", "applicability",
+                  "architecture", "source", "komplets", "standard_key"):
+        if field in rec and rec[field]:
+            merged[field] = copy.deepcopy(rec[field])
+    if "voltage" in rec and rec["voltage"]:
+        merged["voltage"] = rec["voltage"]
+    if "tags" in rec:
+        existing_tags = merged.get("tags") or []
+        for tag in rec["tags"]:
+            if tag not in existing_tags:
+                existing_tags.append(tag)
+        merged["tags"] = existing_tags
+
+    saved_key = cabs.save_cabinet(merged, original_key=key)
+
+    # В каталоге комплектов сбрасываем переопределения типовых комплектов этого шкафа
+    try:
+        user_k = komplekts._read_catalog()
+        changed_k = False
+        max_kits = max(len(merged.get("komplets") or []),
+                       len(found.get("komplets") or [])) + 5
+        for idx in range(max_kits):
+            tkey = komplekts.typical_key(key, idx)
+            if tkey in user_k.get("overrides", {}):
+                del user_k["overrides"][tkey]
+                changed_k = True
+        if changed_k:
+            komplekts._write_catalog(user_k)
+    except Exception:
+        pass
+
+    return saved_key, False
+
+
+def update_standard_cabinets(data):
+    """Обновляет все шкафы и комплекты данного стандарта в каталоге редактора.
+
+    Возвращает словарь со статистикой:
+    {
+        "updated": int,        # число обновлённых шкафов
+        "created": int,        # число созданных шкафов
+        "kits": int,           # суммарное число комплектов
+        "cabinets": list[str], # шифры шкафов
+    }
+    """
+    cabinets = es.cabinets(data)
+    created_count = 0
+    updated_count = 0
+    total_kits = 0
+    cyphers = []
+
+    for item in cabinets:
+        cypher = item.get("cypher") or ""
+        key, is_new = update_cabinet(data, item)
+        if is_new:
+            created_count += 1
+        else:
+            updated_count += 1
+        total_kits += len(item.get("kits") or [])
+        if cypher:
+            cyphers.append(cypher)
+
+    return {
+        "updated": updated_count,
+        "created": created_count,
+        "kits": total_kits,
+        "cabinets": cyphers,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Комплект для схемы
 # ---------------------------------------------------------------------------
@@ -288,6 +376,8 @@ def main(argv=None):
     parser.add_argument("--file", help="JSON стандарта (по умолчанию первый)")
     parser.add_argument("--check", action="store_true",
                         help="сверить шкафы стандарта с каталогом")
+    parser.add_argument("--sync", action="store_true",
+                        help="обновить шкафы и комплекты каталога по стандарту")
     parser.add_argument("--cabinet", help="показать запись каталога по шифру")
     args = parser.parse_args(argv)
 
@@ -298,6 +388,15 @@ def main(argv=None):
     data = es.load(path)
     print("Стандарт: %s" % path)
     print("Ключ каталога: %s" % (standard_key(data) or "—"))
+
+    if args.sync:
+        stats = update_standard_cabinets(data)
+        print("Обновление каталога по стандарту:")
+        print("  обновлено шкафов: %d" % stats["updated"])
+        print("  создано шкафов:   %d" % stats["created"])
+        print("  комплектов:       %d" % stats["kits"])
+        print("  шкафы:            %s" % ", ".join(stats["cabinets"]))
+        return 0
 
     if args.cabinet:
         item = es.cabinet(data, args.cabinet)

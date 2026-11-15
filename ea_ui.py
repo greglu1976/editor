@@ -102,7 +102,7 @@ class EAStandardWindow(tk.Toplevel):
         top.pack(fill=tk.X, padx=10, pady=(8, 2))
         tk.Label(top, text="Стандарт:", font=ui_theme.font(9),
                  anchor="w").pack(side=tk.LEFT)
-        self.combo = ttk.Combobox(top, state="readonly", width=62,
+        self.combo = ttk.Combobox(top, state="readonly", width=42,
                                   font=ui_theme.font(9))
         self.combo.pack(side=tk.LEFT, padx=(6, 4))
         self.combo.bind("<<ComboboxSelected>>", lambda event: self._combo_changed())
@@ -110,6 +110,8 @@ class EAStandardWindow(tk.Toplevel):
         _button(top, "Открыть папку", lambda: open_folder(es.folder()),
                 side=tk.RIGHT)
         _button(top, "Проверить", self.check, width=10, side=tk.RIGHT)
+        _button(top, "Обновить шкафы и комплекты", self.update_cabinets_and_kits,
+                side=tk.RIGHT)
         _button(top, "Новый стандарт…", self.new_standard, width=17,
                 side=tk.RIGHT)
         _button(top, "DOCX…", self.export_docx, width=10, side=tk.RIGHT)
@@ -143,6 +145,11 @@ class EAStandardWindow(tk.Toplevel):
                                  command=self.add_kit,
                                  font=ui_theme.font(9), state=tk.DISABLED)
         self.btn_kit.pack(side=tk.LEFT, padx=(4, 0))
+        self.btn_sync = tk.Button(
+            actions, text="Обновить шкафы и комплекты по данному стандарту",
+            command=self.update_cabinets_and_kits,
+            font=ui_theme.font(9))
+        self.btn_sync.pack(side=tk.RIGHT)
         self.caption = tk.Label(right, text="", anchor="w", justify="left",
                                 font=ui_theme.font(9, "bold"))
         self.caption.pack(fill=tk.X, padx=4, pady=(2, 4))
@@ -461,6 +468,56 @@ class EAStandardWindow(tk.Toplevel):
                                 "добавлять некуда.", parent=self)
             return
         add(ea_catalog.kit_entry(self._data, node[1], node[2]))
+
+    def update_cabinets_and_kits(self):
+        """Обновить шкафы и комплекты каталога по текущему стандарту."""
+        if not self._data:
+            messagebox.showinfo("Стандарт", "Стандарт не выбран.", parent=self)
+            return
+        code = self._data.get("code") or self._data.get("name") or "выбранному стандарту"
+        count = len(es.cabinets(self._data))
+        if not messagebox.askyesno(
+                "Обновить шкафы и комплекты",
+                f"Обновить шкафы ({count} шт.) и их комплекты в каталоге редактора\n"
+                f"по данному стандарту «{code}»?\n\n"
+                "Данные каталога будут синхронизированы со стандартом.",
+                parent=self):
+            return
+
+        try:
+            stats = ea_catalog.update_standard_cabinets(self._data)
+        except Exception as exc:                      # noqa: BLE001
+            messagebox.showerror(
+                "Ошибка обновления",
+                f"Не удалось обновить шкафы и комплекты:\n{exc}", parent=self)
+            return
+
+        rebuild_msg = ""
+        try:
+            import structure_tools
+            res = structure_tools.rebuild()
+            if res.get("ok"):
+                rebuild_msg = "\nСтруктура (structure.json) успешно пересобрана."
+            elif res.get("ошибка"):
+                rebuild_msg = f"\nПересборка структуры: {res.get('ошибка')}"
+        except Exception:
+            pass
+
+        try:
+            if hasattr(self.app, "redraw_all"):
+                self.app.redraw_all()
+        except Exception:
+            pass
+
+        msg = (f"Шкафы и комплекты стандарта «{code}» обновлены в каталоге:\n"
+               f"• Обновлено существующих шкафов: {stats['updated']}\n"
+               f"• Добавлено новых шкафов: {stats['created']}\n"
+               f"• Комплектов в стандарте: {stats['kits']}"
+               f"{rebuild_msg}")
+        self.status.config(
+            text=f"Каталог обновлён: {stats['updated']} шкафов обновлено, "
+                 f"{stats['created']} создано, {stats['kits']} комплектов")
+        messagebox.showinfo("Обновление каталога", msg, parent=self)
 
     def new_standard(self):
         """Новый стандарт на базе выбранного (копия с правкой реквизитов)."""

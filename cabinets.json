@@ -2207,29 +2207,29 @@
       "group": "СКРМ",
       "name": "Шкаф защит батареи статических конденсаторов 110–330 кВ, УРОВ",
       "title": "Шкаф защит батареи статических конденсаторов 110–330 кВ, УРОВ",
-      "description": "Шкаф защит БСК 110–330 кВ: дифференциальная токовая защита и ДТЗ нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК.",
+      "description": "Шкаф защит БСК 110–330 кВ (дифференциальная токовая защита и дифференциальная токовая защита нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК).",
       "voltage": "110–330 кВ",
       "protected": "БСК 110–330 кВ",
       "controlled": [
         "Выключатель БСК"
       ],
       "its_functions": [
-        "ДТЗ",
         "ДТЗ НП",
+        "ДТЗ",
         "ЗВП",
-        "ЗПВГ",
         "ЗМН",
+        "ЗНР",
+        "ЗПВГ",
         "ЗПН",
         "МТЗ",
-        "ТЗОП",
         "ТЗНП ВН",
         "ТЗНП НЕЙТР",
-        "ЗНР",
+        "ТЗОП",
         "УРОВ"
       ],
-      "applicability": "РУ 110–330 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 110–330 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.3, табл. 5.2",
+      "source": "табл. 5.2",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2239,56 +2239,116 @@
       "document": "Раздел 4.16_т. 5_СТО ШЭТ СКРМ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДТЗ",
             "ДТЗ НП",
+            "ДТЗ",
             "ЗВП",
-            "ЗПВГ",
             "ЗМН",
+            "ЗНР",
+            "ЗПВГ",
             "ЗПН",
             "МТЗ",
-            "ТЗОП",
             "ТЗНП ВН",
             "ТЗНП НЕЙТР",
-            "ЗНР",
-            "УРОВ",
-            "РАС"
+            "ТЗОП",
+            "УРОВ"
           ],
-          "desc": "Шкаф защит БСК 110–330 кВ: дифференциальная токовая защита и ДТЗ нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит БСК 110–330 кВ: дифференциальная токовая защита и ДТЗ нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи БСК"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи нейтрали"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи средней перемычки"
+            },
+            {
+              "block": "SG5",
+              "signals": "Iн",
+              "contacts": "2+1",
+              "note": "Ток в цепи заземления нейтрали"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-1»"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-2»"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-1» ОВ"
+            },
+            {
+              "block": "SG9",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-2» ОВ"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 4,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 5,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic",
-                "In"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-431-11-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 431.11-1",
@@ -2297,7 +2357,23 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-431-12-1",
@@ -2306,35 +2382,31 @@
       "group": "СКРМ",
       "name": "Шкаф защит шунтирующего реактора 330–750 кВ, УРОВ",
       "title": "Шкаф защит шунтирующего реактора 330–750 кВ, УРОВ",
-      "description": "Шкаф защит шунтирующего реактора 330–750 кВ (ШР, УШРП, УШРТ), УРОВ.",
+      "description": "Шкаф защит ШР (УШРП, УШРТ) 330–750 кВ (продольная и поперечная дифференциальные токовые защиты и дифференциальная токовая защита нулевой последовательности сетевой и компенсационной обмоток, газовые и технологические защиты, резервные токовые защиты сетевой, компенсационной обмотки и обмотки управления, контроль изоляции высоковольтный вводов и управление выключателем ШР).",
       "voltage": "330–750 кВ",
       "protected": "ШР, УШРП, УШРТ 330–750 кВ",
       "controlled": [
         "Выключатель ШР"
       ],
       "its_functions": [
-        "ДЗР",
-        "ПДЗР",
-        "ДТЗ НП СОР-КОР",
-        "ДТЗ СО",
-        "ГЗ",
-        "ТЗ",
-        "КИВ",
-        "МТЗ",
-        "ТЗОП",
-        "ТЗНП ВН",
-        "ТЗНП НВ",
+        "АУР",
         "ЗНР",
-        "МТЗ КОР",
-        "ТЗНП КОР",
-        "ТЗОП КОР",
-        "МТЗ НН",
         "КИ НН",
+        "КИВ",
+        "МТЗ КОР",
+        "МТЗ НН",
+        "МТЗ",
+        "ПДЗР",
+        "ТЗНП ВН",
+        "ТЗНП КОР",
+        "ТЗНП НВ",
+        "ТЗОП КОР",
+        "ТЗОП",
         "УРОВ"
       ],
-      "applicability": "РУ 330–750 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 330–750 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.4, табл. 5.16",
+      "source": "табл. 5.16",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2344,61 +2416,118 @@
       "document": "Раздел 4.16_т. 5_СТО ШЭТ СКРМ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДТЗ СО (ДЗР ШР)",
-            "ПДЗР",
-            "ДТЗ НП КОР-СОР (ДЗР УШРТ)",
-            "ГЗ",
-            "ТЗ",
-            "КИВ",
-            "МТЗ",
-            "ТЗОП",
-            "ТЗНП ВН",
-            "ТЗНП НВ",
-            "ЗНР",
-            "МТЗ КОР",
-            "ТЗНП КОР",
-            "ТЗОП КОР",
-            "МТЗ НН",
-            "КИ НН",
-            "УРОВ",
             "АУР",
-            "РАС"
+            "ЗНР",
+            "КИ НН",
+            "КИВ",
+            "МТЗ КОР",
+            "МТЗ НН",
+            "МТЗ",
+            "ПДЗР",
+            "ТЗНП ВН",
+            "ТЗНП КОР",
+            "ТЗНП НВ",
+            "ТЗОП КОР",
+            "ТЗОП",
+            "УРОВ"
           ],
-          "desc": "Шкаф защит шунтирующего реактора 330–750 кВ (ШР, УШРП, УШРТ), УРОВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит шунтирующего реактора 330–750 кВ (ШР, УШРП, УШРТ), УРОВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи расщепленной нейтрали ШР первой группы"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи расщепленной нейтрали ШР второй группы"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи треугольника КОР(ВО2)"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОУР(ВО1)"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи КИВ"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения ТН НН"
+            },
+            {
+              "block": "SG9",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения КИВ"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 2,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 7,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-431-12-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 431.12-1",
@@ -2407,7 +2536,23 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-431-13-1",
@@ -2416,34 +2561,29 @@
       "group": "СКРМ",
       "name": "Шкаф защит шунтирующего реактора 110–220 кВ, УРОВ",
       "title": "Шкаф защит шунтирующего реактора 110–220 кВ, УРОВ",
-      "description": "Шкаф защит шунтирующего реактора 110–220 кВ (ШР, УШРП, УШРТ), УРОВ.",
+      "description": "Шкаф защит ШР (УШРП, УШРТ) 110–220 кВ (продольная и поперечная дифференциальные токовые защиты и дифференциальная токовая защита нулевой последовательности сетевой и компенсационной обмоток, газовые и технологические защиты, резервные токовые защиты сетевой, компенсационной обмотки и обмотки управления, контроль изоляции высоковольтный вводов и управление выключателем ШР).",
       "voltage": "110–220 кВ",
       "protected": "ШР, УШРП, УШРТ 110–220 кВ",
       "controlled": [
         "Выключатель ШР"
       ],
       "its_functions": [
-        "ДЗР",
-        "ПДЗР",
-        "ДТЗ НП КОР-СОР",
-        "ДТЗ СО",
-        "ГЗ",
-        "ТЗ",
-        "МТЗ",
-        "ТЗОП",
-        "ТЗНП ВН",
-        "ТЗНП НВ",
         "ЗНР",
-        "МТЗ КОР",
-        "ТЗНП КОР",
-        "ТЗОП КОР",
-        "МТЗ НН",
         "КИ НН",
+        "МТЗ КОР",
+        "МТЗ НН",
+        "МТЗ",
+        "ПДЗР",
+        "ТЗНП ВН",
+        "ТЗНП КОР",
+        "ТЗНП НВ",
+        "ТЗОП КОР",
+        "ТЗОП",
         "УРОВ"
       ],
-      "applicability": "РУ 110–220 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 110–220 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.5, табл. 5.30",
+      "source": "табл. 5.30",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2453,59 +2593,110 @@
       "document": "Раздел 4.16_т. 5_СТО ШЭТ СКРМ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДТЗ СО (ДЗР ШР)",
-            "ПДЗР",
-            "ДТЗ НП КОР-СОР (ДЗР УШРТ)",
-            "ГЗ",
-            "ТЗ",
-            "МТЗ",
-            "ТЗОП",
-            "ТЗНП ВН",
-            "ТЗНП НВ",
             "ЗНР",
-            "МТЗ КОР",
-            "ТЗНП КОР",
-            "ТЗОП КОР",
-            "МТЗ НН",
             "КИ НН",
-            "УРОВ",
-            "РАС"
+            "МТЗ КОР",
+            "МТЗ НН",
+            "МТЗ",
+            "ПДЗР",
+            "ТЗНП ВН",
+            "ТЗНП КОР",
+            "ТЗНП НВ",
+            "ТЗОП КОР",
+            "ТЗОП",
+            "УРОВ"
           ],
-          "desc": "Шкаф защит шунтирующего реактора 110–220 кВ (ШР, УШРП, УШРТ), УРОВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит шунтирующего реактора 110–220 кВ (ШР, УШРП, УШРТ), УРОВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи расщепленной нейтрали ШР первой группы"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи расщепленной нейтрали ШР второй группы"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи треугольника КОР(ВО2)"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОУР(ВО1)"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения ТН НН"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 1,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 7,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-431-13-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 431.13-1",
@@ -2514,7 +2705,23 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-431-14-1",
@@ -2523,24 +2730,22 @@
       "group": "СКРМ",
       "name": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР",
       "title": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР",
-      "description": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР.",
+      "description": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ (дифференциальная токовая защита, газовые, технологические и резервные защиты, УРОВ и АКР, управление выключателем КР).",
       "voltage": "35–110 кВ",
       "protected": "КР 35–110 кВ",
       "controlled": [
         "Выключатель КР"
       ],
       "its_functions": [
-        "ДЗР",
+        "АКР",
         "ДЗ",
-        "ГЗ",
-        "ТЗ",
+        "ДЗР",
         "ЗП",
-        "УРОВ",
-        "АКР"
+        "УРОВ"
       ],
-      "applicability": "Подключение к нейтрали линейного шунтирующего реактора (ГОСТ Р 59279)",
+      "applicability": "Подключение к нейтрали линейного шунтирующего реактора",
       "architecture": "II тип",
-      "source": "разд. 5.6, табл. 5.44",
+      "source": "табл. 5.44",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2550,46 +2755,79 @@
       "document": "Раздел 4.16_т. 5_СТО ШЭТ СКРМ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДЗР",
-            "ДЗ",
-            "ГЗ",
-            "ТЗ",
-            "ЗП",
-            "УРОВ",
             "АКР",
-            "РАС"
+            "ДЗ",
+            "ДЗР",
+            "ЗП",
+            "УРОВ"
           ],
-          "desc": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток в нулевом проводе соединенных в «звезду» ТТ, встроенных в нейтральные выводы ШР"
+            },
+            {
+              "block": "SG2",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток стороны высоковольтного ввода КР"
+            },
+            {
+              "block": "SG3",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток стороны нейтрали КР"
+            },
+            {
+              "block": "SG4",
+              "signals": "Un",
+              "contacts": "2+1",
+              "note": "Напряжение стороны высоковольтного ввода КР"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 1,
-              "circuits": [
-                "Un"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 3,
-              "circuits": [
-                "In"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-431-14-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 431.14-1",
@@ -2598,7 +2836,23 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-211-11-1",
