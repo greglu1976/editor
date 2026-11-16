@@ -1051,7 +1051,7 @@ class CircuitEditor:
                               ("Структура", self._build_ribbon_structure),
                               ("Стандарты", self._build_ribbon_standards),
                               ("Отчёты", self._build_ribbon_reports),
-                              ("?", self._build_ribbon_help)):
+                              ("О программе", self._build_ribbon_help)):
             self._ribbon_pages[name] = builder(content)
             # Шрифт одинаковый у всех вкладок: выделение активной меняет
             # только цвет, поэтому соседние вкладки не сдвигаются.
