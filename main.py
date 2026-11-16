@@ -86,7 +86,7 @@ ELEMENT_TYPE_TITLES = {
 }
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
-APP_TITLE = "Редактор электрических схем v29.1"
+APP_TITLE = "Редактор электрических схем v30"
 
 #: Подпись разработчика в окне «Разработчик» (вкладка «?»).
 DEVELOPER = "(с) 2026 Лубов Г.А., \ndeepseek"
@@ -1045,13 +1045,13 @@ class CircuitEditor:
         self._ribbon_tab_buttons = {}
         for name, builder in (("Главная", self._build_ribbon_home),
                               ("Вид", self._build_ribbon_view),
+                              ("Комплекты", self._build_ribbon_komplekts),                              
                               ("Шкафы", self._build_ribbon_cabinets),
-                              ("Комплекты", self._build_ribbon_komplekts),
                               ("Контейнеры", self._build_ribbon_containers),
                               ("Структура", self._build_ribbon_structure),
                               ("Стандарты", self._build_ribbon_standards),
                               ("Отчёты", self._build_ribbon_reports),
-                              ("?", self._build_ribbon_help)):
+                              ("О программе", self._build_ribbon_help)):
             self._ribbon_pages[name] = builder(content)
             # Шрифт одинаковый у всех вкладок: выделение активной меняет
             # только цвет, поэтому соседние вкладки не сдвигаются.
