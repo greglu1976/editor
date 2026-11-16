@@ -3,9 +3,9 @@
 """Выгрузка стандарта EA в DOCX.
 
 Строит документ Word по JSON стандарта (см. :mod:`ea_standard`): титул,
-оглавление, разделы с текстом и таблицами, приложение с карточками шкафов.
-Строки таблиц берутся из шкафов через :func:`ea_standard.table_view` — ровно
-то же, что показывает окно «СТО (EA)…», поэтому документ и окно не расходятся.
+оглавление, разделы с текстом и таблицами. Строки таблиц берутся из шкафов
+через :func:`ea_standard.table_view` — ровно то же, что показывает окно
+«СТО (EA)…», поэтому документ и окно не расходятся.
 
 Рисунки в JSON хранят только номер и название (сами изображения остаются в
 исходном документе), поэтому в DOCX выводится подпись рисунка.
@@ -16,7 +16,7 @@
 
     python ea_docx.py --out "Отчет.docx"
     python ea_docx.py --file "EA/....json" --out "Отчет.docx" --max-rows 50
-    python ea_docx.py --out "Отчет.docx" --no-cabinets --no-toc
+    python ea_docx.py --out "Отчет.docx" --no-toc
 """
 
 from __future__ import annotations
@@ -312,40 +312,6 @@ def _render_sections(doc, data, max_rows, counters):
             _render_container(doc, data, sub, 3, max_rows, counters)
 
 
-def _render_cabinets(doc, data):
-    items = es.cabinets(data)
-    if not items:
-        return
-    doc.add_page_break()
-    _heading(doc, "Приложение. Шкафы стандарта", 1)
-    for item in items:
-        _heading(doc, "%s — %s" % (item.get("cypher", ""),
-                                   item.get("name", "")), 2)
-        _table(doc, ["Параметр", "Значение"], es.cabinet_card(item), size=9)
-        kits = item.get("kits") or []
-        if not kits:
-            continue
-        _caption(doc, "Комплекты шкафа")
-        rows = []
-        for kit in kits:
-            ieds = kit.get("ieds") or []
-            functions = []
-            for ied in ieds:
-                for function in ied.get("functions") or []:
-                    name = (function.get("russian_path")
-                            or function.get("name") or "")
-                    if function.get("isMainFunction") and name \
-                            and name not in functions:
-                        functions.append(name)
-            rows.append([kit.get("number", ""), kit.get("type", ""),
-                         kit.get("description", ""),
-                         ", ".join("ИЭУ %s" % ied.get("number", "")
-                                   for ied in ieds) or "—",
-                         ", ".join(functions) or "—"])
-        _table(doc, ["№", "Тип", "Описание", "ИЭУ", "Основные функции"],
-               rows, size=8)
-
-
 def template_path(folder=None):
     """Путь к ``template.docx`` рядом с JSON или в папке стандартов."""
     candidates = []
@@ -367,7 +333,7 @@ def _clear_body(doc):
         body.remove(child)
 
 
-def build(data, path, toc=True, cabinets=True, max_rows=0):
+def build(data, path, toc=True, max_rows=0):
     """Записать стандарт в DOCX. Возвращает счётчики выведенного."""
     if Document is None:
         raise DocxError("не установлен python-docx: "
@@ -390,8 +356,6 @@ def build(data, path, toc=True, cabinets=True, max_rows=0):
         _toc(doc)
         doc.add_page_break()
     _render_sections(doc, data, max_rows, counters)
-    if cabinets:
-        _render_cabinets(doc, data)
     doc.save(path)
     counters["размер"] = os.path.getsize(path)
     return counters
@@ -409,8 +373,6 @@ def main(argv=None):
                         help="не более N строк в таблице (0 — все)")
     parser.add_argument("--no-toc", action="store_true",
                         help="без оглавления")
-    parser.add_argument("--no-cabinets", action="store_true",
-                        help="без приложения со шкафами")
     args = parser.parse_args(argv)
 
     path = args.file or es.default_base()
@@ -420,7 +382,6 @@ def main(argv=None):
     try:
         data = es.load(path)
         counters = build(data, args.out, toc=not args.no_toc,
-                         cabinets=not args.no_cabinets,
                          max_rows=args.max_rows)
     except (DocxError, OSError, ValueError) as exc:
         print("Ошибка: %s" % exc)

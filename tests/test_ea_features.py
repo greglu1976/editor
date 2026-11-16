@@ -236,8 +236,8 @@ def test_docx(data):
                 if paragraph.style.name.startswith("Heading")]
     check(any(text.startswith("5.3 Шкаф защит") for text in headings),
           "заголовок подраздела шкафа на месте")
-    check(any(text.startswith("Приложение. Шкафы") for text in headings),
-          "приложение со шкафами на месте")
+    check(not any(text.startswith("Приложение. Шкафы") for text in headings),
+          "приложения со шкафами нет")
 
     headers, rows = es.table_view(data, es.table_by_number(data, "5.2"))
     match = None

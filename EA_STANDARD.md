@@ -41,7 +41,7 @@ Standard
 | [`ea_ui.py`](ea_ui.py) | окно «СТО (EA)…»: дерево документа и шкафов, таблицы, карточки, размещение на схеме, новый стандарт, DOCX |
 | [`ea_catalog.py`](ea_catalog.py) | мост «шкаф стандарта → каталог редактора»: `ensure_catalog()`, `kit_entry()` |
 | [`ea_new_standard.py`](ea_new_standard.py) | новый стандарт на базе выбранного: реквизиты, отбор шкафов, замены, перенумерация |
-| [`ea_docx.py`](ea_docx.py) | выгрузка стандарта в Word: титул, оглавление, таблицы из шкафов, приложение со шкафами |
+| [`ea_docx.py`](ea_docx.py) | выгрузка стандарта в Word: титул, оглавление, разделы и таблицы из шкафов |
 | [`main.py`](main.py) | кнопка «СТО (EA)…» на вкладке «Стандарты» и метод `show_ea_standards` |
 | [`EA/docx2json.py`](EA/docx2json.py) | сборка JSON стандарта из DOCX по модели EA |
 | [`tests/test_ea_standard.py`](tests/test_ea_standard.py) | проверка данных, сборки таблиц, CLI и окна |
