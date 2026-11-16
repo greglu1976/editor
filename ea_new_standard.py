@@ -95,6 +95,11 @@ def _minor(value):
     return int(match.group(1)) if match else None
 
 
+#: Публичные алиасы для слияния стандартов (``ea_merge``).
+norm_cypher = _norm_cypher
+cabinet_subsections = _cabinet_subsections
+
+
 # ---------------------------------------------------------------------------
 # Правки
 # ---------------------------------------------------------------------------
@@ -366,8 +371,13 @@ def stats_of(data):
 # ---------------------------------------------------------------------------
 # Сборка
 # ---------------------------------------------------------------------------
-def build(source, meta=None, replacements=None, keep=None, renumber=True):
+def build(source, meta=None, replacements=None, keep=None, renumber=True,
+          starts=None):
     """Собрать новый стандарт из исходного (исходный не изменяется).
+
+    ``starts`` — начальные номера для перенумерации (см. :func:`starts_of`);
+    если не указаны, берутся из исходного стандарта. При слиянии стандартов
+    передаются канонические номера, иначе отсчёт пойдёт от чужих диапазонов.
 
     Возвращает dict: data, problems, warnings, notes, stats, source_stats,
     replacements, renumbered.
@@ -377,7 +387,7 @@ def build(source, meta=None, replacements=None, keep=None, renumber=True):
     data = copy.deepcopy(source)
     notes = []
     warnings = []
-    starts = starts_of(source)
+    starts = starts or starts_of(source)
 
     if keep:
         before = len(cabinets(data))

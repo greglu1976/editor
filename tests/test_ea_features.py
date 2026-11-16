@@ -420,7 +420,16 @@ def test_gui(data):
 
         dialog = ea_ui.NewStandardDialog(window)
         root.update()
-        check(len(dialog.cyphers) == 4, "в диалоге все шкафы")
+        check(len(dialog.cyphers) == 28,
+              "в диалоге все 28 шкафов из всех стандартов: %d"
+              % len(dialog.cyphers))
+        check(dialog.listbox.size() == 28,
+              "в списке диалога 28 записей")
+        first_label = dialog.listbox.get(0)
+        check("[" in first_label and "]" in first_label,
+              "запись списка содержит метку тома: %s" % first_label)
+        check(len(dialog.listbox.curselection()) == 28,
+              "все шкафы выбраны по умолчанию")
         check(dialog.vars["date"].get().count(".") == 2,
               "дата заполнена по умолчанию")
         dialog.grab_release()
@@ -722,6 +731,58 @@ def test_structure_ops(data):
           "круговой save/load сохраняет структуру без потерь")
 
 
+def test_merge_all_cabinets():
+    """Каталог и слияние шкафов всех стандартов (ea_merge)."""
+    print("12. слияние шкафов всех стандартов (ea_merge)")
+    import json
+    import re
+    import ea_merge as em
+
+    entries = em.catalog(use_cache=False)
+    check(len(entries) == 28,
+          "каталог содержит 28 шкафов из всех стандартов")
+    volumes = {em.volume_label(entry["path"]) for entry in entries}
+    check(volumes == {"т. 1", "т. 3", "т. 5", "т. 7"},
+          "каталог хранит метки томов: %s" % ", ".join(sorted(volumes)))
+    check(all(entry["data"] and entry["cypher"] for entry in entries),
+          "у каждой записи каталога есть данные и шифр")
+    codes = [em.norm_cypher(entry["cypher"]) for entry in entries]
+    check(len(codes) == len(set(codes)), "шифры в каталоге уникальны")
+
+    target = es.load(REFERENCE)
+    merged = em.merge_cabinets(target, entries)
+    cabs = es.cabinets(merged)
+    nums = [str(table.get("number"))
+            for table in es.iter_tables(merged) if table.get("cabinet")]
+    check(len(cabs) == 28, "после слияния 28 шкафов")
+    check(len(nums) == 417, "после слияния 417 форм: %d" % len(nums))
+    check(em.validate_merged(merged) == [],
+          "слитый стандарт проходит проверку структуры")
+    check(len(set(nums)) == len(nums), "номера таблиц уникальны")
+    ordered = sorted(int(number.split(".")[1]) for number in nums)
+    check(ordered == list(range(2, 2 + len(nums))),
+          "нумерация сквозная 5.2…5.%d" % (1 + len(nums)))
+    text = json.dumps(merged, ensure_ascii=False)
+    check(not re.search(r"5\.(?:1\d{3}|2\d{3})\b", text),
+          "в тексте не осталось временных диапазонов нумерации")
+    check(not [n for n in nums if n in
+               {str(t.get("number")) for t in es.iter_tables(target)
+                if not t.get("cabinet")}],
+          "номера форм не схлопнулись с таблицами документа")
+
+    clone = json.loads(json.dumps(merged, ensure_ascii=False))
+    check(em.validate_merged(clone) == [],
+          "круговой save/load слияния сохраняет валидность")
+
+    subset = entries[:5]
+    part = em.merge_cabinets(target, subset)
+    part_nums = [str(table.get("number"))
+                 for table in es.iter_tables(part) if table.get("cabinet")]
+    check(em.validate_merged(part) == []
+          and len(part_nums) == len(set(part_nums)),
+          "слияние подмножества тоже валидно и перенумеровано")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
@@ -737,6 +798,7 @@ def main(argv=None):
     test_main_method_exists()
     test_edit_model()
     test_structure_ops(data)
+    test_merge_all_cabinets()
     if not args.no_gui:
         test_gui(data)
         test_fields()

@@ -26,6 +26,7 @@ from tkinter import filedialog, messagebox, ttk
 import ea_catalog
 import ea_docx
 import ea_editor
+import ea_merge as em
 import ea_new_standard as ns
 import ea_standard as es
 import ui_theme
@@ -730,6 +731,10 @@ class NewStandardDialog(tk.Toplevel):
         self.data = window._data
         self.result = None
         self.cyphers = []
+        # Все шкафы всех стандартов, а не только текущего тома.
+        self.entries = em.load_catalog_cached()
+        for entry in self.entries:
+            self.cyphers.append(entry["cypher"])
         self.title("Новый стандарт на базе выбранного")
         self.transient(window)
         self.resizable(False, False)
@@ -775,11 +780,10 @@ class NewStandardDialog(tk.Toplevel):
         scroll.config(command=self.listbox.yview)
         scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        for item in es.cabinets(self.data):
-            cypher = str(item.get("cypher") or "")
-            self.cyphers.append(cypher)
-            self.listbox.insert(tk.END, "%s — %s"
-                                % (cypher, item.get("name", "")))
+        for entry in self.entries:
+            self.listbox.insert(
+                tk.END, "%s — %s [%s]"
+                % (entry["cypher"], entry["name"], entry["volume"]))
         self.listbox.selection_set(0, tk.END)
         row += 1
         buttons = tk.Frame(form)
@@ -831,17 +835,21 @@ class NewStandardDialog(tk.Toplevel):
             messagebox.showwarning("Новый стандарт",
                                    "Оставьте хотя бы один шкаф.", parent=self)
             return
-        keep = [self.cyphers[index] for index in selected]
+        chosen = [self.entries[index] for index in selected]
+        keep = [entry["cypher"] for entry in chosen]
         if len(keep) == len(self.cyphers):
             keep = None
         replacements = [
             line.strip() for line in
             self.replacements.get("1.0", tk.END).splitlines() if line.strip()]
         try:
-            result = ns.build(self.data, meta=meta,
+            # Собрать шкафы всех выбранных стандартов в один источник:
+            # переносим формы/рисунки и сводим нумерацию, иначе проверка не пройдёт.
+            source = em.merge_cabinets(self.data, chosen)
+            result = ns.build(source, meta=meta,
                               replacements=replacements, keep=keep,
                               renumber=self.renumber.get())
-        except ns.StandardError as exc:
+        except (ns.StandardError, em.MergeError) as exc:
             messagebox.showerror("Новый стандарт", str(exc), parent=self)
             return
         name = re.sub(r"[^0-9A-Za-zА-Яа-яЁё]+", " ",

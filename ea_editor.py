@@ -18,6 +18,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
 import ea_edit as ee
+import ea_merge as em
 import ea_standard as es
 import ea_structure as st
 import ui_theme
@@ -880,6 +881,51 @@ class StandardEditorWindow(tk.Toplevel):
 
         self._mutate(action)
 
+    def _add_cabinets(self, parent_iid):
+        """Добавить шкафы из всех стандартов (формы/рисунки перенести)."""
+        if not self._apply_pending():
+            return
+        dialog = CabinetDialog(self, self.data)
+        self.wait_window(dialog)
+        if not dialog.chosen:
+            return
+        try:
+            merged = em.merge_cabinets(self.data, dialog.chosen)
+        except em.MergeError as exc:
+            messagebox.showerror("Редактор стандарта", str(exc), parent=self)
+            return
+        self.data = merged
+        self._changed = True
+        self._update_title()
+        self._pending = None
+        self._grid = None
+        self._grid_rows = []
+        self._grid_initial = []
+        self._grid_editable = False
+        self._grid_table = None
+        self._grid_apply = None
+        self._panel_item = None
+        self._snapshot = None
+        self._switching = True
+        self._fill_tree()
+        self._switching = False
+        codes = {em.norm_cypher(entry["cypher"]) for entry in dialog.chosen}
+        target = next((iid for iid, node in self._nodes.items()
+                       if node[0] == "cabinet"
+                       and em.norm_cypher(node[1].get("cypher")) in codes),
+                      None)
+        if target and self.tree.exists(target):
+            self._switching = True
+            self.tree.selection_set(target)
+            self.tree.focus(target)
+            self.tree.see(target)
+            self._switching = False
+            self._current_node = target
+            self._render(self._nodes.get(target))
+        self.status.config(
+            text="Добавлено шкафов: %d — формы и рисунки перенесены, "
+                 "нумерация сведена" % len(dialog.chosen))
+
     def _add_cabinet(self, parent_iid):
         container = self._child_container(parent_iid, "cabinet")
         cypher = self._ask("Шифр шкафа", "Новый шкаф")
@@ -968,7 +1014,11 @@ class StandardEditorWindow(tk.Toplevel):
         if kind == "root":
             if node[1] == "doc":
                 return [("Добавить раздел…", lambda: self._add_section(iid))]
-            return [("Добавить шкаф…", lambda: self._add_cabinet(iid))]
+            return [
+                ("Добавить шкафы из всех стандартов…",
+                 lambda: self._add_cabinets(iid)),
+                ("Добавить пустой шкаф…", lambda: self._add_cabinet(iid)),
+            ]
         if kind == "meta":
             return []
         if kind == "text":
@@ -1138,6 +1188,83 @@ class StandardEditorWindow(tk.Toplevel):
         self.title("Редактор стандарта — %s%s"
                    % (os.path.basename(self.path), mark))
         self.file_label.config(text=os.path.basename(self.path) + mark)
+
+
+# ---------------------------------------------------------------------------
+# Диалог добавления шкафов из всех стандартов
+# ---------------------------------------------------------------------------
+class CabinetDialog(tk.Toplevel):
+    """Выбор шкафов всех стандартов; уже имеющиеся пропускаются слиянием."""
+
+    def __init__(self, parent, data):
+        super().__init__(parent)
+        self.chosen = None
+        self._parent = parent
+        existing = {em.norm_cypher(item.get("cypher"))
+                    for item in es.cabinets(data)}
+        self._entries = [entry for entry in em.load_catalog_cached()
+                         if em.norm_cypher(entry["cypher"]) not in existing]
+        self.title("Шкафы из всех стандартов")
+        self.transient(parent)
+        self.resizable(False, False)
+        self._build()
+        if isinstance(parent, tk.Misc):
+            _place_on_parent(self, parent)
+        self.bind("<Escape>", lambda event: self.destroy())
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+
+    def _build(self):
+        form = tk.Frame(self)
+        form.pack(fill=tk.BOTH, expand=True, padx=12, pady=10)
+        note = ("Доступные шкафы из всех стандартов СТО. "
+                "Для каждого переносятся таблицы-формы и рисунки.")
+        tk.Label(form, text=note, font=ui_theme.font(8),
+                 fg=ui_theme.TEXT_MUTED, anchor="w", justify="left",
+                 wraplength=520).pack(fill=tk.X, pady=(0, 6))
+        box = tk.Frame(form)
+        box.pack(fill=tk.BOTH, expand=True)
+        scroll = tk.Scrollbar(box, orient="vertical")
+        self.listbox = tk.Listbox(box, selectmode="extended", height=12,
+                                  width=68, font=ui_theme.font(9),
+                                  yscrollcommand=scroll.set)
+        scroll.config(command=self.listbox.yview)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        for entry in self._entries:
+            self.listbox.insert(
+                tk.END, "%s — %s [%s]"
+                % (entry["cypher"], entry["name"], entry["volume"]))
+        if not self._entries:
+            self.listbox.insert(tk.END, "Все шкафы уже есть в стандарте")
+            self.listbox.config(state="disabled")
+        else:
+            self.listbox.selection_set(0, tk.END)
+        buttons = tk.Frame(form)
+        buttons.pack(fill=tk.X, pady=(8, 0))
+        _button(buttons, "Все", self._select_all, side=tk.LEFT)
+        _button(buttons, "Ни одного", self._select_none, side=tk.LEFT)
+        _button(buttons, "Отмена", self.destroy, side=tk.RIGHT)
+        _button(buttons, "Добавить", self._ok, width=12, side=tk.RIGHT)
+
+    def _select_all(self):
+        if self._entries:
+            self.listbox.selection_set(0, tk.END)
+
+    def _select_none(self):
+        self.listbox.selection_clear(0, tk.END)
+
+    def _ok(self):
+        if not self._entries:
+            self.destroy()
+            return
+        selected = self.listbox.curselection()
+        if not selected:
+            messagebox.showwarning("Шкафы из всех стандартов",
+                                   "Выберите хотя бы один шкаф.",
+                                   parent=self)
+            return
+        self.chosen = [self._entries[index] for index in selected]
+        self.destroy()
 
 
 # ---------------------------------------------------------------------------
