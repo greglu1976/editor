@@ -112,6 +112,8 @@ class EAStandardWindow(tk.Toplevel):
         _button(top, "Проверить", self.check, width=10, side=tk.RIGHT)
         _button(top, "Обновить шкафы и комплекты", self.update_cabinets_and_kits,
                 side=tk.RIGHT)
+        _button(top, "Реквизиты…", self.edit_standard, width=12,
+                side=tk.RIGHT)
         _button(top, "Новый стандарт…", self.new_standard, width=17,
                 side=tk.RIGHT)
         _button(top, "DOCX…", self.export_docx, width=10, side=tk.RIGHT)
@@ -519,6 +521,16 @@ class EAStandardWindow(tk.Toplevel):
                  f"{stats['created']} создано, {stats['kits']} комплектов")
         messagebox.showinfo("Обновление каталога", msg, parent=self)
 
+    def edit_standard(self):
+        """Изменить реквизиты текущего стандарта и сохранить JSON."""
+        if not self._data or not self._path:
+            return
+        dialog = StandardFieldsDialog(self)
+        self.wait_window(dialog)
+        if dialog.result:
+            self.status.config(text="Поля стандарта сохранены: %s"
+                                    % os.path.basename(self._path))
+
     def new_standard(self):
         """Новый стандарт на базе выбранного (копия с правкой реквизитов)."""
         if not self._data:
@@ -611,6 +623,82 @@ class EAStandardWindow(tk.Toplevel):
                                            "\n".join(problems[:15])),
             parent=self)
         self.status.config(text="Проверка: проблем %d" % len(problems))
+
+
+# ---------------------------------------------------------------------------
+# Реквизиты открытого стандарта
+# ---------------------------------------------------------------------------
+class StandardFieldsDialog(tk.Toplevel):
+    """Редактирование шифра, наименования, принадлежности и даты."""
+
+    def __init__(self, window):
+        super().__init__(window)
+        self.window = window
+        self.data = window._data
+        self.result = False
+        self.title("Поля стандарта")
+        self.transient(window)
+        self.resizable(False, False)
+        self._build()
+        _place_on_parent(self, window)
+        self.grab_set()
+        self.bind("<Escape>", lambda event: self.destroy())
+
+    def _build(self):
+        form = tk.Frame(self, padx=12, pady=10)
+        form.pack(fill=tk.BOTH, expand=True)
+        form.columnconfigure(1, weight=1)
+        self.vars = {}
+        fields = (
+            ("code", "Шифр стандарта", 44),
+            ("name", "Наименование", 64),
+            ("property", "Принадлежность", 44),
+            ("date", "Дата введения", 16),
+        )
+        row = 0
+        for key, label, width in fields:
+            tk.Label(form, text=label + ":", font=ui_theme.font(9),
+                     anchor="w").grid(row=row, column=0, sticky="w", pady=3)
+            var = tk.StringVar(value=str(self.data.get(key) or ""))
+            tk.Entry(form, textvariable=var, font=ui_theme.font(9),
+                     width=width).grid(row=row, column=1, sticky="we", pady=3)
+            self.vars[key] = var
+            row += 1
+        tk.Label(form, text="Дата — ДД.ММ.ГГГГ; можно оставить пустой.",
+                 font=ui_theme.font(8), fg=ui_theme.TEXT_MUTED,
+                 anchor="w").grid(row=row, column=0, columnspan=2,
+                                  sticky="w", pady=(2, 6))
+        row += 1
+        footer = tk.Frame(form)
+        footer.grid(row=row, column=0, columnspan=2, sticky="we")
+        _button(footer, "Сохранить", self.save, width=14, side=tk.RIGHT)
+        _button(footer, "Отмена", self.destroy, width=10, side=tk.RIGHT)
+
+    def save(self):
+        meta = {key: var.get().strip() for key, var in self.vars.items()}
+        if not meta["code"] or not meta["name"]:
+            messagebox.showwarning("Поля стандарта",
+                                   "Заполните шифр и наименование.",
+                                   parent=self)
+            return
+        if meta["date"] and not re.match(r"^\d{2}\.\d{2}\.\d{4}$",
+                                        meta["date"]):
+            messagebox.showwarning("Поля стандарта",
+                                   "Дата введения — в виде ДД.ММ.ГГГГ.",
+                                   parent=self)
+            return
+        updated = dict(self.data)
+        updated.update(meta)
+        try:
+            es.save(updated, self.window._path)
+        except OSError as exc:
+            messagebox.showerror("Поля стандарта",
+                                 "Не удалось записать файл:\n%s" % exc,
+                                 parent=self)
+            return
+        self.data.update(meta)
+        self.result = True
+        self.destroy()
 
 
 # ---------------------------------------------------------------------------

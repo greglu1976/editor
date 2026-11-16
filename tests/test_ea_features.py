@@ -289,6 +289,55 @@ def test_archive():
 # ---------------------------------------------------------------------------
 # 5. Окно
 # ---------------------------------------------------------------------------
+def test_fields():
+    """Диалог реквизитов сохраняет поля в JSON и в окно."""
+    print("8. поля стандарта")
+    if tk is None:
+        print("  --   tkinter нет: диалог не проверяется")
+        return
+    try:
+        import ea_ui
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        print("  --   окно не открыть: %s" % exc)
+        return
+    root.withdraw()
+
+    class App:
+        def __init__(self, root):
+            self.root = root
+
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    old_folder = es.FOLDER
+    es.FOLDER = folder
+    window = None
+    try:
+        window = ea_ui.show(App(root), path)
+        dialog = ea_ui.StandardFieldsDialog(window)
+        dialog.vars["code"].set("НОВЫЙ ШИФР")
+        dialog.vars["name"].set("Новое наименование")
+        dialog.vars["property"].set("ПАО «Тест»")
+        dialog.vars["date"].set("01.01.2027")
+        dialog.save()
+        saved = es.load(path)
+        check(saved["code"] == "НОВЫЙ ШИФР", "шифр сохранён")
+        check(saved["name"] == "Новое наименование",
+              "наименование сохранено")
+        check(saved["property"] == "ПАО «Тест»", "принадлежность сохранена")
+        check(saved["date"] == "01.01.2027", "дата сохранена")
+        check(window._data["code"] == "НОВЫЙ ШИФР",
+              "окно видит новый шифр")
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "поля стандарта: %s" % exc)
+    finally:
+        es.FOLDER = old_folder
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
 def test_gui(data):
     print("5. окно «СТО (EA)…»")
     if tk is None:
@@ -317,7 +366,7 @@ def test_gui(data):
     app = App(root)
     window = None
     try:
-        window = ea_ui.show(app)
+        window = ea_ui.show(app, REFERENCE)
         root.update()
         kits = [iid for iid, node in window._nodes.items()
                 if node[0] == "kit"]
@@ -449,6 +498,7 @@ def main(argv=None):
     test_main_method_exists()
     if not args.no_gui:
         test_gui(data)
+        test_fields()
     print("")
     if FAILURES:
         print("ПРОВАЛЕНО: %d" % len(FAILURES))
