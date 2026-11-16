@@ -21,6 +21,7 @@ import structure
 import structure_tools
 import apppaths
 import ui_theme
+import ribbon_icons
 
 try:
     import pdf2json
@@ -303,7 +304,8 @@ class UndoManager:
 
 
 # ================= ИКОНКИ ЛЕНТЫ =================
-# Рисуются на canvas 32x32 — без внешних файлов и зависимостей.
+# Основной набор рисует ribbon_icons.py через Pillow (сглаживание и цвет).
+# Функции ниже — запасной вариант на canvas 32x32, если Pillow недоступен.
 
 def _ri_select(c):
     c.create_polygon(12, 5, 12, 26, 16, 22, 19, 28, 22, 26.5, 19, 20.5, 24, 19.5,
@@ -601,6 +603,15 @@ def _ri_note(c):
     c.create_line(21, 5, 21, 11, 27, 11, width=1, fill=COMMENT_ACCENT)
     for y in (15, 19, 23):
         c.create_line(9, y, 22, y, width=1, fill="#8a7a3a")
+
+
+_LEGACY_RIBBON_ICONS = {
+    name: value for name, value in globals().items()
+    if name.startswith("_ri_") and callable(value)}
+for _name, _legacy in _LEGACY_RIBBON_ICONS.items():
+    globals()[_name] = ribbon_icons.painter(_name[4:], _legacy)
+_ri_rebuild = ribbon_icons.painter(
+    "rebuild", _LEGACY_RIBBON_ICONS["_ri_redo"])
 
 
 def _format_option(value):
@@ -8941,11 +8952,11 @@ class CircuitEditor:
         ])
         self._ribbon_group(page, "Сборка", lambda row: [
             self._ribbon_button(row, "Пересобрать", self.rebuild_structure,
-                                _ri_redo, 92).pack(side=tk.LEFT),
+                                _ri_rebuild, 92).pack(side=tk.LEFT),
             self._ribbon_button(row, "Проверка…", self.show_structure_check,
                                 _ri_check, 84).pack(side=tk.LEFT, padx=(4, 0)),
             self._ribbon_button(row, "Обновить из СТО", self.rebuild_from_standards,
-                                _ri_redo, 110).pack(side=tk.LEFT, padx=(4, 0)),
+                                _ri_rebuild, 110).pack(side=tk.LEFT, padx=(4, 0)),
         ])
         tk.Label(page, text="КЭТ → шкафы → комплекты → ИЭУ.\n"
                             "«Пересобрать» — structure.json заново из каталога.\n"
