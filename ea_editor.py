@@ -74,7 +74,9 @@ class StandardEditorWindow(tk.Toplevel):
     """Редактор одного JSON стандарта: текст, таблицы, карточки шкафов."""
 
     def __init__(self, path, parent=None, on_saved=None):
-        root = parent if parent is not None else tk._default_root
+        # main.py передаёт CircuitEditor (не виджет), как и в ea_ui
+        root = getattr(parent, "root", parent) if parent is not None \
+            else tk._default_root
         super().__init__(root)
         self.path = path
         self.data = es.load(path)

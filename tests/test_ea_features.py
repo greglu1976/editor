@@ -629,7 +629,7 @@ def test_editor():
         def add_table():
             item = st.new_table(window.data, {"name": "Новая таблица",
                                               "headers": ["П", "З"]})
-            st.add(window._owners[section_iid][0], item)
+            st.add(window._child_container(section_iid, "table"), item)
             return item
 
         window._mutate(add_table)
