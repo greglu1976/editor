@@ -33,6 +33,11 @@ except ImportError:        # pragma: no cover
 
 FAILURES = []
 
+#: Эталонный стандарт для точных счётчиков — том 5 (остальные тома
+#: проверяются на целостность структуры).
+REFERENCE = next((path for path in es.files()
+                  if "т. 5" in os.path.basename(path)), None)
+
 
 def check(condition, message):
     if condition:
@@ -46,8 +51,11 @@ def test_files():
     print("1. файлы и карточки")
     check(es.available(), "папка EA найдена: %s" % es.folder())
     rows = es.standards()
-    check(len(rows) == 1, "стандартов в папке: %d" % len(rows))
-    item = rows[0]
+    check(len(rows) >= 1, "стандартов в папке: %d" % len(rows))
+    item = next((row for row in rows if row["путь"] == REFERENCE), None)
+    check(item is not None, "эталонный стандарт т. 5 найден")
+    if item is None:
+        return
     check(item["шкафы"] == 4, "шкафов: %d" % item["шкафы"])
     check(item["таблицы"] == 65, "таблиц: %d" % item["таблицы"])
     data = es.load(item["путь"])
@@ -59,7 +67,7 @@ def test_files():
 
 def test_forms():
     print("2. таблицы в документе — только форма")
-    data = es.load()
+    data = es.load(REFERENCE)
     forms = [table for table in es.iter_tables(data) if table.get("cabinet")]
     check(len(forms) == 56, "форм со ссылкой на шкаф: %d" % len(forms))
     bad = []
@@ -79,7 +87,7 @@ def test_forms():
 
 def test_views():
     print("3. строки таблиц собираются из шкафа")
-    data = es.load()
+    data = es.load(REFERENCE)
     expected = {
         "Входные аналоговые измерения": ("analog_inputs", 9),
         "Внутренние дискретные цепи": ("inner_discrete_circuits", 11),
@@ -123,8 +131,12 @@ def test_views():
 
 def test_integrity():
     print("4. целостность")
-    data = es.load()
+    data = es.load(REFERENCE)
     check(not es.validate(data), "проверка структуры без замечаний")
+    for path in es.files():
+        problems = es.validate(es.load(path))
+        check(not problems, "структура без замечаний: %s"
+              % os.path.basename(path))
     codes = {cabinet["cypher"] for cabinet in es.cabinets(data)}
     check(len(codes) == 4, "шифры шкафов уникальны: %d" % len(codes))
     for table in es.iter_tables(data):
@@ -142,10 +154,11 @@ def test_integrity():
 
 def test_cli():
     print("5. CLI")
-    check(es.main(["--check"]) == 0, "--check завершается без ошибок")
-    check(es.main(["--table", "5.3", "--limit", "1"]) == 0,
+    check(es.main([REFERENCE, "--check"]) == 0, "--check завершается без ошибок")
+    check(es.main([REFERENCE, "--table", "5.3", "--limit", "1"]) == 0,
           "--table печатает таблицу")
-    check(es.main(["--cabinet", "ШЭТ 431.11-1"]) == 0, "--cabinet печатает карточку")
+    check(es.main([REFERENCE, "--cabinet", "ШЭТ 431.11-1"]) == 0,
+          "--cabinet печатает карточку")
 
 
 def test_gui():
@@ -167,7 +180,7 @@ def test_gui():
 
     window = None
     try:
-        window = ea_ui.show(App(root))
+        window = ea_ui.show(App(root), REFERENCE)
         root.update()
         check(len(window.tree.get_children()) == 2,
               "в дереве разделы и шкафы")

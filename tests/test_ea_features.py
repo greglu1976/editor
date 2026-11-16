@@ -38,6 +38,10 @@ except ImportError:            # pragma: no cover
 
 FAILURES = []
 
+#: Эталонный стандарт для проверок — том 5.
+REFERENCE = next((path for path in es.files()
+                  if "т. 5" in os.path.basename(path)), None)
+
 
 def check(condition, message):
     if condition:
@@ -418,7 +422,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
     args = parser.parse_args(argv)
-    data = es.load()
+    data = es.load(REFERENCE)
     test_catalog(data)
     test_catalog_new(data)
     test_catalog_sync(data)

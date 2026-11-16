@@ -11,9 +11,14 @@
 (Section/Subsection) остаются только формой: номер, название, ссылка, шапка
 (для «Описание ШЭТ» — ключи с пустыми значениями) и ссылка `cabinet` на шифр
 шкафа, из которого берутся строки. Таблицы вне шкафов (термины, сокращения,
-применимость) остаются с данными — им неоткуда их подтягивать.
+применимость) и таблицы неизвестного модели вида остаются с данными — им
+неоткуда их подтягивать.
 
-Запуск:
+Разметка томов отличается: в томах 1 и 3 стили «ДОК Текст ур1/ур2/ур3»,
+в томах 5 и 7 — «ДОК Текст 3/4уров» и «3уров». Поддерживаются оба набора.
+Название и шифр берутся с титула и из имени файла, поэтому команда без
+аргументов обрабатывает том 5, а для остальных достаточно пути к docx:
+
     python3 EA/docx2json.py [docx] [json]
 """
 
@@ -28,19 +33,43 @@ from docx.text.paragraph import Paragraph
 
 BASE = Path(__file__).resolve().parent
 SRC = BASE / "Раздел 4.16_т. 5_СТО ШЭТ СКРМ II_Ред.2.docx"
-DST = BASE / "СТО (проект) Раздел 4.16, т. 5, ред. 2.json"
 
 # --- стили docx -----------------------------------------------------------------
 
-S_SECTION = "ДОК Текст 3/4уров 1-раздел"
-S_SUBSECTION = "ДОК Текст 3уров 2-пункт"
-S_CLAUSE = "ДОК Текст 3уров 3-подпункт"
-S_APPX = "ПРИЛ Заголовок"
-S_APPX_CLAUSE = "ПРИЛ 2уров 1-пункт"
-S_TABLE_CAP = ("ДОК Таблица Название", "ПРИЛ Таблица Название")
-S_FIG_CAP = ("ДОК Рисунок Название", "ПРИЛ Рисунок Название")
+# Тома 1 и 3 размечены стилями «ур1/ур2/ур3», тома 5 и 7 — «3/4уров»,
+# поэтому каждый уровень — набор допустимых стилей.
+S_SECTION = {"ДОК Текст 3/4уров 1-раздел", "ДОК Текст ур1 раздел"}
+S_SUBSECTION = {"ДОК Текст 3уров 2-пункт", "ДОК Текст ур2 подраздел"}
+S_CLAUSE = {"ДОК Текст 3уров 3-подпункт", "ДОК Текст ур3 пункт"}
+S_APPX = {"ПРИЛ Заголовок", "ДОК ПРИЛ ур1 Заголовок"}
+S_APPX_CLAUSE = {"ПРИЛ 2уров 1-пункт", "ДОК ПРИЛ ур2 раздел"}
+S_TABLE_CAP = {"ДОК Таблица Название", "ПРИЛ Таблица Название",
+               "ДОК ПРИЛ Таблица Название"}
+S_FIG_CAP = {"ДОК Рисунок Название", "ПРИЛ Рисунок Название",
+             "ДОК ПРИЛ Рисунок Название"}
 S_HEADING = "ДОК Заголовок вкл в содержание"
-SKIP_STYLES = {"ДОК титул", "toc 1", "toc 2", "ДОК Заголовок не вкл в содержание"}
+SKIP_STYLES = {"ДОК титул", "toc 1", "toc 2",
+               "ДОК Заголовок не вкл в содержание",
+               "ДОК Заголовок не вкл в содержание по центру"}
+
+#: Виды таблиц шкафа — те же, что в ``ea_standard.KINDS``. Таблицы другого
+#: вида остаются таблицами документа со своими строками.
+TABLE_KINDS = (
+    ("описание шэт", "description"),
+    ("входные аналоговые измерения", "analog_inputs"),
+    ("внутренние дискретные цепи", "inner_discrete_circuits"),
+    ("входящих сообщений", "incoming_goose_signals"),
+    ("функциональные клавиши", "functional_buttons"),
+    ("светодиодная сигнализация", "leds"),
+    ("сообщения и отчеты", "datasets"),
+    ("исходящих сообщений", "goose_signals"),
+    ("исходящих отчетов", "report_signals"),
+    ("осциллографируемые", "osc_analog_signals"),
+    ("команды управления", "control_commands"),
+    ("основные параметры функций", "functions"),
+    ("ряды зажимов", "terminal_blocks"),
+    ("основные компоненты", "components"),
+)
 
 DITTO = ("»", '"', "''")
 
@@ -222,14 +251,16 @@ class DocBuilder:
         style, text = p.style.name, norm(p.text)
         if style in SKIP_STYLES or not text:
             return
+        if text.startswith("Рисунок") and re.search(r"-\s*Продолжение", text):
+            return
         if not self.started:
             if style == S_HEADING and text == "Введение":
                 self.started = True
             else:
                 return
-        if style in (S_SECTION, S_HEADING, S_APPX):
-            if style == S_APPX:
-                self.letter = "АБВГД"[len([s for s in self.standard["sections"] if s["header_style"] == S_APPX])]
+        if style in S_SECTION or style == S_HEADING or style in S_APPX:
+            if style in S_APPX:
+                self.letter = "АБВГД"[len([s for s in self.standard["sections"] if s["header_style"] in S_APPX])]
                 header = one_line(re.sub(r"^\(.*?\)", "", text))
                 self.add_section(self.letter, header, style)
             elif style == S_HEADING:
@@ -239,9 +270,9 @@ class DocBuilder:
                 self.letter = ""
                 self.sec_no += 1
                 self.add_section(str(self.sec_no), text, style)
-        elif style == S_SUBSECTION:
+        elif style in S_SUBSECTION:
             self.add_subsection(text, style)
-        elif style in (S_CLAUSE, S_APPX_CLAUSE):
+        elif style in S_CLAUSE or style in S_APPX_CLAUSE:
             self.add_clause(text, style)
         elif style in S_TABLE_CAP:
             self.pending_caption = {"name": text, "style": style}
@@ -284,11 +315,35 @@ def split_signal_path(path):
     return p, ""
 
 
-def table_by_caption(sub, needle):
+def table_by_caption(sub, needle, ied_number=None):
+    """Таблица по фрагменту названия; при ``ied_number`` — только своя ИЭУ.
+
+    Таблицы «ИЭУ1, ИЭУ2» (общие) подходят обоим номерам.
+    """
     for t in sub["tables"]:
-        if needle.lower() in t["name"].lower():
-            return t
+        name = t["name"]
+        if needle.lower() not in name.lower():
+            continue
+        if ied_number is not None:
+            found = {int(x) for x in re.findall(r"ИЭУ\s*(\d+)", name, re.I)}
+            if found and ied_number not in found:
+                continue
+        return t
     return None
+
+
+def ied_numbers(sub):
+    """Номера ИЭУ шкафа по названиям таблиц.
+
+    Общая таблица «ИЭУ1 (ИЭУ2)» или «ИЭУ1, ИЭУ2» — одно ИЭУ: данные в ней
+    общие. Раздельные таблицы «ИЭУ1» и «ИЭУ2» — два ИЭУ.
+    """
+    singles = set()
+    for table in sub["tables"]:
+        found = {int(x) for x in re.findall(r"ИЭУ\s*(\d+)", table["name"], re.I)}
+        if len(found) == 1:
+            singles |= found
+    return sorted(singles) or [1]
 
 
 def form_rows(table):
@@ -367,16 +422,18 @@ def parse_discrete_circuits(table):
 
 
 def parse_incoming(table):
-    out, prev_source = [], ""
+    out, prev_source, prev_model = [], "", ""
     for row in table["_rows"][1:]:
         c = row
         if len(c) < 5 or is_note_row(c):
             continue
+        model = prev_model if clean(c[1]) in DITTO else join_lines(c[1])
+        prev_model = model
         source = split_ditto(c[2], prev_source)
         prev_source = source
         out.append({
             "signal": c[0],
-            "info_model": join_lines(c[1]),
+            "info_model": model,
             "source": source,
             "max_number": int(c[3]) if c[3].isdigit() else None,
             "source_number": None,
@@ -449,7 +506,7 @@ def parse_messages(table):
 
 def parse_outgoing_goose(table):
     """Таблица «Информационные сигналы в составе исходящих сообщений»."""
-    datasets, current = {}, None
+    datasets, current, prev_dest = {}, None, ""
     for row in table["_rows"][1:]:
         c = row
         if len(c) < 3:
@@ -457,14 +514,17 @@ def parse_outgoing_goose(table):
         if c[0].lower().startswith("имя набора данных"):
             current = c[1]
             datasets[current] = []
+            prev_dest = ""
             continue
         if is_note_row(c) or current is None:
             continue
+        destination = split_ditto(c[2], prev_dest)
+        prev_dest = destination
         do, da = split_signal_path(c[1])
         datasets[current].append({
             "name": c[0],
             "info_model": clean(c[1]),
-            "destination": c[2],
+            "destination": destination,
             "note": "",
             "status": "",
             "KT": "",
@@ -605,21 +665,13 @@ def parse_components(table):
     return out
 
 
-def build_cabinet(sub):
-    desc_table = table_by_caption(sub, "Описание ШЭТ")
-    if desc_table is None:
-        return None
-    desc = parse_description(desc_table)
-
-    cypher = find_value(desc, "Шифр шкафа")
-    main_funcs = {clean(x) for x in re.split(r",", find_value(desc, "Основные функции")) if clean(x)}
-    its_funcs = {clean(x) for x in re.split(r",", find_value(desc, "Функции ИТС")) if clean(x)}
-
-    components_table = table_by_caption(sub, "Основные компоненты")
-    components = parse_components(components_table) if components_table else []
+def build_ied(sub, desc, number, multi, main_funcs, its_funcs):
+    """Данные одного ИЭУ из таблиц подраздела."""
+    def pick(needle):
+        return table_by_caption(sub, needle, number if multi else None)
 
     ied = {
-        "number": 1,
+        "number": number,
         "analog_inputs": [],
         "osc_analog_signals": [],
         "incoming_goose_signals": [],
@@ -632,48 +684,50 @@ def build_cabinet(sub):
         "functions": [],
     }
 
-    t = table_by_caption(sub, "Входные аналоговые измерения")
+    t = pick("Входные аналоговые измерения")
     if t:
         ied["analog_inputs"] = parse_analog_inputs(t)
-    t = table_by_caption(sub, "Внутренние дискретные цепи")
+    t = pick("Внутренние дискретные цепи")
     if t:
         ied["inner_discrete_circuits"] = parse_discrete_circuits(t)
-    t = table_by_caption(sub, "входящих сообщений")
+    t = pick("входящих сообщений")
     if t:
         ied["incoming_goose_signals"] = parse_incoming(t)
-    t = table_by_caption(sub, "Функциональные клавиши")
+    t = pick("Функциональные клавиши")
     if t:
         ied["functional_buttons"] = parse_function_buttons(t)
-    t = table_by_caption(sub, "Светодиодная сигнализация")
+    t = pick("Светодиодная сигнализация")
     if t:
         ied["leds"] = parse_leds(t)
-    t = table_by_caption(sub, "Осциллографируемые")
+    t = pick("Осциллографируемые")
     if t:
         ied["osc_analog_signals"] = parse_osc(t)
-    t = table_by_caption(sub, "Команды управления")
+    t = pick("Команды управления")
     if t:
         ied["control_commands"] = parse_commands(t)
-    t = table_by_caption(sub, "Основные параметры функций")
+    t = pick("Основные параметры функций")
     if t:
         ied["functions"] = parse_functions(t, main_funcs, its_funcs)
 
     # наборы данных: сообщения (GOOSE) и отчеты (MMS)
     msg_defs, rpt_defs = [], []
-    t = table_by_caption(sub, "Сообщения и отчеты")
+    t = pick("Сообщения и отчеты")
     if t:
         msg_defs, rpt_defs = parse_messages(t)
 
     goose = {}
-    t = table_by_caption(sub, "исходящих сообщений")
+    t = pick("исходящих сообщений")
     if t:
         goose = parse_outgoing_goose(t)
     reports = {}
-    t = table_by_caption(sub, "исходящих отчетов")
+    t = pick("исходящих отчетов")
     if t:
         reports = parse_outgoing_reports(t)
 
+    used = set()
     for item in msg_defs:
-        name = item["dataset"]
+        name = item["dataset"] or next((k for k in goose if k not in used), "")
+        used.add(name)
         ied["datasets"].append({
             "name": name,
             "id": item["id"],
@@ -684,7 +738,8 @@ def build_cabinet(sub):
             "signals": goose.get(name, []),
         })
     for item in rpt_defs:
-        name = item["dataset"]
+        name = item["dataset"] or next((k for k in reports if k not in used), "")
+        used.add(name)
         ied["datasets"].append({
             "name": name,
             "id": item["id"],
@@ -708,19 +763,39 @@ def build_cabinet(sub):
                 "mapping": "", "note": "", "signals": signals,
             })
 
-    ports = [
+    ied["ports"] = [
         {"description": clean(x.lstrip("-–").strip(" ;"))}
         for x in re.split(r"[;\n]", find_value(desc, "Цифровые порты"))
         if clean(x.strip(" -–;"))
     ]
+    return ied
+
+
+def build_cabinet(sub):
+    desc_table = table_by_caption(sub, "Описание ШЭТ")
+    if desc_table is None:
+        return None
+    desc = parse_description(desc_table)
+
+    cypher = clean(find_value(desc, "Шифр шкафа"))
+    main_funcs = {clean(x) for x in re.split(r",", find_value(desc, "Основные функции")) if clean(x)}
+    its_funcs = {clean(x) for x in re.split(r",", find_value(desc, "Функции ИТС")) if clean(x)}
+
+    components_table = table_by_caption(sub, "Основные компоненты")
+    components = parse_components(components_table) if components_table else []
+
+    numbers = ied_numbers(sub)
+    multi = len(numbers) > 1
+    ieds = [build_ied(sub, desc, n, multi, main_funcs, its_funcs)
+            for n in numbers]
 
     cabinet = {
         "cypher": cypher,
-        "architecture": find_value(desc, "Архитектура"),
-        "name": find_value(desc, "Наименование шкафа"),
-        "controllable_element": find_value(desc, "Управляемый элемент"),
-        "protected_element": find_value(desc, "Защищаемый элемент"),
-        "scope": find_value(desc, "Область применения"),
+        "architecture": clean(find_value(desc, "Архитектура")),
+        "name": clean(find_value(desc, "Наименование шкафа")),
+        "controllable_element": clean(find_value(desc, "Управляемый элемент")),
+        "protected_element": clean(find_value(desc, "Защищаемый элемент")),
+        "scope": clean(find_value(desc, "Область применения")),
         "description": sub["clauses"][0]["content"] if sub["clauses"] else "",
         "type": "ШЭТ",
         "tag": "",
@@ -734,7 +809,7 @@ def build_cabinet(sub):
             "type": "ИЭУ",
             "tag": "",
             "group": "",
-            "ieds": [ied],
+            "ieds": ieds,
         }],
         "containers": [],
     }
@@ -743,7 +818,6 @@ def build_cabinet(sub):
     if t:
         cabinet["terminal_blocks"] = [parse_terminals(t)]
 
-    ied["ports"] = ports
     return cabinet
 
 
@@ -760,9 +834,33 @@ def strip_service_keys(node):
 
 # --- main -----------------------------------------------------------------------
 
+def table_kind(name):
+    """Вид данных таблицы шкафа или None для таблицы документа."""
+    low = (name or "").lower()
+    for needle, kind in TABLE_KINDS:
+        if needle in low:
+            return kind
+    return None
+
+
+def document_meta(document, src):
+    """Название СТО с титула и шифр по имени файла."""
+    name = ""
+    for p in document.paragraphs:
+        text = one_line(p.text)
+        found = re.search(r"Технический отчет, содержащий проект СТО «(.+?)»", text)
+        if found and found.group(1) != "Типовые шкафы ШЭТ РЗА и отсеки ОЭТ (корректировка)":
+            name = found.group(1)
+    volume = ""
+    found = re.search(r"_т\.\s*(\d+)_", src.name)
+    if found:
+        volume = found.group(1)
+    code = f"СТО (проект) Раздел 4.16, т. {volume}, ред. 2" if volume else ""
+    return name, code
+
+
 def main():
     src = Path(sys.argv[1]) if len(sys.argv) > 1 else SRC
-    dst = Path(sys.argv[2]) if len(sys.argv) > 2 else DST
 
     document = docx.Document(str(src))
     builder = DocBuilder()
@@ -776,12 +874,11 @@ def main():
     data = builder.result()
 
     # титульные сведения
-    data["name"] = ("Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных "
-                    "реакторов и батарей статических конденсаторов 110-750 кВ. "
-                    "Архитектура II типа")
-    data["code"] = "СТО (проект) Раздел 4.16, т. 5, ред. 2"
+    data["name"], data["code"] = document_meta(document, src)
     data["property"] = "ПАО «Россети»"
     data["date"] = ""
+    dst = (Path(sys.argv[2]) if len(sys.argv) > 2
+           else src.with_name((data["code"] or src.stem) + ".json"))
 
     for section in data["sections"]:
         for sub in section["subsections"]:
@@ -790,6 +887,8 @@ def main():
                 continue
             data["cabinets"].append(cabinet)
             for table in sub["tables"]:
+                if table_kind(table["name"]) is None:
+                    continue
                 form = {key: table[key] for key in ("number", "name", "reference")}
                 form["cabinet"] = cabinet["cypher"]
                 form["rows"] = form_rows(table)
@@ -803,10 +902,10 @@ def main():
                  for s in data["sections"])
     print(f"секций: {len(data['sections'])}, таблиц: {tables}, шкафов: {len(data['cabinets'])}")
     for c in data["cabinets"]:
-        ied = c["kits"][0]["ieds"][0]
-        print(f"  {c['cypher']}: сигналов в наборах "
-              f"{sum(len(d['signals']) for d in ied['datasets'])}, "
-              f"функций {len(ied['functions'])}, клемм "
+        ieds = c["kits"][0]["ieds"]
+        print(f"  {c['cypher']}: ИЭУ {len(ieds)}, сигналов в наборах "
+              f"{sum(len(d['signals']) for ied in ieds for d in ied['datasets'])}, "
+              f"функций {sum(len(ied['functions']) for ied in ieds)}, клемм "
               f"{sum(len(r['terminals']) for b in c['terminal_blocks'] for r in b['rows'])}")
     print(f"записано: {dst}")
 
