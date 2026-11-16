@@ -8960,11 +8960,17 @@ class CircuitEditor:
         self._ribbon_group(page, "Редактор", lambda row: [
             self._ribbon_button(row, "СТО (EA)…", self.show_ea_standards,
                                 _ri_structure, 96).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Редактор стандарта…",
+                                self.edit_ea_standard,
+                                _ri_structure, 140).pack(side=tk.LEFT,
+                                                         padx=(4, 0)),
         ])
         tk.Label(page, text="«СТО (EA)…» — стандарт в новой структуре (папка EA):\n"
                             "таблицы собираются из шкафов, шкаф и комплект\n"
                             "ставятся на схему, новый стандарт и DOCX —\n"
-                            "в окне «СТО (EA)…».",
+                            "в окне «СТО (EA)…».\n"
+                            "«Редактор стандарта…» — правка текста, таблиц\n"
+                            "и карточек шкафов в отдельном окне.",
                  bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)
@@ -8975,6 +8981,19 @@ class CircuitEditor:
         """Окно «СТО (EA)…»: стандарт в новой структуре (таблицы из шкафов)."""
         import ea_ui
         return ea_ui.show(self, path)
+
+    def edit_ea_standard(self, path=None):
+        """Отдельное окно редактора стандарта (папка EA)."""
+        import ea_editor
+        import ea_standard as es
+
+        path = path or es.default_base()
+        if not path:
+            messagebox.showinfo(
+                "Редактор стандарта",
+                "В папке стандартов нет JSON:\n%s" % es.folder(), parent=self)
+            return None
+        return ea_editor.show(path, self)
 
     def rebuild_from_standards(self):
         """Обновляет каталог по всем EA-стандартам и пересобирает structure.json."""

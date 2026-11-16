@@ -25,6 +25,7 @@ from tkinter import filedialog, messagebox, ttk
 
 import ea_catalog
 import ea_docx
+import ea_editor
 import ea_new_standard as ns
 import ea_standard as es
 import ui_theme
@@ -114,6 +115,7 @@ class EAStandardWindow(tk.Toplevel):
                 side=tk.RIGHT)
         _button(top, "Реквизиты…", self.edit_standard, width=12,
                 side=tk.RIGHT)
+        _button(top, "Редактор…", self.open_editor, width=12, side=tk.RIGHT)
         _button(top, "Новый стандарт…", self.new_standard, width=17,
                 side=tk.RIGHT)
         _button(top, "DOCX…", self.export_docx, width=10, side=tk.RIGHT)
@@ -530,6 +532,21 @@ class EAStandardWindow(tk.Toplevel):
         if dialog.result:
             self.status.config(text="Поля стандарта сохранены: %s"
                                     % os.path.basename(self._path))
+
+    def open_editor(self):
+        """Открыть стандарт в отдельном окне редактора."""
+        if not self._data or not self._path:
+            messagebox.showinfo("Редактор стандарта",
+                                "Стандарт не выбран.", parent=self)
+            return
+        editor = ea_editor.show(self._path, self,
+                                on_saved=self._standard_saved)
+        self.wait_window(editor)
+
+    def _standard_saved(self, path):
+        """После сохранения в редакторе перечитать стандарт в этом окне."""
+        if path == self._path:
+            self.reload(path)
 
     def new_standard(self):
         """Новый стандарт на базе выбранного (копия с правкой реквизитов)."""

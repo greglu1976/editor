@@ -11,7 +11,9 @@
 2. создание нового стандарта на базе выбранного (``ea_new_standard``);
 3. выгрузку в DOCX (``ea_docx``);
 4. архив неиспользуемых файлов старой ветки;
-5. кнопки и узлы окна «СТО (EA)…».
+5. кнопки и узлы окна «СТО (EA)…»;
+6. редактирование таблиц (``ea_edit``) и окно редактора (``ea_editor``);
+7. добавление/удаление узлов стандарта (``ea_structure``).
 """
 
 from __future__ import annotations
@@ -483,6 +485,243 @@ def test_main_method_exists():
           "кнопка «Обновить из стандартов (EA)» есть в окне структуры")
 
 
+def test_edit_model():
+    """ea_edit: строки таблиц читаются и записываются без потерь."""
+    print("9. редактирование таблиц (ea_edit)")
+    import copy
+    import ea_edit as ee
+
+    data = es.load(REFERENCE)
+    problems, checked = 0, 0
+    for index, table in enumerate(es.iter_tables(data)):
+        if (table.get("cabinet")
+                and es.table_kind(table.get("name")) == "description"):
+            continue
+        clone = copy.deepcopy(data)
+        twin = list(es.iter_tables(clone))[index]
+        before = es.table_view(data, table)
+        try:
+            headers, rows, note = ee.load(data, table)
+            ee.save(clone, twin, rows)
+        except ee.TableEditError:
+            problems += 1
+            continue
+        if before != es.table_view(clone, twin):
+            problems += 1
+        else:
+            checked += 1
+    check(problems == 0, "таблиц прочитано и записано без потерь: %d, "
+                         "с расхождениями: %d" % (checked, problems))
+
+    clone = copy.deepcopy(data)
+    table = next(item for item in es.iter_tables(clone)
+                 if es.table_kind(item.get("name")) == "analog_inputs")
+    headers, rows, note = ee.load(clone, table)
+    rows[0][0] = "Проверочная цепь"
+    ee.save(clone, table, rows)
+    ied = es.cabinet(clone, table["cabinet"])["kits"][0]["ieds"][0]
+    check(ied["analog_inputs"][0]["circuit_type"] == "Проверочная цепь",
+          "правка ячейки доходит до шкафа")
+
+    headers, rows, note = ee.load(clone, table)
+    rows.append([""] * len(headers))
+    ee.save(clone, table, rows)
+    check(len(ied["analog_inputs"]) == len(rows) - 1,
+          "пустая строка в шкаф не записывается")
+    check(es.validate(clone) == [], "после правок структура валидна")
+
+
+def test_editor():
+    """Окно редактора правит таблицы, реквизиты и шкафы и пишет JSON."""
+    print("10. окно редактора стандарта")
+    if tk is None:
+        print("  --   tkinter нет: редактор не проверяется")
+        return
+    try:
+        import ea_editor
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        print("  --   окно не открыть: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    saved = []
+    window = None
+    try:
+        window = ea_editor.show(path, root, on_saved=saved.append)
+        root.update()
+        kinds = {node[0] for node in window._nodes.values()}
+        check({"meta", "text", "table", "cabinet"} <= kinds,
+              "в дереве есть реквизиты, текст, таблицы и шкафы")
+
+        errors = 0
+        for iid in list(window._nodes):
+            try:
+                window.tree.selection_set(iid)
+                root.update()
+            except Exception:                      # noqa: BLE001
+                errors += 1
+        check(errors == 0, "все узлы дерева открываются без ошибок")
+
+        table = next(item for item in es.iter_tables(window.data)
+                     if es.table_kind(item.get("name")) == "analog_inputs")
+        iid = next(key for key, node in window._nodes.items()
+                   if node[0] == "table" and node[1] is table)
+        window.tree.selection_set(iid)
+        root.update()
+        check(len(window._grid_rows) > 0, "строки таблицы показаны в сетке")
+        window._grid_rows[0][0] = "Цепь из редактора"
+        window._pending = window._apply_grid
+        window.save()
+        root.update()
+        data = es.load(path)
+        ied = es.cabinet(data, table["cabinet"])["kits"][0]["ieds"][0]
+        check(ied["analog_inputs"][0]["circuit_type"] == "Цепь из редактора",
+              "правка таблицы записана в файл")
+        check(saved and saved[-1] == path, "редактор сообщил о сохранении")
+
+        meta = next(key for key, node in window._nodes.items()
+                    if node[0] == "meta")
+        window.tree.selection_set(meta)
+        root.update()
+        window.vars["name"].set("Стандарт из редактора")
+        window.save()
+        root.update()
+        check(es.load(path)["name"] == "Стандарт из редактора",
+              "наименование записано")
+        check(not window._changed, "после сохранения правок не осталось")
+
+        # структурные операции: дерево, контекстное меню, новые узлы
+        import ea_structure as st
+        kinds = {node[0] for node in window._nodes.values()}
+        check({"meta", "text", "table", "figure", "cabinet"} <= kinds,
+              "в дереве есть реквизиты, текст, таблицы, рисунки и шкафы")
+        doc_iid = next(key for key, node in window._nodes.items()
+                       if node == ("root", "doc"))
+        check(window._owners[doc_iid][0] is window.data["sections"],
+              "корень документа связан со списком разделов")
+        items = window._menu_items(doc_iid, window._nodes[doc_iid])
+        check(bool(items) and items[0][0].startswith("Добавить"),
+              "контекстное меню корня документа")
+
+        created = []
+
+        def add_section():
+            item = st.new_section(window.data, header="Секция из меню")
+            st.add(window._owners[doc_iid][0], item)
+            created.append(item)
+            return item
+
+        window._mutate(add_section)
+        root.update()
+        section = created[0]
+        check(window._current_node in window._nodes
+              and window._nodes[window._current_node][-1] is section,
+              "новый раздел добавлен и выбран в дереве")
+        check(window._changed, "structural правка помечена как изменение")
+        section_iid = window._find_iid(section)
+        check(section_iid in window._owners
+              and window._owners[section_iid][1] is section,
+              "у нового раздела есть ссылка на контейнер")
+
+        def add_table():
+            item = st.new_table(window.data, {"name": "Новая таблица",
+                                              "headers": ["П", "З"]})
+            st.add(window._owners[section_iid][0], item)
+            return item
+
+        window._mutate(add_table)
+        root.update()
+        check(len(section["tables"]) == 1 and window._grid is not None,
+              "таблица документа добавлена и открыта в редакторе")
+        window.save()
+        root.update()
+        saved_sections = es.load(path)["sections"]
+        check(any(s.get("header") == "Секция из меню"
+                  for s in saved_sections),
+              "новая структура записана в JSON")
+        check(es.validate(es.load(path)) == [],
+              "после добавления узлов структура валидна")
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "редактор стандарта: %s" % exc)
+    finally:
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
+def test_structure_ops(data):
+    """Добавление/удаление узлов без GUI (ea_structure)."""
+    print("11. структурные операции (ea_structure)")
+    import copy
+    import ea_edit as ee
+    import ea_structure as st
+
+    clone = copy.deepcopy(data)
+    section = st.new_section(clone, header="Новый раздел")
+    st.add(clone["sections"], section)
+    sub = st.new_subsection(clone, section)
+    st.add(section["subsections"], sub)
+    clause = st.new_clause(clone, sub)
+    st.add(sub["clauses"], clause)
+    figure = st.new_figure(clone, sub)
+    st.add(sub["figures"], figure)
+    check(set(("number", "header", "header_style", "content",
+               "subsections", "tables", "figures")) <= set(section),
+          "раздел создан с полным набором полей")
+    check(clause["number"].startswith(str(sub["number"]) + ".")
+          and figure["reference"] == "Рисунок %s" % figure["number"],
+          "номера пункта и рисунка согласованы с родителем")
+
+    doc_table = st.new_table(clone, {"name": "Перечень",
+                                     "headers": ["Параметр", "Значение"]})
+    st.add(clause["tables"], doc_table)
+    check(es._stored_view(doc_table)[0] == ["Параметр", "Значение"],
+          "таблица документа хранит свою шапку")
+
+    cabinet = es.cabinets(clone)[0]
+    kind = "analog_inputs"
+    spec = {"name": st.kind_name(kind), "cabinet": cabinet["cypher"],
+            "kind": kind}
+    table = st.new_table(clone, spec)
+    st.add(sub["tables"], table)
+    check(es.table_kind(table["name"]) == kind,
+          "имя таблицы шкафа определяет вид данных")
+    check(es._form_headers(table) == list(ee._FLAT_HEADERS[kind])
+          and es.table_view(clone, table)[0] == list(ee._FLAT_HEADERS[kind]),
+          "шапка новой таблицы совпадает с формой данных шкафа")
+    check(es.validate(clone) == [], "после добавления узлов структура валидна")
+
+    extra = st.new_cabinet(clone, cypher="__TEST_CABINET__")
+    st.add(clone["cabinets"], extra)
+    kit = st.new_kit(clone, extra)
+    st.add(extra["kits"], kit)
+    ied = st.new_ied(clone, kit)
+    st.add(kit["ieds"], ied)
+    check(isinstance(kit["number"], int) and isinstance(ied["number"], int)
+          and len(ied) == 11,
+          "комплект и ИЭУ созданы с числовыми номерами и наборами данных")
+
+    st.remove(sub["tables"], table)
+    check(table not in sub["tables"], "таблица удалена из раздела")
+    issues = st.delete_issues(clone, cabinet, "cabinet")
+    check(bool(issues), "шкаф с таблицами нельзя удалить")
+    issues = st.delete_issues(clone, cabinet["kits"][0], "kit")
+    check(bool(issues), "первый комплект шкафа с таблицами защищён")
+    issues = st.delete_issues(clone, extra["kits"][0], "kit")
+    check(not issues, "пустой комплект удаляется без предупреждений")
+
+    path = os.path.join(tempfile.mkdtemp(), "structure.json")
+    es.save(clone, path)
+    loaded = es.load(path)
+    check(len(loaded["sections"]) == len(clone["sections"])
+          and len(loaded["cabinets"]) == len(clone["cabinets"])
+          and es.validate(loaded) == [],
+          "круговой save/load сохраняет структуру без потерь")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
@@ -496,9 +735,12 @@ def main(argv=None):
     test_archive()
     test_rebuild_from_standards()
     test_main_method_exists()
+    test_edit_model()
+    test_structure_ops(data)
     if not args.no_gui:
         test_gui(data)
         test_fields()
+        test_editor()
     print("")
     if FAILURES:
         print("ПРОВАЛЕНО: %d" % len(FAILURES))
