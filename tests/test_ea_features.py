@@ -254,6 +254,22 @@ def test_docx(data):
         check(first == [str(value) for value in rows[0]],
               "строки взяты из шкафа")
 
+    # шаблон: колонтитул и параметры страницы сохраняются, тело заменяется
+    template_dir = tempfile.mkdtemp()
+    template = os.path.join(template_dir, ea_docx.TEMPLATE_NAME)
+    tpl = Document()
+    tpl.sections[0].header.paragraphs[0].text = "ШАБЛОННЫЙ КОЛОНТИТУЛ"
+    tpl.add_paragraph("ТЕКСТ ШАБЛОНА")
+    tpl.save(template)
+    out = os.path.join(template_dir, "with_template.docx")
+    ea_docx.build(data, out, max_rows=3)
+    with_template = Document(out)
+    check(with_template.sections[0].header.paragraphs[0].text
+          == "ШАБЛОННЫЙ КОЛОНТИТУЛ", "колонтитул шаблона сохранён")
+    check(not any("ТЕКСТ ШАБЛОНА" in paragraph.text
+                  for paragraph in with_template.paragraphs),
+          "содержимое шаблона заменено")
+
 
 # ---------------------------------------------------------------------------
 # 4. Архив

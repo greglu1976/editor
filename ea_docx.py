@@ -10,6 +10,10 @@
 Рисунки в JSON хранят только номер и название (сами изображения остаются в
 исходном документе), поэтому в DOCX выводится подпись рисунка.
 
+Если в папке стандартов (рядом с JSON или в ``EA/``) лежит ``template.docx``,
+он берётся за основу: сохраняются его стили, колонтитулы и параметры
+страницы, а содержимое строится заново.
+
     python ea_docx.py --out "Отчет.docx"
     python ea_docx.py --file "EA/....json" --out "Отчет.docx" --max-rows 50
     python ea_docx.py --out "Отчет.docx" --no-cabinets --no-toc
@@ -37,6 +41,7 @@ except ImportError:                                   # pragma: no cover
 FONT = "Times New Roman"
 HEADER_FILL = "DCE6F1"
 USABLE_CM = 26.7          # А4 в альбомной ориентации минус поля 1,5 см
+TEMPLATE_NAME = "template.docx"
 
 
 class DocxError(Exception):
@@ -201,25 +206,29 @@ def _page_number(section):
     _field(paragraph, "PAGE")
 
 
-def _setup(doc):
-    section = doc.sections[0]
-    section.orientation = WD_ORIENT.LANDSCAPE
-    section.page_width = Cm(29.7)
-    section.page_height = Cm(21.0)
-    for name in ("left_margin", "right_margin"):
-        setattr(section, name, Cm(1.5))
-    section.top_margin = Cm(1.5)
-    section.bottom_margin = Cm(1.5)
+def _setup(doc, layout=True):
+    if layout:
+        section = doc.sections[0]
+        section.orientation = WD_ORIENT.LANDSCAPE
+        section.page_width = Cm(29.7)
+        section.page_height = Cm(21.0)
+        for name in ("left_margin", "right_margin"):
+            setattr(section, name, Cm(1.5))
+        section.top_margin = Cm(1.5)
+        section.bottom_margin = Cm(1.5)
+        _page_number(section)
     normal = doc.styles["Normal"]
     normal.font.name = FONT
     normal.font.size = Pt(10)
     for level, size in ((1, 14), (2, 12), (3, 11)):
-        style = doc.styles["Heading %d" % level]
+        try:
+            style = doc.styles["Heading %d" % level]
+        except KeyError:
+            continue
         style.font.name = FONT
         style.font.size = Pt(size)
         style.font.bold = True
         style.font.color.rgb = RGBColor(0, 0, 0)
-    _page_number(section)
 
 
 # ---------------------------------------------------------------------------
@@ -337,6 +346,27 @@ def _render_cabinets(doc, data):
                rows, size=8)
 
 
+def template_path(folder=None):
+    """Путь к ``template.docx`` рядом с JSON или в папке стандартов."""
+    candidates = []
+    if folder:
+        candidates.append(os.path.join(folder, TEMPLATE_NAME))
+    candidates.append(os.path.join(es.folder(), TEMPLATE_NAME))
+    for path in candidates:
+        if os.path.isfile(path):
+            return path
+    return None
+
+
+def _clear_body(doc):
+    """Убрать содержимое шаблона, оставив параметры последней секции."""
+    body = doc.element.body
+    for child in list(body.iterchildren()):
+        if child.tag == qn("w:sectPr"):
+            continue
+        body.remove(child)
+
+
 def build(data, path, toc=True, cabinets=True, max_rows=0):
     """Записать стандарт в DOCX. Возвращает счётчики выведенного."""
     if Document is None:
@@ -345,8 +375,14 @@ def build(data, path, toc=True, cabinets=True, max_rows=0):
     folder = os.path.dirname(os.path.abspath(path))
     if folder and not os.path.isdir(folder):
         raise DocxError("нет папки: %s" % folder)
-    doc = Document()
-    _setup(doc)
+    template = template_path(os.path.dirname(os.path.abspath(path)))
+    if template:
+        doc = Document(template)
+        _clear_body(doc)
+        _setup(doc, layout=False)
+    else:
+        doc = Document()
+        _setup(doc)
     stats = es.stats(data)
     counters = {"разделы": 0, "таблицы": 0, "строки": 0}
     _title_page(doc, data, stats)
