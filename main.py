@@ -1045,8 +1045,8 @@ class CircuitEditor:
         self._ribbon_tab_buttons = {}
         for name, builder in (("Главная", self._build_ribbon_home),
                               ("Вид", self._build_ribbon_view),
+                              ("Комплекты", self._build_ribbon_komplekts),                              
                               ("Шкафы", self._build_ribbon_cabinets),
-                              ("Комплекты", self._build_ribbon_komplekts),
                               ("Контейнеры", self._build_ribbon_containers),
                               ("Структура", self._build_ribbon_structure),
                               ("Стандарты", self._build_ribbon_standards),
