@@ -89,6 +89,21 @@ def test_catalog(data):
     check(entry["source"] == "cabinet_entry",
           "комплект готов для шкафа на схеме")
 
+    source = next(kit for kit in komplekts.typical_komplekts()
+                  if komplekts.effective_ieds(kit))
+    ea_kit = ea_catalog.kit_from_catalog(source, number=7)
+    check(ea_kit["number"] == 7
+          and ea_kit["description"] == source["desc"],
+          "типовой комплект каталога → комплект стандарта")
+    check(len(ea_kit["ieds"]) == len(komplekts.effective_ieds(source))
+          and ea_kit["ieds"][0]["functions"],
+          "ИЭУ и функции перенесены в стандарт")
+    check(set(ea_catalog.function_names(ea_kit)) <= set(source["functions"]),
+          "функции сохраняются при обратном преобразовании")
+    check(len(ea_kit["ieds"][0]["analog_inputs"])
+          == len(source.get("analog_inputs") or []),
+          "аналоговые измерения перенесены в стандарт")
+
 
 def test_catalog_new(data):
     """Новый шкаф (нет в каталоге) создаётся без привязки к «tat»."""
@@ -645,6 +660,47 @@ def test_editor():
         root.update()
         check(len(section["tables"]) == 1 and window._grid is not None,
               "таблица документа добавлена и открыта в редакторе")
+
+        cabinet_iid = next(key for key, node in window._nodes.items()
+                           if node[0] == "cabinet")
+        menu = window._menu_items(cabinet_iid, window._nodes[cabinet_iid])
+        check(any("типовой комплект" in label for label, _cmd in menu),
+              "в меню шкафа есть «Добавить типовой комплект из каталога»")
+        chosen = next(kit for kit in komplekts.typical_komplekts()
+                      if komplekts.effective_ieds(kit))
+        window._choose_typical_kit = lambda: chosen
+        cabinet_item = window._owners[cabinet_iid][1]
+        before = len(cabinet_item["kits"])
+        window._add_typical_kit(cabinet_iid)
+        root.update()
+        added = cabinet_item["kits"]
+        check(len(added) == before + 1
+              and added[-1]["description"] == chosen["desc"],
+              "типовой комплект добавлен в шкаф стандарта")
+        check(window._nodes[window._current_node][-1] is added[-1],
+              "новый комплект выбран в дереве редактора")
+
+        del window._choose_typical_kit
+        original_wait = tk.Toplevel.wait_window
+
+        def press_add(dialog, *args, **kwargs):
+            dialog.update()
+            frames = [child for child in dialog.winfo_children()
+                      if isinstance(child, tk.Frame)]
+            buttons = [button for frame in frames
+                       for button in frame.winfo_children()
+                       if isinstance(button, tk.Button)]
+            next(button for button in buttons
+                 if button.cget("text") == "Добавить").invoke()
+
+        tk.Toplevel.wait_window = press_add
+        try:
+            picked = window._choose_typical_kit()
+        finally:
+            tk.Toplevel.wait_window = original_wait
+        check(picked is not None and picked.get("kind") == "typical",
+              "диалог выбора возвращает типовой комплект каталога")
+
         window.save()
         root.update()
         saved_sections = es.load(path)["sections"]

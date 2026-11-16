@@ -30,6 +30,7 @@ import sys
 
 import cabs
 import ea_standard as es
+import ea_structure as st
 import komplekts
 
 #: Диапазон напряжения в области применения: «РУ 110–330 кВ» → «110–330 кВ».
@@ -330,8 +331,52 @@ def update_standard_cabinets(data):
 
 
 # ---------------------------------------------------------------------------
-# Комплект для схемы
+# Комплекты: каталог → стандарт → схема
 # ---------------------------------------------------------------------------
+def kit_from_catalog(kit, number=None):
+    """Типовой комплект каталога в формате комплекта стандарта EA.
+
+    Обратная сторона :func:`_kit_record`: функции и аналоговые измерения
+    каталога раскладываются по ИЭУ первого комплекта. Происхождение
+    сохраняется в описании, если у комплекта нет своего описания.
+    """
+    entry = komplekts.normalize_komplekt(kit)
+    description = entry.get("desc") or ""
+    if not description:
+        description = "Типовой комплект «{}» шкафа {}".format(
+            entry.get("name") or "Комплект",
+            entry.get("cabinet_code") or entry.get("cabinet_name") or "—")
+    result = {
+        "number": number if number is not None else 1,
+        "description": description,
+        "type": entry.get("type") or "ИЭУ",
+        "tag": ", ".join(komplekts.tags_of(entry)),
+        "group": entry.get("cabinet_group") or "",
+        "ieds": [],
+    }
+    functions = [{
+        "name": name,
+        "russian_path": name,
+        "isMainFunction": True,
+        "isInITS": False,
+        "iec_name": "",
+        "parameters": [],
+    } for name in entry.get("functions") or []]
+    analog = [{
+        "circuit_type": row.get("signals") or "",
+        "test_block": row.get("block") or "",
+        "contacts_count": row.get("contacts") or "",
+        "note": row.get("note") or "",
+    } for row in entry.get("analog_inputs") or [] if isinstance(row, dict)]
+    for index, ied in enumerate(komplekts.effective_ieds(entry)):
+        record = st.new_ied(None, result, number=index + 1)
+        if index == 0:
+            record["functions"] = copy.deepcopy(functions)
+            record["analog_inputs"] = copy.deepcopy(analog)
+        result["ieds"].append(record)
+    return result
+
+
 def kit_entry(data, cabinet_item, kit):
     """Комплект стандарта в виде, который принимает шкаф на схеме.
 
