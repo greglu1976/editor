@@ -225,12 +225,14 @@ class StandardEditorWindow(tk.Toplevel):
 
         left = tk.Frame(panes)
         scroll = tk.Scrollbar(left, orient="vertical")
-        self.tree = ttk.Treeview(left, show="tree", yscrollcommand=scroll.set)
+        self.tree = ttk.Treeview(left, show="tree", selectmode="extended",
+                                 yscrollcommand=scroll.set)
         scroll.config(command=self.tree.yview)
         scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
         self.tree.bind("<Button-3>", self._on_right_click)
+        self.tree.bind("<Delete>", lambda event: self._delete_selection())
         panes.add(left, weight=1)
 
         right = tk.Frame(panes)
@@ -353,12 +355,39 @@ class StandardEditorWindow(tk.Toplevel):
         self._add_figures(node, clause, clause.get("number", ""))
 
     # ------------------------------------------------------------- выборка
+    def _selection_iids(self):
+        """Выделенные узлы дерева в порядке показа."""
+        selected = set(self.tree.selection())
+        order = []
+
+        def walk(parent):
+            for iid in self.tree.get_children(parent):
+                if iid in selected and iid in self._nodes:
+                    order.append(iid)
+                walk(iid)
+
+        walk("")
+        return order
+
+    def _node_kind(self, iid):
+        """Вид узла дерева: ``section``, ``table``, ``cabinet`` и т. п."""
+        node = self._nodes.get(iid)
+        if not node:
+            return None
+        return node[1] if node[0] == "text" else node[0]
+
     def _on_select(self, event=None):
         if self._switching:
             return
         selection = self.tree.selection()
         if not selection:
             return
+        if len(selection) > 1:
+            self.status.config(
+                text="Выделено узлов: %d — правый клик: перенос, копирование, "
+                     "удаление" % len(selection))
+        elif self.status.cget("text").startswith("Выделено узлов"):
+            self.status.config(text="Ctrl+S — сохранить, Esc — закрыть")
         node_id = selection[0]
         if node_id == self._current_node:
             return
@@ -892,8 +921,11 @@ class StandardEditorWindow(tk.Toplevel):
             iid = owner[2] if owner else None
         return ""
 
-    def _mutate(self, action, select_item=None):
-        """Применить правки панели, изменить данные и перестроить дерево."""
+    def _mutate(self, action, select_item=None, select_items=None):
+        """Применить правки панели, изменить данные и перестроить дерево.
+
+        Если ``action`` вернула список узлов, в дереве выделяются все они.
+        """
         if not self._apply_pending():
             return
         try:
@@ -903,21 +935,27 @@ class StandardEditorWindow(tk.Toplevel):
             return
         self._changed = True
         self._update_title()
+        if select_items is None:
+            if isinstance(created, list):
+                select_items = created
+            else:
+                select_items = [created if select_item is None
+                                else select_item]
         self._switching = True
         self._fill_tree()
         self._switching = False
-        target = created if select_item is None else select_item
-        iid = self._find_iid(target)
-        if iid is None and self._meta_iid and self.tree.exists(self._meta_iid):
-            iid = self._meta_iid
-        if iid:
+        iids = [iid for iid in (self._find_iid(item) for item in select_items)
+                if iid]
+        if not iids and self._meta_iid and self.tree.exists(self._meta_iid):
+            iids = [self._meta_iid]
+        if iids:
             self._switching = True
-            self.tree.selection_set(iid)
-            self.tree.focus(iid)
-            self.tree.see(iid)
+            self.tree.selection_set(iids)
+            self.tree.focus(iids[0])
+            self.tree.see(iids[0])
             self._switching = False
-            self._current_node = iid
-            self._render(self._nodes.get(iid))
+            self._current_node = iids[0]
+            self._render(self._nodes.get(iids[0]))
 
     def _add_section(self, parent_iid):
         container = self._child_container(parent_iid, "section")
@@ -1178,14 +1216,11 @@ class StandardEditorWindow(tk.Toplevel):
 
         self._mutate(action)
 
-    def _table_targets(self, skip=None):
-        """Контейнеры документа, куда можно положить таблицу."""
+    def _container_targets(self):
+        """Контейнеры документа, куда можно положить таблицу или рисунок."""
         entries = []
 
         def add(container, title, level, section):
-            tables = container.get("tables") or []
-            if tables is skip:
-                return
             number = str(container.get("number") or "").strip()
             header = (container.get("header") or container.get("content")
                       or "").strip().split("\n")[0]
@@ -1198,9 +1233,10 @@ class StandardEditorWindow(tk.Toplevel):
                 label = "%s%s — %s" % (prefix, title, header)
             entries.append({
                 "label": label.strip(),
-                "hint": "Таблиц: %d" % len(tables),
+                "hint": "Таблиц: %d, рисунков: %d" % (
+                    len(container.get("tables") or []),
+                    len(container.get("figures") or [])),
                 "container": container,
-                "tables": tables,
                 "section": section,
             })
 
@@ -1214,33 +1250,58 @@ class StandardEditorWindow(tk.Toplevel):
                     add(clause, "Пункт", 2, section)
         return entries
 
-    def _move_table(self, iid, copy=False):
-        """Перенести или скопировать таблицу в другой раздел документа."""
-        owner = self._owners.get(iid)
-        if not owner or not owner[1]:
-            return
-        source_list, table, _parent = owner
-        entries = self._table_targets(skip=None if copy else source_list)
+    @staticmethod
+    def _number_base(section_number):
+        """Префикс номера рисунка в разделе: «5» → «5.»."""
+        number = str(section_number or "").strip()
+        return number + "." if number else ""
+
+    def _transfer(self, iids, copy=False):
+        """Перенести или скопировать узлы (таблицы, рисунки) в другой раздел."""
+        entries = []
+        for iid in iids:
+            owner = self._owners.get(iid)
+            kind = self._node_kind(iid)
+            if not owner or owner[1] is None:
+                continue
+            if kind not in ("table", "figure"):
+                messagebox.showinfo(
+                    "Редактор стандарта",
+                    "Переносить и копировать группой можно только таблицы "
+                    "и рисунки.\nРазделы, пункты, шкафы и комплекты "
+                    "удаляются группой целиком.", parent=self)
+                return
+            entries.append({"kind": kind, "source": owner[0],
+                            "item": owner[1]})
         if not entries:
-            messagebox.showinfo("Таблица",
-                                "В стандарте нет другого раздела.",
+            return
+        targets = self._container_targets()
+        if not targets:
+            messagebox.showinfo("Редактор стандарта",
+                                "В стандарте нет разделов для переноса.",
                                 parent=self)
             return
-        target = choose_item(
-            self, entries,
-            "Куда скопировать таблицу" if copy else "Куда перенести таблицу",
-            lambda entry: entry["label"],
-            lambda entry: entry["hint"])
+        if len(entries) == 1:
+            title = "%s %s" % (
+                "Куда скопировать" if copy else "Куда перенести",
+                "таблицу" if entries[0]["kind"] == "table" else "рисунок")
+        else:
+            title = "%s выделенное (%d)" % (
+                "Куда скопировать" if copy else "Куда перенести",
+                len(entries))
+        target = choose_item(self, targets, title,
+                             lambda entry: entry["label"],
+                             lambda entry: entry["hint"])
         if target is None:
             return
-        if not copy and target["tables"] is source_list:
-            return
+        container = target["container"]
+        section_number = target["section"].get("number")
         number = None
-        if copy:
+        if copy and len(entries) == 1 and entries[0]["kind"] == "table":
+            # одну таблицу нумеруем вручную, как и раньше
             number = simpledialog.askstring(
                 "Копирование таблицы", "Номер новой таблицы:",
-                initialvalue=st.next_table_number(
-                    self.data, target["section"].get("number")),
+                initialvalue=st.next_table_number(self.data, section_number),
                 parent=self)
             if number is None:
                 return
@@ -1250,37 +1311,114 @@ class StandardEditorWindow(tk.Toplevel):
                                        "Номер таблицы не может быть пустым.",
                                        parent=self)
                 return
-            if table.get("cabinet") and not messagebox.askyesno(
-                    "Копирование таблицы",
-                    "Таблица «%s» берёт данные из шкафа %s.\n"
-                    "Копия будет показывать те же данные шкафа. Продолжить?"
-                    % (table.get("name") or "", table.get("cabinet")),
-                    parent=self):
+        if copy:
+            linked = sorted({str(entry["item"].get("cabinet"))
+                             for entry in entries if entry["kind"] == "table"
+                             and entry["item"].get("cabinet")})
+            if linked and not messagebox.askyesno(
+                    "Копирование таблиц",
+                    "Копии берут данные из шкафа: %s.\n"
+                    "Они будут показывать те же данные шкафа. Продолжить?"
+                    % ", ".join(linked), parent=self):
                 return
-
-        outcome = {}
+        base = self._number_base(section_number)
+        made = []
 
         def action():
-            if copy:
-                created = st.copy_table(
-                    self.data, table, target["container"], number=number,
-                    section_number=target["section"].get("number"))
-            else:
-                created = st.move_table(
-                    table, source_list,
-                    target["container"].setdefault("tables", []))
-            outcome["table"] = created
-            return created
+            for entry in entries:
+                dest = container.setdefault(
+                    "tables" if entry["kind"] == "table" else "figures", [])
+                if copy:
+                    if entry["kind"] == "table":
+                        item = st.copy_table(self.data, entry["item"],
+                                             container, number=number,
+                                             section_number=section_number)
+                    else:
+                        item = st.copy_figure(entry["item"], container,
+                                              base=base)
+                else:
+                    if dest is entry["source"]:
+                        continue
+                    item = st.move_node(entry["item"], entry["source"], dest)
+                made.append(item)
+            if not made:
+                raise st.StructureError(
+                    "выделенные узлы уже находятся в этом разделе")
+            return made
 
         self._mutate(action)
-        if outcome.get("table") is not None:
-            text = ("Таблица %s скопирована в «%s»"
-                    % (outcome["table"].get("number") or "", target["label"])
-                    if copy else
-                    "Таблица %s перенесена в «%s» "
-                    "(номер и ссылки сохранены)"
-                    % (outcome["table"].get("number") or "", target["label"]))
-            self.status.config(text=text)
+        if made:
+            numbers = [str(item.get("number") or "") for item in made]
+            detail = (numbers[0] if len(numbers) == 1
+                      else "%s…%s" % (numbers[0], numbers[-1]))
+            self.status.config(
+                text="%s %d узел(ов) в «%s» (%s)"
+                     % ("Скопировано" if copy else "Перенесено",
+                        len(made), target["label"], detail))
+
+    def _move_table(self, iid, copy=False):
+        """Перенести или скопировать одну таблицу в другой раздел."""
+        self._transfer([iid], copy=copy)
+
+    def _delete_group(self, iids):
+        """Удалить выделенные узлы одним подтверждением."""
+        entries = []
+        for iid in iids:
+            owner = self._owners.get(iid)
+            kind = self._node_kind(iid)
+            if not owner or owner[1] is None:
+                continue
+            if kind not in ("section", "subsection", "clause", "table",
+                            "figure", "cabinet", "kit", "ied"):
+                continue
+            entries.append((iid, kind, owner[0], owner[1], owner[2]))
+        if not entries:
+            return
+        selected = {entry[0] for entry in entries}
+        kept = []
+        for entry in entries:
+            parent_iid = entry[4]
+            inside = False
+            while parent_iid:
+                if parent_iid in selected:
+                    inside = True
+                    break
+                owner = self._owners.get(parent_iid)
+                parent_iid = owner[2] if owner else None
+            if not inside:
+                kept.append(entry)
+        problems = []
+        for _iid, kind, _container, item, _parent in kept:
+            problems.extend(st.delete_issues(self.data, item, kind))
+        if problems:
+            messagebox.showwarning("Редактор стандарта",
+                                   "\n".join(problems), parent=self)
+            return
+        count = sum(st.descendant_count(item)
+                    for _i, _k, _c, item, _p in kept)
+        message = "Удалить выделенные узлы: %d?" % len(kept)
+        if count:
+            message += "\nВнутри ещё %d узел(ов) — они будут удалены." % count
+        if not messagebox.askyesno("Редактор стандарта", message,
+                                   parent=self):
+            return
+        parent_item = (self._owners[kept[0][4]][1]
+                       if kept[0][4] in self._owners else None)
+
+        def action():
+            for _iid, _kind, container, item, _parent in reversed(kept):
+                st.remove(container, item)
+            return None
+
+        self._mutate(action, select_item=parent_item)
+
+    def _delete_selection(self):
+        """Удалить выделение: один узел или группу."""
+        iids = self._selection_iids()
+        if len(iids) > 1:
+            self._delete_group(iids)
+        elif iids:
+            self._delete_node(iids[0])
 
     def _delete_node(self, iid):
         owner = self._owners.get(iid)
@@ -1318,7 +1456,26 @@ class StandardEditorWindow(tk.Toplevel):
         self._mutate(action, select_item=parent_item)
 
     # -------------------------------------------------- контекстное меню
+    def _group_menu(self, group):
+        """Меню действий над выделенной группой узлов."""
+        kinds = {self._node_kind(iid) for iid in group}
+        items = []
+        if kinds <= {"table", "figure"}:
+            items += [
+                ("Переместить выделенное (%d) в другой раздел…" % len(group),
+                 lambda: self._transfer(group, copy=False)),
+                ("Копировать выделенное (%d) в другой раздел…" % len(group),
+                 lambda: self._transfer(group, copy=True)),
+                None,
+            ]
+        items.append(("Удалить выделенное (%d)" % len(group),
+                      lambda: self._delete_group(group)))
+        return items
+
     def _menu_items(self, iid, node):
+        group = self._selection_iids()
+        if len(group) > 1 and iid in group:
+            return self._group_menu(group)
         kind = node[0]
         if kind == "root":
             if node[1] == "doc":
@@ -1384,13 +1541,19 @@ class StandardEditorWindow(tk.Toplevel):
         iid = self.tree.identify_row(event.y)
         if not iid or iid not in self._nodes:
             return
-        if iid != self._current_node:
+        if iid not in self.tree.selection():
             if not self._apply_pending():
                 return
             self._switching = True
             self.tree.selection_set(iid)
             self.tree.focus(iid)
             self._switching = False
+            self._current_node = iid
+            self._render(self._nodes.get(iid))
+        elif iid != self._current_node:
+            # клик по одному из выделенных: панель показывает именно его
+            if not self._apply_pending():
+                return
             self._current_node = iid
             self._render(self._nodes.get(iid))
         node = self._nodes.get(iid)

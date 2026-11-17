@@ -370,17 +370,30 @@ def _unique_table_name(data, name):
     return candidate
 
 
-def move_table(table, source, target):
-    """Перенести таблицу в другой список ``tables`` без смены номера.
+def move_node(node, source, target):
+    """Перенести узел (таблицу, рисунок) в другой список без смены номера.
 
     Номер и ссылка сохраняются: на «Таблица N» могут ссылаться текст и
-    описание шкафа. Возвращает таблицу.
+    описание шкафа. Возвращает узел.
     """
     if source is target:
-        raise StructureError("таблица уже находится в этом разделе")
-    remove(source, table)
-    add(target, table)
-    return table
+        raise StructureError("узел уже находится в этом разделе")
+    remove(source, node)
+    add(target, node)
+    return node
+
+
+def copy_figure(figure, container, number=None, base=""):
+    """Скопировать рисунок в другой контейнер с новым номером."""
+    clone = copy.deepcopy(figure)
+    value = str(number or next_number(container.get("figures") or [],
+                                      base)).strip()
+    if not value:
+        raise StructureError("не задан номер нового рисунка")
+    clone["number"] = value
+    clone["reference"] = "Рисунок %s" % value
+    add(container.setdefault("figures", []), clone)
+    return clone
 
 
 # ---------------------------------------------------------------------------

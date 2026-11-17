@@ -722,6 +722,104 @@ def test_editor():
             ea_editor.choose_item = original_choose
             ea_editor.simpledialog.askstring = original_ask
 
+        # групповая работа с выделением: перенос, копирование, удаление
+        extra = []
+        for name in ("Групповая 1", "Групповая 2"):
+            item = st.new_table(window.data, {"name": name,
+                                              "headers": ["П", "З"]})
+            st.add(section.setdefault("tables", []), item)
+            extra.append(item)
+        figure = st.new_figure(window.data, section,
+                               name="Групповой рисунок")
+        st.add(section.setdefault("figures", []), figure)
+        window._fill_tree()
+        root.update()
+        group = [window._find_iid(item) for item in extra]
+        window.tree.selection_set(group)
+        root.update()
+        check(window._selection_iids() == group,
+              "выделение из нескольких узлов читается деревом")
+        labels = [entry[0] for entry in
+                  window._menu_items(group[0], window._nodes[group[0]])
+                  if entry]
+        check(any("Переместить выделенное (2)" in label for label in labels)
+              and any("Копировать выделенное (2)" in label for label in labels)
+              and any("Удалить выделенное (2)" in label for label in labels),
+              "в меню выделенной группы есть перенос, копирование и удаление")
+
+        group_target = {"label": "Раздел 4",
+                        "hint": "Таблиц: 1, рисунков: 0",
+                        "container": target_section,
+                        "section": target_section}
+        ea_editor.choose_item = lambda *args, **kwargs: group_target
+        try:
+            window._transfer(window._selection_iids(), copy=True)
+            root.update()
+        finally:
+            ea_editor.choose_item = original_choose
+        copies = [item for item in target_tables
+                  if item.get("name", "").startswith("Групповая")]
+        check(len(copies) == 2 and copies[0]["number"] != copies[1]["number"],
+              "группа таблиц скопирована с новыми номерами")
+        check(len(window.tree.selection()) == 2,
+              "после группового копирования выделены все копии")
+
+        # рисунок в группе получает новый номер в целевом разделе
+        window.tree.selection_set([window._find_iid(copies[0]),
+                                   window._find_iid(figure)])
+        root.update()
+        figures_before = len(target_section.get("figures") or [])
+        ea_editor.choose_item = lambda *args, **kwargs: group_target
+        try:
+            window._transfer(window._selection_iids(), copy=True)
+            root.update()
+        finally:
+            ea_editor.choose_item = original_choose
+        figures_after = target_section.get("figures") or []
+        check(len(figures_after) == figures_before + 1
+              and figures_after[-1] is not figure,
+              "рисунок скопирован в другой раздел с новым номером")
+
+        appendix = next(item for item in window.data["sections"]
+                        if str(item.get("number")) == "А")
+        appendix_tables = appendix.setdefault("tables", [])
+        appendix_target = {"label": "Раздел А",
+                           "hint": "Таблиц: 1, рисунков: 0",
+                           "container": appendix, "section": appendix}
+        window.tree.selection_set([window._find_iid(item) for item in copies])
+        root.update()
+        ea_editor.choose_item = lambda *args, **kwargs: appendix_target
+        try:
+            window._transfer(window._selection_iids(), copy=False)
+            root.update()
+        finally:
+            ea_editor.choose_item = original_choose
+        check(all(item in appendix_tables for item in copies)
+              and not any(item in target_tables for item in copies),
+              "группа таблиц перенесена в другой раздел")
+
+        mixed = [window._find_iid(copies[0]), window._find_iid(section)]
+        window.tree.selection_set(mixed)
+        root.update()
+        labels = [entry[0] for entry in
+                  window._menu_items(mixed[0], window._nodes[mixed[0]])
+                  if entry]
+        check(not any("Переместить выделенное" in label for label in labels)
+              and any("Удалить выделенное" in label for label in labels),
+              "в смешанной группе доступно только удаление")
+
+        window.tree.selection_set([window._find_iid(item) for item in copies])
+        root.update()
+        original_confirm = ea_editor.messagebox.askyesno
+        ea_editor.messagebox.askyesno = lambda *args, **kwargs: True
+        try:
+            window._delete_selection()
+            root.update()
+        finally:
+            ea_editor.messagebox.askyesno = original_confirm
+        check(not any(item in appendix_tables for item in copies),
+              "выделенная группа удалена одним действием")
+
         cabinet_iid = next(key for key, node in window._nodes.items()
                            if node[0] == "cabinet")
         menu = window._menu_items(cabinet_iid, window._nodes[cabinet_iid])
