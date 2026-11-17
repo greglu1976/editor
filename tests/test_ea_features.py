@@ -820,6 +820,60 @@ def test_editor():
         check(not any(item in appendix_tables for item in copies),
               "выделенная группа удалена одним действием")
 
+        # привязка таблицы к другому шкафу
+        bound = next(table for table in es.iter_tables(window.data)
+                     if table.get("cabinet"))
+        bound_iid = window._find_iid(bound)
+        old_code = bound["cabinet"]
+        other_cabinet = next(item for item in es.cabinets(window.data)
+                             if item.get("cypher") != old_code)
+        labels = [entry[0] for entry in
+                  window._menu_items(bound_iid, window._nodes[bound_iid])
+                  if entry]
+        check(any("Привязать к другому шкафу" in label for label in labels),
+              "в меню таблицы есть привязка к другому шкафу")
+        original_choose_cabinet = window._choose_cabinet
+        window._choose_cabinet = lambda *args, **kwargs: other_cabinet
+        ea_editor.messagebox.askyesno = lambda *args, **kwargs: True
+        try:
+            window._rebind_table(bound_iid)
+            root.update()
+        finally:
+            window._choose_cabinet = original_choose_cabinet
+            ea_editor.messagebox.askyesno = original_confirm
+        check(bound["cabinet"] == other_cabinet["cypher"]
+              and other_cabinet["cypher"] in (bound.get("name") or ""),
+              "таблица перепривязана к другому шкафу")
+        check(window.tree.item(window._find_iid(bound), "text")
+              == "%s %s" % (bound.get("reference") or "Таблица",
+                            bound.get("name") or ""),
+              "подпись таблицы в дереве обновилась")
+
+        # удаление шкафа: таблицы перепривязываются к другому шкафу
+        victim = next(item for item in es.cabinets(window.data)
+                      if any(table.get("cabinet") == item.get("cypher")
+                             for table in es.iter_tables(window.data)))
+        spare = next(item for item in es.cabinets(window.data)
+                     if item is not victim)
+        window._fill_tree()
+        root.update()
+        victim_iid = window._find_iid(victim)
+        window.tree.selection_set(victim_iid)
+        root.update()
+        original_ask_rebind = window._ask_rebind
+        window._ask_rebind = lambda item: spare
+        ea_editor.messagebox.askyesno = lambda *args, **kwargs: True
+        try:
+            window._delete_node(victim_iid)
+            root.update()
+        finally:
+            window._ask_rebind = original_ask_rebind
+            ea_editor.messagebox.askyesno = original_confirm
+        check(not any(item is victim for item in es.cabinets(window.data))
+              and all(table.get("cabinet") != victim["cypher"]
+                      for table in es.iter_tables(window.data)),
+              "таблицы перепривязаны, шкаф удалён")
+
         cabinet_iid = next(key for key, node in window._nodes.items()
                            if node[0] == "cabinet")
         menu = window._menu_items(cabinet_iid, window._nodes[cabinet_iid])

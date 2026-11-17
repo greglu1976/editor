@@ -397,6 +397,33 @@ def copy_figure(figure, container, number=None, base=""):
 
 
 # ---------------------------------------------------------------------------
+# Привязка таблиц к шкафу
+# ---------------------------------------------------------------------------
+def rebind_table(table, code):
+    """Привязать таблицу к шкафу ``code``.
+
+    Форма (шапка) и номер сохраняются, строки при сборке берутся из нового
+    шкафа. Шифр старого шкафа в наименовании заменяется на новый.
+    """
+    old = str(table.get("cabinet") or "")
+    table["cabinet"] = code
+    name = str(table.get("name") or "")
+    if old and old != code and old in name:
+        table["name"] = name.replace(old, code)
+    return table
+
+
+def rebind_tables(data, old, new):
+    """Перепривязать все таблицы шкафа ``old`` к шкафу ``new``."""
+    count = 0
+    for table in es.iter_tables(data):
+        if table.get("cabinet") == old:
+            rebind_table(table, new)
+            count += 1
+    return count
+
+
+# ---------------------------------------------------------------------------
 # Проверки перед удалением
 # ---------------------------------------------------------------------------
 def _owner_cabinet(data, node, kind):
@@ -419,8 +446,9 @@ def delete_issues(data, node, kind):
                 for table in es.iter_tables(data)
                 if table.get("cabinet") == code]
         if refs:
-            issues.append("на шкаф ссылаются таблицы: %s. "
-                          "Сначала удалите или отвяжите их."
+            issues.append("на шкаф ссылаются таблицы: %s. Удалите их или "
+                          "привяжите к другому шкафу (правый клик по таблице "
+                          "→ «Привязать к другому шкафу…»)."
                           % ", ".join(refs[:8]))
     if kind in ("kit", "ied"):
         cabinet = _owner_cabinet(data, node, kind)

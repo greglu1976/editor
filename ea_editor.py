@@ -1360,6 +1360,90 @@ class StandardEditorWindow(tk.Toplevel):
         """Перенести или скопировать одну таблицу в другой раздел."""
         self._transfer([iid], copy=copy)
 
+    @staticmethod
+    def _cabinet_label(item):
+        """Подпись шкафа стандарта для списков выбора."""
+        code = str(item.get("cypher") or "").strip()
+        name = str(item.get("name") or "").strip()
+        return "%s — %s" % (code, name) if name else code
+
+    def _choose_cabinet(self, cabinets, title):
+        """Выбрать шкаф документа для привязки таблиц."""
+        def describe(item):
+            lines = [str(item.get("description") or "")]
+            kits = len(item.get("kits") or [])
+            if kits:
+                lines.append("Комплектов: %d" % kits)
+            return "\n".join(line for line in lines if line)
+
+        return choose_item(self, cabinets, title, self._cabinet_label,
+                           describe)
+
+    def _table_rows_for(self, table, cabinet_item):
+        """Строки, которые таблица покажет после привязки к шкафу."""
+        probe = dict(table, cabinet=cabinet_item.get("cypher"))
+        return es.table_view(self.data, probe)[1]
+
+    def _rebind_table(self, iid):
+        """Привязать таблицу к другому шкафу документа."""
+        owner = self._owners.get(iid)
+        if not owner or owner[1] is None:
+            return
+        table = owner[1]
+        current = str(table.get("cabinet") or "")
+        others = [item for item in es.cabinets(self.data)
+                  if str(item.get("cypher") or "") != current]
+        if not others:
+            messagebox.showinfo("Редактор стандарта",
+                                "В стандарте нет другого шкафа.", parent=self)
+            return
+        target = self._choose_cabinet(others,
+                                      "К какому шкафу привязать таблицу")
+        if target is None:
+            return
+        code = str(target.get("cypher") or "")
+        if not self._table_rows_for(table, target) and not messagebox.askyesno(
+                "Редактор стандарта",
+                "У шкафа %s нет данных для этой таблицы.\n"
+                "Таблица останется с одной шапкой. Продолжить?" % code,
+                parent=self):
+            return
+
+        def action():
+            return st.rebind_table(table, code)
+
+        self._mutate(action)
+        self.status.config(text="Таблица %s привязана к шкафу %s"
+                                % (table.get("number") or "", code))
+
+    def _ask_rebind(self, cabinet_item):
+        """Спросить шкаф для таблиц удаляемого шкафа; None — отказались."""
+        code = str(cabinet_item.get("cypher") or "")
+        tables = [table for table in es.iter_tables(self.data)
+                  if table.get("cabinet") == code]
+        others = [item for item in es.cabinets(self.data)
+                  if item is not cabinet_item]
+        if not tables or not others:
+            return None
+        if not messagebox.askyesno(
+                "Редактор стандарта",
+                "На шкаф %s ссылаются таблицы: %d.\n"
+                "Перепривязать их к другому шкафу перед удалением?"
+                % (code, len(tables)), parent=self):
+            return None
+        target = self._choose_cabinet(others, "Новый шкаф для таблиц")
+        if target is None:
+            return None
+        empty = [table.get("number") or "(без номера)" for table in tables
+                 if not self._table_rows_for(table, target)]
+        if empty and not messagebox.askyesno(
+                "Редактор стандарта",
+                "У шкафа %s нет данных для таблиц: %s.\n"
+                "Они останутся с одной шапкой. Продолжить?"
+                % (target.get("cypher"), ", ".join(empty[:8])), parent=self):
+            return None
+        return target
+
     def _delete_group(self, iids):
         """Удалить выделенные узлы одним подтверждением."""
         entries = []
@@ -1431,6 +1515,11 @@ class StandardEditorWindow(tk.Toplevel):
                         "figure", "cabinet", "kit", "ied"):
             return
         issues = st.delete_issues(self.data, item, kind)
+        rebind = None
+        if issues and kind == "cabinet":
+            rebind = self._ask_rebind(item)
+            if rebind is not None:
+                issues = []      # перепривязка снимает замечание о ссылках
         if issues:
             messagebox.showwarning("Редактор стандарта", "\n".join(issues),
                                    parent=self)
@@ -1450,6 +1539,9 @@ class StandardEditorWindow(tk.Toplevel):
                        if parent_iid in self._owners else None)
 
         def action():
+            if rebind is not None:
+                st.rebind_tables(self.data, item.get("cypher"),
+                                 rebind.get("cypher"))
             st.remove(container, item)
             return None
 
@@ -1525,7 +1617,11 @@ class StandardEditorWindow(tk.Toplevel):
             return [("Добавить ИЭУ…", lambda: self._add_ied(iid)),
                     None, ("Удалить комплект", lambda: self._delete_node(iid))]
         if kind == "table":
-            return [
+            items = []
+            if node[1].get("cabinet"):
+                items += [("Привязать к другому шкафу…",
+                           lambda: self._rebind_table(iid)), None]
+            return items + [
                 ("Переместить в другой раздел…",
                  lambda: self._move_table(iid, copy=False)),
                 ("Копировать в другой раздел…",
