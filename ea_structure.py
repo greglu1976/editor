@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import copy
 import re
 
 import ea_edit as ee
@@ -308,6 +309,77 @@ def new_table(data, spec, number=None):
     }
     if code:
         table["cabinet"] = code
+    return table
+
+
+# ---------------------------------------------------------------------------
+# Перенос и копирование таблиц
+# ---------------------------------------------------------------------------
+def next_table_number(data, section_number=""):
+    """Следующий номер таблицы в разделе: «5.58», «В.2» и т. п.
+
+    Для раздела с номером номер продолжает его ряд (``5.2…5.57`` → ``5.58``);
+    для раздела без номера — сквозной номер по документу.
+    """
+    prefix = str(section_number or "").strip()
+    numbers = [str(table.get("number") or "")
+               for table in es.iter_tables(data)]
+    if prefix:
+        pattern = re.compile(r"^%s\.(\d+)$" % re.escape(prefix))
+        used = [int(match.group(1)) for number in numbers
+                if (match := pattern.match(number))]
+        minor = max(used, default=0) + 1
+        candidate = "%s.%d" % (prefix, minor)
+        while candidate in numbers:
+            minor += 1
+            candidate = "%s.%d" % (prefix, minor)
+        return candidate
+    return str(next_number(es.iter_tables(data)))
+
+
+def copy_table(data, table, container, number=None, section_number=""):
+    """Скопировать таблицу в другой контейнер с новым номером.
+
+    Копия получает собственные строки (``deepcopy``) и новую ссылку
+    «Таблица N»; имя при совпадении с исходным дополняется «(копия)».
+    Возвращает новую таблицу.
+    """
+    clone = copy.deepcopy(table)
+    value = str(number or next_table_number(data, section_number)).strip()
+    if not value:
+        raise StructureError("не задан номер новой таблицы")
+    used = {str(item.get("number") or "") for item in es.iter_tables(data)}
+    if value in used:
+        raise StructureError("номер таблицы уже занят: %s" % value)
+    clone["number"] = value
+    clone["reference"] = "Таблица %s" % value
+    clone["name"] = _unique_table_name(data, clone.get("name"))
+    add(container.setdefault("tables", []), clone)
+    return clone
+
+
+def _unique_table_name(data, name):
+    """Имя копии, не совпадающее с именами таблиц документа."""
+    existing = {str(item.get("name") or "") for item in es.iter_tables(data)}
+    base = str(name or "Таблица").strip() or "Таблица"
+    candidate = base + " (копия)"
+    index = 2
+    while candidate in existing:
+        candidate = "%s (копия %d)" % (base, index)
+        index += 1
+    return candidate
+
+
+def move_table(table, source, target):
+    """Перенести таблицу в другой список ``tables`` без смены номера.
+
+    Номер и ссылка сохраняются: на «Таблица N» могут ссылаться текст и
+    описание шкафа. Возвращает таблицу.
+    """
+    if source is target:
+        raise StructureError("таблица уже находится в этом разделе")
+    remove(source, table)
+    add(target, table)
     return table
 
 

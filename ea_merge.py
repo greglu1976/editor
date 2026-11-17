@@ -248,6 +248,8 @@ def merge_cabinets(target, additions, starts=None):
     карточки и формы там уже есть. Для каждого нового шкафа исходный том
     перенумеровывается в уникальный диапазон, из него берутся карточка,
     подраздел с таблицами и рисунками, затем всё сводится в сквозной ряд.
+    Если у шкафа в источнике нет таблиц-форм, они собираются по карточке
+    (:func:`_form_table`), чтобы данные не потерялись.
     """
     if not isinstance(target, dict):
         raise MergeError("целевой стандарт должен быть объектом JSON")
@@ -278,10 +280,17 @@ def merge_cabinets(target, additions, starts=None):
         st.add(data.setdefault("cabinets", []), cabinet)
         subs = cabinet_subsections_of(work, cypher)
         target_subs = section.setdefault("subsections", [])
+        if not subs:
+            # В источнике у шкафа нет таблиц-форм: собираем их по карточке,
+            # иначе данные шкафа не попадут в документ.
+            sub = st.new_subsection(work, section,
+                                    header=cabinet.get("name") or cypher)
+            for kind in _FORM_NAMES:
+                st.add(sub.setdefault("tables", []),
+                       _form_table(work, cypher, kind))
+            subs = [sub]
         for sub in subs:
             st.add(target_subs, sub)
-        if not subs:
-            raise MergeError("у шкафа %s нет таблиц-форм" % cypher)
 
         _copy_common_rows(data, work, cypher)
         existing.add(code)

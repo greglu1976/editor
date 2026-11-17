@@ -40,7 +40,7 @@ Standard
 | [`ea_standard.py`](ea_standard.py) | чтение папки, обход дерева, `table_view()` — сборка строк таблицы из шкафа, `cabinet_card()`, `validate()`, CLI |
 | [`ea_ui.py`](ea_ui.py) | окно «СТО (EA)…»: дерево документа и шкафов, таблицы, карточки, размещение на схеме, новый стандарт, DOCX |
 | [`ea_edit.py`](ea_edit.py) | обратимое представление таблиц: `load()` → шапка и строки, `save()` → обратно в `cabinets` |
-| [`ea_structure.py`](ea_structure.py) | фабрики новых узлов и операции добавления/удаления (`new_*`, `add`, `remove`, `delete_issues`) |
+| [`ea_structure.py`](ea_structure.py) | фабрики новых узлов, добавление/удаление (`new_*`, `add`, `remove`, `delete_issues`), перенос и копирование таблиц (`move_table`, `copy_table`, `next_table_number`) |
 | [`ea_editor.py`](ea_editor.py) | отдельное окно редактирования стандарта: текст, таблицы, карточки шкафов, комплекты, ИЭУ, контекстное меню дерева |
 | [`ea_catalog.py`](ea_catalog.py) | мост «шкаф стандарта ↔ каталог редактора»: `ensure_catalog()`, `kit_entry()`, `cabinet_from_catalog()`, `kit_from_catalog()`, `add_test_blocks()` |
 | [`ea_merge.py`](ea_merge.py) | каталог шкафов всех стандартов и слияние: `merge_cabinets()`, `add_catalog_cabinet()` |

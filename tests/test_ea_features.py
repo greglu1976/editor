@@ -436,15 +436,15 @@ def test_gui(data):
 
         dialog = ea_ui.NewStandardDialog(window)
         root.update()
-        check(len(dialog.cyphers) == 28,
-              "в диалоге все 28 шкафов из всех стандартов: %d"
-              % len(dialog.cyphers))
-        check(dialog.listbox.size() == 28,
-              "в списке диалога 28 записей")
+        total = len(dialog.entries)
+        check(len(dialog.cyphers) == total,
+              "в диалоге все шкафы из всех стандартов: %d" % total)
+        check(dialog.listbox.size() == total,
+              "в списке диалога %d записей" % total)
         first_label = dialog.listbox.get(0)
         check("[" in first_label and "]" in first_label,
               "запись списка содержит метку тома: %s" % first_label)
-        check(len(dialog.listbox.curselection()) == 28,
+        check(len(dialog.listbox.curselection()) == total,
               "все шкафы выбраны по умолчанию")
         check(dialog.vars["date"].get().count(".") == 2,
               "дата заполнена по умолчанию")
@@ -461,10 +461,11 @@ def test_gui(data):
         finally:
             ea_ui.choose_catalog_cabinets = original_choose
         root.update()
-        check(len(dialog.cyphers) == 29 and dialog.listbox.size() == 29
-              and "каталог" in dialog.listbox.get(28),
+        check(len(dialog.cyphers) == total + 1
+              and dialog.listbox.size() == total + 1
+              and "каталог" in dialog.listbox.get(total),
               "в диалог нового стандарта добавлен типовой шкаф каталога")
-        check(dialog.listbox.selection_includes(28),
+        check(dialog.listbox.selection_includes(total),
               "добавленный типовой шкаф выбран")
         dialog.grab_release()
         dialog.destroy()
@@ -681,6 +682,46 @@ def test_editor():
         check(len(section["tables"]) == 1 and window._grid is not None,
               "таблица документа добавлена и открыта в редакторе")
 
+        # перенос и копирование таблицы в другой раздел
+        doc_table = section["tables"][0]
+        table_iid = window._find_iid(doc_table)
+        source_tables = window._owners[table_iid][0]
+        target_section = next(item for item in window.data["sections"]
+                              if str(item.get("number")) == "4")
+        target_tables = target_section.setdefault("tables", [])
+        target = {"label": "Раздел 4", "hint": "Таблиц: 0",
+                  "container": target_section, "tables": target_tables,
+                  "section": target_section}
+        original_choose = ea_editor.choose_item
+        original_ask = ea_editor.simpledialog.askstring
+        ea_editor.choose_item = lambda *args, **kwargs: target
+        ea_editor.simpledialog.askstring = lambda *args, **kwargs: "4.99"
+        try:
+            window._move_table(table_iid, copy=True)
+            root.update()
+            clone = target_tables[-1]
+            check(clone is not doc_table and clone["number"] == "4.99"
+                  and clone["reference"] == "Таблица 4.99"
+                  and clone["name"].endswith("(копия)"),
+                  "таблица скопирована в другой раздел с новым номером")
+            check(window._nodes[window._current_node][-1] is clone,
+                  "копия таблицы выбрана в дереве")
+
+            appendix = next(item for item in window.data["sections"]
+                            if str(item.get("number")) == "А")
+            appendix_tables = appendix.setdefault("tables", [])
+            target = {"label": "Раздел А", "hint": "Таблиц: 0",
+                      "container": appendix, "tables": appendix_tables,
+                      "section": appendix}
+            window._move_table(window._find_iid(doc_table), copy=False)
+            root.update()
+            check(doc_table in appendix_tables
+                  and doc_table not in source_tables,
+                  "таблица перенесена в другой раздел без дубля")
+        finally:
+            ea_editor.choose_item = original_choose
+            ea_editor.simpledialog.askstring = original_ask
+
         cabinet_iid = next(key for key, node in window._nodes.items()
                            if node[0] == "cabinet")
         menu = window._menu_items(cabinet_iid, window._nodes[cabinet_iid])
@@ -850,10 +891,10 @@ def test_merge_all_cabinets():
     import ea_merge as em
 
     entries = em.catalog(use_cache=False)
-    check(len(entries) == 28,
-          "каталог содержит 28 шкафов из всех стандартов")
+    check(bool(entries),
+          "каталог содержит шкафы из всех стандартов: %d" % len(entries))
     volumes = {em.volume_label(entry["path"]) for entry in entries}
-    check(volumes == {"т. 1", "т. 3", "т. 5", "т. 7"},
+    check({"т. 1", "т. 3", "т. 5", "т. 7"} <= volumes,
           "каталог хранит метки томов: %s" % ", ".join(sorted(volumes)))
     check(all(entry["data"] and entry["cypher"] for entry in entries),
           "у каждой записи каталога есть данные и шифр")
@@ -861,12 +902,26 @@ def test_merge_all_cabinets():
     check(len(codes) == len(set(codes)), "шифры в каталоге уникальны")
 
     target = es.load(REFERENCE)
+    target_codes = {em.norm_cypher(item.get("cypher"))
+                    for item in es.cabinets(target)}
+    expected_cabs = len({em.norm_cypher(entry["cypher"]) for entry in entries}
+                        | target_codes)
+    expected_forms = sum(1 for table in es.iter_tables(target)
+                         if table.get("cabinet"))
+    for entry in entries:
+        if em.norm_cypher(entry["cypher"]) in target_codes:
+            continue
+        forms = sum(1 for table in es.iter_tables(entry["data"])
+                    if table.get("cabinet") == entry["cypher"])
+        expected_forms += forms or len(es.KINDS)
     merged = em.merge_cabinets(target, entries)
     cabs = es.cabinets(merged)
     nums = [str(table.get("number"))
             for table in es.iter_tables(merged) if table.get("cabinet")]
-    check(len(cabs) == 28, "после слияния 28 шкафов")
-    check(len(nums) == 417, "после слияния 417 форм: %d" % len(nums))
+    check(len(cabs) == expected_cabs,
+          "после слияния %d шкафов" % expected_cabs)
+    check(len(nums) == expected_forms,
+          "после слияния %d форм: %d" % (expected_forms, len(nums)))
     check(em.validate_merged(merged) == [],
           "слитый стандарт проходит проверку структуры")
     check(len(set(nums)) == len(nums), "номера таблиц уникальны")

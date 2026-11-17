@@ -51,8 +51,8 @@ def _button(parent, text, command, width=0, side=tk.LEFT, padx=(0, 4)):
     return button
 
 
-def choose_from_catalog(parent, items, title, label, describe):
-    """Выбор одной записи каталога: поиск, подпись и описание."""
+def choose_item(parent, items, title, label, describe):
+    """Выбор одной записи из списка: поиск, подпись и описание."""
     dialog = tk.Toplevel(parent)
     dialog.title(title)
     dialog.transient(parent)
@@ -85,6 +85,7 @@ def choose_from_catalog(parent, items, title, label, describe):
         parts = [str(item.get(key) or "") for key in (
             "name", "desc", "code", "cabinet_code", "cabinet_name",
             "cabinet_group", "title", "group", "standard_title",
+            "label", "hint",
         )]
         for key in ("functions", "its_functions"):
             value = item.get(key) or []
@@ -1095,9 +1096,9 @@ class StandardEditorWindow(tk.Toplevel):
                              % len(kit["test_block_list"]))
             return "\n".join(lines)
 
-        return choose_from_catalog(self, kits,
-                                   "Типовой комплект из каталога",
-                                   komplekts.kit_label, describe)
+        return choose_item(self, kits,
+                           "Типовой комплект из каталога",
+                           komplekts.kit_label, describe)
 
     def _choose_typical_cabinet(self):
         """Выбрать типовой шкаф каталога. Возвращает dict или None."""
@@ -1123,9 +1124,9 @@ class StandardEditorWindow(tk.Toplevel):
                 lines.append("Функции: " + ", ".join(cabinet["its_functions"]))
             return "\n".join(lines)
 
-        return choose_from_catalog(self, cabinets,
-                                   "Типовой шкаф из каталога",
-                                   komplekts.cabinet_label, describe)
+        return choose_item(self, cabinets,
+                           "Типовой шкаф из каталога",
+                           komplekts.cabinet_label, describe)
 
     def _add_typical_cabinet(self, parent_iid):
         """Добавить типовой шкаф каталога: карточку и таблицы-формы."""
@@ -1176,6 +1177,110 @@ class StandardEditorWindow(tk.Toplevel):
             return item
 
         self._mutate(action)
+
+    def _table_targets(self, skip=None):
+        """Контейнеры документа, куда можно положить таблицу."""
+        entries = []
+
+        def add(container, title, level, section):
+            tables = container.get("tables") or []
+            if tables is skip:
+                return
+            number = str(container.get("number") or "").strip()
+            header = (container.get("header") or container.get("content")
+                      or "").strip().split("\n")[0]
+            if len(header) > 70:
+                header = header[:70].rstrip() + "…"
+            prefix = "  " * level
+            if number:
+                label = "%s%s %s — %s" % (prefix, title, number, header)
+            else:
+                label = "%s%s — %s" % (prefix, title, header)
+            entries.append({
+                "label": label.strip(),
+                "hint": "Таблиц: %d" % len(tables),
+                "container": container,
+                "tables": tables,
+                "section": section,
+            })
+
+        for section in es.sections(self.data):
+            add(section, "Раздел", 0, section)
+            for clause in section.get("clauses") or []:
+                add(clause, "Пункт", 1, section)
+            for sub in section.get("subsections") or []:
+                add(sub, "Подраздел", 1, section)
+                for clause in sub.get("clauses") or []:
+                    add(clause, "Пункт", 2, section)
+        return entries
+
+    def _move_table(self, iid, copy=False):
+        """Перенести или скопировать таблицу в другой раздел документа."""
+        owner = self._owners.get(iid)
+        if not owner or not owner[1]:
+            return
+        source_list, table, _parent = owner
+        entries = self._table_targets(skip=None if copy else source_list)
+        if not entries:
+            messagebox.showinfo("Таблица",
+                                "В стандарте нет другого раздела.",
+                                parent=self)
+            return
+        target = choose_item(
+            self, entries,
+            "Куда скопировать таблицу" if copy else "Куда перенести таблицу",
+            lambda entry: entry["label"],
+            lambda entry: entry["hint"])
+        if target is None:
+            return
+        if not copy and target["tables"] is source_list:
+            return
+        number = None
+        if copy:
+            number = simpledialog.askstring(
+                "Копирование таблицы", "Номер новой таблицы:",
+                initialvalue=st.next_table_number(
+                    self.data, target["section"].get("number")),
+                parent=self)
+            if number is None:
+                return
+            number = number.strip()
+            if not number:
+                messagebox.showwarning("Копирование таблицы",
+                                       "Номер таблицы не может быть пустым.",
+                                       parent=self)
+                return
+            if table.get("cabinet") and not messagebox.askyesno(
+                    "Копирование таблицы",
+                    "Таблица «%s» берёт данные из шкафа %s.\n"
+                    "Копия будет показывать те же данные шкафа. Продолжить?"
+                    % (table.get("name") or "", table.get("cabinet")),
+                    parent=self):
+                return
+
+        outcome = {}
+
+        def action():
+            if copy:
+                created = st.copy_table(
+                    self.data, table, target["container"], number=number,
+                    section_number=target["section"].get("number"))
+            else:
+                created = st.move_table(
+                    table, source_list,
+                    target["container"].setdefault("tables", []))
+            outcome["table"] = created
+            return created
+
+        self._mutate(action)
+        if outcome.get("table") is not None:
+            text = ("Таблица %s скопирована в «%s»"
+                    % (outcome["table"].get("number") or "", target["label"])
+                    if copy else
+                    "Таблица %s перенесена в «%s» "
+                    "(номер и ссылки сохранены)"
+                    % (outcome["table"].get("number") or "", target["label"]))
+            self.status.config(text=text)
 
     def _delete_node(self, iid):
         owner = self._owners.get(iid)
@@ -1263,7 +1368,14 @@ class StandardEditorWindow(tk.Toplevel):
             return [("Добавить ИЭУ…", lambda: self._add_ied(iid)),
                     None, ("Удалить комплект", lambda: self._delete_node(iid))]
         if kind == "table":
-            return [("Удалить таблицу", lambda: self._delete_node(iid))]
+            return [
+                ("Переместить в другой раздел…",
+                 lambda: self._move_table(iid, copy=False)),
+                ("Копировать в другой раздел…",
+                 lambda: self._move_table(iid, copy=True)),
+                None,
+                ("Удалить таблицу", lambda: self._delete_node(iid)),
+            ]
         if kind == "figure":
             return [("Удалить рисунок", lambda: self._delete_node(iid))]
         return [("Удалить ИЭУ", lambda: self._delete_node(iid))]
