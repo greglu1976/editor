@@ -1948,6 +1948,13 @@ COMPONENT_TYPES = (
 
 
 def create_component(comp_type, comp_id, x, y, grid_size=20):
+    # Элементы функционально-логических схем вынесены в logic_library.py.
+    # Импорт локальный: logic_library использует Component из этого модуля,
+    # поэтому импорт на уровне модуля дал бы циклическую зависимость.
+    import logic_library
+    if logic_library.is_logic_type(comp_type):
+        return logic_library.create_component(comp_type, comp_id, x, y,
+                                              grid_size)
     if comp_type == "breaker": return Breaker(comp_id, x, y, grid_size)
     elif comp_type == "disconnector": return Disconnector(comp_id, x, y, grid_size)
     elif comp_type == "bus": return Bus(comp_id, x, y, grid_size)

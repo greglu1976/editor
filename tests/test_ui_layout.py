@@ -141,8 +141,9 @@ def test_gui():
         check(not colors, "устаревших цветов в главном окне нет (%d)" % len(colors))
         check(not fonts, "шрифтов Arial в главном окне нет (%d)" % len(fonts))
 
-        expected = ["Главная", "Вид", "Шкафы", "Комплекты", "Контейнеры",
-                    "Структура", "Стандарты", "Отчёты", "?"]
+        expected = ["Главная", "Вид", "Комплекты", "Шкафы", "Контейнеры",
+                    "Логика", "Структура", "Стандарты", "Отчёты",
+                    "О программе"]
         check(list(app._ribbon_pages) == expected,
               "вкладки ленты по порядку: %s" % ", ".join(app._ribbon_pages))
         structure_page = app._ribbon_pages["Структура"]

@@ -22,6 +22,8 @@ import structure_tools
 import apppaths
 import ui_theme
 import ribbon_icons
+import logic_library
+import logic_editor
 
 try:
     import pdf2json
@@ -54,6 +56,8 @@ PREFIX_BY_TYPE = {
     "cabinet": "EL", "container": "EK", "bushing_monitor": "BSH",
     "capacitor_battery": "BSK", "comment_node": "D",
 }
+# Элементы ФЛС: обозначения и названия — из logic_library.
+PREFIX_BY_TYPE.update(logic_library.PREFIX_BY_TYPE)
 
 # Названия типов элементов для отчётов и подсказок.
 ELEMENT_TYPE_TITLES = {
@@ -85,6 +89,7 @@ ELEMENT_TYPE_TITLES = {
     "node": "Узел",
     "comment_node": "Декоративный узел",
 }
+ELEMENT_TYPE_TITLES.update(logic_library.ELEMENT_TYPE_TITLES)
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
 APP_TITLE = "Редактор электрических схем v31.1"
@@ -102,6 +107,8 @@ ABOUT_TEXT = (
     "• Стандарты СТО: структура КЭТ → шкафы → комплекты, сверка со "
     "стандартами, редактор изменений и отчёт Word.\n"
     "• Связи РЗА и аналоговые цепи, подписи и комментарии к чертежу.\n"
+    "• Функционально-логические схемы: клавиши, светодиоды, шины, "
+    "блоки с сигналами и логическими узлами.\n"
     "• Отчёты по схеме, выделению, шкафам и КЭТ, отчёт по НИР.\n"
     "• Экспорт в PDF и PNG, выгрузка SSD по МЭК 61850-6.\n\n"
     "Схема хранится в JSON-файле вместе с подложкой и положением вида."
@@ -265,7 +272,8 @@ class UndoManager:
         self.on_change = None  # вызывается после записи состояния
 
     def save_state(self, elements, connections, selected_elements,
-                   protection_links=None, analog_links=None, comments=None):
+                   protection_links=None, analog_links=None, comments=None,
+                   logic_links=None):
         """Сохраняет состояние и очищает стек redo (т.к. создана новая ветка)"""
         state = {
             "elements": copy.deepcopy(elements),
@@ -273,6 +281,7 @@ class UndoManager:
             "selected_elements": list(selected_elements),
             "protection": copy.deepcopy(protection_links or []),
             "analog": copy.deepcopy(analog_links or []),
+            "logic": copy.deepcopy(logic_links or []),
             "comments": copy.deepcopy(comments or []),
         }
         self.push_state(state)
@@ -825,7 +834,7 @@ class SsdOptionsDialog(tk.Toplevel):
         self.destroy()
 
 
-class CircuitEditor:
+class CircuitEditor(logic_editor.LogicEditorMixin):
     def __init__(self, root):
         self.root = root
         # Тема и геометрия задаются ДО построения виджетов: база опций Tk
@@ -947,6 +956,8 @@ class CircuitEditor:
         self._bind_start = None          # ("slot", container_id, index) | ("cabinet", id, None)
         self._analog_start = None        # начало связи аналоговых цепей
         self._pending_cabinet = None
+        # Функционально-логические схемы: элементы, связи, выбранная связь
+        self._init_logic()
 
         # Всплывающие подсказки на схеме: шкафы и комплекты
         self._canvas_tooltip = None
@@ -1000,6 +1011,18 @@ class CircuitEditor:
         icons_frame.pack(fill=tk.X, padx=2, pady=2)
         for index, (label, etype) in enumerate(PALETTE_ITEMS):
             icon = self._make_tool_icon(icons_frame, etype, label)
+            icon.grid(row=index // 3, column=index % 3, padx=2, pady=2)
+            self._tool_icons[etype] = icon
+
+        # Функционально-логические схемы: отдельная группа палитры
+        tk.Frame(palette, height=2, bg="gray").pack(fill=tk.X, pady=6)
+        tk.Label(palette, text="Функциональная логика (ФЛС)",
+                 font=("Arial", 10, "bold"), bg="#f0f0f0",
+                 wraplength=168).pack(pady=2)
+        logic_frame = tk.Frame(palette, bg="#f0f0f0")
+        logic_frame.pack(fill=tk.X, padx=2, pady=2)
+        for index, (label, etype) in enumerate(logic_library.PALETTE_ITEMS):
+            icon = self._make_tool_icon(logic_frame, etype, label)
             icon.grid(row=index // 3, column=index % 3, padx=2, pady=2)
             self._tool_icons[etype] = icon
 
@@ -1059,6 +1082,7 @@ class CircuitEditor:
                               ("Комплекты", self._build_ribbon_komplekts),                              
                               ("Шкафы", self._build_ribbon_cabinets),
                               ("Контейнеры", self._build_ribbon_containers),
+                              ("Логика", self._build_ribbon_logic),
                               ("Структура", self._build_ribbon_structure),
                               ("Стандарты", self._build_ribbon_standards),
                               ("Отчёты", self._build_ribbon_reports),
@@ -5373,7 +5397,8 @@ class CircuitEditor:
         element_id = self._element_at(event.x, event.y)
         if element_id:
             element = self.elements.get(element_id)
-            if element and element.type != "cabinet":
+            if element and element.type != "cabinet" \
+                    and not logic_library.is_logic_type(element.type):
                 if self._protection_start is None:
                     self._protection_start = ("element", element_id)
                 elif self._protection_start[0] == "komplekt":
@@ -5414,6 +5439,8 @@ class CircuitEditor:
         for element in self.elements.values():
             if element.type in ("cabinet", "container", "corner", "node",
                                 "comment_node", "bushing_monitor"):
+                continue
+            if logic_library.is_logic_type(element.type):
                 continue
             x, y = self.world_to_screen(element.x, element.y)
             self.canvas.create_polygon(
@@ -6353,14 +6380,17 @@ class CircuitEditor:
                            highlightbackground=ui_theme.BORDER,
                            takefocus=False)
         try:
-            comp = library.create_component(etype, f"icon_{etype}", 0, 0, self.grid_size)
-            bx1, by1, bx2, by2 = comp.get_bounding_box()
-            bw = max(bx2 - bx1, 1.0)
-            bh = max(by2 - by1, 1.0)
-            zoom = min(0.85 * min(size / bw, size / bh), 1.2)
-            cx = (bx1 + bx2) / 2.0
-            cy = (by1 + by2) / 2.0
-            comp.draw(canvas, zoom, size / 2.0 - cx * zoom, size / 2.0 - cy * zoom)
+            if logic_library.is_logic_type(etype):
+                logic_library.draw_palette_icon(canvas, etype, size)
+            else:
+                comp = library.create_component(etype, f"icon_{etype}", 0, 0, self.grid_size)
+                bx1, by1, bx2, by2 = comp.get_bounding_box()
+                bw = max(bx2 - bx1, 1.0)
+                bh = max(by2 - by1, 1.0)
+                zoom = min(0.85 * min(size / bw, size / bh), 1.2)
+                cx = (bx1 + bx2) / 2.0
+                cy = (by1 + by2) / 2.0
+                comp.draw(canvas, zoom, size / 2.0 - cx * zoom, size / 2.0 - cy * zoom)
         except Exception:
             canvas.create_text(size / 2, size / 2, text="?", fill="#a00000")
 
@@ -6382,6 +6412,7 @@ class CircuitEditor:
             # Текст подписи всегда постоянный — лента не сдвигается.
             cell._label.config(text=cell._base_text)
             self._paint_ribbon_cell(cell)
+        self._paint_logic_kind_cells()
 
     # ================= ПАНОРАМИРОВАНИЕ (средняя кнопка) =================
     def on_pan_start(self, event):
@@ -6473,14 +6504,17 @@ class CircuitEditor:
         self._label_drag_changed = False
         self.selected_connection = None
         self.selected_analog = None
+        self.selected_logic = None
         self.selected_protection = None      # выбранная связь защит (dict)
         self.selected_container_link = None  # (id контейнера, номер слота)
         self._analog_label_boxes = []
+        self._logic_label_boxes = []
         self._dragging_point = None
         self._point_drag_changed = False
         self._protection_start = None
         self._bind_start = None
         self._analog_start = None
+        self._logic_start = None
         self._dragging_comment = None
         self._comment_drag_changed = False
         if self.selection_rect_id:
@@ -6495,6 +6529,7 @@ class CircuitEditor:
         self.connections = state["connections"]
         self.protection_links = state.get("protection", [])
         self.analog_links = state.get("analog", [])
+        self.logic_links = state.get("logic", [])
         self.comments = state.get("comments", [])
         self._reset_transient()
         self.selected_elements = list(state["selected_elements"])
@@ -6507,7 +6542,7 @@ class CircuitEditor:
         self.undo_manager.save_state(self.elements, self.connections,
                                      self.selected_elements,
                                      self.protection_links, self.analog_links,
-                                     self.comments)
+                                     self.comments, self.logic_links)
 
     def _capture_state(self):
         return {
@@ -6516,6 +6551,7 @@ class CircuitEditor:
             "selected_elements": list(self.selected_elements),
             "protection": copy.deepcopy(self.protection_links),
             "analog": copy.deepcopy(self.analog_links),
+            "logic": copy.deepcopy(self.logic_links),
             "comments": copy.deepcopy(self.comments),
         }
 
@@ -7001,11 +7037,13 @@ class CircuitEditor:
         """
         pending = any((self.link_start, self._protection_start,
                        self._bind_start, self._analog_start,
+                       self._logic_start,
                        self.resizing_element, self.selection_start,
                        self.dragging_group, self._dragging_label,
                        self._dragging_comment))
         if not (self.selected_elements or self.selected_comment
-                or pending or self.current_tool != "select"):
+                or self.selected_logic or pending
+                or self.current_tool != "select"):
             return
         self._reset_transient()
         self.selected_comment = None
@@ -7040,6 +7078,13 @@ class CircuitEditor:
             second = self._split_ref(link.get("to"))[0]
             if first in selected_set and second in selected_set:
                 self.clipboard_analog.append(copy.deepcopy(link))
+
+        self.clipboard_logic = []
+        for link in self.logic_links:
+            first = self._logic_split_ref(link.get("from"))[0]
+            second = self._logic_split_ref(link.get("to"))[0]
+            if first in selected_set and second in selected_set:
+                self.clipboard_logic.append(copy.deepcopy(link))
 
     def paste_selection(self, event=None):
         if self.clipboard is None:
@@ -7103,6 +7148,8 @@ class CircuitEditor:
                 new_el.cabinets = list(getattr(el_template, "cabinets", []))
                 new_el.slot_labels = [""] * new_el.slot_count()
                 pasted_containers.append(new_el)
+            if logic_library.is_logic_type(el_template.type):
+                logic_library.copy_element_fields(el_template, new_el)
 
             new_el.generate_ports()
             self.elements[new_id] = new_el
@@ -7156,6 +7203,19 @@ class CircuitEditor:
                      round(point[1] + offset_y, 1)]
                     for point in link["points"]]
         self.analog_links.extend(pasted_analog)
+
+        # Связи ФЛС внутри вставленного фрагмента: новые номера, чтобы не
+        # дублировать маркировку исходных связей.
+        pasted_logic = self._build_logic_links(
+            getattr(self, "clipboard_logic", []), id_mapping)
+        for link in pasted_logic:
+            link["number"] = logic_library.next_logic_number(self.logic_links)
+            if link.get("points"):
+                link["points"] = [
+                    [round(point[0] + offset_x, 1),
+                     round(point[1] + offset_y, 1)]
+                    for point in link["points"]]
+            self.logic_links.append(link)
 
         self.selected_elements = new_selected
         self.redraw_all()
@@ -7237,6 +7297,10 @@ class CircuitEditor:
             for el in self.elements.values():
                 if el.type == "node" and not self.show_all_nodes:
                     continue
+                # Выводы ФЛС — не электрические узлы: маркеры занятости
+                # на них не рисуем, иначе шина и блоки покрываются точками.
+                if logic_library.is_logic_type(el.type):
+                    continue
                 for p_name, p_data in el.ports.items():
                     sx, sy = self.world_to_screen(p_data["x"], p_data["y"])
                     r = 3 * self.zoom
@@ -7270,6 +7334,13 @@ class CircuitEditor:
                 and self.selected_analog not in self.analog_links:
             self.selected_analog = None
         self._draw_analog_points()
+
+        # 4в. Функционально-логические связи: цвет по типу, номер и сигнал
+        self._draw_logic_links()
+        if self.selected_logic is not None \
+                and self.selected_logic not in self.logic_links:
+            self.selected_logic = None
+        self._draw_logic_points()
 
         # 4в. Маркеры изломов выбранной связи контейнера
         if self.selected_container_link is not None:
@@ -7366,6 +7437,8 @@ class CircuitEditor:
         self.canvas.delete("bind_preview")
         self.canvas.delete("analog_hover")
         self.canvas.delete("analog_preview")
+        self.canvas.delete("logic_hover")
+        self.canvas.delete("logic_preview")
 
         # Всплывающие подсказки: шкафы и комплекты (не мешают во время
         # перетаскивания и панорамирования)
@@ -7383,6 +7456,10 @@ class CircuitEditor:
 
         if self.current_tool == "analog":
             self._hover_analog(event)
+            return
+
+        if self.current_tool == "logic_link":
+            self._hover_logic(event)
             return
 
         if self.current_tool == "select":
@@ -7454,10 +7531,12 @@ class CircuitEditor:
             return
         had_protection_start = (self._protection_start is not None
                                 or self._bind_start is not None
-                                or self._analog_start is not None)
+                                or self._analog_start is not None
+                                or self._logic_start is not None)
         self._protection_start = None
         self._bind_start = None
         self._analog_start = None
+        self._logic_start = None
         self.current_tool = tool
         self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
         self._mark_active_tool()
@@ -7480,6 +7559,14 @@ class CircuitEditor:
             if link in self.analog_links:
                 self._push_undo()
                 self.analog_links.remove(link)
+            self.redraw_all()
+            return
+        if self.selected_logic is not None:
+            link = self.selected_logic
+            self.selected_logic = None
+            if link in self.logic_links:
+                self._push_undo()
+                self.logic_links.remove(link)
             self.redraw_all()
             return
         if self.selected_protection is not None:
@@ -7813,7 +7900,8 @@ class CircuitEditor:
             for el_id in self.selected_elements if el_id in self.elements}
         self._drag_route_points = {}
         # Провода и аналоговые цепи: у аналоговых конец — ссылка «id#комплект»
-        for link in list(self.connections) + list(self.analog_links):
+        for link in (list(self.connections) + list(self.analog_links)
+                     + list(self.logic_links)):
             if not link.get("points"):
                 continue
             anchors = (self._split_ref(link.get("from"))[0],
@@ -7913,6 +8001,7 @@ class CircuitEditor:
             # А0) МАРКЕР ИЗЛОМА ВЫБРАННОЙ СВЯЗИ — начинаем перетаскивание
             point_hit = (self._connection_point_at(event.x, event.y)
                          or self._analog_point_at(event.x, event.y)
+                         or self._logic_point_at(event.x, event.y)
                          or self._protection_point_at(event.x, event.y)
                          or self._container_point_at(event.x, event.y))
             if point_hit is not None:
@@ -7925,6 +8014,7 @@ class CircuitEditor:
             # выбор связи снимается кликом мимо неё
             self.selected_connection = None
             self.selected_analog = None
+            self.selected_logic = None
             self.selected_protection = None
             self.selected_container_link = None
 
@@ -7996,6 +8086,20 @@ class CircuitEditor:
                             self.selected_analog = None
                     else:
                         self.selected_analog = link
+                        self.selected_elements = []
+                    self.redraw_all()
+                    return
+
+                # Связь ФЛС: клик — выбрать, Ctrl+клик — удалить
+                logic_link = self._logic_link_at(event.x, event.y)
+                if logic_link is not None:
+                    if self._ctrl_click(event):
+                        self._push_undo()
+                        self.logic_links.remove(logic_link)
+                        if self.selected_logic is logic_link:
+                            self.selected_logic = None
+                    else:
+                        self.selected_logic = logic_link
                         self.selected_elements = []
                     self.redraw_all()
                     return
@@ -8118,9 +8222,14 @@ class CircuitEditor:
             self._on_analog_click(event)
             return
 
+        # ИНСТРУМЕНТ «СВЯЗЬ ФЛС»: вывод ↔ вывод, цвет по типу связи
+        if self.current_tool == "logic_link":
+            self._on_logic_click(event)
+            return
+
         # ДОБАВЛЕНИЕ НОВЫХ ЭЛЕМЕНТОВ
         tool = self.current_tool
-        if tool in library.COMPONENT_TYPES:
+        if tool in library.COMPONENT_TYPES or logic_library.is_logic_type(tool):
             self._push_undo()
             self.add_element(tool, wx, wy)
 
@@ -8155,6 +8264,7 @@ class CircuitEditor:
         # Двойной клик по маркеру — удалить излом выбранной связи
         point_hit = (self._connection_point_at(event.x, event.y)
                      or self._analog_point_at(event.x, event.y)
+                     or self._logic_point_at(event.x, event.y)
                      or self._protection_point_at(event.x, event.y)
                      or self._container_point_at(event.x, event.y))
         if point_hit is not None:
@@ -8182,6 +8292,13 @@ class CircuitEditor:
         if link is not None:
             self.selected_analog = link
             self.edit_analog_link(link)
+            return
+
+        # Двойной клик по подписи связи ФЛС — свойства связи
+        logic_link = self._logic_label_at(event.x, event.y)
+        if logic_link is not None:
+            self.selected_logic = logic_link
+            self.edit_logic_link(logic_link)
             return
 
         # Двойной клик по проводу — вставить опорную точку в этом месте
@@ -8213,6 +8330,20 @@ class CircuitEditor:
             wx, wy = self.snap(wx, wy)
             self._push_undo()
             self.selected_analog = link
+            self.selected_connection = None
+            link.setdefault("points", []).insert(
+                index, [round(wx, 1), round(wy, 1)])
+            self.redraw_all()
+            return
+
+        # Двойной клик по линии ФЛС — вставить излом
+        segment = self._logic_segment_at(event.x, event.y)
+        if segment is not None:
+            link, index = segment
+            wx, wy = self.screen_to_world(event.x, event.y)
+            wx, wy = self.snap(wx, wy)
+            self._push_undo()
+            self.selected_logic = link
             self.selected_connection = None
             link.setdefault("points", []).insert(
                 index, [round(wx, 1), round(wy, 1)])
@@ -8270,6 +8401,12 @@ class CircuitEditor:
             self.set_tool("bind")
             self._mark_active_tool()
             self.redraw_all()
+            return
+
+        # Двойной клик по элементу ФЛС — свойства (сигналы, блок, узел)
+        if clicked_el is not None and logic_library.is_logic_type(clicked_el.type):
+            self.selected_elements = [clicked_el.id]
+            self.edit_logic_element(clicked_el)
             return
 
         if clicked_el:
@@ -8499,6 +8636,12 @@ class CircuitEditor:
         if link is not None and link[0] != "wire":
             self.edit_link_data(*link)
             return
+        # Правая кнопка по связи ФЛС — свойства связи
+        logic_link = self._logic_link_at(event.x, event.y)
+        if logic_link is not None:
+            self.selected_logic = logic_link
+            self.edit_logic_link(logic_link)
+            return
         clicked_el = self._element_at(event.x, event.y)
         if clicked_el:
             self._push_undo()
@@ -8544,6 +8687,12 @@ class CircuitEditor:
             if self._split_ref(link.get("from"))[0] != el_id
             and self._split_ref(link.get("to"))[0] != el_id
         ]
+        # Связи ФЛС удалённого элемента
+        self.logic_links = [
+            link for link in self.logic_links
+            if self._logic_split_ref(link.get("from"))[0] != el_id
+            and self._logic_split_ref(link.get("to"))[0] != el_id
+        ]
 
     def create_connection(self, id1, id2, port1, port2):
         for c in self.connections:
@@ -8562,6 +8711,9 @@ class CircuitEditor:
             self._push_undo()
             self.elements = {}
             self.connections = []
+            self.analog_links = []
+            self.protection_links = []
+            self.logic_links = []
             self.comments = []
             self.selected_comment = None
             self._reset_transient()
@@ -9235,7 +9387,8 @@ class CircuitEditor:
                             key=lambda el: self._natural_key(el.name))
         equipment = [el for el in self.elements.values()
                      if el.type not in ("cabinet", "container", "node",
-                                        "comment_node", "corner")]
+                                        "comment_node", "corner")
+                     and not logic_library.is_logic_type(el.type)]
         equipment.sort(key=lambda el: self._natural_key(el.name))
 
         total_komplets = sum(len(getattr(el, "komplets", [])) for el in cabinets)
@@ -11034,7 +11187,9 @@ class CircuitEditor:
                         canvas.create_text(mid_x - my * 11, mid_y + mx * 11,
                                            text=signals, fill=self.ANALOG_COLOR,
                                            font=("Arial", 6), anchor="center")
-        # 8. Комментарии к чертежу — поверх схемы
+        # 8. Связи ФЛС
+        self._draw_logic_scene(canvas)
+        # 9. Комментарии к чертежу — поверх схемы
         self._draw_comment_scene(canvas)
 
     @staticmethod
@@ -11074,6 +11229,8 @@ class CircuitEditor:
         for element in self.elements.values():
             if element.type in ("cabinet", "container", "corner", "node",
                                 "comment_node", "bushing_monitor"):
+                continue
+            if logic_library.is_logic_type(element.type):
                 continue
             canvas.create_polygon(
                 element.x, element.y - node_r,
@@ -11350,6 +11507,8 @@ class CircuitEditor:
                                              [[] for _ in range(el.slot_count())])
                     ],
                 }
+            if logic_library.is_logic_type(el.type):
+                item["logic"] = logic_library.element_payload(el)
             data["elements"].append(item)
 
         for c in self.connections:
@@ -11387,6 +11546,9 @@ class CircuitEditor:
         if self.analog_links:
             data["analog_links"] = [self._analog_record(link)
                                     for link in self.analog_links]
+        if self.logic_links:
+            data["logic_links"] = [self._logic_link_record(link)
+                                   for link in self.logic_links]
         # Комментарии к чертежу: точка привязки, вид и текст
         if self.comments:
             data["comments"] = [
@@ -11464,6 +11626,8 @@ class CircuitEditor:
             data.get("protection_links", []))
         self.analog_links = self._build_analog_links(
             data.get("analog_links", []))
+        self.logic_links = self._build_logic_links(
+            data.get("logic_links", []))
         self.comments = self._build_comments(data.get("comments", []))
         self.selected_comment = None
         self._reset_transient()
@@ -11542,6 +11706,8 @@ class CircuitEditor:
                 self._restore_cabinet(el, item.get("cabinet") or {})
             if el.type == "container":
                 self._restore_container(el, item.get("container") or {})
+            if logic_library.is_logic_type(el.type):
+                logic_library.restore_element(el, item.get("logic") or {})
 
             el.generate_ports()
             elements[item["id"]] = el
@@ -11715,6 +11881,9 @@ class CircuitEditor:
                 if new_el.type == "container":
                     self._restore_container(new_el, item.get("container") or {})
                     inserted_containers.append(new_el)
+                if logic_library.is_logic_type(new_el.type):
+                    logic_library.restore_element(
+                        new_el, item.get("logic") or {})
 
                 new_el.generate_ports()
                 self.elements[new_id] = new_el
@@ -11771,6 +11940,23 @@ class CircuitEditor:
                 if key not in existing_analog:
                     self.analog_links.append(link)
                     existing_analog.add(key)
+
+            # 3-бис. Связи ФЛС внутри вставленного фрагмента
+            inserted_logic = self._build_logic_links(
+                data.get("logic_links", []), id_mapping)
+            for link in inserted_logic:
+                if link.get("points"):
+                    link["points"] = [
+                        [round(point[0] + offset_x, 1),
+                         round(point[1] + offset_y, 1)]
+                        for point in link["points"]]
+            existing_logic = {(link["from"], link["to"])
+                              for link in self.logic_links}
+            for link in inserted_logic:
+                key = (link["from"], link["to"])
+                if key not in existing_logic:
+                    self.logic_links.append(link)
+                    existing_logic.add(key)
 
             # 3a. Защитные связи внутри вставленного фрагмента
             inserted_links = self._build_protection_links(
