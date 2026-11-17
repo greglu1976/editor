@@ -361,6 +361,7 @@ def test_gui(data):
         print("  --   tkinter нет: окно не проверяется")
         return
     try:
+        import ea_merge as em
         import ea_ui
         root = tk.Tk()
     except Exception as exc:                      # noqa: BLE001
@@ -447,6 +448,24 @@ def test_gui(data):
               "все шкафы выбраны по умолчанию")
         check(dialog.vars["date"].get().count(".") == 2,
               "дата заполнена по умолчанию")
+        existing = {em.norm_cypher(item.get("cypher"))
+                    for _kind, item in dialog.items}
+        catalog_cabinet = next(
+            cabinet for cabinet in komplekts.typical_cabinets()
+            if cabinet.get("komplets")
+            and em.norm_cypher(cabinet.get("code")) not in existing)
+        original_choose = ea_ui.choose_catalog_cabinets
+        ea_ui.choose_catalog_cabinets = lambda *args, **kwargs: [catalog_cabinet]
+        try:
+            dialog.add_catalog()
+        finally:
+            ea_ui.choose_catalog_cabinets = original_choose
+        root.update()
+        check(len(dialog.cyphers) == 29 and dialog.listbox.size() == 29
+              and "каталог" in dialog.listbox.get(28),
+              "в диалог нового стандарта добавлен типовой шкаф каталога")
+        check(dialog.listbox.selection_includes(28),
+              "добавленный типовой шкаф выбран")
         dialog.grab_release()
         dialog.destroy()
     except Exception as exc:                      # noqa: BLE001
@@ -618,6 +637,7 @@ def test_editor():
         check(not window._changed, "после сохранения правок не осталось")
 
         # структурные операции: дерево, контекстное меню, новые узлы
+        import ea_merge as em
         import ea_structure as st
         kinds = {node[0] for node in window._nodes.values()}
         check({"meta", "text", "table", "figure", "cabinet"} <= kinds,
@@ -679,6 +699,29 @@ def test_editor():
               "типовой комплект добавлен в шкаф стандарта")
         check(window._nodes[window._current_node][-1] is added[-1],
               "новый комплект выбран в дереве редактора")
+
+        cabs_iid = next(key for key, node in window._nodes.items()
+                        if node == ("root", "cabs"))
+        menu = window._menu_items(cabs_iid, window._nodes[cabs_iid])
+        check(any("типовой шкаф" in label for label, _cmd in menu),
+              "в меню шкафов есть «Добавить типовой шкаф из каталога»")
+        existing = {em.norm_cypher(item.get("cypher"))
+                    for item in es.cabinets(window.data)}
+        catalog_cabinet = next(
+            cabinet for cabinet in komplekts.typical_cabinets()
+            if cabinet.get("komplets")
+            and em.norm_cypher(cabinet.get("code")) not in existing)
+        window._choose_typical_cabinet = lambda: catalog_cabinet
+        before_cabs = len(es.cabinets(window.data))
+        window._add_typical_cabinet(cabs_iid)
+        root.update()
+        check(len(es.cabinets(window.data)) == before_cabs + 1
+              and es.cabinet(window.data, catalog_cabinet["code"]) is not None,
+              "типовой шкаф добавлен в стандарт")
+        check(any(table.get("cabinet") == catalog_cabinet["code"]
+                  for table in es.iter_tables(window.data)),
+              "таблицы-формы типового шкафа созданы")
+        del window._choose_typical_cabinet
 
         del window._choose_typical_kit
         original_wait = tk.Toplevel.wait_window
@@ -839,6 +882,81 @@ def test_merge_all_cabinets():
           "слияние подмножества тоже валидно и перенумеровано")
 
 
+def test_typical_transfer():
+    """Типовой шкаф/комплект каталога переносится в стандарт с данными."""
+    print("13. перенос данных типовых шкафов и комплектов")
+    import ea_merge as em
+
+    def rich(cabinet):
+        return any(komplekts.effective_ieds(kit) and kit.get("functions")
+                   and kit.get("analog_inputs")
+                   for kit in cabinet.get("komplets") or [])
+
+    target = es.load(REFERENCE)
+    existing = {em.norm_cypher(item.get("cypher"))
+                for item in es.cabinets(target)}
+    source = next(cabinet for cabinet in komplekts.typical_cabinets()
+                  if cabinet.get("komplets") and rich(cabinet)
+                  and em.norm_cypher(cabinet.get("code")) not in existing)
+
+    card = ea_catalog.cabinet_from_catalog(source)
+    check(card["cypher"] == source["code"], "шифр типового шкафа перенесён")
+    check(card["kits"] and card["kits"][0]["ieds"],
+          "комплекты и ИЭУ типового шкафа перенесены")
+    ied = next(kit["ieds"][0] for kit in card["kits"] if kit["ieds"])
+    check(bool(ied["functions"]), "функции ИЭУ перенесены")
+    check(bool(ied["analog_inputs"]), "аналоговые измерения перенесены")
+    check(bool(card["power_supplies"]), "вводы питания перенесены")
+    signals = cabs.signals_for(source)
+    if signals.get("io_in") or signals.get("io_out"):
+        check(bool(ied["inner_discrete_circuits"]),
+              "дискретные цепи перенесены")
+    if signals.get("goose_in"):
+        check(bool(ied["incoming_goose_signals"]),
+              "входящие GOOSE перенесены")
+    if signals.get("test_blocks"):
+        check(bool(card["components"]),
+              "испытательные блоки перенесены в компоненты")
+
+    result = em.add_catalog_cabinet(target, source)
+    data = result["data"]
+    check(es.cabinet(data, source["code"]) is not None,
+          "типовой шкаф добавлен в стандарт")
+    check(len(result["subsection"]["tables"]) == len(es.KINDS),
+          "созданы таблицы-формы всех видов: %d"
+          % len(result["subsection"]["tables"]))
+    check(em.validate_merged(data) == [], "стандарт с типовым шкафом валиден")
+    headers, rows = es.table_view(data, result["subsection"]["tables"][1])
+    check(bool(headers) and bool(rows),
+          "данные шкафа видны в таблице-форме")
+    try:
+        em.add_catalog_cabinet(data, source)
+    except em.MergeError:
+        check(True, "повторное добавление шкафа отклонено")
+    else:
+        check(False, "повторное добавление шкафа отклонено")
+
+    kit_source = next(kit for kit in komplekts.typical_komplekts()
+                      if kit.get("test_block_list"))
+    kit = ea_catalog.kit_from_catalog(kit_source, number=3)
+    check(kit["number"] == 3 and bool(kit["ieds"]),
+          "типовой комплект перенесён с ИЭУ")
+    cabinet = {"components": []}
+    added = ea_catalog.add_test_blocks(cabinet, kit_source)
+    check(bool(added) and len(cabinet["components"]) == len(added),
+          "испытательные блоки комплекта добавлены в шкаф")
+    check(ea_catalog.add_test_blocks(cabinet, kit_source) == [],
+          "повторно блоки не добавляются")
+
+    one = ns.build(data, meta={"code": "СТО (тест)", "name": "Тест",
+                               "date": "01.01.2027"},
+                   keep=["ШЭТ 431.12-1", source["code"]])
+    check(not one["problems"], "новый стандарт с типовым шкафом валиден")
+    check([cab["cypher"] for cab in one["data"]["cabinets"]]
+          == ["ШЭТ 431.12-1", source["code"]],
+          "в новый стандарт попали только выбранные шкафы")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
@@ -855,6 +973,7 @@ def main(argv=None):
     test_edit_model()
     test_structure_ops(data)
     test_merge_all_cabinets()
+    test_typical_transfer()
     if not args.no_gui:
         test_gui(data)
         test_fields()

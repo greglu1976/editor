@@ -29,6 +29,7 @@ import ea_editor
 import ea_merge as em
 import ea_new_standard as ns
 import ea_standard as es
+import komplekts
 import ui_theme
 
 
@@ -720,6 +721,109 @@ class StandardFieldsDialog(tk.Toplevel):
 
 
 # ---------------------------------------------------------------------------
+# Выбор типовых шкафов каталога
+# ---------------------------------------------------------------------------
+def choose_catalog_cabinets(parent, cabinets, title="Типовые шкафы каталога"):
+    """Выбрать несколько шкафов каталога. Возвращает список записей."""
+    if not cabinets:
+        messagebox.showinfo(title, "Все подходящие шкафы уже добавлены.",
+                            parent=parent)
+        return []
+    dialog = tk.Toplevel(parent)
+    dialog.title(title)
+    dialog.transient(parent)
+    dialog.resizable(False, False)
+
+    find = tk.Frame(dialog)
+    find.pack(fill=tk.X, padx=10, pady=(8, 4))
+    tk.Label(find, text="Поиск:", font=ui_theme.font(9)).pack(side=tk.LEFT)
+    query = tk.StringVar()
+    tk.Entry(find, textvariable=query, width=46,
+             font=ui_theme.font(9)).pack(side=tk.LEFT, padx=(6, 0))
+
+    frame = tk.Frame(dialog)
+    frame.pack(fill=tk.BOTH, expand=True, padx=10)
+    listbox = tk.Listbox(frame, selectmode="extended", width=82, height=16,
+                         activestyle="dotbox", exportselection=False,
+                         font=ui_theme.font(9))
+    scroll = tk.Scrollbar(frame, orient="vertical", command=listbox.yview)
+    listbox.configure(yscrollcommand=scroll.set)
+    scroll.pack(side=tk.RIGHT, fill=tk.Y)
+    listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    info = tk.Label(dialog, text="", anchor="w", justify="left",
+                    wraplength=620, font=ui_theme.font(9))
+    info.pack(fill=tk.X, padx=10, pady=6)
+
+    state = {"visible": list(cabinets)}
+    result = []
+
+    def describe(cabinet):
+        lines = ["Шифр: " + (cabinet.get("code") or "—")]
+        if cabinet.get("name"):
+            lines.append("Наименование: " + cabinet["name"])
+        lines.append("Комплектов: %d" % len(cabinet.get("komplets") or []))
+        if cabinet.get("its_functions"):
+            lines.append("Функции: " + ", ".join(cabinet["its_functions"]))
+        return "\n".join(lines)
+
+    def refresh():
+        needle = query.get().strip().lower()
+        visible = []
+        for cabinet in cabinets:
+            haystack = " ".join([
+                cabinet.get("code") or "", cabinet.get("name") or "",
+                cabinet.get("title") or "", cabinet.get("group") or "",
+                cabinet.get("standard_title") or "",
+                ", ".join(cabinet.get("its_functions") or []),
+            ]).lower()
+            if needle and needle not in haystack:
+                continue
+            visible.append(cabinet)
+        state["visible"] = visible
+        listbox.delete(0, tk.END)
+        for cabinet in visible:
+            listbox.insert(tk.END, komplekts.cabinet_label(cabinet))
+        if visible:
+            listbox.selection_clear(0, tk.END)
+            listbox.selection_set(0)
+            listbox.activate(0)
+            info.config(text=describe(visible[0]))
+        else:
+            info.config(text="Ничего не найдено.")
+
+    def on_select(event=None):
+        selection = listbox.curselection()
+        if selection:
+            info.config(text=describe(state["visible"][selection[0]]))
+
+    def accept(event=None):
+        selection = listbox.curselection()
+        if not selection:
+            return
+        result.extend(state["visible"][index] for index in selection)
+        dialog.destroy()
+
+    buttons = tk.Frame(dialog)
+    buttons.pack(fill=tk.X, padx=10, pady=(0, 8))
+    tk.Button(buttons, text="Отмена", width=10, command=dialog.destroy,
+              font=ui_theme.font(9)).pack(side=tk.RIGHT)
+    tk.Button(buttons, text="Добавить", width=12, command=accept,
+              font=ui_theme.font(9)).pack(side=tk.RIGHT, padx=(0, 6))
+
+    listbox.bind("<<ListboxSelect>>", on_select)
+    listbox.bind("<Double-Button-1>", accept)
+    dialog.bind("<Return>", accept)
+    dialog.bind("<Escape>", lambda event: dialog.destroy())
+    query.trace_add("write", lambda *args: refresh())
+    refresh()
+    _place_on_parent(dialog, parent)
+    dialog.grab_set()
+    dialog.wait_window(dialog)
+    return result
+
+
+# ---------------------------------------------------------------------------
 # Новый стандарт на базе выбранного
 # ---------------------------------------------------------------------------
 class NewStandardDialog(tk.Toplevel):
@@ -730,11 +834,12 @@ class NewStandardDialog(tk.Toplevel):
         self.window = window
         self.data = window._data
         self.result = None
-        self.cyphers = []
         # Все шкафы всех стандартов, а не только текущего тома.
         self.entries = em.load_catalog_cached()
-        for entry in self.entries:
-            self.cyphers.append(entry["cypher"])
+        # Строка списка: («standard», запись каталога стандартов) или
+        # («catalog», типовой шкаф каталога редактора).
+        self.items = [("standard", entry) for entry in self.entries]
+        self.cyphers = [entry["cypher"] for entry in self.entries]
         self.title("Новый стандарт на базе выбранного")
         self.transient(window)
         self.resizable(False, False)
@@ -780,10 +885,8 @@ class NewStandardDialog(tk.Toplevel):
         scroll.config(command=self.listbox.yview)
         scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        for entry in self.entries:
-            self.listbox.insert(
-                tk.END, "%s — %s [%s]"
-                % (entry["cypher"], entry["name"], entry["volume"]))
+        for kind, payload in self.items:
+            self.listbox.insert(tk.END, self._label(kind, payload))
         self.listbox.selection_set(0, tk.END)
         row += 1
         buttons = tk.Frame(form)
@@ -793,6 +896,8 @@ class NewStandardDialog(tk.Toplevel):
                 lambda: self.listbox.selection_set(0, tk.END), side=tk.LEFT)
         _button(buttons, "Ни одного",
                 lambda: self.listbox.selection_clear(0, tk.END), side=tk.LEFT)
+        _button(buttons, "Из каталога…", self.add_catalog, width=16,
+                side=tk.LEFT)
         row += 1
 
         tk.Label(form, text="Замены (старое => новое, по одной в строке):",
@@ -818,6 +923,33 @@ class NewStandardDialog(tk.Toplevel):
         _button(footer, "Создать…", self.create, width=14, side=tk.RIGHT)
         _button(footer, "Отмена", self.destroy, width=10, side=tk.RIGHT)
 
+    @staticmethod
+    def _label(kind, payload):
+        if kind == "catalog":
+            return "%s — %s [каталог]" % (payload.get("code") or "",
+                                          payload.get("name") or "")
+        return "%s — %s [%s]" % (payload["cypher"], payload["name"],
+                                 payload["volume"])
+
+    @staticmethod
+    def _cypher(kind, payload):
+        return str(payload.get("cypher") or payload.get("code") or "")
+
+    def add_catalog(self):
+        """Дополнить список типовыми шкафами каталога редактора."""
+        existing = {em.norm_cypher(self._cypher(kind, payload))
+                    for kind, payload in self.items}
+        cabinets = [cabinet for cabinet in komplekts.typical_cabinets()
+                    if cabinet.get("komplets")
+                    and em.norm_cypher(cabinet.get("code")) not in existing]
+        chosen = choose_catalog_cabinets(self, cabinets)
+        for cabinet in chosen:
+            self.items.append(("catalog", cabinet))
+            self.cyphers.append(self._cypher("catalog", cabinet))
+            self.listbox.insert(tk.END, self._label("catalog", cabinet))
+            self.listbox.selection_set(tk.END)
+            self.listbox.see(tk.END)
+
     def create(self):
         meta = {key: var.get().strip() for key, var in self.vars.items()}
         if not meta["code"] or not meta["name"]:
@@ -835,8 +967,11 @@ class NewStandardDialog(tk.Toplevel):
             messagebox.showwarning("Новый стандарт",
                                    "Оставьте хотя бы один шкаф.", parent=self)
             return
-        chosen = [self.entries[index] for index in selected]
-        keep = [entry["cypher"] for entry in chosen]
+        chosen = [self.items[index] for index in selected]
+        standards = [payload for kind, payload in chosen
+                     if kind == "standard"]
+        catalog = [payload for kind, payload in chosen if kind == "catalog"]
+        keep = [self._cypher(kind, payload) for kind, payload in chosen]
         if len(keep) == len(self.cyphers):
             keep = None
         replacements = [
@@ -845,7 +980,11 @@ class NewStandardDialog(tk.Toplevel):
         try:
             # Собрать шкафы всех выбранных стандартов в один источник:
             # переносим формы/рисунки и сводим нумерацию, иначе проверка не пройдёт.
-            source = em.merge_cabinets(self.data, chosen)
+            source = em.merge_cabinets(self.data, standards)
+            # Типовые шкафы каталога переносятся вместе с данными: карточка
+            # шкафа, комплекты, ИЭУ, измерения и таблицы-формы.
+            for cabinet in catalog:
+                source = em.add_catalog_cabinet(source, cabinet)["data"]
             result = ns.build(source, meta=meta,
                               replacements=replacements, keep=keep,
                               renumber=self.renumber.get())

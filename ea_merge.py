@@ -9,6 +9,10 @@
 уникальный диапазон: так текстовые ссылки «Таблица 5.x» не схлопываются.
 Финальная сквозная нумерация собирает всё в один ряд ``5.2…``.
 
+Кроме шкафов из файлов стандартов, модуль умеет добавлять типовой шкаф
+каталога редактора (:func:`add_catalog_cabinet`): его карточка и данные
+переносятся в стандарт, а для всех видов данных создаются таблицы-формы.
+
 Модуль не зависит от Tk и тестируется напрямую.
 """
 
@@ -18,6 +22,7 @@ import copy
 import os
 import re
 
+import ea_catalog as ec
 import ea_new_standard as ns
 import ea_standard as es
 import ea_structure as st
@@ -34,6 +39,56 @@ CANONICAL_STARTS = {"subs": 3, "tables": 2, "figures": 1}
 
 #: Шаг уникального диапазона при предварительной перенумерации тома.
 _BAND = 1000
+
+#: Названия таблиц-форм нового типового шкафа (вид → шаблон имени).
+_FORM_NAMES = {
+    "description": "Описание ШЭТ %s",
+    "analog_inputs": "Входные аналоговые измерения ИЭУ %s",
+    "inner_discrete_circuits": "Внутренние дискретные цепи ИЭУ %s",
+    "incoming_goose_signals":
+        "Информационные сигналы в составе входящих сообщений ИЭУ %s",
+    "functional_buttons": "Функциональные клавиши ИЭУ %s",
+    "leds": "Светодиодная сигнализация ИЭУ %s",
+    "datasets": "Сообщения и отчеты, исходящие от ИЭУ %s",
+    "goose_signals":
+        "Информационные сигналы в составе исходящих сообщений ИЭУ %s",
+    "report_signals":
+        "Информационные сигналы в составе исходящих отчетов ИЭУ %s",
+    "osc_analog_signals": "Осциллографируемые аналоговые сигналы ИЭУ %s",
+    "control_commands": "Команды управления от АСУ ТП для ИЭУ %s",
+    "functions": "Основные параметры функций РЗА ИЭУ %s",
+    "terminal_blocks": "Ряды зажимов шкафа %s",
+    "components": "Основные компоненты шкафа %s",
+}
+
+#: Строки формы «Описание ШЭТ», если в стандарте ещё нет такой таблицы.
+_DESCRIPTION_FORM = (
+    "Шифр шкафа",
+    "Архитектура построения ПС",
+    "Наименование шкафа",
+    "Управляемый элемент",
+    "Защищаемый элемент",
+    "Основные функции",
+    "Область применения в рамках типовых схем РУ",
+    "Функции ИТС в составе шкафа",
+    "Вводы питания оперативного постоянного тока шкафа",
+    "Цифровые порты",
+    "Входные аналоговые измерения",
+    "Внутренние дискретные цепи",
+    "Информационные сигналы в составе входящих сообщений",
+    "Функциональные клавиши",
+    "Светодиодная сигнализация",
+    "Сообщения и отчеты, исходящие от ИЭУ",
+    "Информационные сигналы в составе исходящих сообщений",
+    "Информационные сигналы в составе исходящих отчетов",
+    "Осциллографируемые аналоговые сигналы",
+    "Команды управления от АСУ ТП",
+    "Основные параметры функций РЗА",
+    "Ряды зажимов",
+    "Основные компоненты шкафа",
+    "Эскиз общего вида",
+    "Структурно-функциональная схема",
+)
 
 _CACHE = {"key": None, "entries": None}
 
@@ -239,3 +294,67 @@ def merge_cabinets(target, additions, starts=None):
             raise MergeError("после слияния невалидная структура: %s"
                              % "; ".join(problems[:5]))
     return data
+
+
+# ---------------------------------------------------------------------------
+# Типовой шкаф каталога
+# ---------------------------------------------------------------------------
+def _description_form(data):
+    """Форма таблицы «Описание ШЭТ»: из стандарта или канонический набор."""
+    for table in es.iter_tables(data):
+        if es.table_kind(table.get("name")) == "description":
+            rows = [copy.deepcopy(row) for row in table.get("rows") or []]
+            if rows:
+                return rows
+    return [{"content": [label, ""],
+             "is_header_first_row": index == 0,
+             "is_header_second_row": False}
+            for index, label in enumerate(_DESCRIPTION_FORM)]
+
+
+def _form_table(data, cypher, kind):
+    """Таблица-форма для вида данных шкафа (строки берутся из карточки)."""
+    table = st.new_table(data, {"name": _FORM_NAMES[kind] % cypher,
+                                "cabinet": cypher, "kind": kind})
+    if kind == "description":
+        table["rows"] = _description_form(data)
+    return table
+
+
+def add_catalog_cabinet(target, cabinet, starts=None):
+    """Добавить типовой шкаф каталога: карточку и подраздел с формами.
+
+    ``cabinet`` — запись каталога шкафов (:mod:`cabs`/:mod:`komplekts`).
+    Данные карточки (комплекты, ИЭУ, функции, измерения, сигналы и
+    испытательные блоки) переносятся в стандарт через
+    :func:`ea_catalog.cabinet_from_catalog`; таблицы-формы создаются для всех
+    видов данных, поэтому шкаф сразу виден в документе.
+
+    Возвращает dict: ``data`` (новый стандарт), ``cabinet`` (карточка в нём)
+    и ``subsection`` (созданный подраздел).
+    """
+    if not isinstance(target, dict):
+        raise MergeError("целевой стандарт должен быть объектом JSON")
+    card = ec.cabinet_from_catalog(cabinet)
+    cypher = card["cypher"]
+    code = norm_cypher(cypher)
+    data = copy.deepcopy(target)
+    if any(norm_cypher(item.get("cypher")) == code
+           for item in es.cabinets(data)):
+        raise MergeError("шкаф %s уже есть в стандарте" % cypher)
+
+    st.add(data.setdefault("cabinets", []), card)
+    section = _target_section(data)
+    sub = st.new_subsection(data, section, header=card.get("name") or cypher)
+    st.add(section.setdefault("subsections", []), sub)
+    for kind in _FORM_NAMES:
+        st.add(sub.setdefault("tables", []), _form_table(data, cypher, kind))
+
+    ns.renumber_standard(data, starts=starts or CANONICAL_STARTS)
+    problems = validate_merged(data)
+    if problems:
+        raise MergeError("после добавления шкафа %s невалидная структура: %s"
+                         % (cypher, "; ".join(problems[:5])))
+    return {"data": data,
+            "cabinet": es.cabinet(data, cypher),
+            "subsection": sub}

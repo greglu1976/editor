@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Мост «стандарт EA → каталог шкафов редактора».
+"""Мост «стандарт EA ↔ каталог шкафов редактора».
 
 Стандарт в структуре EA (``EA/*.json``, см. :mod:`ea_standard`) хранит шкафы
 сам, а редактор схем размещает шкафы из каталога :mod:`cabs`. Здесь шкаф
@@ -15,7 +15,10 @@
 * иначе запись собирается из полей шкафа EA и сохраняется через
   :func:`cabs.save_cabinet`;
 * комплект для схемы (:func:`kit_entry`) собирается из комплекта EA, но
-  запись каталога при этом не создаётся — её создаёт размещение шкафа.
+  запись каталога при этом не создаётся — её создаёт размещение шкафа;
+* обратное направление — :func:`cabinet_from_catalog` и
+  :func:`kit_from_catalog`: типовой шкаф или комплект каталога переносится
+  в стандарт вместе с карточкой, комплектами, ИЭУ, измерениями и сигналами.
 
     python ea_catalog.py --check
     python ea_catalog.py --cabinet 431.11-1
@@ -333,12 +336,123 @@ def update_standard_cabinets(data):
 # ---------------------------------------------------------------------------
 # Комплекты: каталог → стандарт → схема
 # ---------------------------------------------------------------------------
-def kit_from_catalog(kit, number=None):
+def _split_text(value):
+    """«а; б; в» или список → список непустых строк."""
+    if isinstance(value, (list, tuple)):
+        return [str(item).strip() for item in value if str(item).strip()]
+    return [part.strip() for part in re.split(r"[;\n]+", str(value or ""))
+            if part.strip()]
+
+
+def test_block_components(cabinet, kit=None):
+    """Строки «Основные компоненты» по испытательным блокам каталога.
+
+    Испытательные блоки лежат отдельно от карточки (``cabs_signals.json``);
+    если для шкафа их нет, берётся список блоков самого комплекта.
+    """
+    rows = []
+    blocks = (cabs.signals_for(cabinet) or {}).get("test_blocks") or []
+    for item in blocks:
+        rows.append({
+            "name": item.get("name") or "Испытательный блок",
+            "description": item.get("spec") or "",
+            "quantity": str(item.get("count") or ""),
+        })
+    if not rows:
+        for item in (kit or {}).get("test_block_list") or []:
+            if not isinstance(item, dict):
+                continue
+            rows.append({
+                "name": item.get("name") or "Испытательный блок",
+                "description": item.get("circuits") or "",
+                "quantity": str(item.get("count") or ""),
+            })
+    return rows
+
+
+def add_test_blocks(cabinet, kit):
+    """Дополнить компоненты шкафа испытательными блоками комплекта.
+
+    Если в шкафу уже есть испытательные блоки, новые не добавляются: иначе
+    повторное добавление комплекта удвоит строки таблицы компонентов.
+    Возвращает список добавленных строк.
+    """
+    components = cabinet.get("components")
+    if not isinstance(components, list):
+        components = []
+        cabinet["components"] = components
+    if any("испытательн" in str(item.get("name") or "").lower()
+           for item in components):
+        return []
+    added = []
+    for row in test_block_components({"key": kit.get("cabinet_key")}, kit):
+        components.append(row)
+        added.append(row)
+    return added
+
+
+def _discrete_rows(signals):
+    """Входные и выходные дискретные цепи из сигналов каталога."""
+    rows = []
+    for kind, direction in (("io_in", "Вход"), ("io_out", "Выход")):
+        for item in signals.get(kind) or []:
+            rows.append({
+                "discrete_signal": item.get("name") or "",
+                "direction": direction,
+                "note": item.get("details") or "",
+            })
+    return rows
+
+
+def _incoming_rows(signals):
+    """Входящие GOOSE-сообщения из сигналов каталога."""
+    return [{
+        "signal": item.get("name") or "",
+        "info_model": item.get("code") or "",
+        "source": item.get("details") or "",
+        "max_number": "",
+        "source_number": None,
+        "RAS": "-",
+        "note": "",
+    } for item in signals.get("goose_in") or []]
+
+
+def _outgoing_dataset(signals):
+    """Исходящие GOOSE-сообщения одним набором данных ИЭУ."""
+    items = signals.get("goose_out") or []
+    if not items:
+        return []
+    return [{
+        "name": "Исходящие сообщения",
+        "id": "",
+        "sender": "",
+        "class": "",
+        "mapping": "",
+        "note": "",
+        "signals": [{
+            "name": item.get("name") or "",
+            "info_model": item.get("code") or "",
+            "destination": item.get("details") or "",
+            "note": "",
+            "status": "",
+            "KT": "",
+            "cus": "",
+            "rdu": "",
+            "RAS": "",
+            "DO": "",
+            "DA": "",
+        } for item in items],
+    }]
+
+
+def kit_from_catalog(kit, number=None, cabinet=None):
     """Типовой комплект каталога в формате комплекта стандарта EA.
 
-    Обратная сторона :func:`_kit_record`: функции и аналоговые измерения
-    каталога раскладываются по ИЭУ первого комплекта. Происхождение
-    сохраняется в описании, если у комплекта нет своего описания.
+    Обратная сторона :func:`_kit_record`: функции, аналоговые измерения и
+    состав ИЭУ переносятся в комплект. Если передан шкаф каталога, в первое
+    ИЭУ попадают ещё и сигналы из ``cabs_signals.json``: дискретные цепи,
+    входящие GOOSE и исходящие сообщения. Происхождение сохраняется в
+    описании, если у комплекта нет своего описания.
     """
     entry = komplekts.normalize_komplekt(kit)
     description = entry.get("desc") or ""
@@ -368,13 +482,71 @@ def kit_from_catalog(kit, number=None):
         "contacts_count": row.get("contacts") or "",
         "note": row.get("note") or "",
     } for row in entry.get("analog_inputs") or [] if isinstance(row, dict)]
+    signals = cabs.signals_for(cabinet) if cabinet else {}
+    ports = [{"description": text}
+             for text in _split_text((cabinet or {}).get("ports"))]
     for index, ied in enumerate(komplekts.effective_ieds(entry)):
         record = st.new_ied(None, result, number=index + 1)
         if index == 0:
             record["functions"] = copy.deepcopy(functions)
             record["analog_inputs"] = copy.deepcopy(analog)
+            if ports:
+                record["ports"] = copy.deepcopy(ports)
+            if signals:
+                record["inner_discrete_circuits"] = _discrete_rows(signals)
+                record["incoming_goose_signals"] = _incoming_rows(signals)
+                record["datasets"] = _outgoing_dataset(signals)
         result["ieds"].append(record)
     return result
+
+
+def cabinet_from_catalog(cabinet):
+    """Типовой шкаф каталога → карточка шкафа стандарта EA.
+
+    Переносятся реквизиты карточки, вводы питания, испытательные блоки и
+    комплекты со своими ИЭУ, функциями, аналоговыми измерениями и сигналами.
+    Такой карточке хватает данных, чтобы таблицы-формы стандарта показали
+    содержимое шкафа без ручного заполнения.
+    """
+    if not isinstance(cabinet, dict):
+        raise ValueError("ожидалась запись каталога шкафов")
+    cypher = str(cabinet.get("code") or "").strip()
+    if not cypher:
+        raise ValueError("у шкафа каталога нет шифра")
+    controlled = cabinet.get("controlled") or []
+    components = []
+    seen = set()
+    for kit in cabinet.get("komplets") or []:
+        for row in test_block_components(cabinet, kit):
+            key = (row["name"], row["description"], row["quantity"])
+            if key in seen:
+                continue
+            seen.add(key)
+            components.append(row)
+    card = {
+        "cypher": cypher,
+        "architecture": cabinet.get("architecture") or "",
+        "name": cabinet.get("name") or cabinet.get("title") or "",
+        "controllable_element": ", ".join(_split_text(controlled)),
+        "protected_element": cabinet.get("protected") or "",
+        "scope": cabinet.get("applicability") or cabinet.get("voltage") or "",
+        "description": cabinet.get("description") or "",
+        "type": "ШЭТ" if cabinet.get("standard_key") else "",
+        "group": cabinet.get("group") or "",
+        "tag": ", ".join(komplekts.tags_of(cabinet)),
+        "power_supplies": [{"purpose": text} for text in
+                           _split_text(cabinet.get("power_supply"))],
+        "components": components,
+        "terminal_blocks": [],
+        "containers": list(cabinet.get("containers") or []),
+        "kits": [],
+    }
+    for index, kit in enumerate(cabinet.get("komplets") or []):
+        card["kits"].append(kit_from_catalog(kit, number=index + 1,
+                                             cabinet=cabinet))
+    if not card["kits"]:
+        card["kits"].append(st.new_kit(None, card, number=1))
+    return card
 
 
 def kit_entry(data, cabinet_item, kit):

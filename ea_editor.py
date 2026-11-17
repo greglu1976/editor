@@ -51,6 +51,101 @@ def _button(parent, text, command, width=0, side=tk.LEFT, padx=(0, 4)):
     return button
 
 
+def choose_from_catalog(parent, items, title, label, describe):
+    """Выбор одной записи каталога: поиск, подпись и описание."""
+    dialog = tk.Toplevel(parent)
+    dialog.title(title)
+    dialog.transient(parent)
+    dialog.resizable(False, False)
+
+    find = tk.Frame(dialog)
+    find.pack(fill=tk.X, padx=10, pady=(8, 4))
+    tk.Label(find, text="Поиск:", font=ui_theme.font(9)).pack(side=tk.LEFT)
+    query = tk.StringVar()
+    tk.Entry(find, textvariable=query, width=42,
+             font=ui_theme.font(9)).pack(side=tk.LEFT, padx=(6, 0))
+
+    frame = tk.Frame(dialog)
+    frame.pack(fill=tk.BOTH, expand=True, padx=10)
+    listbox = tk.Listbox(frame, width=76, height=14, activestyle="dotbox",
+                         exportselection=False, font=ui_theme.font(9))
+    scroll = tk.Scrollbar(frame, orient="vertical", command=listbox.yview)
+    listbox.configure(yscrollcommand=scroll.set)
+    scroll.pack(side=tk.RIGHT, fill=tk.Y)
+    listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    info = tk.Label(dialog, text="", anchor="w", justify="left",
+                    wraplength=560, font=ui_theme.font(9))
+    info.pack(fill=tk.X, padx=10, pady=6)
+
+    state = {"visible": list(items)}
+    result = {"value": None}
+
+    def haystack_of(item):
+        parts = [str(item.get(key) or "") for key in (
+            "name", "desc", "code", "cabinet_code", "cabinet_name",
+            "cabinet_group", "title", "group", "standard_title",
+        )]
+        for key in ("functions", "its_functions"):
+            value = item.get(key) or []
+            if isinstance(value, str):
+                parts.append(value)
+            else:
+                parts.extend(str(part) for part in value)
+        return " ".join(parts).lower()
+
+    def refresh():
+        needle = query.get().strip().lower()
+        visible = []
+        for item in items:
+            if needle and needle not in haystack_of(item):
+                continue
+            visible.append(item)
+        state["visible"] = visible
+        listbox.delete(0, "end")
+        for item in visible:
+            listbox.insert("end", label(item))
+        if visible:
+            listbox.selection_clear(0, "end")
+            listbox.selection_set(0)
+            listbox.activate(0)
+            info.config(text=describe(visible[0]))
+        else:
+            info.config(text="Ничего не найдено.")
+
+    def on_select(event=None):
+        selection = listbox.curselection()
+        if selection:
+            info.config(text=describe(state["visible"][selection[0]]))
+
+    def accept(event=None):
+        selection = listbox.curselection()
+        if not selection:
+            return
+        result["value"] = state["visible"][selection[0]]
+        dialog.destroy()
+
+    buttons = tk.Frame(dialog)
+    buttons.pack(fill=tk.X, padx=10, pady=(0, 8))
+    tk.Button(buttons, text="Отмена", width=10,
+              command=dialog.destroy,
+              font=ui_theme.font(9)).pack(side=tk.RIGHT)
+    tk.Button(buttons, text="Добавить", width=12,
+              command=accept,
+              font=ui_theme.font(9)).pack(side=tk.RIGHT, padx=(0, 6))
+
+    listbox.bind("<<ListboxSelect>>", on_select)
+    listbox.bind("<Double-Button-1>", accept)
+    dialog.bind("<Return>", accept)
+    dialog.bind("<Escape>", lambda event: dialog.destroy())
+    query.trace_add("write", lambda *args: refresh())
+    refresh()
+    _place_on_parent(dialog, parent)
+    dialog.grab_set()
+    dialog.wait_window(dialog)
+    return result["value"]
+
+
 _CABINET_FIELDS = (
     ("cypher", "Шифр шкафа", 24),
     ("architecture", "Архитектура", 34),
@@ -969,97 +1064,65 @@ class StandardEditorWindow(tk.Toplevel):
                 "В каталоге нет типовых комплектов.", parent=self)
             return None
 
-        dialog = tk.Toplevel(self)
-        dialog.title("Типовой комплект из каталога")
-        dialog.transient(self)
-        dialog.resizable(False, False)
-
-        find = tk.Frame(dialog)
-        find.pack(fill=tk.X, padx=10, pady=(8, 4))
-        tk.Label(find, text="Поиск:", font=ui_theme.font(9)).pack(side=tk.LEFT)
-        query = tk.StringVar()
-        tk.Entry(find, textvariable=query, width=42,
-                 font=ui_theme.font(9)).pack(side=tk.LEFT, padx=(6, 0))
-
-        frame = tk.Frame(dialog)
-        frame.pack(fill=tk.BOTH, expand=True, padx=10)
-        listbox = tk.Listbox(frame, width=76, height=14, activestyle="dotbox",
-                             exportselection=False, font=ui_theme.font(9))
-        scroll = tk.Scrollbar(frame, orient="vertical", command=listbox.yview)
-        listbox.configure(yscrollcommand=scroll.set)
-        scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        info = tk.Label(dialog, text="", anchor="w", justify="left",
-                        wraplength=560, font=ui_theme.font(9))
-        info.pack(fill=tk.X, padx=10, pady=6)
-
-        state = {"visible": list(kits)}
-        result = {"value": None}
-
         def describe(kit):
             lines = ["Шкаф: " + (kit.get("cabinet_code") or "—")]
             if kit.get("functions"):
                 lines.append("Функции: " + ", ".join(kit["functions"]))
             lines.append("ИЭУ: %d" % len(komplekts.effective_ieds(kit)))
+            if kit.get("test_block_list"):
+                lines.append("Испытательных блоков: %d"
+                             % len(kit["test_block_list"]))
             return "\n".join(lines)
 
-        def refresh():
-            needle = query.get().strip().lower()
-            visible = []
-            for kit in kits:
-                haystack = " ".join([
-                    kit.get("name") or "", kit.get("desc") or "",
-                    kit.get("cabinet_code") or "",
-                    kit.get("cabinet_name") or "",
-                    ", ".join(kit.get("functions") or []),
-                ]).lower()
-                if needle and needle not in haystack:
-                    continue
-                visible.append(kit)
-            state["visible"] = visible
-            listbox.delete(0, "end")
-            for kit in visible:
-                listbox.insert("end", komplekts.kit_label(kit))
-            if visible:
-                listbox.selection_clear(0, "end")
-                listbox.selection_set(0)
-                listbox.activate(0)
-                info.config(text=describe(visible[0]))
-            else:
-                info.config(text="Ничего не найдено.")
+        return choose_from_catalog(self, kits,
+                                   "Типовой комплект из каталога",
+                                   komplekts.kit_label, describe)
 
-        def on_select(event=None):
-            selection = listbox.curselection()
-            if selection:
-                info.config(text=describe(state["visible"][selection[0]]))
+    def _choose_typical_cabinet(self):
+        """Выбрать типовой шкаф каталога. Возвращает dict или None."""
+        existing = {em.norm_cypher(item.get("cypher"))
+                    for item in es.cabinets(self.data)}
+        cabinets = [cabinet for cabinet in komplekts.typical_cabinets()
+                    if cabinet.get("komplets")
+                    and em.norm_cypher(cabinet.get("code")) not in existing]
+        if not cabinets:
+            messagebox.showinfo(
+                "Редактор стандарта",
+                "Все типовые шкафы каталога уже есть в стандарте.",
+                parent=self)
+            return None
 
-        def accept(event=None):
-            selection = listbox.curselection()
-            if not selection:
-                return
-            result["value"] = state["visible"][selection[0]]
-            dialog.destroy()
+        def describe(cabinet):
+            lines = ["Шифр: " + (cabinet.get("code") or "—")]
+            if cabinet.get("name"):
+                lines.append("Наименование: " + cabinet["name"])
+            lines.append("Комплектов: %d"
+                         % len(cabinet.get("komplets") or []))
+            if cabinet.get("its_functions"):
+                lines.append("Функции: " + ", ".join(cabinet["its_functions"]))
+            return "\n".join(lines)
 
-        buttons = tk.Frame(dialog)
-        buttons.pack(fill=tk.X, padx=10, pady=(0, 8))
-        tk.Button(buttons, text="Отмена", width=10,
-                  command=dialog.destroy,
-                  font=ui_theme.font(9)).pack(side=tk.RIGHT)
-        tk.Button(buttons, text="Добавить", width=12,
-                  command=accept,
-                  font=ui_theme.font(9)).pack(side=tk.RIGHT, padx=(0, 6))
+        return choose_from_catalog(self, cabinets,
+                                   "Типовой шкаф из каталога",
+                                   komplekts.cabinet_label, describe)
 
-        listbox.bind("<<ListboxSelect>>", on_select)
-        listbox.bind("<Double-Button-1>", accept)
-        dialog.bind("<Return>", accept)
-        dialog.bind("<Escape>", lambda event: dialog.destroy())
-        query.trace_add("write", lambda *args: refresh())
-        refresh()
-        _place_on_parent(dialog, self)
-        dialog.grab_set()
-        dialog.wait_window(dialog)
-        return result["value"]
+    def _add_typical_cabinet(self, parent_iid):
+        """Добавить типовой шкаф каталога: карточку и таблицы-формы."""
+        picked = self._choose_typical_cabinet()
+        if picked is None:
+            return
+        before = len(es.cabinets(self.data))
+
+        def action():
+            result = em.add_catalog_cabinet(self.data, picked)
+            self.data = result["data"]
+            return result["cabinet"]
+
+        self._mutate(action)
+        if len(es.cabinets(self.data)) > before:
+            self.status.config(
+                text="Шкаф %s добавлен: карточка и таблицы-формы перенесены"
+                     % (picked.get("code") or ""))
 
     def _add_typical_kit(self, parent_iid):
         """Добавить типовой комплект каталога в шкаф стандарта."""
@@ -1073,6 +1136,7 @@ class StandardEditorWindow(tk.Toplevel):
 
         def action():
             st.add(container, kit)
+            ec.add_test_blocks(cabinet, picked)
             return kit
 
         self._mutate(action)
@@ -1136,6 +1200,8 @@ class StandardEditorWindow(tk.Toplevel):
             return [
                 ("Добавить шкафы из всех стандартов…",
                  lambda: self._add_cabinets(iid)),
+                ("Добавить типовой шкаф из каталога…",
+                 lambda: self._add_typical_cabinet(iid)),
                 ("Добавить пустой шкаф…", lambda: self._add_cabinet(iid)),
             ]
         if kind == "meta":
