@@ -8,7 +8,7 @@
 Поэтому сборка состоит из двух шагов:
 
 1. собрать ``db`` — копии файлов данных, инструментов стандартов и
-   сборщика структуры (без PDF и черновиков ``standard_editor/_parse``);
+   сборщика структуры (без PDF и черновиков ``archive/legacy_standards``);
 2. собрать сам exe (PyInstaller, режим «One Directory») и положить ``db``
    рядом с ним.
 
@@ -54,11 +54,6 @@ DATA_FILES = (
     ("komplekts.json", False),
 )
 
-#: Модули инструментов стандартов (импортируются по имени из папки db).
-STANDARD_MODULES = ("apply_changes.py", "changes_editor.py", "changes_gui.py",
-                    "json_to_docx.py", "make_standard.py", "node_table.py",
-                    "standard_to_docx.py")
-
 #: Сборщик и проверка структуры: вызываются из окна «Структура».
 TOOLS = ("build_structure.py", "check_structure.py")
 
@@ -75,9 +70,8 @@ README = """Папка данных «Редактора схем»
   containers.json      контейнеры КЭТ
   komplekts.json       комплекты (появляется после первой правки каталога)
   structure.json       структура v3: КЭТ → шкафы → комплекты → ИЭУ
-  standards_base/      стандарты СТО в JSON (сверка и сборка структуры)
-  standard_editor/     редактор изменений стандартов и его базы
-  tools/               сборщик и проверка structure.json
+   EA/                  стандарты СТО в структуре EA (таблицы из шкафов)
+   tools/               сборщик и проверка structure.json
 
 Порядок поиска: папка из переменной EDITOR_DB → db рядом с exe → файл рядом
 с exe → данные внутри сборки (только чтение).
@@ -96,23 +90,9 @@ def plan():
     for name, required in DATA_FILES:
         items.append((os.path.join(ROOT, name), name, required))
 
-    base = os.path.join(ROOT, "standards_base")
-    for path in sorted(glob.glob(os.path.join(base, "*.json"))):
-        items.append((path, os.path.join("standards_base",
-                                         os.path.basename(path)), False))
-
-    editor = os.path.join(ROOT, "standard_editor")
-    for name in STANDARD_MODULES:
-        items.append((os.path.join(editor, name),
-                      os.path.join("standard_editor", name), False))
-    for path in sorted(glob.glob(os.path.join(editor, "*.json"))):
-        items.append((path, os.path.join("standard_editor",
-                                         os.path.basename(path)), False))
-    for pattern, inner in (("changes_text/*.изм.txt", "changes_text"),
-                           ("changes/*.json", "changes")):
-        for path in sorted(glob.glob(os.path.join(editor, *pattern.split("/")))):
-            items.append((path, os.path.join("standard_editor", inner,
-                                             os.path.basename(path)), False))
+    ea = os.path.join(ROOT, "EA")
+    for path in sorted(glob.glob(os.path.join(ea, "*.json"))):
+        items.append((path, os.path.join("EA", os.path.basename(path)), False))
 
     for name in TOOLS:
         items.append((os.path.join(ROOT, "tools", name),

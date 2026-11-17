@@ -616,17 +616,16 @@
       "group": "СШ",
       "name": "Дифференциальная защита сборных шин 35 кВ",
       "title": "Дифференциальная защита сборных шин 35 кВ",
-      "description": "Шкаф дифференциальной защиты для одной или двух секций сборных шин 35 кВ с жёсткой фиксацией присоединений к шинам и количеством не более 10 (включая СВ между защищаемыми секциями).",
+      "description": "Шкаф дифференциальной защиты для одной или двух секций сборных шин 35 кВ с жесткой фиксацией присоединений к шинам и количеством не более 10 (включая СВ между защищаемыми секциями).",
       "voltage": "35 кВ",
-      "protected": "Одна или две секции, соединённых секционным выключателем, сборных шин 35 кВ",
+      "protected": "Одна или две секции, соединенных секционным выключателем, сборных шин 35 кВ",
       "controlled": [],
       "its_functions": [
-        "ДЗШ",
-        "УРОВ"
+        "ДЗШ"
       ],
-      "applicability": "РУ 35 кВ (ГОСТ Р 59279 и [14]), схема РУ № 35-9",
+      "applicability": "№ 35-9",
       "architecture": "II типа",
-      "source": "разд. 5.3, табл. 5.2",
+      "source": "табл. 5.2",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -636,53 +635,107 @@
       "document": "Раздел 4.16_т. 1_СТО ШЭТ ДЗШ ДЗО ША II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДЗШ",
-            "УРОВ",
-            "РАС"
+            "ДЗШ"
           ],
-          "desc": "Шкаф дифференциальной защиты для одной или двух секций сборных шин 35 кВ с жёсткой фиксацией присоединений к шинам и количеством не более 10 (включая СВ между защищаемыми секциями).",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф дифференциальной защиты для одной или двух секций сборных шин 35 кВ с жёсткой фиксацией присоединений к шинам и количеством не более 10 (включая СВ между защищаемыми секциями)."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic В1",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В1"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic В2",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В2"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic В3",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В3"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic В4",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В4"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic В5",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В5"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ia, Ib, Ic В6",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В6"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ia, Ib, Ic В7",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В7"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ia, Ib, Ic В8",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В8"
+            },
+            {
+              "block": "SG9",
+              "signals": "Ia, Ib, Ic В9",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В9"
+            },
+            {
+              "block": "SG10",
+              "signals": "Ia, Ib, Ic В10 (СВ)",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В10 (СВ)"
+            },
+            {
+              "block": "SG11",
+              "signals": "Ua, Ub, Uc (Uab, Ubc) 1 с.ш.",
+              "contacts": "4 (3) + 1",
+              "note": "Фазные (междуфазные) напряжения 1 секции шин (по выбору производителя)"
+            },
+            {
+              "block": "SG12",
+              "signals": "Ua, Ub, Uc (Uab, Ubc) 2 с.ш.",
+              "contacts": "4 (3) + 1",
+              "note": "Фазные (междуфазные) напряжения 2 секции шин (по выбору производителя)"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 2,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 10,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-140-11-1",
-          "cabinet_index": 0,
-          "cabinet_code": "ШЭТ 140.11-1",
-          "cabinet_name": "Дифференциальная защита сборных шин 35 кВ",
-          "cabinet_group": "СШ",
-          "source": "user",
           "test_block_list": [],
-          "analog_inputs": [],
           "mp_functions": null,
           "its_functions_desc": null,
           "power_supply": null,
@@ -698,7 +751,13 @@
           "enclosure": null,
           "cooling": null,
           "communication": null,
-          "notes": null
+          "notes": null,
+          "cabinet_key": "draft-шэт-140-11-1",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 140.11-1",
+          "cabinet_name": "Дифференциальная защита сборных шин 35 кВ",
+          "cabinet_group": "СШ",
+          "source": "user"
         }
       ],
       "standard": "СТО (проект, ред. 2)",
@@ -728,19 +787,18 @@
       "standard_key": "sch2",
       "code": "ШЭТ 240.11-1",
       "group": "СШ",
-      "name": "Дифференциальная защита сборных шин 110–220 кВ (9 присоединений)",
-      "title": "Дифференциальная защита сборных шин 110–220 кВ (9 присоединений)",
-      "description": "Шкаф дифференциальной защиты сборных шин 110–220 кВ на 9 присоединений.",
+      "name": "Дифференциальная защита сборных шин 110 – 220 кВ (9 присоединений)",
+      "title": "Дифференциальная защита сборных шин 110 – 220 кВ (9 присоединений)",
+      "description": "Шкаф дифференциальной защиты для двух секций сборных шин или двух систем сборных шин 110 – 220 кВ с количеством присоединений не более 9 (контролируемых групп токов - 11).",
       "voltage": "110–220 кВ",
-      "protected": "Одна или две секции сборных шин, соединённые секционным выключателем; или две рабочие системы сборных шин с управляемой фиксацией присоединений, соединённые шиносоединительным выключателем",
+      "protected": "Одна или две секции сборных шин, соединенные секционным выключателем; или две рабочие системы сборных шин с управляемой фиксацией присоединений, соединенные шиносоединительным выключателем",
       "controlled": [],
       "its_functions": [
-        "ДЗШ",
-        "УРОВ"
+        "ДЗШ"
       ],
-      "applicability": "РУ 110–220 кВ (ГОСТ Р 59279), схемы РУ № 9, 9Н, 9АН, 12, 12Н, 13, 13Н, 14, 16, 17",
-      "architecture": "II тип",
-      "source": "разд. 5.4, табл. 5.17",
+      "applicability": "9, 9Н, 9АН, 12, 12Н, 13, 13Н, 14, 16, 17",
+      "architecture": "II типа",
+      "source": "табл. 5.17",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -750,73 +808,172 @@
       "document": "Раздел 4.16_т. 1_СТО ШЭТ ДЗШ ДЗО ША II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДЗШ",
-            "УРОВ",
-            "РАС"
+            "ДЗШ"
           ],
-          "desc": "Шкаф дифференциальной защиты сборных шин 110–220 кВ на 9 присоединений.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф дифференциальной защиты сборных шин 110–220 кВ на 9 присоединений."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic В1",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В1"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic В2",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В2"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic В3",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В3"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic В4",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В4"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic В5",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В5"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ia, Ib, Ic В6",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В6"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ia, Ib, Ic В7",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В7"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ia, Ib, Ic В8",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В8"
+            },
+            {
+              "block": "SG9",
+              "signals": "Ia, Ib, Ic В9 (ОВ)",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В9 (ОВ)"
+            },
+            {
+              "block": "SG10",
+              "signals": "Ia, Ib, Ic СВ (ШСВ) 1С",
+              "contacts": "6 + 1",
+              "note": "Фазные токи СВ (ШСВ) 1С"
+            },
+            {
+              "block": "SG11",
+              "signals": "Ia, Ib, Ic СВ (ШСВ) 2С",
+              "contacts": "6 + 1",
+              "note": "Фазные токи СВ (ШСВ) 2С"
+            },
+            {
+              "block": "SG12",
+              "signals": "Ua, Ub, Uc 1С",
+              "contacts": "4 + 1",
+              "note": "Фазные напряжения 1С"
+            },
+            {
+              "block": "SG13",
+              "signals": "Ua, Ub, Uc 1С",
+              "contacts": "4 + 1",
+              "note": "Фазные напряжения 2С"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 2,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 11,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-240-11-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 240.11-1",
-          "cabinet_name": "Дифференциальная защита сборных шин 110–220 кВ (9 присоединений)",
+          "cabinet_name": "Дифференциальная защита сборных шин 110 – 220 кВ (9 присоединений)",
           "cabinet_group": "СШ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-240-12-1",
       "standard_key": "sch2",
       "code": "ШЭТ 240.12-1",
       "group": "СШ",
-      "name": "Дифференциальная защита сборных шин 110–220 кВ (16 присоединений)",
-      "title": "Дифференциальная защита сборных шин 110–220 кВ (16 присоединений)",
-      "description": "Шкаф дифференциальной защиты сборных шин 110–220 кВ на 16 присоединений.",
+      "name": "Дифференциальная защита сборных шин 110 – 220 кВ (16 присоединений)",
+      "title": "Дифференциальная защита сборных шин 110 – 220 кВ (16 присоединений)",
+      "description": "Шкаф дифференциальной защиты для двух секций сборных шин или двух систем сборных шин 110 – 220 кВ с количеством присоединений не более 16 (контролируемых групп токов - 20).",
       "voltage": "110–220 кВ",
-      "protected": "Две секции сборных шин, соединённые секционным выключателем; или две рабочие системы сборных шин с управляемой фиксацией присоединений, соединённые шиносоединительным выключателем",
+      "protected": "Две секции сборных шин, соединенные секционным выключателем; или две рабочие системы сборных шин с управляемой фиксацией присоединений, соединенные шиносоединительным выключателем",
       "controlled": [],
       "its_functions": [
-        "ДЗШ",
-        "УРОВ"
+        "ДЗШ"
       ],
-      "applicability": "РУ 110–220 кВ (ГОСТ Р 59279), схемы РУ № 9, 12, 13, 13Н, 14, 16, 17",
-      "architecture": "II тип",
-      "source": "разд. 5.5, табл. 5.31",
+      "applicability": "9, 12, 13, 13Н, 14, 16, 17",
+      "architecture": "II типа",
+      "source": "табл. 5.31",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -826,73 +983,226 @@
       "document": "Раздел 4.16_т. 1_СТО ШЭТ ДЗШ ДЗО ША II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДЗШ",
-            "УРОВ",
-            "РАС"
+            "ДЗШ"
           ],
-          "desc": "Шкаф дифференциальной защиты сборных шин 110–220 кВ на 16 присоединений.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф дифференциальной защиты сборных шин 110–220 кВ на 16 присоединений."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic В1",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В1"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic В2",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В2"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic В3",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В3"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic В4",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В4"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic В5",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В5"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ia, Ib, Ic В6",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В6"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ia, Ib, Ic В7",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В7"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ia, Ib, Ic В8",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В8"
+            },
+            {
+              "block": "SG9",
+              "signals": "Ia, Ib, Ic В9",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В9"
+            },
+            {
+              "block": "SG10",
+              "signals": "Ia, Ib, Ic В10",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В10"
+            },
+            {
+              "block": "SG11",
+              "signals": "Ia, Ib, Ic В11",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В11"
+            },
+            {
+              "block": "SG12",
+              "signals": "Ia, Ib, Ic В12",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В12"
+            },
+            {
+              "block": "SG13",
+              "signals": "Ia, Ib, Ic В13",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В13"
+            },
+            {
+              "block": "SG14",
+              "signals": "Ia, Ib, Ic В14",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В14"
+            },
+            {
+              "block": "SG15",
+              "signals": "Ia, Ib, Ic В15",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В15"
+            },
+            {
+              "block": "SG16",
+              "signals": "Ia, Ib, Ic В16 (СВ1)",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В16 (СВ1)"
+            },
+            {
+              "block": "SG17",
+              "signals": "Ia, Ib, Ic СВ2",
+              "contacts": "6 + 1",
+              "note": "Фазные токи СВ2"
+            },
+            {
+              "block": "SG18",
+              "signals": "Ia, Ib, Ic ОВ",
+              "contacts": "6 + 1",
+              "note": "Фазные токи ОВ"
+            },
+            {
+              "block": "SG19",
+              "signals": "Ia, Ib, Ic ШСВ (СВ) 1С",
+              "contacts": "6 + 1",
+              "note": "Фазные токи ШСВ (СВ) 1С"
+            },
+            {
+              "block": "SG20",
+              "signals": "Ia, Ib, Ic ШСВ (СВ) 2С",
+              "contacts": "6 + 1",
+              "note": "Фазные токи ШСВ (СВ) 2С"
+            },
+            {
+              "block": "SG21",
+              "signals": "Ua, Ub, Uc 1С",
+              "contacts": "4 + 1",
+              "note": "Фазные напряжения 1С"
+            },
+            {
+              "block": "SG22",
+              "signals": "Ua, Ub, Uc 1С",
+              "contacts": "4 + 1",
+              "note": "Фазные напряжения 2С"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 2,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 20,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-240-12-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 240.12-1",
-          "cabinet_name": "Дифференциальная защита сборных шин 110–220 кВ (16 присоединений)",
+          "cabinet_name": "Дифференциальная защита сборных шин 110 – 220 кВ (16 присоединений)",
           "cabinet_group": "СШ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-340-11-1",
       "standard_key": "sch2",
       "code": "ШЭТ 340.11-1",
       "group": "СШ",
-      "name": "Дифференциальная защита сборных шин 330–750 кВ",
-      "title": "Дифференциальная защита сборных шин 330–750 кВ",
-      "description": "Шкаф дифференциальной защиты сборных шин 330–750 кВ.",
+      "name": "Дифференциальная защита сборных шин 330 – 750 кВ",
+      "title": "Дифференциальная защита сборных шин 330 – 750 кВ",
+      "description": "Шкаф дифференциальной защиты для одной секции сборных шин 330 – 750 кВ с количеством присоединений не более шести.",
       "voltage": "330–750 кВ",
-      "protected": "Секция сборных шин 330–750 кВ",
+      "protected": "Секция сборных шин 330 - 750 кВ",
       "controlled": [],
       "its_functions": [
-        "ДЗШ",
-        "УРОВ"
+        "ДЗШ"
       ],
-      "applicability": "РУ 330–750 кВ (ГОСТ Р 59279), схемы РУ № 15, 16, 17",
-      "architecture": "II тип",
-      "source": "разд. 5.6, табл. 5.45",
+      "applicability": "15, 16, 17",
+      "architecture": "II типа",
+      "source": "табл. 5.45",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -902,72 +1212,136 @@
       "document": "Раздел 4.16_т. 1_СТО ШЭТ ДЗШ ДЗО ША II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДЗШ",
-            "УРОВ",
-            "РАС"
+            "ДЗШ"
           ],
-          "desc": "Шкаф дифференциальной защиты сборных шин 330–750 кВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф дифференциальной защиты сборных шин 330–750 кВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic В1",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В1"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic В2",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В2"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic В3",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В3"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic В4",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В4"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic В5",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В5"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ia, Ib, Ic В6",
+              "contacts": "6 + 1",
+              "note": "Фазные токи В6"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4 + 1",
+              "note": "Фазные напряжения с.ш."
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 1,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 6,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-340-11-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 340.11-1",
-          "cabinet_name": "Дифференциальная защита сборных шин 330–750 кВ",
+          "cabinet_name": "Дифференциальная защита сборных шин 330 – 750 кВ",
           "cabinet_group": "СШ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-140-02-1",
       "standard_key": "sch2",
       "code": "ШЭТ 140.02-1",
       "group": "СШ",
-      "name": "Дифференциальная защита ошиновки 6–35 кВ",
-      "title": "Дифференциальная защита ошиновки 6–35 кВ",
-      "description": "Шкаф дифференциальной защиты ошиновки НН трансформатора (автотрансформатора) 6–35 кВ.",
+      "name": "Дифференциальная защита ошиновки 6 – 35 кВ",
+      "title": "Дифференциальная защита ошиновки 6 – 35 кВ",
+      "description": "Шкаф дифференциальной защиты ошиновки НН (авто)трансформаторов.",
       "voltage": "6–35 кВ",
       "protected": "Ошиновка НН Т (АТ)",
       "controlled": [],
       "its_functions": [
         "ДЗО НН"
       ],
-      "applicability": "РУ 6–35 кВ (ГОСТ Р 59279 и [14])",
+      "applicability": "РУ 6 – 35 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.7, табл. 5.59",
+      "source": "табл. 5.59",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -977,20 +1351,40 @@
       "document": "Раздел 4.16_т. 1_СТО ШЭТ ДЗШ ДЗО ША II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДЗО НН",
-            "РАС"
+            "ДЗО НН"
           ],
-          "desc": "Шкаф дифференциальной защиты ошиновки НН трансформатора (автотрансформатора) 6–35 кВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф дифференциальной защиты ошиновки НН трансформатора (автотрансформатора) 6–35 кВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1 (SG4)",
+              "signals": "Ia, Ib, Ic НН1 (НН2)",
+              "contacts": "6 + 1",
+              "note": "Фазные токи группы 1"
+            },
+            {
+              "block": "SG2 (SG5)",
+              "signals": "Ia, Ib, Ic НН В1 (В3)",
+              "contacts": "6 + 1",
+              "note": "Фазные токи группы 2 (В1 (В3))"
+            },
+            {
+              "block": "SG3 (SG6)",
+              "signals": "Ia, Ib, Ic НН В2 (В4)",
+              "contacts": "6 + 1",
+              "note": "Фазные токи группы 3 (В2 (В4))"
             }
           ],
           "test_blocks": {
@@ -999,91 +1393,71 @@
               "circuits": []
             },
             "current": {
-              "count": 3,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-140-02-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 140.02-1",
-          "cabinet_name": "Дифференциальная защита ошиновки 6–35 кВ",
-          "cabinet_group": "СШ",
-          "source": "user"
-        },
-        {
-          "name": "Комплект 2",
-          "kind": "typical",
-          "type": "МП РЗА",
-          "functions": [
-            "ДЗО НН",
-            "РАС"
-          ],
-          "desc": "Шкаф дифференциальной защиты ошиновки НН трансформатора (автотрансформатора) 6–35 кВ.",
-          "has_ied": true,
-          "ieds": [
-            {
-              "name": "ИЭУ2",
-              "type": "МП РЗА",
-              "desc": "Шкаф дифференциальной защиты ошиновки НН трансформатора (автотрансформатора) 6–35 кВ."
-            }
-          ],
-          "test_blocks": {
-            "voltage": {
-              "count": 0,
-              "circuits": []
-            },
-            "current": {
-              "count": 3,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
-            }
-          },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-140-02-1",
-          "cabinet_index": 1,
-          "cabinet_code": "ШЭТ 140.02-1",
-          "cabinet_name": "Дифференциальная защита ошиновки 6–35 кВ",
+          "cabinet_name": "Дифференциальная защита ошиновки 6 – 35 кВ",
           "cabinet_group": "СШ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-441-11-1",
       "standard_key": "sch2",
       "code": "ШЭТ 441.11-1",
       "group": "СШ",
-      "name": "Дифференциальная защита ошиновки 110–750 кВ (два комплекта)",
-      "title": "Дифференциальная защита ошиновки 110–750 кВ (два комплекта)",
-      "description": "Шкаф дифференциальной защиты ошиновки 110–750 кВ с двумя комплектами защит.",
+      "name": "Дифференциальная защита ошиновки 110 – 750 кВ (два комплекта)",
+      "title": "Дифференциальная защита ошиновки 110 – 750 кВ (два комплекта)",
+      "description": "Шкаф предназначается для защиты ошиновок ВН и СН (авто)трансформаторов и ошиновок оборудования СКРМ.",
       "voltage": "110–750 кВ",
       "protected": "Ошиновка ВН, СН АТ, Т, СКРМ",
       "controlled": [],
       "its_functions": [
         "ДЗО",
-        "УРОВ В1",
-        "АПВ В1",
-        "УРОВ В2",
-        "АПВ В2"
+        "УРОВ В1"
       ],
-      "applicability": "РУ 110–750 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 110 – 750 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.8, табл. 5.72",
+      "source": "табл. 5.72",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -1093,131 +1467,132 @@
       "document": "Раздел 4.16_т. 1_СТО ШЭТ ДЗШ ДЗО ША II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
             "ДЗО",
-            "УРОВ В1",
-            "АПВ В1",
-            "УРОВ В2",
-            "АПВ В2",
-            "РАС"
+            "УРОВ В1"
           ],
-          "desc": "Шкаф дифференциальной защиты ошиновки 110–750 кВ с двумя комплектами защит.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф дифференциальной защиты ошиновки 110–750 кВ с двумя комплектами защит."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1 (SG7)",
+              "signals": "Ia, Ib, Ic Т(АТ)",
+              "contacts": "6 + 1",
+              "note": "Фазные токи группы 1"
+            },
+            {
+              "block": "SG2 (SG8)",
+              "signals": "Ia, Ib, Ic В1",
+              "contacts": "6 + 1",
+              "note": "Фазные токи группы 2 (В1)"
+            },
+            {
+              "block": "SG3 (SG9)",
+              "signals": "Ia, Ib, Ic В2",
+              "contacts": "6 + 1",
+              "note": "Фазные токи группы 3 (В2)"
+            },
+            {
+              "block": "SG4 (SG10)",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4 + 1",
+              "note": "Цепи напряжения ошиновки"
+            },
+            {
+              "block": "SG5 (SG11)",
+              "signals": "Uф Э1",
+              "contacts": "2 + 1",
+              "note": "Цепи напряжения элемента сети, расположенного за В1 (сторона Э1)"
+            },
+            {
+              "block": "SG6 (SG12)",
+              "signals": "Uф Э2",
+              "contacts": "2 + 1",
+              "note": "Цепи напряжения элемента сети, расположенного за В2 (сторона Э2)"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 3,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc",
-                "Uф"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 3,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-441-11-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 441.11-1",
-          "cabinet_name": "Дифференциальная защита ошиновки 110–750 кВ (два комплекта)",
-          "cabinet_group": "СШ",
-          "source": "user"
-        },
-        {
-          "name": "Комплект 2",
-          "kind": "typical",
-          "type": "МП РЗА",
-          "functions": [
-            "ДЗО",
-            "УРОВ В1",
-            "АПВ В1",
-            "УРОВ В2",
-            "АПВ В2",
-            "РАС"
-          ],
-          "desc": "Шкаф дифференциальной защиты ошиновки 110–750 кВ с двумя комплектами защит.",
-          "has_ied": true,
-          "ieds": [
-            {
-              "name": "ИЭУ2",
-              "type": "МП РЗА",
-              "desc": "Шкаф дифференциальной защиты ошиновки 110–750 кВ с двумя комплектами защит."
-            }
-          ],
-          "test_blocks": {
-            "voltage": {
-              "count": 3,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc",
-                "Uф"
-              ]
-            },
-            "current": {
-              "count": 3,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
-            }
-          },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-441-11-1",
-          "cabinet_index": 1,
-          "cabinet_code": "ШЭТ 441.11-1",
-          "cabinet_name": "Дифференциальная защита ошиновки 110–750 кВ (два комплекта)",
+          "cabinet_name": "Дифференциальная защита ошиновки 110 – 750 кВ (два комплекта)",
           "cabinet_group": "СШ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-441-12-1",
       "standard_key": "sch2",
       "code": "ШЭТ 441.12-1",
       "group": "СШ",
-      "name": "Дифференциальная защита ошиновки 110–750 кВ (один комплект)",
-      "title": "Дифференциальная защита ошиновки 110–750 кВ (один комплект)",
-      "description": "Шкаф дифференциальной защиты ошиновки 110–750 кВ с одним комплектом защит.",
+      "name": "Дифференциальная защита ошиновки 110 – 750 кВ (один комплект)",
+      "title": "Дифференциальная защита ошиновки 110 – 750 кВ (один комплект)",
+      "description": "Шкаф предназначается для защиты ошиновок ВН и СН (авто)трансформаторов и ошиновок оборудования СКРМ.",
       "voltage": "110–750 кВ",
       "protected": "Ошиновка ВН, СН АТ, Т, СКРМ",
       "controlled": [],
       "its_functions": [
         "ДЗО",
-        "УРОВ В1",
-        "АПВ В1",
-        "УРОВ В2",
-        "АПВ В2"
+        "УРОВ В1"
       ],
-      "applicability": "РУ 110–750 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 110 – 750 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.9, табл. 5.86",
+      "source": "табл. 5.86",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -1227,82 +1602,137 @@
       "document": "Раздел 4.16_т. 1_СТО ШЭТ ДЗШ ДЗО ША II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
             "ДЗО",
-            "УРОВ В1",
-            "АПВ В1",
-            "УРОВ В2",
-            "АПВ В2",
-            "РАС"
+            "УРОВ В1"
           ],
-          "desc": "Шкаф дифференциальной защиты ошиновки 110–750 кВ с одним комплектом защит.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф дифференциальной защиты ошиновки 110–750 кВ с одним комплектом защит."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic Т(АТ)",
+              "contacts": "6 + 1",
+              "note": "Фазные токи группы 1"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic В1",
+              "contacts": "6 + 1",
+              "note": "Фазные токи группы 2 (В1)"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic В2",
+              "contacts": "6 + 1",
+              "note": "Фазные токи группы 3 (В2)"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4 + 1",
+              "note": "Цепи напряжения ошиновки"
+            },
+            {
+              "block": "SG5",
+              "signals": "Uф Э1",
+              "contacts": "2 + 1",
+              "note": "Цепи напряжения элемента сети, расположенного за В1 (сторона Э1)"
+            },
+            {
+              "block": "SG6",
+              "signals": "Uф Э2",
+              "contacts": "2 + 1",
+              "note": "Цепи напряжения элемента сети, расположенного за В2 (сторона Э2)"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 3,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc",
-                "Uф"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 3,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-441-12-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 441.12-1",
-          "cabinet_name": "Дифференциальная защита ошиновки 110–750 кВ (один комплект)",
+          "cabinet_name": "Дифференциальная защита ошиновки 110 – 750 кВ (один комплект)",
           "cabinet_group": "СШ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-251-11-1",
       "standard_key": "sch2",
       "code": "ШЭТ 251.11-1",
       "group": "СШ",
-      "name": "Комплект защит обходного выключателя 110–220 кВ",
-      "title": "Комплект защит обходного выключателя 110–220 кВ",
-      "description": "Шкаф защит обходного выключателя 110–220 кВ.",
+      "name": "Комплект защит обходного выключателя 110 – 220 кВ",
+      "title": "Комплект защит обходного выключателя 110 – 220 кВ",
+      "description": "В шкафу дополнительно предусматриваются ряды зажимов и испытательный блок для реализации перевода токовых цепей защит присоединений на обходной выключатель.",
       "voltage": "110–220 кВ",
-      "protected": "ОВ 110–220 кВ",
+      "protected": "ОВ 110 – 220 кВ",
       "controlled": [
         "Обходной выключатель 110–220 кВ"
       ],
       "its_functions": [
-        "КСЗ",
+        "ТЗНП",
+        "МФТО",
         "ЗНР",
-        "ОМП",
-        "УРОВ",
-        "АПВ"
+        "АУ",
+        "БНН"
       ],
-      "applicability": "РУ 110–220 кВ (ГОСТ Р 59279), схемы РУ № 12, 12Н, 13Н, 14",
-      "architecture": "II тип",
-      "source": "разд. 5.10, табл. 5.100",
+      "applicability": "№ 12, 12Н, 13Н, 14",
+      "architecture": "II типа",
+      "source": "табл. 5.100",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -1312,64 +1742,110 @@
       "document": "Раздел 4.16_т. 1_СТО ШЭТ ДЗШ ДЗО ША II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "УРОВ",
-            "АПВ",
-            "КСН",
-            "ЗНФ",
-            "СЗ (ДЗ",
             "ТЗНП",
-            "МТЗ",
             "МФТО",
-            "ОУ",
-            "АУ",
-            "БНН",
-            "БК)",
             "ЗНР",
-            "ОМП",
-            "РАС"
+            "АУ",
+            "БНН"
           ],
-          "desc": "Шкаф защит обходного выключателя 110–220 кВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит обходного выключателя 110–220 кВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6 + 1",
+              "note": "Фазные токи ОВ"
+            },
+            {
+              "block": "SG2",
+              "signals": "U`a, U`b, U`с",
+              "contacts": "4 + 1",
+              "note": "Напряжения СШ. Входные цепи для подключения обмотки ТН, собранной по схеме «треугольник», необходимо выполнить универсальными для возможности подключения второй обмотки ТН, собранной по схеме «звезда»"
+            },
+            {
+              "block": "SG3",
+              "signals": "U``a, U``b, U``c, (Ufk, Uuf, Uhu)",
+              "contacts": "4 + 1",
+              "note": "Напряжения СШ. Входные цепи для подключения обмотки ТН, собранной по схеме «треугольник», необходимо выполнить универсальными для возможности подключения второй обмотки ТН, собранной по схеме «звезда»"
+            },
+            {
+              "block": "SG4",
+              "signals": "Uосш",
+              "contacts": "2 + 1",
+              "note": "Фазное (линейное) напряжение ОСШ"
+            },
+            {
+              "block": "SG5",
+              "signals": "-",
+              "contacts": "6 + 1",
+              "note": "Испытательный блок предназначен для реализации перевода токовых цепей защит присоединений на обходной выключатель."
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 3,
-              "circuits": [
-                "Uф"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 2,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-251-11-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 251.11-1",
-          "cabinet_name": "Комплект защит обходного выключателя 110–220 кВ",
+          "cabinet_name": "Комплект защит обходного выключателя 110 – 220 кВ",
           "cabinet_group": "СШ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-451-11-1",
@@ -1378,22 +1854,22 @@
       "group": "СШ",
       "name": "Комплект защит шиносоединительного (секционного) выключателя",
       "title": "Комплект защит шиносоединительного (секционного) выключателя",
-      "description": "Шкаф защит шиносоединительного (секционного) выключателя 110–750 кВ.",
+      "description": "Описание шкафа и ссылки на информационные материалы, определяющие типовые требования, приведены в таблице Таблица 5.114 -.",
       "voltage": "110–750 кВ",
-      "protected": "ШСВ/СВ 110–750 кВ",
+      "protected": "ШСВ/СВ 110 – 750 кВ",
       "controlled": [
         "Шиносоединительный (секционный) выключатель"
       ],
       "its_functions": [
-        "КСЗ",
+        "ТЗНП",
         "ЗНР",
+        "АУ",
         "АОДС",
-        "УРОВ",
-        "АПВ"
+        "БНН"
       ],
-      "applicability": "РУ 110–750 кВ (ГОСТ Р 59279), схемы РУ № 9, 9Н, 12, 12Н, 13, 13Н, 14, 15, 16, 17",
-      "architecture": "II тип",
-      "source": "разд. 5.11, табл. 5.114",
+      "applicability": "№ 9, 9Н, 12, 12Н, 13, 13Н, 14, 15, 16, 17",
+      "architecture": "II типа",
+      "source": "табл. 5.114",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -1403,57 +1879,79 @@
       "document": "Раздел 4.16_т. 1_СТО ШЭТ ДЗШ ДЗО ША II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "УРОВ",
-            "АПВ",
-            "КСН",
-            "ЗНФ",
-            "СЗ (ДЗ",
             "ТЗНП",
-            "МТЗ",
-            "ОУ",
-            "АУ",
-            "БНН",
-            "БК)",
             "ЗНР",
+            "АУ",
             "АОДС",
-            "РАС"
+            "БНН"
           ],
-          "desc": "Шкаф защит шиносоединительного (секционного) выключателя 110–750 кВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит шиносоединительного (секционного) выключателя 110–750 кВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6 + 1",
+              "note": "Фазные токи ШСВ/СВ"
+            },
+            {
+              "block": "SG2",
+              "signals": "U`a1, U`b1, U`c1",
+              "contacts": "4 + 1",
+              "note": "Напряжения 1 СШ. Входные цепи для подключения обмотки ТН, собранной по схеме «треугольник», необходимо выполнить универсальными для возможности подключения второй обмотки ТН, собранной по схеме «звезда»"
+            },
+            {
+              "block": "SG3",
+              "signals": "U``a1, U``b1, U``c1, (Ufk1, Uuf1, Uhu1)",
+              "contacts": "4 + 1",
+              "note": "Напряжения 1 СШ. Входные цепи для подключения обмотки ТН, собранной по схеме «треугольник», необходимо выполнить универсальными для возможности подключения второй обмотки ТН, собранной по схеме «звезда»"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ua2, Ub2, Uc2",
+              "contacts": "4 + 1",
+              "note": "Напряжения 2 СШ"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 3,
-              "circuits": [
-                "Uф",
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 1,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-451-11-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 451.11-1",
@@ -1462,7 +1960,23 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-321-11-1",
@@ -2207,29 +2721,29 @@
       "group": "СКРМ",
       "name": "Шкаф защит батареи статических конденсаторов 110–330 кВ, УРОВ",
       "title": "Шкаф защит батареи статических конденсаторов 110–330 кВ, УРОВ",
-      "description": "Шкаф защит БСК 110–330 кВ: дифференциальная токовая защита и ДТЗ нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК.",
+      "description": "Шкаф защит БСК 110–330 кВ (дифференциальная токовая защита и дифференциальная токовая защита нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК).",
       "voltage": "110–330 кВ",
       "protected": "БСК 110–330 кВ",
       "controlled": [
         "Выключатель БСК"
       ],
       "its_functions": [
-        "ДТЗ",
         "ДТЗ НП",
+        "ДТЗ",
         "ЗВП",
-        "ЗПВГ",
         "ЗМН",
+        "ЗНР",
+        "ЗПВГ",
         "ЗПН",
         "МТЗ",
-        "ТЗОП",
         "ТЗНП ВН",
         "ТЗНП НЕЙТР",
-        "ЗНР",
+        "ТЗОП",
         "УРОВ"
       ],
-      "applicability": "РУ 110–330 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 110–330 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.3, табл. 5.2",
+      "source": "табл. 5.2",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2239,56 +2753,116 @@
       "document": "Раздел 4.16_т. 5_СТО ШЭТ СКРМ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДТЗ",
             "ДТЗ НП",
+            "ДТЗ",
             "ЗВП",
-            "ЗПВГ",
             "ЗМН",
+            "ЗНР",
+            "ЗПВГ",
             "ЗПН",
             "МТЗ",
-            "ТЗОП",
             "ТЗНП ВН",
             "ТЗНП НЕЙТР",
-            "ЗНР",
-            "УРОВ",
-            "РАС"
+            "ТЗОП",
+            "УРОВ"
           ],
-          "desc": "Шкаф защит БСК 110–330 кВ: дифференциальная токовая защита и ДТЗ нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит БСК 110–330 кВ: дифференциальная токовая защита и ДТЗ нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи БСК"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи нейтрали"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи средней перемычки"
+            },
+            {
+              "block": "SG5",
+              "signals": "Iн",
+              "contacts": "2+1",
+              "note": "Ток в цепи заземления нейтрали"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-1»"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-2»"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-1» ОВ"
+            },
+            {
+              "block": "SG9",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-2» ОВ"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 4,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 5,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic",
-                "In"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-431-11-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 431.11-1",
@@ -2297,7 +2871,23 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-431-12-1",
@@ -2306,35 +2896,31 @@
       "group": "СКРМ",
       "name": "Шкаф защит шунтирующего реактора 330–750 кВ, УРОВ",
       "title": "Шкаф защит шунтирующего реактора 330–750 кВ, УРОВ",
-      "description": "Шкаф защит шунтирующего реактора 330–750 кВ (ШР, УШРП, УШРТ), УРОВ.",
+      "description": "Шкаф защит ШР (УШРП, УШРТ) 330–750 кВ (продольная и поперечная дифференциальные токовые защиты и дифференциальная токовая защита нулевой последовательности сетевой и компенсационной обмоток, газовые и технологические защиты, резервные токовые защиты сетевой, компенсационной обмотки и обмотки управления, контроль изоляции высоковольтный вводов и управление выключателем ШР).",
       "voltage": "330–750 кВ",
       "protected": "ШР, УШРП, УШРТ 330–750 кВ",
       "controlled": [
         "Выключатель ШР"
       ],
       "its_functions": [
-        "ДЗР",
-        "ПДЗР",
-        "ДТЗ НП СОР-КОР",
-        "ДТЗ СО",
-        "ГЗ",
-        "ТЗ",
-        "КИВ",
-        "МТЗ",
-        "ТЗОП",
-        "ТЗНП ВН",
-        "ТЗНП НВ",
+        "АУР",
         "ЗНР",
-        "МТЗ КОР",
-        "ТЗНП КОР",
-        "ТЗОП КОР",
-        "МТЗ НН",
         "КИ НН",
+        "КИВ",
+        "МТЗ КОР",
+        "МТЗ НН",
+        "МТЗ",
+        "ПДЗР",
+        "ТЗНП ВН",
+        "ТЗНП КОР",
+        "ТЗНП НВ",
+        "ТЗОП КОР",
+        "ТЗОП",
         "УРОВ"
       ],
-      "applicability": "РУ 330–750 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 330–750 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.4, табл. 5.16",
+      "source": "табл. 5.16",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2344,61 +2930,118 @@
       "document": "Раздел 4.16_т. 5_СТО ШЭТ СКРМ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДТЗ СО (ДЗР ШР)",
-            "ПДЗР",
-            "ДТЗ НП КОР-СОР (ДЗР УШРТ)",
-            "ГЗ",
-            "ТЗ",
-            "КИВ",
-            "МТЗ",
-            "ТЗОП",
-            "ТЗНП ВН",
-            "ТЗНП НВ",
-            "ЗНР",
-            "МТЗ КОР",
-            "ТЗНП КОР",
-            "ТЗОП КОР",
-            "МТЗ НН",
-            "КИ НН",
-            "УРОВ",
             "АУР",
-            "РАС"
+            "ЗНР",
+            "КИ НН",
+            "КИВ",
+            "МТЗ КОР",
+            "МТЗ НН",
+            "МТЗ",
+            "ПДЗР",
+            "ТЗНП ВН",
+            "ТЗНП КОР",
+            "ТЗНП НВ",
+            "ТЗОП КОР",
+            "ТЗОП",
+            "УРОВ"
           ],
-          "desc": "Шкаф защит шунтирующего реактора 330–750 кВ (ШР, УШРП, УШРТ), УРОВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит шунтирующего реактора 330–750 кВ (ШР, УШРП, УШРТ), УРОВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи расщепленной нейтрали ШР первой группы"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи расщепленной нейтрали ШР второй группы"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи треугольника КОР(ВО2)"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОУР(ВО1)"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи КИВ"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения ТН НН"
+            },
+            {
+              "block": "SG9",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения КИВ"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 2,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 7,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-431-12-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 431.12-1",
@@ -2407,7 +3050,23 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-431-13-1",
@@ -2416,34 +3075,29 @@
       "group": "СКРМ",
       "name": "Шкаф защит шунтирующего реактора 110–220 кВ, УРОВ",
       "title": "Шкаф защит шунтирующего реактора 110–220 кВ, УРОВ",
-      "description": "Шкаф защит шунтирующего реактора 110–220 кВ (ШР, УШРП, УШРТ), УРОВ.",
+      "description": "Шкаф защит ШР (УШРП, УШРТ) 110–220 кВ (продольная и поперечная дифференциальные токовые защиты и дифференциальная токовая защита нулевой последовательности сетевой и компенсационной обмоток, газовые и технологические защиты, резервные токовые защиты сетевой, компенсационной обмотки и обмотки управления, контроль изоляции высоковольтный вводов и управление выключателем ШР).",
       "voltage": "110–220 кВ",
       "protected": "ШР, УШРП, УШРТ 110–220 кВ",
       "controlled": [
         "Выключатель ШР"
       ],
       "its_functions": [
-        "ДЗР",
-        "ПДЗР",
-        "ДТЗ НП КОР-СОР",
-        "ДТЗ СО",
-        "ГЗ",
-        "ТЗ",
-        "МТЗ",
-        "ТЗОП",
-        "ТЗНП ВН",
-        "ТЗНП НВ",
         "ЗНР",
-        "МТЗ КОР",
-        "ТЗНП КОР",
-        "ТЗОП КОР",
-        "МТЗ НН",
         "КИ НН",
+        "МТЗ КОР",
+        "МТЗ НН",
+        "МТЗ",
+        "ПДЗР",
+        "ТЗНП ВН",
+        "ТЗНП КОР",
+        "ТЗНП НВ",
+        "ТЗОП КОР",
+        "ТЗОП",
         "УРОВ"
       ],
-      "applicability": "РУ 110–220 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 110–220 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.5, табл. 5.30",
+      "source": "табл. 5.30",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2453,59 +3107,110 @@
       "document": "Раздел 4.16_т. 5_СТО ШЭТ СКРМ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДТЗ СО (ДЗР ШР)",
-            "ПДЗР",
-            "ДТЗ НП КОР-СОР (ДЗР УШРТ)",
-            "ГЗ",
-            "ТЗ",
-            "МТЗ",
-            "ТЗОП",
-            "ТЗНП ВН",
-            "ТЗНП НВ",
             "ЗНР",
-            "МТЗ КОР",
-            "ТЗНП КОР",
-            "ТЗОП КОР",
-            "МТЗ НН",
             "КИ НН",
-            "УРОВ",
-            "РАС"
+            "МТЗ КОР",
+            "МТЗ НН",
+            "МТЗ",
+            "ПДЗР",
+            "ТЗНП ВН",
+            "ТЗНП КОР",
+            "ТЗНП НВ",
+            "ТЗОП КОР",
+            "ТЗОП",
+            "УРОВ"
           ],
-          "desc": "Шкаф защит шунтирующего реактора 110–220 кВ (ШР, УШРП, УШРТ), УРОВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит шунтирующего реактора 110–220 кВ (ШР, УШРП, УШРТ), УРОВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи расщепленной нейтрали ШР первой группы"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи расщепленной нейтрали ШР второй группы"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи треугольника КОР(ВО2)"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОУР(ВО1)"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG8",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения ТН НН"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 1,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 7,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-431-13-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 431.13-1",
@@ -2514,7 +3219,23 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-431-14-1",
@@ -2523,24 +3244,22 @@
       "group": "СКРМ",
       "name": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР",
       "title": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР",
-      "description": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР.",
+      "description": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ (дифференциальная токовая защита, газовые, технологические и резервные защиты, УРОВ и АКР, управление выключателем КР).",
       "voltage": "35–110 кВ",
       "protected": "КР 35–110 кВ",
       "controlled": [
         "Выключатель КР"
       ],
       "its_functions": [
-        "ДЗР",
+        "АКР",
         "ДЗ",
-        "ГЗ",
-        "ТЗ",
+        "ДЗР",
         "ЗП",
-        "УРОВ",
-        "АКР"
+        "УРОВ"
       ],
-      "applicability": "Подключение к нейтрали линейного шунтирующего реактора (ГОСТ Р 59279)",
+      "applicability": "Подключение к нейтрали линейного шунтирующего реактора",
       "architecture": "II тип",
-      "source": "разд. 5.6, табл. 5.44",
+      "source": "табл. 5.44",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2550,46 +3269,79 @@
       "document": "Раздел 4.16_т. 5_СТО ШЭТ СКРМ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДЗР",
-            "ДЗ",
-            "ГЗ",
-            "ТЗ",
-            "ЗП",
-            "УРОВ",
             "АКР",
-            "РАС"
+            "ДЗ",
+            "ДЗР",
+            "ЗП",
+            "УРОВ"
           ],
-          "desc": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток в нулевом проводе соединенных в «звезду» ТТ, встроенных в нейтральные выводы ШР"
+            },
+            {
+              "block": "SG2",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток стороны высоковольтного ввода КР"
+            },
+            {
+              "block": "SG3",
+              "signals": "In",
+              "contacts": "2+1",
+              "note": "Ток стороны нейтрали КР"
+            },
+            {
+              "block": "SG4",
+              "signals": "Un",
+              "contacts": "2+1",
+              "note": "Напряжение стороны высоковольтного ввода КР"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 1,
-              "circuits": [
-                "Un"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 3,
-              "circuits": [
-                "In"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-431-14-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 431.14-1",
@@ -2598,42 +3350,53 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-211-11-1",
       "standard_key": "tat2",
       "code": "ШЭТ 211.11-1",
       "group": "Т/АТ",
-      "name": "Шкаф защит трансформатора 110–220 кВ и ошиновки НН, УРОВ, АПВ",
-      "title": "Шкаф защит трансформатора 110–220 кВ и ошиновки НН, УРОВ, АПВ",
-      "description": "Шкаф защит трансформатора 110–220 кВ (дифференциальная токовая, технологические защиты трансформатора и линейного регулировочного трансформатора, УРОВ и СА выключателя стороны ВН), защиты ошиновки 6–35 кВ.",
+      "name": "Шкаф защит трансформатора 110–220 кВ и ошиновки НН",
+      "title": "Шкаф защит трансформатора 110–220 кВ и ошиновки НН",
+      "description": "Шкаф защит трансформатора 110–220 кВ (дифференциальная токовая, технологические защиты трансформатора и линейного регулировочного трансформатора, УРОВ и СА выключателя стороны ВН Т, защиты ошиновки 6–35 кВ трансформатора).",
       "voltage": "110–220 кВ",
-      "protected": "Т 110–220 кВ; ошиновка НН Т",
+      "protected": "Т 110–220 кВ",
       "controlled": [
         "Выключатель ВН Т"
       ],
       "its_functions": [
         "ДЗТ",
-        "ГЗ Т",
-        "ТЗ Т",
-        "ГЗ РПН Т",
-        "ГЗ ЛРТ",
-        "ТЗ ЛРТ",
-        "МТЗ ВН/U",
-        "МТЗ НН/U",
-        "ЗП ВН",
-        "ЗП СН",
-        "ЗП НН",
+        "ЗП",
         "КИ НН",
+        "КОН",
+        "КСН В ВН",
+        "КЦН НН",
+        "МТЗ ВН",
+        "МТЗ НН1",
+        "МТЗ НН2",
         "ТК ЗДЗ",
-        "УРОВ",
-        "АПВ",
-        "ДЗО НН"
+        "УРОВ В ВН"
       ],
-      "applicability": "РУ 110–220 кВ, РУ 6–35 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 110–220 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.3, табл. 5.2",
+      "source": "табл. 5.2",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2643,83 +3406,91 @@
       "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
             "ДЗТ",
-            "ГЗ Т",
-            "ТЗ Т",
-            "ГЗ РПН Т",
-            "ГЗ ЛРТ",
-            "ТЗ ЛРТ",
+            "ЗП",
+            "КИ НН",
+            "КОН",
+            "КСН В ВН",
+            "КЦН НН",
             "МТЗ ВН",
             "МТЗ НН1",
             "МТЗ НН2",
-            "КИ НН",
-            "КЦН НН",
-            "ЗП",
-            "КОН",
             "ТК ЗДЗ",
-            "ПО УРОВ НН",
-            "УРОВ В ВН",
-            "АПВ В ВН",
-            "КСН В ВН",
-            "РАС"
+            "УРОВ В ВН"
           ],
-          "desc": "Защиты трансформатора, УРОВ и АПВ выключателя ВН",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Защиты трансформатора, УРОВ и АПВ выключателя ВН"
-            }
-          ],
-          "test_blocks": {
-            "voltage": {
-              "count": 2,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "desc": ""
             },
-            "current": {
-              "count": 4,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
-            }
-          },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-211-11-1",
-          "cabinet_index": 0,
-          "cabinet_code": "ШЭТ 211.11-1",
-          "cabinet_name": "Шкаф защит трансформатора 110–220 кВ и ошиновки НН, УРОВ, АПВ",
-          "cabinet_group": "Т/АТ",
-          "source": "user"
-        },
-        {
-          "name": "Комплект 2",
-          "kind": "typical",
-          "type": "МП РЗА",
-          "functions": [
-            "ДЗО НН",
-            "РАС"
-          ],
-          "desc": "Дифференциальная защита ошиновки НН",
-          "has_ied": true,
-          "ieds": [
             {
               "name": "ИЭУ2",
               "type": "МП РЗА",
-              "desc": "Дифференциальная защита ошиновки НН"
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ ВН"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи СН"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения НН"
+            },
+            {
+              "block": "SG6",
+              "signals": "U",
+              "contacts": "2+1",
+              "note": "Напряжение ВН"
+            },
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи НН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В НН1"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В НН2"
             }
           ],
           "test_blocks": {
@@ -2728,36 +3499,61 @@
               "circuits": []
             },
             "current": {
-              "count": 3,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-211-11-1",
-          "cabinet_index": 1,
+          "cabinet_index": 0,
           "cabinet_code": "ШЭТ 211.11-1",
-          "cabinet_name": "Шкаф защит трансформатора 110–220 кВ и ошиновки НН, УРОВ, АПВ",
+          "cabinet_name": "Шкаф защит трансформатора 110–220 кВ и ошиновки НН",
           "cabinet_group": "Т/АТ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-211-12-1",
       "standard_key": "tat2",
       "code": "ШЭТ 211.12-1",
       "group": "Т/АТ",
-      "name": "Шкаф защит трансформатора 110–220 кВ, УРОВ, АПВ",
-      "title": "Шкаф защит трансформатора 110–220 кВ, УРОВ, АПВ",
-      "description": "Шкаф защит трансформатора 110–220 кВ, УРОВ, АПВ.",
+      "name": "Шкаф защит трансформатора 110–220 кВ",
+      "title": "Шкаф защит трансформатора 110–220 кВ",
+      "description": "Шкаф защит трансформатора 110–220 кВ (дифференциальная токовая, технологические защиты трансформатора и линейного регулировочного трансформатора, УРОВ и СА выключателя стороны ВН Т).",
       "voltage": "110–220 кВ",
       "protected": "Т 110–220 кВ",
       "controlled": [
@@ -2765,24 +3561,20 @@
       ],
       "its_functions": [
         "ДЗТ",
-        "ГЗ Т",
-        "ТЗ Т",
-        "ГЗ РПН Т",
-        "ГЗ ЛРТ",
-        "ТЗ ЛРТ",
-        "МТЗ ВН/U",
-        "МТЗ НН/U",
-        "ЗП ВН",
-        "ЗП СН",
-        "ЗП НН",
+        "ЗП",
         "КИ НН",
+        "КОН",
+        "КСН В ВН",
+        "КЦН НН",
+        "МТЗ ВН",
+        "МТЗ НН1",
+        "МТЗ НН2",
         "ТК ЗДЗ",
-        "УРОВ",
-        "АПВ"
+        "УРОВ В ВН"
       ],
-      "applicability": "РУ 110–220 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 110–220 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.4, табл. 5.25",
+      "source": "табл. 5.25",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -2792,280 +3584,68 @@
       "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
             "ДЗТ",
-            "ГЗ Т",
-            "ТЗ Т",
-            "ГЗ РПН Т",
-            "ГЗ ЛРТ",
-            "ТЗ ЛРТ",
+            "ЗП",
+            "КИ НН",
+            "КОН",
+            "КСН В ВН",
+            "КЦН НН",
             "МТЗ ВН",
             "МТЗ НН1",
             "МТЗ НН2",
-            "КИ НН",
-            "КЦН НН",
-            "ЗП",
-            "КОН",
             "ТК ЗДЗ",
-            "ПО УРОВ НН",
-            "УРОВ В ВН",
-            "АПВ В ВН",
-            "КСН В ВН",
-            "РАС"
+            "УРОВ В ВН"
           ],
-          "desc": "Шкаф защит трансформатора 110–220 кВ, УРОВ, АПВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф защит трансформатора 110–220 кВ, УРОВ, АПВ."
+              "desc": ""
             }
           ],
-          "test_blocks": {
-            "voltage": {
-              "count": 2,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
-            },
-            "current": {
-              "count": 4,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
-            }
-          },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-211-12-1",
-          "cabinet_index": 0,
-          "cabinet_code": "ШЭТ 211.12-1",
-          "cabinet_name": "Шкаф защит трансформатора 110–220 кВ, УРОВ, АПВ",
-          "cabinet_group": "Т/АТ",
-          "source": "user"
-        }
-      ],
-      "standard": "СТО (проект, ред. 2)"
-    },
-    {
-      "key": "draft-шэт-210-13-1",
-      "standard_key": "tat2",
-      "code": "ШЭТ 210.13-1",
-      "group": "Т/АТ",
-      "name": "Шкаф резервных защит трёхобмоточного трансформатора 110–220 кВ",
-      "title": "Шкаф резервных защит трёхобмоточного трансформатора 110–220 кВ",
-      "description": "Шкаф резервных защит трёхобмоточного трансформатора 110–220 кВ.",
-      "voltage": "110–220 кВ",
-      "protected": "Т 110–220 кВ",
-      "controlled": [],
-      "its_functions": [
-        "ГЗ Т",
-        "ТЗ Т",
-        "ГЗ РПН Т",
-        "МТЗ ВН/U",
-        "ТЗНП",
-        "МТЗ СН/U",
-        "ЗНР"
-      ],
-      "applicability": "РУ 110–220 кВ (ГОСТ Р 59279)",
-      "architecture": "II тип",
-      "source": "разд. 5.5, табл. 5.39",
-      "goose": true,
-      "tags": [
-        "Невыпущенные СТО"
-      ],
-      "standard_title": "Типовые шкафы ШЭТ РЗА (авто)трансформаторов 110–750 кВ. Архитектура II типа",
-      "edition": "Редакция 2 (проект)",
-      "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
-      "komplets": [
-        {
-          "name": "Комплект 1",
-          "kind": "typical",
-          "type": "МП РЗА",
-          "functions": [
-            "ГЗ Т",
-            "ТЗ Т",
-            "ГЗ РПН Т",
-            "МТЗ ВН",
-            "ТЗНП",
-            "МТЗ СН",
-            "ЗНР",
-            "РАС"
-          ],
-          "desc": "Шкаф резервных защит трёхобмоточного трансформатора 110–220 кВ.",
-          "has_ied": true,
-          "ieds": [
+          "analog_inputs": [
             {
-              "name": "ИЭУ1",
-              "type": "МП РЗА",
-              "desc": "Шкаф резервных защит трёхобмоточного трансформатора 110–220 кВ."
-            }
-          ],
-          "test_blocks": {
-            "voltage": {
-              "count": 5,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
             },
-            "current": {
-              "count": 2,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
-            }
-          },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-210-13-1",
-          "cabinet_index": 0,
-          "cabinet_code": "ШЭТ 210.13-1",
-          "cabinet_name": "Шкаф резервных защит трёхобмоточного трансформатора 110–220 кВ",
-          "cabinet_group": "Т/АТ",
-          "source": "user"
-        }
-      ],
-      "standard": "СТО (проект, ред. 2)"
-    },
-    {
-      "key": "draft-шэт-211-14-1",
-      "standard_key": "tat2",
-      "code": "ШЭТ 211.14-1",
-      "group": "Т/АТ",
-      "name": "Шкаф основных защит автотрансформатора 220 кВ и ошиновки НН, УРОВ, АПВ",
-      "title": "Шкаф основных защит автотрансформатора 220 кВ и ошиновки НН, УРОВ, АПВ",
-      "description": "Шкаф основных защит автотрансформатора 220 кВ и ошиновки НН, УРОВ, АПВ.",
-      "voltage": "220 кВ",
-      "protected": "АТ 220 кВ; ошиновка НН АТ",
-      "controlled": [
-        "Выключатели ВН, СН АТ"
-      ],
-      "its_functions": [
-        "ДЗТ",
-        "ГЗ АТ",
-        "ТЗ АТ",
-        "ГЗ РПН АТ",
-        "ГЗ ЛРТ",
-        "ТЗ ЛРТ",
-        "ТЗО ВН",
-        "ТЗО СН",
-        "МТЗ НН/U",
-        "ЗП ВН",
-        "ЗП ОО",
-        "ЗП НН",
-        "КИ НН",
-        "ТК ЗДЗ",
-        "УРОВ",
-        "АПВ",
-        "ДЗО НН"
-      ],
-      "applicability": "РУ 220 кВ, РУ 6–35 кВ (ГОСТ Р 59279)",
-      "architecture": "II тип",
-      "source": "разд. 5.6, табл. 5.53",
-      "goose": true,
-      "tags": [
-        "Невыпущенные СТО"
-      ],
-      "standard_title": "Типовые шкафы ШЭТ РЗА (авто)трансформаторов 110–750 кВ. Архитектура II типа",
-      "edition": "Редакция 2 (проект)",
-      "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
-      "komplets": [
-        {
-          "name": "Комплект 1",
-          "kind": "typical",
-          "type": "МП РЗА",
-          "functions": [
-            "ДЗТ",
-            "ГЗ АТ",
-            "ТЗ АТ",
-            "ГЗ РПН АТ",
-            "ГЗ ЛРТ",
-            "ТЗ ЛРТ",
-            "ТЗО ВН",
-            "ТЗО СН",
-            "МТЗ НН",
-            "КИ НН",
-            "ЗП",
-            "КОН",
-            "ТК ЗДЗ",
-            "ПО УРОВ НН",
-            "УРОВ В ВН",
-            "АПВ В ВН",
-            "КСН В ВН",
-            "УРОВ В СН",
-            "АПВ В СН",
-            "КСН В СН",
-            "РАС"
-          ],
-          "desc": "Основные защиты АТ, УРОВ и АПВ выключателей ВН и СН",
-          "has_ied": true,
-          "ieds": [
             {
-              "name": "ИЭУ1",
-              "type": "МП РЗА",
-              "desc": "Основные защиты АТ, УРОВ и АПВ выключателей ВН и СН"
-            }
-          ],
-          "test_blocks": {
-            "voltage": {
-              "count": 3,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ ВН"
             },
-            "current": {
-              "count": 5,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
-            }
-          },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-211-14-1",
-          "cabinet_index": 0,
-          "cabinet_code": "ШЭТ 211.14-1",
-          "cabinet_name": "Шкаф основных защит автотрансформатора 220 кВ и ошиновки НН, УРОВ, АПВ",
-          "cabinet_group": "Т/АТ",
-          "source": "user"
-        },
-        {
-          "name": "Комплект 2",
-          "kind": "typical",
-          "type": "МП РЗА",
-          "functions": [
-            "ДЗО НН",
-            "РАС"
-          ],
-          "desc": "Дифференциальная защита ошиновки НН",
-          "has_ied": true,
-          "ieds": [
             {
-              "name": "ИЭУ2",
-              "type": "МП РЗА",
-              "desc": "Дифференциальная защита ошиновки НН"
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи СН"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения НН"
+            },
+            {
+              "block": "SG6",
+              "signals": "U",
+              "contacts": "2+1",
+              "note": "Напряжение ВН"
             }
           ],
           "test_blocks": {
@@ -3074,62 +3654,73 @@
               "circuits": []
             },
             "current": {
-              "count": 3,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-211-14-1",
-          "cabinet_index": 1,
-          "cabinet_code": "ШЭТ 211.14-1",
-          "cabinet_name": "Шкаф основных защит автотрансформатора 220 кВ и ошиновки НН, УРОВ, АПВ",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "draft-шэт-211-12-1",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 211.12-1",
+          "cabinet_name": "Шкаф защит трансформатора 110–220 кВ",
           "cabinet_group": "Т/АТ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
-      "key": "draft-шэт-211-15-1",
+      "key": "draft-шэт-210-13-1",
       "standard_key": "tat2",
-      "code": "ШЭТ 211.15-1",
+      "code": "ШЭТ 210.13-1",
       "group": "Т/АТ",
-      "name": "Шкаф основных защит автотрансформатора 220 кВ, УРОВ, АПВ",
-      "title": "Шкаф основных защит автотрансформатора 220 кВ, УРОВ, АПВ",
-      "description": "Шкаф основных защит автотрансформатора 220 кВ, УРОВ, АПВ.",
-      "voltage": "220 кВ",
-      "protected": "АТ 220 кВ",
-      "controlled": [
-        "Выключатели ВН, СН АТ"
-      ],
+      "name": "Шкаф резервных защит трехобмоточного трансформатора 110–220 кВ",
+      "title": "Шкаф резервных защит трехобмоточного трансформатора 110–220 кВ",
+      "description": "Шкаф резервных защит трехобмоточного трансформатора 110–220 кВ с двухсторонним питанием.",
+      "voltage": "110–220 кВ",
+      "protected": "Т 110–220 кВ",
+      "controlled": [],
       "its_functions": [
-        "ДЗТ",
-        "ГЗ АТ",
-        "ТЗ АТ",
-        "ГЗ РПН АТ",
-        "ГЗ ЛРТ",
-        "ТЗ ЛРТ",
-        "ТЗО ВН",
-        "ТЗО СН",
-        "МТЗ НН/U",
-        "ЗП ВН",
-        "ЗП ОО",
-        "ЗП НН",
-        "КИ НН",
-        "ТК ЗДЗ",
-        "УРОВ",
-        "АПВ"
+        "ЗНР",
+        "МТЗ ВН",
+        "МТЗ СН",
+        "ТЗНП"
       ],
-      "applicability": "РУ 220 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 110–220 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.7, табл. 5.76",
+      "source": "табл. 5.39",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -3139,72 +3730,488 @@
       "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "ДЗТ",
-            "ГЗ АТ",
-            "ТЗ АТ",
-            "ГЗ РПН АТ",
-            "ГЗ ЛРТ",
-            "ТЗ ЛРТ",
-            "ТЗО ВН",
-            "ТЗО СН",
-            "МТЗ НН",
-            "КИ НН",
-            "ЗП",
-            "КОН",
-            "ТК ЗДЗ",
-            "ПО УРОВ НН",
-            "УРОВ В ВН",
-            "АПВ В ВН",
-            "КСН В ВН",
-            "УРОВ В СН",
-            "АПВ В СН",
-            "КСН В СН",
-            "РАС"
+            "ЗНР",
+            "МТЗ ВН",
+            "МТЗ СН",
+            "ТЗНП"
           ],
-          "desc": "Шкаф основных защит автотрансформатора 220 кВ, УРОВ, АПВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф основных защит автотрансформатора 220 кВ, УРОВ, АПВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи СН"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-1» ВН"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-2» ВН"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-1» ОВ ВН"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-2» ОВ ВН"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения СН"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 3,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 5,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-211-15-1",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "draft-шэт-210-13-1",
           "cabinet_index": 0,
-          "cabinet_code": "ШЭТ 211.15-1",
-          "cabinet_name": "Шкаф основных защит автотрансформатора 220 кВ, УРОВ, АПВ",
+          "cabinet_code": "ШЭТ 210.13-1",
+          "cabinet_name": "Шкаф резервных защит трехобмоточного трансформатора 110–220 кВ",
           "cabinet_group": "Т/АТ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    {
+      "key": "draft-шэт-211-14-1",
+      "standard_key": "tat2",
+      "code": "ШЭТ 211.14-1",
+      "group": "Т/АТ",
+      "name": "Шкаф основных защит автотрансформатора 220 кВ и ошиновки НН",
+      "title": "Шкаф основных защит автотрансформатора 220 кВ и ошиновки НН",
+      "description": "Шкаф основных защит автотрансформатора 220 кВ (дифференциальная токовая, технологические защиты автотрансформатора и линейного регулировочного трансформатора, УРОВ и СА выключателей стороны ВН и СН АТ, защиты ошиновки 6–35 кВ автотрансформатора).",
+      "voltage": "220 кВ",
+      "protected": "АТ 220 кВ",
+      "controlled": [
+        "Выключатели ВН",
+        "СН АТ"
+      ],
+      "its_functions": [
+        "ДЗТ",
+        "ЗП",
+        "КИ НН",
+        "КОН",
+        "КСН В ВН",
+        "КСН В СН",
+        "МТЗ НН",
+        "ПО УРОВ НН",
+        "ТЗО ВН",
+        "ТЗО СН",
+        "ТК ЗДЗ",
+        "УРОВ В ВН",
+        "УРОВ В СН"
+      ],
+      "applicability": "РУ 220 кВ",
+      "architecture": "II тип",
+      "source": "табл. 5.53",
+      "goose": true,
+      "tags": [
+        "Невыпущенные СТО"
+      ],
+      "standard_title": "Типовые шкафы ШЭТ РЗА (авто)трансформаторов 110–750 кВ. Архитектура II типа",
+      "edition": "Редакция 2 (проект)",
+      "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
+      "komplets": [
+        {
+          "key": "",
+          "kind": "typical",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
+          "functions": [
+            "ДЗТ",
+            "ЗП",
+            "КИ НН",
+            "КОН",
+            "КСН В ВН",
+            "КСН В СН",
+            "МТЗ НН",
+            "ПО УРОВ НН",
+            "ТЗО ВН",
+            "ТЗО СН",
+            "ТК ЗДЗ",
+            "УРОВ В ВН",
+            "УРОВ В СН"
+          ],
+          "desc": "Комплект ИЭУ шкафа",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ1",
+              "type": "МП РЗА",
+              "desc": ""
+            },
+            {
+              "name": "ИЭУ2",
+              "type": "МП РЗА",
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ ВН"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи СН"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ СН"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения НН"
+            },
+            {
+              "block": "SG7",
+              "signals": "U",
+              "contacts": "2+1",
+              "note": "Напряжение ВН"
+            },
+            {
+              "block": "SG8",
+              "signals": "U",
+              "contacts": "2+1",
+              "note": "Напряжение СН"
+            },
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи НН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В НН1"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Фазные токи В НН2"
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "draft-шэт-211-14-1",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 211.14-1",
+          "cabinet_name": "Шкаф основных защит автотрансформатора 220 кВ и ошиновки НН",
+          "cabinet_group": "Т/АТ",
+          "source": "user"
+        }
+      ],
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
+    },
+    {
+      "key": "draft-шэт-211-15-1",
+      "standard_key": "tat2",
+      "code": "ШЭТ 211.15-1",
+      "group": "Т/АТ",
+      "name": "Шкаф основных защит автотрансформатора 220 кВ",
+      "title": "Шкаф основных защит автотрансформатора 220 кВ",
+      "description": "Шкаф основных защит автотрансформатора 220 кВ (дифференциальная токовая, технологические защиты автотрансформатора и линейного регулировочного трансформатора, УРОВ и СА выключателей стороны ВН и СН АТ).",
+      "voltage": "220 кВ",
+      "protected": "АТ 220 кВ",
+      "controlled": [
+        "Выключатели ВН",
+        "СН АТ"
+      ],
+      "its_functions": [
+        "ДЗТ",
+        "ЗП",
+        "КИ НН",
+        "КОН",
+        "КСН В ВН",
+        "КСН В СН",
+        "МТЗ НН",
+        "ПО УРОВ НН",
+        "ТЗО ВН",
+        "ТЗО СН",
+        "ТК ЗДЗ",
+        "УРОВ В ВН",
+        "УРОВ В СН"
+      ],
+      "applicability": "РУ 220 кВ",
+      "architecture": "II тип",
+      "source": "табл. 5.76",
+      "goose": true,
+      "tags": [
+        "Невыпущенные СТО"
+      ],
+      "standard_title": "Типовые шкафы ШЭТ РЗА (авто)трансформаторов 110–750 кВ. Архитектура II типа",
+      "edition": "Редакция 2 (проект)",
+      "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
+      "komplets": [
+        {
+          "key": "",
+          "kind": "typical",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
+          "functions": [
+            "ДЗТ",
+            "ЗП",
+            "КИ НН",
+            "КОН",
+            "КСН В ВН",
+            "КСН В СН",
+            "МТЗ НН",
+            "ПО УРОВ НН",
+            "ТЗО ВН",
+            "ТЗО СН",
+            "ТК ЗДЗ",
+            "УРОВ В ВН",
+            "УРОВ В СН"
+          ],
+          "desc": "Комплект ИЭУ шкафа",
+          "has_ied": true,
+          "ieds": [
+            {
+              "name": "ИЭУ1",
+              "type": "МП РЗА",
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ ВН"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи СН"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ СН"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения НН"
+            },
+            {
+              "block": "SG7",
+              "signals": "U",
+              "contacts": "2+1",
+              "note": "Напряжение ВН"
+            },
+            {
+              "block": "SG8",
+              "signals": "U",
+              "contacts": "2+1",
+              "note": "Напряжение СН"
+            }
+          ],
+          "test_blocks": {
+            "voltage": {
+              "count": 0,
+              "circuits": []
+            },
+            "current": {
+              "count": 0,
+              "circuits": []
+            }
+          },
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
+          "cabinet_key": "draft-шэт-211-15-1",
+          "cabinet_index": 0,
+          "cabinet_code": "ШЭТ 211.15-1",
+          "cabinet_name": "Шкаф основных защит автотрансформатора 220 кВ",
+          "cabinet_group": "Т/АТ",
+          "source": "user"
+        }
+      ],
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-311-11-1",
@@ -3213,35 +4220,30 @@
       "group": "Т/АТ",
       "name": "Шкаф основных защит автотрансформатора 330–750 кВ и ошиновки НН, УРОВ, АПВ",
       "title": "Шкаф основных защит автотрансформатора 330–750 кВ и ошиновки НН, УРОВ, АПВ",
-      "description": "Шкаф основных защит автотрансформатора 330–750 кВ и ошиновки НН, УРОВ, АПВ.",
+      "description": "Шкаф основных защит автотрансформатора 330–750 кВ (дифференциальная токовая, технологические защиты автотрансформатора и линейного регулировочного трансформатора, УРОВ и СА выключателя стороны СН АТ, защиты ошиновки 6–35 кВ автотрансформатора).",
       "voltage": "330–750 кВ",
-      "protected": "АТ 330–750 кВ; ошиновка НН",
+      "protected": "АТ 330–750 кВ",
       "controlled": [
         "Выключатель СН АТ"
       ],
       "its_functions": [
         "ДЗТ",
-        "ГЗ АТ",
-        "ТЗ АТ",
-        "ГЗ РПН АТ",
-        "ГЗ ЛРТ",
-        "ТЗ ЛРТ",
+        "ЗП",
+        "КИ НН",
         "КИВ",
+        "КОН",
+        "КСН В СН",
+        "КЦН НН",
+        "МТЗ НН",
+        "ПО УРОВ НН",
         "ТЗО ВН",
         "ТЗО СН",
-        "МТЗ НН/U",
-        "ЗП ВН",
-        "ЗП ОО",
-        "ЗП НН",
-        "КИ НН",
         "ТК ЗДЗ",
-        "УРОВ",
-        "АПВ",
-        "ДЗО НН"
+        "УРОВ В СН"
       ],
-      "applicability": "РУ ВН 330–750 кВ, РУ СН 110–500 кВ, РУ 6–35 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ ВН 330–750 кВ, РУ СН 110–500 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.8, табл. 5.90",
+      "source": "табл. 5.90",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -3251,84 +4253,105 @@
       "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
             "ДЗТ",
-            "ГЗ АТ",
-            "ТЗ АТ",
-            "ГЗ РПН АТ",
-            "ГЗ ЛРТ",
-            "ТЗ ЛРТ",
+            "ЗП",
+            "КИ НН",
             "КИВ",
+            "КОН",
+            "КСН В СН",
+            "КЦН НН",
+            "МТЗ НН",
+            "ПО УРОВ НН",
             "ТЗО ВН",
             "ТЗО СН",
-            "МТЗ НН",
-            "КИ НН",
-            "КЦН НН",
-            "ЗП",
-            "КОН",
             "ТК ЗДЗ",
-            "ПО УРОВ НН",
-            "УРОВ В СН",
-            "АПВ В СН",
-            "КСН В СН",
-            "РАС"
+            "УРОВ В СН"
           ],
-          "desc": "Основные защиты АТ, УРОВ и АПВ выключателя СН",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Основные защиты АТ, УРОВ и АПВ выключателя СН"
-            }
-          ],
-          "test_blocks": {
-            "voltage": {
-              "count": 3,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "desc": ""
             },
-            "current": {
-              "count": 5,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
-            }
-          },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-311-11-1",
-          "cabinet_index": 0,
-          "cabinet_code": "ШЭТ 311.11-1",
-          "cabinet_name": "Шкаф основных защит автотрансформатора 330–750 кВ и ошиновки НН, УРОВ, АПВ",
-          "cabinet_group": "Т/АТ",
-          "source": "user"
-        },
-        {
-          "name": "Комплект 2",
-          "kind": "typical",
-          "type": "МП РЗА",
-          "functions": [
-            "ДЗО НН",
-            "РАС"
-          ],
-          "desc": "Дифференциальная защита ошиновки НН",
-          "has_ied": true,
-          "ieds": [
             {
               "name": "ИЭУ2",
               "type": "МП РЗА",
-              "desc": "Дифференциальная защита ошиновки НН"
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи СН"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ СН"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи КИВ"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения НН"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения КИВ"
+            },
+            {
+              "block": "SG8",
+              "signals": "U",
+              "contacts": "2+1",
+              "note": "Напряжение СН"
+            },
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи В НН1"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи В НН2"
             }
           ],
           "test_blocks": {
@@ -3337,27 +4360,52 @@
               "circuits": []
             },
             "current": {
-              "count": 3,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-311-11-1",
-          "cabinet_index": 1,
+          "cabinet_index": 0,
           "cabinet_code": "ШЭТ 311.11-1",
           "cabinet_name": "Шкаф основных защит автотрансформатора 330–750 кВ и ошиновки НН, УРОВ, АПВ",
           "cabinet_group": "Т/АТ",
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-311-12-1",
@@ -3366,7 +4414,7 @@
       "group": "Т/АТ",
       "name": "Шкаф основных защит автотрансформатора 330–750 кВ, УРОВ, АПВ",
       "title": "Шкаф основных защит автотрансформатора 330–750 кВ, УРОВ, АПВ",
-      "description": "Шкаф основных защит автотрансформатора 330–750 кВ, УРОВ, АПВ.",
+      "description": "Шкаф основных защит автотрансформатора 330–750 кВ (дифференциальная токовая, технологические защиты автотрансформатора и линейного регулировочного трансформатора, УРОВ и СА выключателя стороны СН АТ).",
       "voltage": "330–750 кВ",
       "protected": "АТ 330–750 кВ",
       "controlled": [
@@ -3374,26 +4422,22 @@
       ],
       "its_functions": [
         "ДЗТ",
-        "ГЗ АТ",
-        "ТЗ АТ",
-        "ГЗ РПН АТ",
-        "ГЗ ЛРТ",
-        "ТЗ ЛРТ",
+        "ЗП",
+        "КИ НН",
         "КИВ",
+        "КОН",
+        "КСН В СН",
+        "КЦН НН",
+        "МТЗ НН",
+        "ПО УРОВ НН",
         "ТЗО ВН",
         "ТЗО СН",
-        "МТЗ НН/U",
-        "ЗП ВН",
-        "ЗП ОО",
-        "ЗП НН",
-        "КИ НН",
         "ТК ЗДЗ",
-        "УРОВ",
-        "АПВ"
+        "УРОВ В СН"
       ],
-      "applicability": "РУ ВН 330–750 кВ, РУ СН 110–500 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ ВН 330–750 кВ, РУ СН 110–500 кВ",
       "architecture": "II тип",
-      "source": "разд. 5.9, табл. 5.113",
+      "source": "табл. 5.113",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -3403,62 +4447,111 @@
       "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
             "ДЗТ",
-            "ГЗ АТ",
-            "ТЗ АТ",
-            "ГЗ РПН АТ",
-            "ГЗ ЛРТ",
-            "ТЗ ЛРТ",
+            "ЗП",
+            "КИ НН",
             "КИВ",
+            "КОН",
+            "КСН В СН",
+            "КЦН НН",
+            "МТЗ НН",
+            "ПО УРОВ НН",
             "ТЗО ВН",
             "ТЗО СН",
-            "МТЗ НН",
-            "КИ НН",
-            "КЦН НН",
-            "ЗП",
-            "КОН",
             "ТК ЗДЗ",
-            "ПО УРОВ НН",
-            "УРОВ В СН",
-            "АПВ В СН",
-            "КСН В СН",
-            "РАС"
+            "УРОВ В СН"
           ],
-          "desc": "Шкаф основных защит автотрансформатора 330–750 кВ, УРОВ, АПВ.",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Шкаф основных защит автотрансформатора 330–750 кВ, УРОВ, АПВ."
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ВН"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи СН"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи ОВ СН"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи НН"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи КИВ"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения НН"
+            },
+            {
+              "block": "SG7",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения КИВ"
+            },
+            {
+              "block": "SG8",
+              "signals": "U",
+              "contacts": "2+1",
+              "note": "Напряжение СН"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 3,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 5,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-311-12-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 311.12-1",
@@ -3467,7 +4560,23 @@
           "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "draft-шэт-410-11-1",
@@ -3476,19 +4585,21 @@
       "group": "Т/АТ",
       "name": "Шкаф резервных защит автотрансформатора 220–750 кВ",
       "title": "Шкаф резервных защит автотрансформатора 220–750 кВ",
-      "description": "Шкаф резервных защит автотрансформатора 220–750 кВ.",
+      "description": "Шкаф резервных защит автотрансформатора 220–750 кВ (комплекты резервных защит сторон ВН, СН автотрансформатора).",
       "voltage": "220–750 кВ",
-      "protected": "Сторона ВН АТ 330–750 кВ; сторона СН АТ 330–750 кВ",
+      "protected": "Сторона ВН АТ 330–750 кВ",
       "controlled": [],
       "its_functions": [
-        "КСЗ ВН",
-        "ЗНР",
         "АМТЗ",
-        "КСЗ СН"
+        "АУ",
+        "БНН",
+        "ЗНР",
+        "МТЗ",
+        "ТЗНП"
       ],
-      "applicability": "РУ 220–750 кВ (ГОСТ Р 59279)",
+      "applicability": "РУ 220–750 кВ,",
       "architecture": "II тип",
-      "source": "разд. 5.10, табл. 5.127",
+      "source": "табл. 5.127",
       "goose": true,
       "tags": [
         "Невыпущенные СТО"
@@ -3498,115 +4609,117 @@
       "document": "Раздел 4.16_т. 7_СТО ШЭТ Т АТ 110 - 750 кВ II_Ред.2.pdf",
       "komplets": [
         {
-          "name": "Комплект 1",
+          "key": "",
           "kind": "typical",
-          "type": "МП РЗА",
+          "name": "Комплект 1",
+          "type": "ИЭУ",
           "functions": [
-            "СЗ (ДЗ",
-            "ТЗНП",
-            "МТЗ",
-            "ОУ",
+            "АМТЗ",
             "АУ",
             "БНН",
-            "БК)",
             "ЗНР",
-            "АМТЗ",
-            "РАС"
+            "МТЗ",
+            "ТЗНП"
           ],
-          "desc": "Комплект ступенчатых защит стороны ВН",
+          "desc": "Комплект ИЭУ шкафа",
           "has_ied": true,
           "ieds": [
             {
               "name": "ИЭУ1",
               "type": "МП РЗА",
-              "desc": "Комплект ступенчатых защит стороны ВН"
+              "desc": ""
+            }
+          ],
+          "analog_inputs": [
+            {
+              "block": "SG1",
+              "signals": "Ia, Ib, Ic",
+              "contacts": "6+1",
+              "note": "Токи стороны"
+            },
+            {
+              "block": "SG2",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-1»"
+            },
+            {
+              "block": "SG3",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-2»"
+            },
+            {
+              "block": "SG4",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-1» ОВ"
+            },
+            {
+              "block": "SG5",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения «ВО-2» ОВ"
+            },
+            {
+              "block": "SG6",
+              "signals": "Ua, Ub, Uc",
+              "contacts": "4+1",
+              "note": "Напряжения НН"
             }
           ],
           "test_blocks": {
             "voltage": {
-              "count": 5,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
+              "count": 0,
+              "circuits": []
             },
             "current": {
-              "count": 1,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
+              "count": 0,
+              "circuits": []
             }
           },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
+          "test_block_list": [],
+          "mp_functions": null,
+          "its_functions_desc": null,
+          "power_supply": null,
+          "ports": null,
+          "connection_scheme": null,
+          "components": null,
+          "additional_equipment": null,
+          "parameters": null,
+          "general_view": null,
+          "structural_scheme": null,
+          "schematic": null,
+          "climate": null,
+          "enclosure": null,
+          "cooling": null,
+          "communication": null,
+          "notes": null,
           "cabinet_key": "draft-шэт-410-11-1",
           "cabinet_index": 0,
           "cabinet_code": "ШЭТ 410.11-1",
           "cabinet_name": "Шкаф резервных защит автотрансформатора 220–750 кВ",
           "cabinet_group": "Т/АТ",
           "source": "user"
-        },
-        {
-          "name": "Комплект 2",
-          "kind": "typical",
-          "type": "МП РЗА",
-          "functions": [
-            "СЗ (ДЗ",
-            "ТЗНП",
-            "МТЗ",
-            "ОУ",
-            "АУ",
-            "БНН",
-            "БК)",
-            "ЗНР",
-            "АМТЗ",
-            "РАС"
-          ],
-          "desc": "Комплект ступенчатых защит стороны СН",
-          "has_ied": true,
-          "ieds": [
-            {
-              "name": "ИЭУ2",
-              "type": "МП РЗА",
-              "desc": "Комплект ступенчатых защит стороны СН"
-            }
-          ],
-          "test_blocks": {
-            "voltage": {
-              "count": 5,
-              "circuits": [
-                "Ua",
-                "Ub",
-                "Uc"
-              ]
-            },
-            "current": {
-              "count": 1,
-              "circuits": [
-                "Ia",
-                "Ib",
-                "Ic"
-              ]
-            }
-          },
-          "tags": [
-            "Невыпущенные СТО"
-          ],
-          "key": "",
-          "cabinet_key": "draft-шэт-410-11-1",
-          "cabinet_index": 1,
-          "cabinet_code": "ШЭТ 410.11-1",
-          "cabinet_name": "Шкаф резервных защит автотрансформатора 220–750 кВ",
-          "cabinet_group": "Т/АТ",
-          "source": "user"
         }
       ],
-      "standard": "СТО (проект, ред. 2)"
+      "standard": "СТО (проект, ред. 2)",
+      "mp_functions": null,
+      "its_functions_desc": null,
+      "power_supply": null,
+      "ports": null,
+      "connection_scheme": null,
+      "components": null,
+      "additional_equipment": null,
+      "parameters": null,
+      "general_view": null,
+      "structural_scheme": null,
+      "schematic": null,
+      "climate": null,
+      "enclosure": null,
+      "cooling": null,
+      "communication": null,
+      "notes": null
     },
     {
       "key": "шэт-311-01-1-копия-dd9c",

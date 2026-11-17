@@ -95,19 +95,21 @@ def _pair(app):
     """Шкаф с комплектом, оборудование и связь защиты комплект → узел."""
     import library
     cabinet = _add(app, "cabinet", 200, 200)
+    app.elements[cabinet].label_offset = [0, -50]
     app.elements[cabinet].komplets = library.normalize_komplets(
         [{"name": "К1"}])
     app.elements[cabinet].generate_ports()
     device = _add(app, "transformer", 500, 200)
+    app.elements[device].label_offset = [0, 50]
     link = app._add_protection_link(cabinet + "#0", device)
     return cabinet, device, link
 
 
 def _bent(app):
     """Та же связь с одним изломом посередине."""
-    _, _, link = _pair(app)
+    cab, dev, link = _pair(app)
     link["points"] = [[350.0, 200.0]]
-    return link
+    return cab, dev, link
 
 
 def test_clean_points():
@@ -155,6 +157,7 @@ def test_hit(app):
     print("3. попадание в сегмент и маркер")
     _reset(app)
     _, _, link = _bent(app)
+    app.selected_protection = link
     app.redraw_all()
 
     sx, sy = app.world_to_screen(350.0, 200.0)
@@ -163,7 +166,7 @@ def test_hit(app):
     check(app._protection_point_at(sx + 60, sy + 60) is None,
           "мимо маркера — None")
 
-    sx, sy = app.world_to_screen(300.0, 200.0)
+    sx, sy = app.world_to_screen(322.5, 205.5)
     check(app._protection_segment_at(sx, sy) == (link, 0),
           "сегмент между портом и изломом определяется")
     check(app._protection_link_at(sx, sy) is link,
@@ -184,10 +187,10 @@ def test_edit(app):
     app.redraw_all()
 
     # Двойной клик по сегменту 0 — точка встаёт между портом и изломом
-    sx, sy = app.world_to_screen(275.0, 200.0)
+    sx, sy = app.world_to_screen(322.5, 205.5)
     app.on_double_click(_event(sx, sy))
     check(len(link["points"]) == 2, "двойной клик по сегменту вставил точку")
-    check(close(link["points"][0], [275.0, 200.0], 10.0),
+    check(close(link["points"][0], [322.5, 205.5], 10.0),
           "точка вставлена в месте клика (с привязкой к сетке)")
     check(app.selected_protection is link,
           "вставка выделяет связь для правки")
@@ -198,7 +201,7 @@ def test_edit(app):
     check(len(link["points"]) == 1, "двойной клик по маркеру удалил точку")
 
     # Удаляем оставшийся излом: пустое поле не хранится
-    for _ in range(2):
+    if "points" in link and link["points"]:
         sx, sy = app.world_to_screen(*link["points"][0])
         app.on_double_click(_event(sx, sy))
     check("points" not in link, "пустой список изломов не хранится")
@@ -344,7 +347,7 @@ def test_right_click(app):
     _, _, link = _bent(app)
     app.redraw_all()
 
-    sx, sy = app.world_to_screen(300.0, 200.0)
+    sx, sy = app.world_to_screen(322.5, 205.5)
     hit = app._link_at(sx, sy)
     check(hit is not None and hit[0] == "protection"
           and hit[1] is link,
@@ -367,6 +370,11 @@ def test_right_click(app):
 
 def run_gui():
     import main
+    try:
+        import tkinter.simpledialog as simpledialog
+        simpledialog.askstring = lambda *args, **kwargs: None
+    except Exception:
+        pass
     # Диалоги сохранения не должны блокировать тест
     main.messagebox.showinfo = lambda *args, **kwargs: None
     main.messagebox.showerror = lambda *args, **kwargs: None
