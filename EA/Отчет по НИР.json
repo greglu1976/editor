@@ -3645,9 +3645,9 @@
           "tables": [
             {
               "number": "5.44",
-              "name": "Описание ШЭТ 431.14-1",
+              "name": "Описание ШЭТ 431.22-1",
               "reference": "Таблица 5.44",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -3861,9 +3861,9 @@
             },
             {
               "number": "5.45",
-              "name": "Входные аналоговые измерения ИЭУ ШЭТ 431.14-1",
+              "name": "Входные аналоговые измерения ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.45",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -3879,9 +3879,9 @@
             },
             {
               "number": "5.46",
-              "name": "Внутренние дискретные цепи ИЭУ ШЭТ 431.14-1",
+              "name": "Внутренние дискретные цепи ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.46",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -3896,9 +3896,9 @@
             },
             {
               "number": "5.47",
-              "name": "Информационные сигналы в составе входящих сообщений ИЭУ ШЭТ 431.14-1",
+              "name": "Информационные сигналы в составе входящих сообщений ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.47",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -3915,9 +3915,9 @@
             },
             {
               "number": "5.48",
-              "name": "Функциональные клавиши ИЭУ ШЭТ 431.14-1",
+              "name": "Функциональные клавиши ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.48",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -3933,9 +3933,9 @@
             },
             {
               "number": "5.49",
-              "name": "Светодиодная сигнализация ИЭУ ШЭТ 431.14-1",
+              "name": "Светодиодная сигнализация ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.49",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -3950,9 +3950,9 @@
             },
             {
               "number": "5.50",
-              "name": "Сообщения и отчеты, исходящие от ИЭУ ШЭТ 431.14-1",
+              "name": "Сообщения и отчеты, исходящие от ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.50",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -3970,9 +3970,9 @@
             },
             {
               "number": "5.51",
-              "name": "Информационные сигналы в составе исходящих сообщений ИЭУ ШЭТ 431.14-1",
+              "name": "Информационные сигналы в составе исходящих сообщений ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.51",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -3987,9 +3987,9 @@
             },
             {
               "number": "5.52",
-              "name": "Информационные сигналы в составе исходящих отчетов ИЭУ ШЭТ 431.14-1",
+              "name": "Информационные сигналы в составе исходящих отчетов ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.52",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -4023,9 +4023,9 @@
             },
             {
               "number": "5.53",
-              "name": "Осциллографируемые аналоговые сигналы ИЭУ ШЭТ 431.14-1",
+              "name": "Осциллографируемые аналоговые сигналы ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.53",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -4041,9 +4041,9 @@
             },
             {
               "number": "5.54",
-              "name": "Команды управления от АСУ ТП для ИЭУ ШЭТ 431.14-1",
+              "name": "Команды управления от АСУ ТП для ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.54",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -4057,9 +4057,9 @@
             },
             {
               "number": "5.55",
-              "name": "Основные параметры функций РЗА ИЭУ ШЭТ 431.14-1",
+              "name": "Основные параметры функций РЗА ИЭУ ШЭТ 431.22-1",
               "reference": "Таблица 5.55",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -4074,9 +4074,9 @@
             },
             {
               "number": "5.56",
-              "name": "Ряды зажимов шкафа ШЭТ 431.14-1",
+              "name": "Ряды зажимов шкафа ШЭТ 431.22-1",
               "reference": "Таблица 5.56",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -4104,9 +4104,9 @@
             },
             {
               "number": "5.57",
-              "name": "Основные компоненты шкафа ШЭТ 431.14-1",
+              "name": "Основные компоненты шкафа ШЭТ 431.22-1",
               "reference": "Таблица 5.57",
-              "cabinet": "ШЭТ 431.14-1",
+              "cabinet": "ШЭТ 431.22-1",
               "rows": [
                 {
                   "content": [
@@ -5032,7 +5032,7 @@
   ],
   "cabinets": [
     {
-      "cypher": "ШЭТ 431.11-1",
+      "cypher": "ШЭТ 431.21-1",
       "architecture": "II тип",
       "name": "Шкаф защит батареи статических конденсаторов 110–330 кВ, УРОВ",
       "controllable_element": "Выключатель БСК",
@@ -11725,6 +11725,180 @@
                       "conditions": "-"
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "description": "Комплект ИЭУ шкафа",
+          "type": "ИЭУ",
+          "tag": "Невыпущенные СТО",
+          "group": "СКРМ",
+          "ieds": [
+            {
+              "number": "2",
+              "analog_inputs": [
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG1",
+                  "contacts_count": "6+1",
+                  "note": "Токи БСК"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG2",
+                  "contacts_count": "6+1",
+                  "note": "Токи ОВ"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG3",
+                  "contacts_count": "6+1",
+                  "note": "Токи нейтрали"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG4",
+                  "contacts_count": "6+1",
+                  "note": "Токи средней перемычки"
+                },
+                {
+                  "circuit_type": "Iн",
+                  "test_block": "SG5",
+                  "contacts_count": "2+1",
+                  "note": "Ток в цепи заземления нейтрали"
+                },
+                {
+                  "circuit_type": "Ua, Ub, Uc",
+                  "test_block": "SG6",
+                  "contacts_count": "4+1",
+                  "note": "Напряжения «ВО-1»"
+                },
+                {
+                  "circuit_type": "Ua, Ub, Uc",
+                  "test_block": "SG7",
+                  "contacts_count": "4+1",
+                  "note": "Напряжения «ВО-2»"
+                },
+                {
+                  "circuit_type": "Ua, Ub, Uc",
+                  "test_block": "SG8",
+                  "contacts_count": "4+1",
+                  "note": "Напряжения «ВО-1» ОВ"
+                },
+                {
+                  "circuit_type": "Ua, Ub, Uc",
+                  "test_block": "SG9",
+                  "contacts_count": "4+1",
+                  "note": "Напряжения «ВО-2» ОВ"
+                }
+              ],
+              "osc_analog_signals": [],
+              "incoming_goose_signals": [],
+              "inner_discrete_circuits": [],
+              "datasets": [],
+              "ports": [],
+              "functional_buttons": [],
+              "leds": [],
+              "control_commands": [],
+              "functions": [
+                {
+                  "name": "ДТЗ НП",
+                  "russian_path": "ДТЗ НП",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ДТЗ",
+                  "russian_path": "ДТЗ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ЗВП",
+                  "russian_path": "ЗВП",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ЗМН",
+                  "russian_path": "ЗМН",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ЗНР",
+                  "russian_path": "ЗНР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ЗПВГ",
+                  "russian_path": "ЗПВГ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ЗПН",
+                  "russian_path": "ЗПН",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "МТЗ",
+                  "russian_path": "МТЗ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗНП ВН",
+                  "russian_path": "ТЗНП ВН",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗНП НЕЙТР",
+                  "russian_path": "ТЗНП НЕЙТР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗОП",
+                  "russian_path": "ТЗОП",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "УРОВ",
+                  "russian_path": "УРОВ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
                 }
               ]
             }
@@ -22599,7 +22773,7 @@
           "group": "СКРМ",
           "ieds": [
             {
-              "number": 1,
+              "number": "3",
               "analog_inputs": [
                 {
                   "circuit_type": "In",
@@ -22683,7 +22857,7 @@
       "containers": []
     },
     {
-      "cypher": "ШЭТ 431.13-1",
+      "cypher": "ШЭТ 431.23-1",
       "architecture": "II тип",
       "name": "Шкаф защит шунтирующего реактора 110–220 кВ, УРОВ",
       "controllable_element": "Выключатель ШР",
@@ -31719,4278 +31893,170 @@
               ]
             }
           ]
-        }
-      ],
-      "containers": []
-    },
-    {
-      "cypher": "ШЭТ 431.14-1",
-      "architecture": "II тип",
-      "name": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ, УРОВ, АКР",
-      "controllable_element": "Выключатель КР",
-      "protected_element": "КР 35–110 кВ",
-      "scope": "Подключение к нейтрали линейного шунтирующего реактора",
-      "description": "Шкаф защит и автоматики компенсационного реактора 35–110 кВ (дифференциальная токовая защита, газовые, технологические и резервные защиты, УРОВ и АКР, управление выключателем КР).",
-      "type": "ШЭТ",
-      "tag": "",
-      "group": "",
-      "power_supplies": [
-        {
-          "purpose": "питание ИЭУ"
         },
         {
-          "purpose": "питание цепей световой сигнализации"
-        },
-        {
-          "purpose": "освещение шкафа"
-        }
-      ],
-      "components": [
-        {
-          "name": "Передняя дверь",
-          "description": "Обзорная (прозрачная)",
-          "quantity": "1"
-        },
-        {
-          "name": "Задняя дверь",
-          "description": "Металлическая (одностворчатая/двухстворчатая)",
-          "quantity": "1"
-        },
-        {
-          "name": "Общешкафная лампа",
-          "description": "Светодиодная, желтого свечения",
-          "quantity": "1"
-        },
-        {
-          "name": "Кабельный ввод",
-          "description": "-",
-          "quantity": "-"
-        },
-        {
-          "name": "Лампа освещения",
-          "description": "Питание 220 В DC",
-          "quantity": "1"
-        },
-        {
-          "name": "Испытательный блок",
-          "description": "2 силовые цепи + 1 сигнальная цепь",
-          "quantity": "4"
-        },
-        {
-          "name": "Измерительная клемма (цепи тока, напряжения)",
-          "description": "Подключение проводов до 10 мм2, номинальный ток не менее 16 А",
-          "quantity": "8"
-        },
-        {
-          "name": "Клемма с размыкателем (разборная)",
-          "description": "Ножевой разъем",
-          "quantity": "12"
-        },
-        {
-          "name": "Интеллектуальное электронное устройство (ИЭУ)",
-          "description": "Аналоговые входы 1/5 А (определяется опросным листом), 100 В, питание 220 В DC",
-          "quantity": "1"
-        }
-      ],
-      "terminal_blocks": [
-        {
-          "text": "Ряды зажимов шкафа ШЭТ 431.14-1",
-          "rows": [
-            {
-              "location": "Цепи тока НВ",
-              "terminals": [
-                {
-                  "number": "1, 2",
-                  "quantity": 2,
-                  "function_type": "И",
-                  "connection_type": "В",
-                  "purpose": "Ток I"
-                }
-              ]
-            },
-            {
-              "location": "Цепи тока КР",
-              "terminals": [
-                {
-                  "number": "3, 4",
-                  "quantity": 2,
-                  "function_type": "И",
-                  "connection_type": "В",
-                  "purpose": "Ток I"
-                }
-              ]
-            },
-            {
-              "location": "Цепи тока нейтрали КР",
-              "terminals": [
-                {
-                  "number": "5, 6",
-                  "quantity": 2,
-                  "function_type": "И",
-                  "connection_type": "В",
-                  "purpose": "Ток I"
-                }
-              ]
-            },
-            {
-              "location": "Цепи напряжения КР",
-              "terminals": [
-                {
-                  "number": "7, 8",
-                  "quantity": 2,
-                  "function_type": "И",
-                  "connection_type": "В",
-                  "purpose": "U"
-                }
-              ]
-            },
-            {
-              "location": "Питание ИЭУ",
-              "terminals": [
-                {
-                  "number": "9, 10",
-                  "quantity": 2,
-                  "function_type": "Р",
-                  "connection_type": "В/П",
-                  "purpose": "«Плюс» постоянного оперативного тока"
-                },
-                {
-                  "number": "11, 12",
-                  "quantity": 2,
-                  "function_type": "Р",
-                  "connection_type": "В/П",
-                  "purpose": "«Минус» постоянного оперативного тока"
-                }
-              ]
-            },
-            {
-              "location": "Цепи сигнализации",
-              "terminals": [
-                {
-                  "number": "1, 2",
-                  "quantity": 2,
-                  "function_type": "Р",
-                  "connection_type": "В/П",
-                  "purpose": "«Плюс» цепей сигнализации"
-                },
-                {
-                  "number": "-",
-                  "quantity": null,
-                  "function_type": "-",
-                  "connection_type": "-",
-                  "purpose": "Разделитель цепи"
-                },
-                {
-                  "number": "3, 4",
-                  "quantity": 2,
-                  "function_type": "Р",
-                  "connection_type": "В/П",
-                  "purpose": "«Минус» цепей сигнализации"
-                }
-              ]
-            },
-            {
-              "location": "Освещение",
-              "terminals": [
-                {
-                  "number": "5, 6",
-                  "quantity": 2,
-                  "function_type": "Р",
-                  "connection_type": "В/П",
-                  "purpose": "«Плюс» освещения"
-                },
-                {
-                  "number": "-",
-                  "quantity": null,
-                  "function_type": "-",
-                  "connection_type": "-",
-                  "purpose": "Разделитель цепи"
-                },
-                {
-                  "number": "7, 8",
-                  "quantity": 2,
-                  "function_type": "Р",
-                  "connection_type": "В/П",
-                  "purpose": "«Минус» освещения"
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      "kits": [
-        {
-          "number": 1,
+          "number": 2,
           "description": "Комплект ИЭУ шкафа",
           "type": "ИЭУ",
-          "tag": "",
-          "group": "",
+          "tag": "Невыпущенные СТО",
+          "group": "СКРМ",
           "ieds": [
             {
-              "number": 1,
+              "number": "2",
               "analog_inputs": [
                 {
-                  "circuit_type": "In",
+                  "circuit_type": "Ia, Ib, Ic",
                   "test_block": "SG1",
-                  "contacts_count": "2+1",
-                  "note": "Ток в нулевом проводе соединенных в «звезду» ТТ, встроенных в нейтральные выводы ШР"
+                  "contacts_count": "6+1",
+                  "note": "Токи ВН"
                 },
                 {
-                  "circuit_type": "In",
+                  "circuit_type": "Ia, Ib, Ic",
                   "test_block": "SG2",
-                  "contacts_count": "2+1",
-                  "note": "Ток стороны высоковольтного ввода КР"
+                  "contacts_count": "6+1",
+                  "note": "Токи ОВ"
                 },
                 {
-                  "circuit_type": "In",
+                  "circuit_type": "Ia, Ib, Ic",
                   "test_block": "SG3",
-                  "contacts_count": "2+1",
-                  "note": "Ток стороны нейтрали КР"
+                  "contacts_count": "6+1",
+                  "note": "Токи расщепленной нейтрали ШР первой группы"
                 },
                 {
-                  "circuit_type": "Un",
+                  "circuit_type": "Ia, Ib, Ic",
                   "test_block": "SG4",
-                  "contacts_count": "2+1",
-                  "note": "Напряжение стороны высоковольтного ввода КР"
+                  "contacts_count": "6+1",
+                  "note": "Токи расщепленной нейтрали ШР второй группы"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG5",
+                  "contacts_count": "6+1",
+                  "note": "Токи треугольника КОР(ВО2)"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG6",
+                  "contacts_count": "6+1",
+                  "note": "Токи ОУР(ВО1)"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG7",
+                  "contacts_count": "6+1",
+                  "note": "Токи НН"
+                },
+                {
+                  "circuit_type": "Ua, Ub, Uc",
+                  "test_block": "SG8",
+                  "contacts_count": "4+1",
+                  "note": "Напряжения ТН НН"
                 }
               ],
-              "osc_analog_signals": [
-                {
-                  "description": "Ток НВ",
-                  "canal": null,
-                  "name": "I_нв",
-                  "startRAS": "+"
-                },
-                {
-                  "description": "Ток КР",
-                  "canal": null,
-                  "name": "I_кр",
-                  "startRAS": "+"
-                },
-                {
-                  "description": "Ток нейтрали КР",
-                  "canal": null,
-                  "name": "I_н",
-                  "startRAS": "-"
-                },
-                {
-                  "description": "Напряжение КР",
-                  "canal": null,
-                  "name": "U",
-                  "startRAS": "-"
-                },
-                {
-                  "description": "Дифференциальный ток ДЗР",
-                  "canal": null,
-                  "name": "I_диф",
-                  "startRAS": "+"
-                },
-                {
-                  "description": "Тормозной ток ДЗР",
-                  "canal": null,
-                  "name": "I_торм",
-                  "startRAS": "-"
-                }
-              ],
-              "incoming_goose_signals": [
-                {
-                  "signal": "Срабатывание сигнального контакта ГЗ",
-                  "info_model": "SIML.GasInsAlm.stVal, SIML.GasInsAlm.q",
-                  "source": "ПДС КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Срабатывание отключающего контакта ГЗ",
-                  "info_model": "SIML.GasInsTr.stVal, SIML.GasInsTr.q",
-                  "source": "ПДС КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "П",
-                  "note": ""
-                },
-                {
-                  "signal": "Низкая изоляция отключающих цепей ГЗ",
-                  "info_model": "SIML.Flt.stVal, SIML.Flt.q",
-                  "source": "ПДС КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Срабатывание ДТм авар",
-                  "info_model": "STMP.Trip.stVal, STMP.Trip.q",
-                  "source": "ПДС КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "П",
-                  "note": ""
-                },
-                {
-                  "signal": "Срабатывание ДТм сигн",
-                  "info_model": "STMP.Trip.stVal, STMP.Trip.q",
-                  "source": "ПДС КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Низкая изоляция отключающих цепей ДТм",
-                  "info_model": "STMP.Flt.stVal, STMP.Flt.q",
-                  "source": "ПДС КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Срабатывание ДТо авар",
-                  "info_model": "STMP.Trip.stVal, STMP.Trip.q",
-                  "source": "ПДС КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "П",
-                  "note": ""
-                },
-                {
-                  "signal": "Срабатывание ДТо сигн",
-                  "info_model": "STMP.Trip.stVal, STMP.Trip.q",
-                  "source": "ПДС КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Низкая изоляция отключающих цепей ДТо",
-                  "info_model": "STMP.Flt.stVal, STMP.Flt.q",
-                  "source": "ПДС КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Команда ВКЛ В",
-                  "info_model": "CSWI.OpCls.stVal, CSWI.OpCls.q",
-                  "source": "КП",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Команда ОТКЛ В",
-                  "info_model": "CSWI.OpOpn.stVal, CSWI.OpOpn.q",
-                  "source": "КП",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Положение В",
-                  "info_model": "XCBR.Pos.stVal, XCBR.Pos.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Контроль цепи ЭМВ",
-                  "info_model": "SCBR.ColAlm1.stVal, SCBR.ColAlm1.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Контроль цепи ЭМО1",
-                  "info_model": "SCBR.ColAlm2.stVal, SCBR.ColAlm2.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Контроль цепи ЭМО2",
-                  "info_model": "SCBR.ColAlm3.stVal, SCBR.ColAlm3.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Работа ЭМВ",
-                  "info_model": "SCBR.ColOpn1.stVal, SCBR.ColOpn1.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Аварийный уровень изоляции",
-                  "info_model": "SIMG.InsBlk.stVal, SIMG.InsBlk.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Пружины не заведены",
-                  "info_model": "SOPM.EnBlk.stVal, SOPM.EnBlk.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Контроль ОТ ЭМВ, ЭМО1",
-                  "info_model": "SOCC.OCAlm.stVal, SOCC.OCAlm.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Контроль ОТ ЭМО2",
-                  "info_model": "SOCC.OCAlm.stVal, SOCC.OCAlm.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "-",
-                  "note": ""
-                },
-                {
-                  "signal": "Статус ОАПВ В1",
-                  "info_model": "RREC.AutoRecSt.stVal, RREC.AutoRecSt.q",
-                  "source": "РЗА ЛЭП",
-                  "max_number": 3,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Статус ОАПВ В2",
-                  "info_model": "RREC.AutoRecSt.stVal, RREC.AutoRecSt.q",
-                  "source": "РЗА ЛЭП",
-                  "max_number": 3,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Неисправность ТН КР",
-                  "info_model": "SOCC.McbSupr.stVal, SOCC.McbSupr.q",
-                  "source": "ПДС КР",
-                  "max_number": 1,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Разрешение ускоренного ОАПВ",
-                  "info_model": "AREA.RecRel.stVal, AREA.RecRel.q",
-                  "source": "РЗА ШР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Положение б/к В ШР",
-                  "info_model": "XCBR.Pos.stVal, XCBR.Pos.q",
-                  "source": "ПДС В ШР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Положение б/к Р ШР",
-                  "info_model": "XSWI.Pos.stVal, XSWI.Pos.q",
-                  "source": "ПДС В ШР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                },
-                {
-                  "signal": "Положение б/к Р КР",
-                  "info_model": "XSWI.Pos.stVal, XSWI.Pos.q",
-                  "source": "ПДС В КР",
-                  "max_number": 2,
-                  "source_number": null,
-                  "RAS": "+",
-                  "note": ""
-                }
-              ],
-              "inner_discrete_circuits": [
-                {
-                  "discrete_signal": "Положение SG1",
-                  "direction": "Вход",
-                  "note": "Наличие сигнала на входе соответствует рабочему положению аппарата"
-                },
-                {
-                  "discrete_signal": "Положение SG2",
-                  "direction": "Вход",
-                  "note": "Наличие сигнала на входе соответствует рабочему положению аппарата"
-                },
-                {
-                  "discrete_signal": "Положение SG3",
-                  "direction": "Вход",
-                  "note": "Наличие сигнала на входе соответствует рабочему положению аппарата"
-                },
-                {
-                  "discrete_signal": "Положение SG4",
-                  "direction": "Вход",
-                  "note": "Наличие сигнала на входе соответствует рабочему положению аппарата"
-                },
-                {
-                  "discrete_signal": "Дверь шкафа закрыта",
-                  "direction": "Вход",
-                  "note": "Контроль положения дверей"
-                },
-                {
-                  "discrete_signal": "Общешкафная лампа",
-                  "direction": "Выход",
-                  "note": ""
-                }
-              ],
-              "datasets": [
-                {
-                  "name": "dsgo_PS",
-                  "id": "1_х_PA_х_х_PS",
-                  "sender": "х_х_х_PA_SYS",
-                  "class": "I",
-                  "mapping": "Сигналы РЗА",
-                  "note": "",
-                  "signals": [
-                    {
-                      "name": "ЛО КР / ЛАВ: Срабатывание",
-                      "info_model": "CMROFF/PTRC1.Op.general",
-                      "destination": "ИЭУ РЗА КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMROFF/PTRC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЛО КР / ЛАВ: Срабатывание (качество)",
-                      "info_model": "CMROFF/PTRC1.Op.q",
-                      "destination": "ИЭУ РЗА КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMROFF/PTRC1.Op",
-                      "DA": "q"
-                    },
-                    {
-                      "name": "УРОВ / УРОВ: Срабатывание",
-                      "info_model": "CMRBRF/RBRF1.OpEx.general",
-                      "destination": "ИЭУ РЗА ШР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRBRF/RBRF1.OpEx",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "УРОВ / УРОВ: Срабатывание (качество)",
-                      "info_model": "CMRBRF/RBRF1.OpEx.q",
-                      "destination": "ИЭУ РЗА ШР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRBRF/RBRF1.OpEx",
-                      "DA": "q"
-                    },
-                    {
-                      "name": "АКР / АКР: Разрешение ускоренного ОАПВ",
-                      "info_model": "CMRREA/AREA1.RecRel.stVal",
-                      "destination": "РЗА ЛЭП (ОАПВ), УПАСК",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRREA/AREA1.RecRel",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "АКР / АКР: Разрешение ускоренного ОАПВ (качество)",
-                      "info_model": "CMRREA/AREA1.RecRel.q",
-                      "destination": "РЗА ЛЭП (ОАПВ), УПАСК",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRREA/AREA1.RecRel",
-                      "DA": "q"
-                    }
-                  ]
-                },
-                {
-                  "name": "dsgo_CB",
-                  "id": "2_х_PA_х_х_CB",
-                  "sender": "х_х_х_PA_SYS",
-                  "class": "I",
-                  "mapping": "Действие на выключатель",
-                  "note": "",
-                  "signals": [
-                    {
-                      "name": "ЛО КР / ЛАВ: Срабатывание",
-                      "info_model": "CMROFF/PTRC1.Op.general",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMROFF/PTRC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЛО КР / ЛАВ: Срабатывание (качество)",
-                      "info_model": "CMROFF/PTRC1.Op.q",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMROFF/PTRC1.Op",
-                      "DA": "q"
-                    },
-                    {
-                      "name": "УВ В / УВ: Включить",
-                      "info_model": "CMRCTRL/CSWI1.OpCls.general",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRCTRL/CSWI1.OpCls",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "УВ В / УВ: Включить (качество)",
-                      "info_model": "CMRCTRL/CSWI1.OpCls.q",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRCTRL/CSWI1.OpCls",
-                      "DA": "q"
-                    },
-                    {
-                      "name": "УВ В / УВ: Отключить",
-                      "info_model": "CMRCTRL/CSWI1.OpOpn.general",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRCTRL/CSWI1.OpOpn",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "УВ В / УВ: Отключить (качество)",
-                      "info_model": "CMRCTRL/CSWI1.OpOpn.q",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRCTRL/CSWI1.OpOpn",
-                      "DA": "q"
-                    },
-                    {
-                      "name": "АКР / АКР: Включить В КР",
-                      "info_model": "CMRCTRL/CSWI1.OpCls.general",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRCTRL/CSWI1.OpCls",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "АКР / АКР: Включить В КР (качество)",
-                      "info_model": "CMRCTRL/CSWI1.OpCls.q",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRCTRL/CSWI1.OpCls",
-                      "DA": "q"
-                    },
-                    {
-                      "name": "АКР / АКР: Отключить В КР",
-                      "info_model": "CMRCTRL/CSWI1.OpOpn.general",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRCTRL/CSWI1.OpOpn",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "АКР / АКР: Отключить В КР (качество)",
-                      "info_model": "CMRCTRL/CSWI1.OpOpn.q",
-                      "destination": "ПДС В КР",
-                      "note": "",
-                      "status": "",
-                      "KT": "",
-                      "cus": "",
-                      "rdu": "",
-                      "RAS": "",
-                      "DO": "CMRCTRL/CSWI1.OpOpn",
-                      "DA": "q"
-                    }
-                  ]
-                },
-                {
-                  "name": "dsrpt_DT",
-                  "id": "1_х_PA_х_х_PD_B",
-                  "sender": "х_х_х_PA_SYS",
-                  "class": "-",
-                  "mapping": "Сигналы, формируемые ИЭУ",
-                  "note": "",
-                  "signals": [
-                    {
-                      "name": "АКР / АКР: Ввод в работу КР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "CMRREA/AREA1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ДЗ / ДЗ: Срабатывание",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "CMRDIS/PDIS1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ДЗР / ДТЗт: Срабатывание",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "CMRDIF/PDIF1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЗП / ЗП: Срабатывание",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "CMROVCTOC/PTOC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "КСВ / КСВ: Аварийно включен",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "CMRCBSUP/RCBF1.TrAlm",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ГЗ откл / ЛО: Отключение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "TRGASLGC/PTRC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЛО ГЗ сигн / ЛО: Отключение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "ALMGASLGC/PTRC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЛО ТЗ / ЛО ДТм: Отключение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "CMRTECHPROT/OILPTRC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЛО ТЗ / ЛО ДТо: Отключение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "CMRTECHPROT/WINPTRC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "УРОВ / УРОВ: Срабатывание",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "CMRBRF/RBRF1.OpEx",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "УРОВ / УРОВ: Действие на себя",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "П",
-                      "DO": "CMRBRF/RBRF1.OpIn",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЛО КР / ЛАВ: Срабатывание",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "АС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMROFF/PTRC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "КСВ / КСВ: Неисправность",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "ПС1",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMRCBSUP/RCBF1.Alm",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "КСВ / КСВ: Блокировка отключения",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС1",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMRCBSUP/RCBF1.BlkOpn",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "АКР / АКР: Заблокировано",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС1",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMRREA/AREA1.Blk",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ГЗ откл / ЛО: Заблокировано",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС1",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "TRGASLGC/PTRC1.Blk",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ТЗ / ЛО ДТм: Заблокировано",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС1",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMRTECHPROT/OILPTRC1.Blk",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ТЗ / ЛО ДТо: Заблокировано",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС1",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMRTECHPROT/WINPTRC1.Blk",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "SYS/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Контроль исправности устройства",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "SYS/LPHD1.PhyHealth",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "АКР / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRREA/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ДЗ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIS/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ДЗР / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIF/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЗП / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMROVCTOC/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ИЗМ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "MEAS/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "КСВ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRCBSUP/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ГЗ откл / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "TRGASLGC/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ГЗ сигн / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "ALMGASLGC/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО КР / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMROFF/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ТЗ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRTECHPROT/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО общ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMROFFLGC/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ПДС НКУ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PNL/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "РАС / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "РЗ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Неисправность модуля аналоговых входов (n)",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.AIUnitSt(n)",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Неисправность АЦП",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.AdcFail",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Неисправность ЦП",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.CPUFail",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Ошибка конфигурации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.CRFail",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Неисправность модуля дискретных входов/выходов (n)",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.DIOUnitSt(n)",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Неисправность встроенного ПО",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.FWFail",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Отказ источника питания",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.PwrFail",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Неисправность цепей оперативного питания",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.PwrSupAlm",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Исправность ОЗУ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.RAMHealth",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Исправность ПЗУ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.ROMHealth",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Температурный режим ИЭУ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.TmpHealth",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "УВ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRCTRL/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "УРОВ / БУ: Индикация исправности",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Норма / Предупреждение / Авария",
-                      "KT": "-/ПС2/ПС1",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRBRF/LLN0.Health",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ДЗ / ДЗ: Пуск",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Пуск / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "П",
-                      "DO": "CMRDIS/PDIS1.Str",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЗП / ЗП: Пуск",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Пуск / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "П",
-                      "DO": "CMROVCTOC/PTOC1.Str",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "УРОВ / УРОВ: Пуск",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Пуск / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "П",
-                      "DO": "CMRBRF/RBRF1.Str",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Необходимость корректировки конфигурации на прием",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LGOS(n).NdsCom",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Состояние подписки",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LGOS(n).St",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Неисправность вспомогательного модуля (n)",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.AuxIOUnitSt(n)",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ПДС НКУ / Дверь: Дверь шкафа закрыта",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PNL/IDOR1.DCls",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Конфигурация изменена",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.CRChg",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Ошибка авторизации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.CybSecEvt",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Сброс часов или памяти вследствие перезагрузки",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.MemRs",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Индикация потери оперативного питания",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.PwrDn",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Установлено подключение через сервисный порт",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ПС2",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.SrvConn",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "АКР / АКР: Автоматический режим",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Выведено",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "+",
-                      "DO": "CMRREA/AREA1.Auto",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "АКР / АКР: Разрешение ускоренного ОАПВ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "+",
-                      "DO": "CMRREA/AREA1.RecRel",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "АКР / АКР: Ремонт КР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "+",
-                      "DO": "CMRREA/AREA1.RepMod",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "АКР / АКР: Вывод из работы КР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "+",
-                      "RAS": "+",
-                      "DO": "CMRREA/AREA1.RestRel",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "УВ / УВ: Включить",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMRCTRL/CBCSWI1.OpCls",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "УВ / УВ: Отключить",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMRCTRL/CBCSWI1.OpOpn",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ДЗР / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIF/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ГЗ откл / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "TRGASLGC/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ГЗ сигн / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "ALMGASLGC/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / БУ: Индикация местного управления",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Местное / Дистанционное",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LLN0.Loc",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "УРОВ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRBRF/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "АКР / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRREA/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ДЗ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIS/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЗП / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMROVCTOC/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ИЗМ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "MEAS/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "КСВ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRCBSUP/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО КР / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMROFF/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО ТЗ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRTECHPROT/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ЛО общ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMROFFLGC/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ПДС НКУ / SG1: Рабочее положение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PNL/PLGSOCC1.PwrPlgSupr",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ПДС НКУ / SG2: Рабочее положение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PNL/PLGSOCC2.PwrPlgSupr",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ПДС НКУ / SG3: Рабочее положение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PNL/PLGSOCC3.PwrPlgSupr",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ПДС НКУ / SG4: Рабочее положение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PNL/PLGSOCC4.PwrPlgSupr",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ПДС НКУ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PNL/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "РАС / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "РЗ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Режим приема симулированных данных",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.Sim",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "УВ / БУ: Состояние",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Введено / Блокировано / Тест / Тест+Блокировано / Выведено",
-                      "KT": "ОС",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRCTRL/LLN0.Beh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "ДЗР / Д2Г: Пуск",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Пуск / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMRDIF/HF2PHAR1.Str",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЛО общ / ЛО осн: Отключение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMROFFLGC/PRMPTRC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "ЛО общ / ЛО рез: Отключение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "+",
-                      "DO": "CMROFFLGC/SCDPTRC1.Op",
-                      "DA": "general"
-                    },
-                    {
-                      "name": "РАС / Аналоговый канал (n): Срабатывание канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RADR(n).ChTrg",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "РАС / Дискретный канал (n): Срабатывание канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RBDR(n).ChTrg",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "РАС / РАС: Номер КЗ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RDRE1.FltNum",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "РАС / РАС: Регистрация событий завершена",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RDRE1.RcdMade",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "РАС / РАС: Пуск записи",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RDRE1.RcdStr",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / БУ: Сброс светодиодов",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Сброс",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LLN0.LEDRs",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Индикация работы по летнему времени",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LTIM1.TmDT",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Сброс времени",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Сброс",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LTIM1.TmRs",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Отказ в доступе к объекту данных",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.AcsCtlFail",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Ошибки авторизации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.AuthFail",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Изменение информации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.DatCh",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Управление аппаратными идентификаторами",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.DevCtl",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Внешнее подключение",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.ExCon",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Подключение внешних устройств",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.ExDev",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Хранилище устройства",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.FlStrgSt",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Разрыв связи по причине бездействия",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.Ina",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Состояние информации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.InfSt",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Состояние журнала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.LogSt",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Количество обнуления счетчиков",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.NumCntRs",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Сброс счетчика",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.OpCntRs",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Управление ролями",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.RoleCtl",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Состояние ПО",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.SoftSt",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Отказ в предоставлении услуги взаимодействия с объектом",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.SvcViol",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: События, связанные с коммутатором",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.SwtSt",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Управление пользователями",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "-",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/GSAL1.UsrCtl",
-                      "DA": "*"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Ожидаемый номер ревизии конфигурации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LGOS(n).ConfRevNum",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Значение счетчика StNum в последнем GOOSE сообщении",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LGOS(n).LastStNum",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Фактический номер ревизии конфигурации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LGOS(n).RxConfRevNum",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Подписка на дублированное GOOSE сообщение с признаком симуляции",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LGOS(n).SimSt",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Состояние основного канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.ChLiv",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: MAC адрес основного канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.ChMAC",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Частота возникновения ошибок по основному каналу",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.FerCh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Переполнение буфера входных данных",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.InOv",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Переполнение буфера выходных данных",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.OutOv",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Состояние резервного канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неисправность / Норма",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.RedChLiv",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: MAC адрес резервного канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.RedChMAC",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Частота возникновения ошибок по резервному каналу",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.RedFerCh",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Количество сообщений, принятых по резервному каналу",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.RedRxCnt",
-                      "DA": "actVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Количество сообщений, переданных по резервному каналу",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.RedTxCnt",
-                      "DA": "actVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Количество сообщений, принятых по основному каналу",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.RxCnt",
-                      "DA": "actVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Количество сообщений, переданных по основному каналу",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.TxCnt",
-                      "DA": "actVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Текущий источник времени",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LTMS1.TmSrc",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Тип синхронизации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Неизвестно / SNTP / PTP / IRIG-B / Внутренний",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LTMS1.TmSrcTyp",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Статус синхронизации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Внутренняя / Локальная / Глобальная",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LTMS1.TmSyn",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Число включений устройства",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.NumPwrUp",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Индикация логического узла-прокси",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.Proxy",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Индикация наличия оперативного питания",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.PwrUp",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Сброс статистических данных устройства",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Сброс",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.RsStat",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Число срабатываний реле готовности устройства",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.WacTrg",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Число программных перезагрузок",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LPHD1.WrmStr",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ФК: Управление ИЭУ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/IHND1.KeySt1",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ФК: Комплект",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/IHND1.KeySt2",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ФК: Режим работы ДЗР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/IHND2.KeySt1",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ФК: Режим работы ГЗ сигн",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/IHND2.KeySt2",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ФК: Режим работы ГЗ откл",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/IHND2.KeySt3",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ФК: Режим работы УРОВ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/IHND2.KeySt4",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / ФК: АКР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/IHND2.KeySt5",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД ФК: Управление ИЭУ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/HNDILED1.LedSt1",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД ФК: Комплект",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/HNDILED1.LedSt2",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД ФК: Режим работы ДЗР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/HNDILED2.LedSt1",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД ФК: Режим работы ГЗ сигн",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/HNDILED2.LedSt2",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД ФК: Режим работы ГЗ откл",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/HNDILED2.LedSt3",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД ФК: Режим работы УРОВ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/HNDILED2.LedSt4",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД ФК: АКР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/HNDILED2.LedSt5",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Неисправность ШС-А",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED1.LedSt1",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Неисправность ШС-В",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED1.LedSt2",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Потеря GOOSE",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED1.LedSt3",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: ДЗР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt1",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: ГЗ на откл.",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt2",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: ТЗ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt3",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Резервные защиты",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt4",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: ГЗ на сигн.",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt5",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Неисправность ГЗ, ТЗ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt6",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: УРОВ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt7",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Неисправность В",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt8",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: АКР блокирована",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt9",
-                      "DA": "stVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: БИ выведены",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Срабатывание / Возврат",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedSt10",
-                      "DA": "stVal"
-                    }
-                  ]
-                },
-                {
-                  "name": "dsrpt_EM",
-                  "id": "3_х_PA_х_х_PM_B",
-                  "sender": "х_х_х_PA_SYS",
-                  "class": "-",
-                  "mapping": "Измерения аварийного режима",
-                  "note": "",
-                  "signals": [
-                    {
-                      "name": "ИЗМ / АварРежим: Ток НВ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "MEAS/FLTMMXN1.Amp",
-                      "DA": "mag.i"
-                    },
-                    {
-                      "name": "ИЗМ / АварРежим: Ток КР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "MEAS/FLTMMXN2.Amp",
-                      "DA": "mag.i"
-                    },
-                    {
-                      "name": "ИЗМ / АварРежим: Напряжение КР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "MEAS/FLTMMXN2.Vol",
-                      "DA": "mag.i"
-                    },
-                    {
-                      "name": "ИЗМ / АварРежим: Ток нейтрали КР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "MEAS/FLTMMXN3.Amp",
-                      "DA": "mag.i"
-                    }
-                  ]
-                },
-                {
-                  "name": "dsrpt_DR",
-                  "id": "4_х_PA_х_х_PD_B",
-                  "sender": "х_х_х_PA_SYS",
-                  "class": "-",
-                  "mapping": "Данные РАС",
-                  "note": "см. пункт 4.4.10",
-                  "signals": []
-                },
-                {
-                  "name": "dsrpt_SG",
-                  "id": "5_х_PA_х_х_PD_U",
-                  "sender": "х_х_х_PA_SYS",
-                  "class": "-",
-                  "mapping": "Параметры настройки функций РЗА",
-                  "note": "",
-                  "signals": [
-                    {
-                      "name": "АКР / АКР: Tср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRREA/AREA1.OpDlTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "АКР / АКР: Tв",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRREA/AREA1.RsDlTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "АКР / АКР: Iср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRREA/AREA1.StrVal",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "ДЗ / ДЗ: Фхс",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIS/PDIS1.LinAng",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "ДЗ / ДЗ: Tср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIS/PDIS1.OpDlTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "ДЗ / ДЗ: Xср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIS/PDIS1.ReactSet",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "ДЗ / ДЗ: Rср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIS/PDIS1.RisSet",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "ДЗР / Д2Г: Ih2/Ih1",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIF/HF2PHAR1.RatIh2Ih1",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "ДЗР / ДТЗт: Кт1",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIF/PDIF1.K1",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "ДЗР / ДТЗт: Iср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRDIF/PDIF1.LoSet",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "ЗП / ЗП: Tср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMROVCTOC/PTOC1.OpDlTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "ЗП / ЗП: Iср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMROVCTOC/PTOC1.StrVal",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "КСВ / КСВ: ЭМО2",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRCBSUP/RCBF1.Col2Mod",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "КСВ / КСВ: Tгот_в",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRCBSUP/RCBF1.RdyTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РЗ / ТН КР: Kт",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/TVTR1.Rat",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "РЗ / ТН КР: Uн",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/TVTR1.VRtg",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "РЗ / ТТ КР: Iн",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/TCTR2.ARtg",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "РЗ / ТТ КР: Kт",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/TCTR2.Rat",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "РЗ / ТТ НВ: Iн",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/TCTR1.ARtg",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "РЗ / ТТ НВ: Kт",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/TCTR1.Rat",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "РЗ / ТТ нейтрали КР: Iн",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/TCTR3.ARtg",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "РЗ / ТТ нейтрали КР: Kт",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "PROT/TCTR3.Rat",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "УРОВ / УРОВ: Iср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRBRF/RBRF1.DetValA",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "УРОВ / УРОВ: Tср",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRBRF/RBRF1.FailTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "УРОВ / УРОВ: Действ_на_себя",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRBRF/RBRF1.ReMod",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "УРОВ / УРОВ: Tср_повт",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "+",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRBRF/RBRF1.TPTrTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "ЛО ГЗ откл / БУ: Tбл",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "TRGASLGC/LLN0.OpDlTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "ЛО ТЗ / БУ: Tбл",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "CMRTECHPROT/LLN0.OpDlTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / Аналоговый канал (n): Номер_канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RADR(n).ChNum",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / Аналоговый канал (n): Макс_ур_сраб",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RADR(n).HiTrgLev",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "РАС / Аналоговый канал (n): Уставка_пуска",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RADR(n).LevMod",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / Аналоговый канал (n): Мин_ур_сраб",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RADR(n).LoTrgLev",
-                      "DA": "setMag.i"
-                    },
-                    {
-                      "name": "РАС / Аналоговый канал (n): Условие_пуска",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RADR(n).TrgMod",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / Дискретный канал (n): Номер_канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RBDR(n).ChNum",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / Дискретный канал (n): Уставка_пуска",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RBDR(n).LevMod",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / Дискретный канал (n): Условие_пуска",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RBDR(n).TrgMod",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / РАС: Уставка_пуска",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RDRE1.LevMod",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / РАС: Tбл_дл_пуск",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RDRE1.LngStrTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / РАС: Tмакс",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RDRE1.PerTrgTms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / РАС: Tпред",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RDRE1.PreTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / РАС: Tпосл",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RDRE1.PstTmms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "РАС / РАС: Условие_пуска",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "DR/RDRE1.TrgMod",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Смещение местного времени от UTC в минутах",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LTIM1.TmOfsTmm",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Использование летнего времени",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LTIM1.TmUseDT",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Наименование точки доступа, которой принадлежит данный канал",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.APName",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Выдержка времени идентификации неисправности канала связи",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.ChLivTms",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Наименование основного канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.ChNum",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Наименование резервного канала",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.RedChNum",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / ШС: Режим резервирования сетевых интерфейсов",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/SBLCCH1.RsrvTypSet",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Источник синхронизации",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LTMS1.TmSrcSet(n)",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / Диагностика: Физический канал или группа физических каналов, через которые осуществляется синхронизация",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/LTMS1.TmSyncCh(n)",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД Неисправность ШС-А",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED1.LedMod1",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД Неисправность ШС-В",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED1.LedMod2",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД Потеря GOOSE",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED1.LedMod3",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД ДЗР",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod1",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД ГЗ на откл.",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod2",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД ТЗ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod3",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД Резервные защиты",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod4",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД ГЗ на сигн.",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod5",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД Неисправность ГЗ, ТЗ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod6",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД УРОВ",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod7",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД Неисправность В",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod8",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД АКР блокирована",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod9",
-                      "DA": "setVal"
-                    },
-                    {
-                      "name": "СИСТ / СД: Режим работы СД БИ выведены",
-                      "info_model": "",
-                      "destination": "",
-                      "note": "",
-                      "status": "Значение",
-                      "KT": "-",
-                      "cus": "-",
-                      "rdu": "-",
-                      "RAS": "-",
-                      "DO": "SYS/ILED2.LedMod10",
-                      "DA": "setVal"
-                    }
-                  ]
-                }
-              ],
-              "ports": [
-                {
-                  "description": "порт A шины станции (Duplex LC)"
-                },
-                {
-                  "description": "порт B шины станции (Duplex LC)"
-                }
-              ],
-              "functional_buttons": [
-                {
-                  "mapping": "Режим управления ИЭУ",
-                  "short_name": "Управление ИЭУ",
-                  "disable_condition": "Дистанционное",
-                  "enable_condition": "Местное"
-                },
-                {
-                  "mapping": "Режим работы комплекта",
-                  "short_name": "Комплект",
-                  "disable_condition": "Введено",
-                  "enable_condition": "Выведено"
-                },
-                {
-                  "mapping": "Режим работы ДЗР",
-                  "short_name": "ДЗР",
-                  "disable_condition": "Отключение",
-                  "enable_condition": "Сигнал"
-                },
-                {
-                  "mapping": "Режим работы ГЗ сигн",
-                  "short_name": "ГЗ сигн.",
-                  "disable_condition": "Сигнал",
-                  "enable_condition": "Отключение"
-                },
-                {
-                  "mapping": "Режим работы ГЗ откл",
-                  "short_name": "ГЗ откл.",
-                  "disable_condition": "Отключение",
-                  "enable_condition": "Сигнал"
-                },
-                {
-                  "mapping": "Режим работы УРОВ",
-                  "short_name": "УРОВ",
-                  "disable_condition": "Введено",
-                  "enable_condition": "Выведено"
-                },
-                {
-                  "mapping": "Автоматика КР",
-                  "short_name": "АКР",
-                  "disable_condition": "Введено",
-                  "enable_condition": "Выведено"
-                }
-              ],
-              "leds": [
-                {
-                  "mapping": "Срабатывание ДЗР",
-                  "name": "ДЗР",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "Срабатывание ГЗ на отключение",
-                  "name": "ГЗ на откл.",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "Срабатывание ТЗ",
-                  "name": "ТЗ",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "Срабатывание резервных защит",
-                  "name": "Резервные защиты",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "Срабатывание ГЗ на сигнал",
-                  "name": "ГЗ на сигн.",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "Неисправность ГЗ, ТЗ",
-                  "name": "Неиспр. ГЗ, ТЗ",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "Срабатывание УРОВ",
-                  "name": "УРОВ",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "Неисправность выключателя",
-                  "name": "Неисправность В",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "АКР заблокирована",
-                  "name": "АКР блок.",
-                  "mode": "Без фиксации",
-                  "note": ""
-                },
-                {
-                  "mapping": "Обобщенная сигнализация положения испытательных блоков",
-                  "name": "БИ выведены",
-                  "mode": "Без фиксации",
-                  "note": ""
-                },
-                {
-                  "mapping": "Неисправность шины станции порт A",
-                  "name": "Неисправность ШС-A",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "Неисправность шины станции порт B",
-                  "name": "Неисправность ШС-B",
-                  "mode": "С фиксацией",
-                  "note": ""
-                },
-                {
-                  "mapping": "Потеря GOOSE сообщений",
-                  "name": "Потеря GOOSE",
-                  "mode": "С фиксацией",
-                  "note": ""
-                }
-              ],
-              "control_commands": [
-                {
-                  "name": "Режим работы комплекта",
-                  "info_model": "PROT/LLN0.Mod"
-                },
-                {
-                  "name": "Сброс сигнализации",
-                  "info_model": "SYS/LLN0.LEDRs"
-                },
-                {
-                  "name": "Режим работы ДЗР",
-                  "info_model": "CMRDIF/LLN0.Mod"
-                },
-                {
-                  "name": "Режим работы ГЗ откл.",
-                  "info_model": "TRGASLGC/LLN0.Mod"
-                },
-                {
-                  "name": "Режим работы ГЗ сигн.",
-                  "info_model": "ALMGASLGC/LLN0.Mod"
-                },
-                {
-                  "name": "Режим работы УРОВ",
-                  "info_model": "CMRBRF/LLN0.Mod"
-                },
-                {
-                  "name": "Автоматика КР",
-                  "info_model": "CMRREA/AREA1.Auto"
-                },
-                {
-                  "name": "Ремонт КР",
-                  "info_model": "CMRREA/AREA1.RepMod"
-                }
-              ],
+              "osc_analog_signals": [],
+              "incoming_goose_signals": [],
+              "inner_discrete_circuits": [],
+              "datasets": [],
+              "ports": [],
+              "functional_buttons": [],
+              "leds": [],
+              "control_commands": [],
               "functions": [
                 {
-                  "name": "АКР",
-                  "russian_path": "АКР",
+                  "name": "ЗНР",
+                  "russian_path": "ЗНР",
                   "isMainFunction": true,
-                  "isInITS": true,
-                  "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Tср",
-                      "description": "Выдержка времени срабатывания на отключение В КР",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Tв",
-                      "description": "Выдержка времени срабатывания на включение В КР",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Iср",
-                      "description": "Ток срабатывания",
-                      "conditions": "-"
-                    }
-                  ]
-                },
-                {
-                  "name": "ДЗ",
-                  "russian_path": "ДЗ",
-                  "isMainFunction": true,
-                  "isInITS": true,
-                  "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Фхс",
-                      "description": "Угол наклона характеристики срабатывания",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Tср",
-                      "description": "Выдержка времени срабатывания",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Xср",
-                      "description": "Реактивное сопротивление срабатывания",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Rср",
-                      "description": "Активное сопротивление срабатывания",
-                      "conditions": "-"
-                    }
-                  ]
-                },
-                {
-                  "name": "Д2Г",
-                  "russian_path": "ДЗР",
-                  "isMainFunction": true,
-                  "isInITS": true,
-                  "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Ih2/Ih1",
-                      "description": "Отношение тока второй гармоники к току основной гармоники",
-                      "conditions": "-"
-                    }
-                  ]
-                },
-                {
-                  "name": "ДТЗт",
-                  "russian_path": "ДЗР",
-                  "isMainFunction": true,
-                  "isInITS": true,
-                  "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Кт1",
-                      "description": "Коэффициент торможения первого наклонного участка",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Iср",
-                      "description": "Начальный дифференциальный ток срабатывания",
-                      "conditions": "-"
-                    }
-                  ]
-                },
-                {
-                  "name": "ЗП",
-                  "russian_path": "ЗП",
-                  "isMainFunction": true,
-                  "isInITS": true,
-                  "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Tср",
-                      "description": "Выдержка времени срабатывания",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Iср",
-                      "description": "Ток срабатывания",
-                      "conditions": "-"
-                    }
-                  ]
-                },
-                {
-                  "name": "КСВ",
-                  "russian_path": "КСВ",
-                  "isMainFunction": false,
                   "isInITS": false,
                   "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "ЭМО2",
-                      "description": "Действие на ЭМО2",
-                      "conditions": "Предусмотрено / Не предусмотрено"
-                    },
-                    {
-                      "name": "Tгот_в",
-                      "description": "Выдержка времени ожидания готовности привода выключателя",
-                      "conditions": "-"
-                    }
-                  ]
+                  "parameters": []
                 },
                 {
-                  "name": "БУ",
-                  "russian_path": "ЛО ГЗ откл",
-                  "isMainFunction": false,
+                  "name": "КИ НН",
+                  "russian_path": "КИ НН",
+                  "isMainFunction": true,
                   "isInITS": false,
                   "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Tбл",
-                      "description": "Выдержка времени срабатывания на блокировку",
-                      "conditions": "-"
-                    }
-                  ]
+                  "parameters": []
                 },
                 {
-                  "name": "БУ",
-                  "russian_path": "ЛО ТЗ",
-                  "isMainFunction": false,
+                  "name": "МТЗ КОР",
+                  "russian_path": "МТЗ КОР",
+                  "isMainFunction": true,
                   "isInITS": false,
                   "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Tбл",
-                      "description": "Выдержка времени срабатывания на блокировку",
-                      "conditions": "-"
-                    }
-                  ]
+                  "parameters": []
                 },
                 {
-                  "name": "Параметры ТН",
-                  "russian_path": "Параметры ТН",
-                  "isMainFunction": false,
+                  "name": "МТЗ НН",
+                  "russian_path": "МТЗ НН",
+                  "isMainFunction": true,
                   "isInITS": false,
                   "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Uн",
-                      "description": "Номинальное напряжение (первичное)",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Kт",
-                      "description": "Коэффициент трансформации",
-                      "conditions": "-"
-                    }
-                  ]
+                  "parameters": []
                 },
                 {
-                  "name": "Параметры ТТ",
-                  "russian_path": "Параметры ТТ",
-                  "isMainFunction": false,
+                  "name": "МТЗ",
+                  "russian_path": "МТЗ",
+                  "isMainFunction": true,
                   "isInITS": false,
                   "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Iн",
-                      "description": "Номинальный ток (первичный)",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Kт",
-                      "description": "Коэффициент трансформации",
-                      "conditions": "-"
-                    }
-                  ]
+                  "parameters": []
+                },
+                {
+                  "name": "ПДЗР",
+                  "russian_path": "ПДЗР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗНП ВН",
+                  "russian_path": "ТЗНП ВН",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗНП КОР",
+                  "russian_path": "ТЗНП КОР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗНП НВ",
+                  "russian_path": "ТЗНП НВ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗОП КОР",
+                  "russian_path": "ТЗОП КОР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗОП",
+                  "russian_path": "ТЗОП",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
                 },
                 {
                   "name": "УРОВ",
                   "russian_path": "УРОВ",
                   "isMainFunction": true,
-                  "isInITS": true,
+                  "isInITS": false,
                   "iec_name": "",
-                  "parameters": [
-                    {
-                      "name": "Iср",
-                      "description": "Ток срабатывания",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Tср",
-                      "description": "Выдержка времени срабатывания",
-                      "conditions": "-"
-                    },
-                    {
-                      "name": "Действ_на_себя",
-                      "description": "Режим повторного действия «на себя»",
-                      "conditions": "Предусмотрено / Не предусмотрено"
-                    },
-                    {
-                      "name": "Tср_повт",
-                      "description": "Выдержка времени повторного действия \"на себя\"",
-                      "conditions": "-"
-                    }
-                  ]
+                  "parameters": []
                 }
               ]
             }
