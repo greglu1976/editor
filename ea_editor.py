@@ -722,6 +722,9 @@ class StandardEditorWindow(tk.Toplevel):
         item["power_supplies"] = supplies
         self._snapshot = {"fields": dict(fields), "description": description,
                           "rows": [list(row) for row in rows]}
+        label = "Шкаф %s — %s" % (fields["cypher"], fields["name"])
+        self.caption.config(text=label)
+        self._refresh_label(label)
         return True
 
     # ------------------------------------------------------------ комплект
@@ -753,6 +756,9 @@ class StandardEditorWindow(tk.Toplevel):
             return False
         item.update(values)
         self._snapshot = dict(values)
+        self.caption.config(text="Комплект %s" % values["number"])
+        self._refresh_label("Комплект %s — %s"
+                            % (values["number"], values["description"]))
         return True
 
     # -------------------------------------------------------------- рисунок
@@ -785,6 +791,8 @@ class StandardEditorWindow(tk.Toplevel):
         item.update(values)
         self._snapshot = dict(values)
         self.caption.config(text="Рисунок %s" % values["number"])
+        self._refresh_label("%s %s" % (values["reference"] or "Рисунок",
+                                       values["name"]))
         return True
 
     # ----------------------------------------------------------------- ИЭУ
@@ -797,8 +805,11 @@ class StandardEditorWindow(tk.Toplevel):
         tk.Label(form, text="Номер ИЭУ:", font=ui_theme.font(9),
                  anchor="w").grid(row=0, column=0, sticky="w", pady=2)
         number = tk.StringVar(value=str(ied.get("number") or ""))
-        tk.Entry(form, textvariable=number, font=ui_theme.font(9),
-                 width=18).grid(row=0, column=1, sticky="w", pady=2)
+        entry = tk.Entry(form, textvariable=number, font=ui_theme.font(9),
+                         width=18)
+        entry.grid(row=0, column=1, sticky="w", pady=2)
+        entry.bind("<Return>", lambda event: self._apply_pending())
+        entry.bind("<KP_Enter>", lambda event: self._apply_pending())
         self.vars["number"] = number
 
         tk.Label(self.body, text="Цифровые порты:", font=ui_theme.font(9),
@@ -838,7 +849,17 @@ class StandardEditorWindow(tk.Toplevel):
         item["ports"] = ports
         self._snapshot = {"number": number,
                           "rows": [list(row) for row in rows]}
+        self.caption.config(text="ИЭУ %s" % number)
+        self._refresh_label("ИЭУ %s" % number)
         return True
+
+    def _refresh_label(self, text):
+        """Обновить подпись текущего узла дерева после правки полей."""
+        iid = self._current_node
+        node = self._nodes.get(iid) if iid else None
+        if (node and self._panel_item is not None
+                and node[-1] is self._panel_item and self.tree.exists(iid)):
+            self.tree.item(iid, text=text)
 
     # --------------------------------------------------- структура дерева
     def _ask(self, prompt, initial=""):

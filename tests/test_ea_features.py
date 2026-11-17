@@ -700,6 +700,18 @@ def test_editor():
         check(window._nodes[window._current_node][-1] is added[-1],
               "новый комплект выбран в дереве редактора")
 
+        ied_iid = next(key for key, node in window._nodes.items()
+                       if node[0] == "ied" and node[1] is added[-1]["ieds"][0])
+        window.tree.selection_set(ied_iid)
+        root.update()
+        window.vars["number"].set("12")
+        window._apply_pending()
+        root.update()
+        check(added[-1]["ieds"][0]["number"] == "12"
+              and window.tree.item(ied_iid, "text") == "ИЭУ 12"
+              and window.caption.cget("text") == "ИЭУ 12",
+              "номер ИЭУ нового комплекта меняется и виден в дереве")
+
         cabs_iid = next(key for key, node in window._nodes.items()
                         if node == ("root", "cabs"))
         menu = window._menu_items(cabs_iid, window._nodes[cabs_iid])
