@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import copy
+import math
 
 from library import CELL, Component
 
@@ -191,6 +192,18 @@ def _text_width(text, size=8):
         return 0.0
     longest = max(len(line) for line in text.splitlines())
     return longest * size * 0.62
+
+
+def _round_up(value, step):
+    """Округление вверх до шага: габариты блока кратны сетке."""
+    step = float(step)
+    return math.ceil(float(value) / step) * step
+
+
+def _round_to(value, step):
+    """Ближайшая линия сетки: кромки блока и выводы — на сетке."""
+    step = float(step)
+    return math.floor(float(value) / step + 0.5) * step
 
 
 def _font_size(zoom, size):
@@ -608,19 +621,22 @@ class LogicFunction(LogicComponent):
 class LogicBlock(LogicComponent):
     """Функциональный блок (логическое устройство).
 
-    Внутри блока:
-      * ``inputs``    — коды входных сигналов (A01, D01, C01 …) с выводами
-                        на левой грани;
-      * ``rows``      — сигналы блока (русское и МЭК наименование) с
-                        выводами на правой грани для исходящих;
-      * ``functions`` — вставленные логические узлы (И, ИЛИ, НЕ …).
+    Внутри блока две колонки: слева — входы (A01, D01, C01 …), справа —
+    вставленные логические узлы и строки сигналов. Узлы начинаются от
+    верхней кромки блока, поэтому число входов не сдвигает их: входы
+    растут вниз в своей колонке.
+
+    Геометрия кратна сетке (``CELL`` = 20): кромки блока лежат на линиях
+    сетки, все выводы — на их пересечениях, поэтому связи ложатся по
+    сетке без дробных координат.
     """
 
-    HEADER = 34
-    ROW_H = 28
-    INPUT_H = 24
-    FUNC_H = 72
-    PAD = 14
+    HEADER = 40       # полоса заголовка — 2 клетки
+    GAP = 20          # отступ от заголовка до содержимого — 1 клетка
+    GUTTER = 120      # колонка входов — 6 клеток
+    ROW_H = 40        # строка сигнала — 2 клетки
+    FUNC_H = 80       # логический узел — 4 клетки
+    PAD = 20          # отступ справа и снизу — 1 клетка
     MIN_WIDTH = 360
 
     def __init__(self, comp_id, x, y, grid_size=20):
@@ -639,52 +655,67 @@ class LogicBlock(LogicComponent):
 
     # ---------- геометрия ----------
     def _block_width(self):
-        widest = _text_width(self.title, 9) + 40
+        widest = _text_width(self.title, 9) + 2 * CELL
         for code in self.inputs:
-            widest = max(widest, _text_width(code, 8) + 90)
+            widest = max(widest, self.GUTTER + _text_width(code, 8) + 2 * CELL)
         for row in self.rows:
-            widest = max(widest, _text_width(row.get("ru"), 8) + 150,
-                         _text_width(row.get("iec"), 7) + 150)
+            widest = max(widest,
+                         self.GUTTER + _text_width(row.get("ru"), 8) + 3 * CELL
+                         + _text_width(row.get("iec"), 7) + self.PAD)
         for function in self.functions:
-            widest = max(widest, _text_width(function.get("title"), 8) + 200,
-                         _text_width(function.get("ru"), 8) + 220)
-        return max(self.MIN_WIDTH, float(self.width or 0), widest)
+            widest = max(widest,
+                         self.GUTTER + _text_width(function.get("title"), 8)
+                         + 5 * CELL + _text_width(function.get("ru"), 8)
+                         + self.PAD)
+        width = max(self.MIN_WIDTH, float(self.width or 0), widest)
+        return _round_up(width, 2 * CELL)
 
     def _layout(self):
+        """Раскладка блока: кромки и выводы лежат на сетке.
+
+        Отступы считаются от верхней кромки: заголовок, клетка отступа,
+        затем независимые колонки — входы слева, узлы и сигналы справа.
+        Поэтому число дискретных входов не меняет положение узлов.
+        """
         width = self._block_width()
-        half = width / 2.0
-        x1 = self.x - half
-        x2 = self.x + half
-        y = self.y
-        # Высота заранее неизвестна — считаем сверху вниз от условного нуля.
-        cursor = self.HEADER + self.PAD
-        input_positions = []
-        for code in self.inputs:
-            input_positions.append((code, cursor + self.INPUT_H / 2.0))
-            cursor += self.INPUT_H
-        if self.inputs:
-            cursor += 4
-        row_positions = []
-        for row in self.rows:
-            row_positions.append((row, cursor + self.ROW_H / 2.0))
-            cursor += self.ROW_H
-        if self.rows:
-            cursor += 4
-        function_positions = []
-        for function in self.functions:
-            function_positions.append((function, cursor + self.FUNC_H / 2.0))
-            cursor += self.FUNC_H
-        height = cursor + self.PAD
-        y1 = y - height / 2.0
+        x1 = _round_to(self.x - width / 2.0, CELL)
+        x2 = x1 + width
+
+        content_top = self.HEADER + self.GAP
+        input_offsets = [content_top + CELL * index
+                         for index in range(len(self.inputs))]
+        function_offsets = [
+            content_top + self.FUNC_H * index + self.FUNC_H / 2.0
+            for index in range(len(self.functions))]
+        rows_top = content_top + self.FUNC_H * len(self.functions)
+        row_offsets = [rows_top + self.ROW_H * index + self.ROW_H / 2.0
+                       for index in range(len(self.rows))]
+
+        # Номинальная высота — по правой колонке (узлы и сигналы).
+        # Верх блока привязан к ней, поэтому входы не сдвигают узлы:
+        # когда их становится больше, блок растёт только вниз.
+        right_bottom = rows_top + self.ROW_H * len(self.rows)
+        nominal_height = _round_up(max(content_top, right_bottom) + self.PAD,
+                                   2 * CELL)
+        inputs_bottom = content_top + CELL * (len(self.inputs) + 1)
+        height = max(nominal_height,
+                     _round_up(inputs_bottom + self.PAD, 2 * CELL))
+        y1 = _round_to(self.y - nominal_height / 2.0, CELL)
         y2 = y1 + height
-        # Переводим позиции из локальных «сверху вниз» в мировые Y.
-        inputs = [(code, y1 + offset) for code, offset in input_positions]
-        rows = [(row, y1 + offset) for row, offset in row_positions]
-        functions = [(fn, y1 + offset) for fn, offset in function_positions]
+
         return {
             "x1": x1, "x2": x2, "y1": y1, "y2": y2,
             "width": width, "height": height,
-            "inputs": inputs, "rows": rows, "functions": functions,
+            "gutter": self.GUTTER,
+            "content_x1": x1 + self.GUTTER,
+            "content_x2": x2 - self.PAD,
+            "inputs": [(code, y1 + offset)
+                       for code, offset in zip(self.inputs, input_offsets)],
+            "rows": [(row, y1 + offset)
+                     for row, offset in zip(self.rows, row_offsets)],
+            "functions": [(function, y1 + offset)
+                          for function, offset in zip(self.functions,
+                                                      function_offsets)],
         }
 
     def generate_ports(self):
@@ -713,15 +744,18 @@ class LogicBlock(LogicComponent):
         layout = self._layout()
         x1, x2 = layout["x1"], layout["x2"]
         y1, y2 = layout["y1"], layout["y2"]
+        fx1 = layout["content_x1"]
+        fx2 = layout["content_x2"]
         sx1, sy1 = self.world_to_screen(x1, y1)
         sx2, sy2 = self.world_to_screen(x2, y2)
         lw = max(1, int(2 * zoom))
 
         canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#fbfdff",
                                 outline="black", width=lw)
-        # Заголовок
+        # Заголовок — по центру блока: кромки привязаны к сетке и могут
+        # сместиться относительно точки вставки на полклетки.
         self._draw_title(canvas, zoom, offset_x, offset_y,
-                         self.x, y1 + self.HEADER / 2.0, size=9)
+                         (x1 + x2) / 2.0, y1 + self.HEADER / 2.0, size=9)
         self._draw_name(canvas, zoom, offset_x, offset_y, x1 + 6, y1 + 4)
         if self.designation:
             canvas.create_text(sx2 - 6 * zoom, sy1 + 6 * zoom,
@@ -729,9 +763,14 @@ class LogicBlock(LogicComponent):
                                font=("Arial", _font_size(zoom, 7)),
                                fill="#1f4e79")
 
-        # Входные коды
+        # Граница колонки входов
+        gx = fx1 * zoom + offset_x
+        canvas.create_line(gx, sy1 + self.HEADER * zoom, gx, sy2,
+                           fill="#c8d3e0", width=1)
+
+        # Входы: отводы на сетке в левой колонке
         for index, (code, py) in enumerate(layout["inputs"]):
-            px, _ = self.world_to_screen(x1, py)
+            px = x1 * zoom + offset_x
             spy = py * zoom + offset_y
             canvas.create_line(px - 8 * zoom, spy, px, spy,
                                width=lw, fill="black")
@@ -739,26 +778,23 @@ class LogicBlock(LogicComponent):
                                font=("Arial", _font_size(zoom, 8)),
                                fill="black")
 
-        # Строки сигналов
+        # Строки сигналов — в правой колонке, под узлами
         for row, py in layout["rows"]:
-            by1 = (py - self.ROW_H / 2.0 + 2) * zoom + offset_y
-            by2 = (py + self.ROW_H / 2.0 - 2) * zoom + offset_y
-            canvas.create_rectangle(x1 * zoom + offset_x + self.PAD * zoom,
-                                    by1,
-                                    x2 * zoom + offset_x - self.PAD * zoom,
-                                    by2, fill="#ececec",
-                                    outline="#b8b8b8", width=1)
+            by1 = (py - self.ROW_H / 2.0 + 4) * zoom + offset_y
+            by2 = (py + self.ROW_H / 2.0 - 4) * zoom + offset_y
+            canvas.create_rectangle(
+                fx1 * zoom + offset_x + 4 * zoom, by1,
+                fx2 * zoom + offset_x - 4 * zoom, by2,
+                fill="#ececec", outline="#b8b8b8", width=1)
             ru = (row.get("ru") or "").strip()
             iec = (row.get("iec") or "").strip()
-            text = ru or iec
-            canvas.create_text(x1 * zoom + offset_x
-                               + (self.PAD + 8) * zoom,
-                               py * zoom + offset_y, text=text, anchor="w",
+            canvas.create_text(fx1 * zoom + offset_x + 10 * zoom,
+                               py * zoom + offset_y, text=ru or iec,
+                               anchor="w",
                                font=("Arial", _font_size(zoom, 8)),
                                fill="black")
             if iec and iec != ru:
-                canvas.create_text(x2 * zoom + offset_x
-                                   - (self.PAD + 8) * zoom,
+                canvas.create_text(fx2 * zoom + offset_x - 10 * zoom,
                                    py * zoom + offset_y, text=iec,
                                    anchor="e",
                                    font=("Arial", _font_size(zoom, 6)),
@@ -770,16 +806,15 @@ class LogicBlock(LogicComponent):
                                    px + 8 * zoom, py * zoom + offset_y,
                                    width=lw, fill="black")
 
-        # Вставленные логические узлы
+        # Вставленные логические узлы — от верхней кромки
         for function, py in layout["functions"]:
             self._draw_function(canvas, zoom, offset_x, offset_y,
                                 layout, function, py)
 
     def _draw_function(self, canvas, zoom, offset_x, offset_y,
                        layout, function, py):
-        x1, x2 = layout["x1"], layout["x2"]
-        fx1 = x1 + (self.PAD + 18) * 1.0
-        fx2 = x2 - (self.PAD + 18) * 1.0
+        fx1 = layout["content_x1"] + 8
+        fx2 = layout["content_x2"] - 8
         fy1 = py - (self.FUNC_H - 16) / 2.0
         fy2 = py + (self.FUNC_H - 16) / 2.0
         sx1, sy1 = self.world_to_screen(fx1, fy1)
@@ -818,9 +853,10 @@ class LogicBlock(LogicComponent):
                                text=signal_text(ru, iec), anchor="w",
                                font=("Arial", _font_size(zoom, 7)),
                                fill="#7b1fa2", justify="left")
-        # Выход узла — на правую грань блока
+        # Выход узла — на правую кромку блока
         canvas.create_line(sx2, (sy1 + sy2) / 2.0,
-                           x2 * zoom + offset_x, (sy1 + sy2) / 2.0,
+                           layout["x2"] * zoom + offset_x,
+                           (sy1 + sy2) / 2.0,
                            width=lw, fill="black")
 
     def get_bounding_box(self):

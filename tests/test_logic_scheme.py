@@ -632,6 +632,47 @@ def test_block_signal_dialog(app, root):
           and data["iec"] == "Block", "наименования сохранены")
 
 
+def test_block_grid(app):
+    print("21. сетка выводов блока и узлы от верхней кромки")
+    _reset(app)
+    block = app.elements[_add(app, "logic_block", 500, 300)]
+    block.inputs = ["D01", "D02", "D03"]
+    block.rows = [{"dir": "out", "ru": "Состояние", "iec": "State"}]
+    block.functions = [{"kind": "AND", "title": "Пуск", "inputs": 2}]
+    block.generate_ports()
+    layout = block._layout()
+    cell = ll.CELL
+    check(layout["x1"] % cell == 0 and layout["y1"] % cell == 0
+          and layout["x2"] % cell == 0 and layout["y2"] % cell == 0,
+          "кромки блока на сетке")
+    check(all(port["x"] % cell == 0 and port["y"] % cell == 0
+              for port in block.ports.values()),
+          "все выводы блока на сетке")
+
+    inputs = [block.ports["in{}".format(index)]["y"] for index in range(3)]
+    check(inputs == [layout["y1"] + 60, layout["y1"] + 80,
+                     layout["y1"] + 100],
+          "входы идут по клетке от верхней кромки")
+
+    function_y = block.ports["out1"]["y"]
+    check(function_y - layout["y1"] == 100,
+          "первый узел начинается от верхней кромки")
+    check(block.ports["out0"]["y"] - layout["y1"] == 160,
+          "строки сигналов идут после узлов")
+
+    block.inputs = ["D01", "D02", "D03", "D04", "D05", "D06"]
+    block.generate_ports()
+    grown = block._layout()
+    check(block.ports["out1"]["y"] == function_y,
+          "добавление дискретных входов не сдвигает узлы")
+    check(grown["y1"] == layout["y1"], "верх блока остаётся на месте")
+    check(grown["height"] > layout["height"],
+          "блок растёт только вниз под новые входы")
+    check(grown["y2"] > layout["y2"], "нижняя кромка уходит вниз")
+    check(all(port["y"] % cell == 0 for port in block.ports.values()),
+          "выводы остаются на сетке после роста")
+
+
 def run_gui():
     import main
     main.messagebox.showinfo = lambda *args, **kwargs: None
@@ -663,6 +704,7 @@ def run_gui():
         test_block_preview(app, root)
         test_block_input_dialog(app, root)
         test_block_signal_dialog(app, root)
+        test_block_grid(app)
     finally:
         root.destroy()
 
