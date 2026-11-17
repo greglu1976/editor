@@ -11,7 +11,6 @@
 
 from __future__ import annotations
 
-import copy
 import math
 
 import tkinter as tk
@@ -72,6 +71,31 @@ def _ri_logic_link(canvas):
     canvas.create_polygon(29, 8, 24, 5, 24, 11, fill="#2e7d32")
 
 
+def _ri_logic_link_kind(kind):
+    """Иконка типа связи: цвет и штрих совпадают с линией на схеме."""
+    style = ll.link_style(kind)
+    color = style["color"]
+    dash = style["dash"]
+
+    def draw(canvas):
+        canvas.create_line(3, 24, 19, 9, width=2, fill=color, dash=dash)
+        canvas.create_line(19, 9, 28, 9, width=2, fill=color, dash=dash)
+        canvas.create_polygon(29, 9, 24, 6, 24, 12, fill=color)
+
+    return draw
+
+
+def _ri_logic_legend(canvas):
+    """Иконка «Легенда связей»: три цветных штриха."""
+    for index, kind in enumerate(("analog", "discrete", "internal")):
+        style = ll.link_style(kind)
+        y = 8 + index * 8
+        canvas.create_line(3, y, 20, y, width=2, fill=style["color"],
+                           dash=style["dash"])
+        canvas.create_rectangle(23, y - 2, 29, y + 2,
+                                fill=style["color"], outline="")
+
+
 class LogicEditorMixin:
     """Вкладка «Логика» и работа с элементами/связями ФЛС."""
 
@@ -83,6 +107,8 @@ class LogicEditorMixin:
         self._logic_label_boxes = []
         self.logic_link_kind = "discrete"
         self.show_logic = True
+        self.show_logic_legend = False
+        self._logic_legend_var = tk.BooleanVar(master=self.root, value=False)
         self._logic_kind_cells = {}
         self.clipboard_logic = []
 
@@ -109,7 +135,7 @@ class LogicEditorMixin:
                 cell = self._ribbon_button(
                     row, style["title"],
                     lambda k=kind: self.set_logic_link_kind(k),
-                    _ri_logic_link, 88)
+                    _ri_logic_link_kind(kind), 84)
                 cell._label.config(fg=style["color"])
                 self._logic_kind_cells[kind] = cell
                 # Штатная подсветка кнопки меняет цвет подписи на общий;
@@ -122,6 +148,15 @@ class LogicEditorMixin:
                                 lambda e: self._paint_logic_kind_cells(),
                                 add="+")
                 cell.pack(side=tk.LEFT)
+            legend = self._ribbon_button(
+                row, "Легенда связей", self._toggle_logic_legend,
+                _ri_logic_legend, 92)
+            self._logic_legend_cell = legend
+            for widget in (legend, legend._canvas, legend._label):
+                widget.bind("<Leave>",
+                            lambda e: self._paint_logic_kind_cells(),
+                            add="+")
+            legend.pack(side=tk.LEFT)
 
         self._ribbon_group(page, "Связи", build_links)
 
@@ -137,11 +172,34 @@ class LogicEditorMixin:
             self._ribbon_button(row, "Присвоить номер",
                                 self.assign_selected_logic_number,
                                 _ri_logic_link, 104).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Перенумеровать",
+                                self.renumber_logic_links,
+                                _ri_logic_link, 104).pack(side=tk.LEFT),
         ])
         return page
 
+    def _toggle_logic_legend(self):
+        """Показать/скрыть условные обозначения типов связей на полотне."""
+        self.show_logic_legend = not self.show_logic_legend
+        if hasattr(self, "_logic_legend_var"):
+            self._logic_legend_var.set(self.show_logic_legend)
+        self._paint_logic_kind_cells()
+        self.redraw_all()
+
     def set_logic_link_kind(self, kind):
+        """Тип новой связи; у выбранной связи тип меняется сразу же."""
+        if kind not in ll.LOGIC_LINK_KINDS:
+            kind = "discrete"
         self.logic_link_kind = kind
+        link = self.selected_logic
+        if link is not None and link in self.logic_links:
+            if link.get("kind") != kind:
+                self._push_undo()
+                link["kind"] = kind
+                self._mark_modified()
+            self._paint_logic_kind_cells()
+            self.redraw_all()
+            return
         self.set_tool("logic_link")
         self._paint_logic_kind_cells()
 
@@ -156,6 +214,16 @@ class LogicEditorMixin:
             cell.config(bg=bg)
             cell._label.config(bg=bg)
             cell._canvas.config(bg=bg)
+        legend = getattr(self, "_logic_legend_cell", None)
+        if legend is not None:
+            active = bool(self.show_logic_legend)
+            legend._active = active
+            bg = ui_theme.TOOL_ACTIVE if active else ui_theme.RIBBON
+            legend.config(bg=bg)
+            legend._label.config(bg=bg)
+            legend._canvas.config(bg=bg)
+            legend._label.config(fg=ui_theme.ACCENT if active
+                                 else ui_theme.TEXT)
 
     # ================= ГЕОМЕТРИЯ СВЯЗЕЙ =================
     @staticmethod
@@ -595,6 +663,49 @@ class LogicEditorMixin:
                 self.canvas.create_oval(px - r, py - r, px + r, py + r,
                                         outline="red", width=2,
                                         tags="logic_start")
+        self._draw_logic_legend()
+
+    def _logic_used_kinds(self):
+        """Типы связей, которые реально есть на схеме (порядок ленты)."""
+        return [kind for kind in ll.LOGIC_LINK_ORDER
+                if any(link.get("kind") == kind for link in self.logic_links)]
+
+    def _draw_logic_legend(self):
+        """Условные обозначения типов связей в правом верхнем углу полотна.
+
+        Легенда — экранная подсказка: в PDF/PNG не выводится, чтобы не
+        перекрывать чертёж.
+        """
+        self.canvas.delete("logic_legend")
+        if not getattr(self, "show_logic_legend", False):
+            return
+        kinds = self._logic_used_kinds()
+        if not kinds:
+            return
+        row_h = 18
+        width = 236
+        height = 12 + row_h * (len(kinds) + 1)
+        canvas_width = max(self.canvas.winfo_width(), width + 24)
+        x1 = canvas_width - width - 12
+        y1 = 12
+        x2 = x1 + width
+        y2 = y1 + height
+        self.canvas.create_rectangle(x1, y1, x2, y2, fill="white",
+                                     outline="#b8b8b8", tags="logic_legend")
+        self.canvas.create_text(x1 + 8, y1 + 6, text="Типы связей ФЛС",
+                                anchor="nw", font=("Arial", 8, "bold"),
+                                fill=ui_theme.ACCENT, tags="logic_legend")
+        y = y1 + 12 + row_h
+        for kind in kinds:
+            style = ll.link_style(kind)
+            self.canvas.create_line(
+                x1 + 8, y - 4, x1 + 52, y - 4, fill=style["color"],
+                width=max(1, int(style["width"])), dash=style["dash"],
+                tags="logic_legend")
+            self.canvas.create_text(
+                x1 + 60, y - 4, anchor="w", text=style["title"],
+                font=("Arial", 8), fill=style["color"], tags="logic_legend")
+            y += row_h
 
     def _draw_logic_points(self):
         link = self.selected_logic
@@ -753,14 +864,18 @@ class LogicEditorMixin:
                      self._logic_ref_label(link.get("to")))).pack(
             fill=tk.X, padx=10, pady=(8, 0))
         tk.Label(dialog, anchor="w", fg="#777777", font=("Arial", 7),
-                 text="Номер/маркировка и наименование сигнала по-русски и по МЭК"
-                 ).pack(fill=tk.X, padx=10)
+                 text="Тип задаёт цвет и штрих линии; номер виден у начала "
+                      "линии, наименование — вдоль неё").pack(
+            fill=tk.X, padx=10)
 
         form = tk.Frame(dialog, padx=10, pady=4)
         form.pack(fill=tk.BOTH, expand=True)
         form.columnconfigure(1, weight=1)
 
-        kind_var = tk.StringVar(value=link.get("kind", "discrete"))
+        kind = link.get("kind")
+        if kind not in ll.LOGIC_LINK_ORDER:
+            kind = "discrete"
+        kind_var = tk.StringVar(value=kind)
         number_var = tk.StringVar(value=link.get("number", ""))
         ru_var = tk.StringVar(value=link.get("ru", ""))
         iec_var = tk.StringVar(value=link.get("iec", ""))
@@ -770,11 +885,33 @@ class LogicEditorMixin:
             row=0, column=0, sticky="w", pady=(8, 0))
         combo = ttk.Combobox(
             form, state="readonly", width=44,
-            values=["{} — {}".format(kind, ll.link_style(kind)["full"])
-                    for kind in ll.LOGIC_LINK_ORDER])
-        combo.current(ll.LOGIC_LINK_ORDER.index(kind_var.get())
-                      if kind_var.get() in ll.LOGIC_LINK_ORDER else 1)
+            values=["{} — {}".format(ll.link_style(key)["title"],
+                                     ll.link_style(key)["full"])
+                    for key in ll.LOGIC_LINK_ORDER])
+        combo.current(ll.LOGIC_LINK_ORDER.index(kind))
         combo.grid(row=0, column=1, sticky="we", pady=(8, 0))
+
+        # Образец линии: цвет и штрих выбранного типа видны до сохранения.
+        sample = tk.Canvas(form, width=170, height=16, highlightthickness=0,
+                           bg=ui_theme.CANVAS)
+        sample.grid(row=1, column=1, sticky="w")
+
+        def paint_sample(*_args):
+            style = ll.link_style(kind_var.get())
+            sample.delete("all")
+            sample.create_line(2, 8, 140, 8, fill=style["color"], width=3,
+                               dash=style["dash"])
+            sample.create_polygon(166, 8, 150, 2, 150, 14,
+                                  fill=style["color"])
+
+        def on_kind(event=None):
+            index = combo.current()
+            if 0 <= index < len(ll.LOGIC_LINK_ORDER):
+                kind_var.set(ll.LOGIC_LINK_ORDER[index])
+                paint_sample()
+
+        combo.bind("<<ComboboxSelected>>", on_kind)
+        paint_sample()
 
         def add_entry(row, title, variable, width=46):
             tk.Label(form, text=title, anchor="w").grid(
@@ -783,8 +920,10 @@ class LogicEditorMixin:
             entry.grid(row=row, column=1, sticky="we", pady=(6, 0))
             return entry
 
+        tk.Label(form, text="Номер / маркировка:", anchor="w").grid(
+            row=2, column=0, sticky="w", pady=(6, 0))
         number_line = tk.Frame(form)
-        number_line.grid(row=1, column=1, sticky="we", pady=(6, 0))
+        number_line.grid(row=2, column=1, sticky="we", pady=(6, 0))
         number_line.columnconfigure(0, weight=1)
         number_entry = tk.Entry(number_line, textvariable=number_var, width=20)
         number_entry.grid(row=0, column=0, sticky="we")
@@ -792,18 +931,27 @@ class LogicEditorMixin:
                   command=lambda: number_var.set(
                       ll.next_logic_number(self.logic_links))
                   ).grid(row=0, column=1, padx=(6, 0))
-        tk.Label(form, text="Номер / маркировка:", anchor="w").grid(
-            row=1, column=0, sticky="w", pady=(6, 0))
 
-        add_entry(2, "Наименование (рус.):", ru_var)
-        add_entry(3, "Наименование (МЭК):", iec_var)
+        add_entry(3, "Наименование (рус.):", ru_var)
+        add_entry(4, "Наименование (МЭК):", iec_var)
         tk.Checkbutton(form, text="Стрелка по направлению связи",
                        variable=arrow_var).grid(
-            row=4, column=1, sticky="w", pady=(6, 0))
+            row=5, column=1, sticky="w", pady=(6, 0))
 
-        result = {"ok": False, "delete": False}
+        result = {"ok": False, "delete": False, "kind": kind,
+                  "number": "", "ru": "", "iec": "", "arrow": True}
 
         def accept(event=None):
+            # Все значения снимаем ДО destroy(): после закрытия окна виджеты
+            # недоступны, и обращение к combo/entry даёт TclError.
+            index = combo.current()
+            result["kind"] = (ll.LOGIC_LINK_ORDER[index]
+                              if 0 <= index < len(ll.LOGIC_LINK_ORDER)
+                              else kind)
+            result["number"] = number_var.get().strip()
+            result["ru"] = ru_var.get().strip()
+            result["iec"] = iec_var.get().strip()
+            result["arrow"] = bool(arrow_var.get())
             result["ok"] = True
             dialog.destroy()
 
@@ -834,27 +982,32 @@ class LogicEditorMixin:
                 self.logic_links.remove(link)
                 if self.selected_logic is link:
                     self.selected_logic = None
+                self._mark_modified()
                 self.redraw_all()
             return
         if not result["ok"]:
             return
-        kind = ll.LOGIC_LINK_ORDER[combo.current()] \
-            if combo.current() >= 0 else link.get("kind", "discrete")
+        new_kind = result.get("kind") or link.get("kind", "discrete")
+        new_number = result.get("number", "")
+        new_ru = result.get("ru", "")
+        new_iec = result.get("iec", "")
+        new_arrow = bool(result.get("arrow", True))
         changed = (
-            kind != link.get("kind")
-            or number_var.get().strip() != (link.get("number") or "")
-            or ru_var.get().strip() != (link.get("ru") or "")
-            or iec_var.get().strip() != (link.get("iec") or "")
-            or bool(arrow_var.get()) != bool(link.get("arrow", True))
+            new_kind != link.get("kind")
+            or new_number != (link.get("number") or "")
+            or new_ru != (link.get("ru") or "")
+            or new_iec != (link.get("iec") or "")
+            or new_arrow != bool(link.get("arrow", True))
         )
         if not changed:
             return
         self._push_undo()
-        link["kind"] = kind
-        link["number"] = number_var.get().strip()
-        link["ru"] = ru_var.get().strip()
-        link["iec"] = iec_var.get().strip()
-        link["arrow"] = bool(arrow_var.get())
+        link["kind"] = new_kind
+        link["number"] = new_number
+        link["ru"] = new_ru
+        link["iec"] = new_iec
+        link["arrow"] = new_arrow
+        self._mark_modified()
         self.redraw_all()
 
     def _logic_ref_label(self, ref):
@@ -875,6 +1028,25 @@ class LogicEditorMixin:
             return
         self._push_undo()
         link["number"] = ll.next_logic_number(self.logic_links)
+        self._mark_modified()
+        self.redraw_all()
+
+    def renumber_logic_links(self):
+        """Сквозная нумерация всех связей ФЛС с подтверждением."""
+        if not self.logic_links:
+            messagebox.showinfo("Логика", "На схеме нет связей ФЛС.")
+            return
+        if not messagebox.askyesno(
+                "Нумерация связей",
+                "Присвоить всем связям ФЛС номера по порядку, начиная "
+                "с {}?\nТекущие номера будут заменены.".format(
+                    ll.LOGIC_LINK_START)):
+            return
+        self._push_undo()
+        for index, link in enumerate(self.logic_links,
+                                     start=ll.LOGIC_LINK_START):
+            link["number"] = str(index)
+        self._mark_modified()
         self.redraw_all()
 
     # ================= СВОЙСТВА ЭЛЕМЕНТОВ =================
@@ -963,6 +1135,7 @@ class LogicEditorMixin:
         if result["delete"]:
             self._push_undo()
             self.delete_element(element.id)
+            self._mark_modified()
             self.redraw_all()
             return
         if not result["ok"]:
@@ -976,6 +1149,7 @@ class LogicEditorMixin:
             self._apply_logic_extra(element, extra_vars)
         element.generate_ports()
         self._prune_logic_links()
+        self._mark_modified()
         self.redraw_all()
 
     def edit_logic_signal_element(self, element):
@@ -1053,92 +1227,373 @@ class LogicEditorMixin:
 
     # ---------- функциональный блок ----------
     def edit_logic_block(self, element):
+        """Окно вставки и правки функционального блока.
+
+        Правки применяются по кнопке «Сохранить»: значения снимаются с
+        виджетов ДО их закрытия — после ``destroy()`` обращение к Text/Entry
+        даёт TclError, из-за чего прежняя версия теряла все изменения.
+        """
+        if element is None:
+            return
+
         dialog = tk.Toplevel(self.root)
         dialog.title("Функциональный блок — свойства")
         dialog.transient(self.root)
         dialog.resizable(True, True)
-
-        form = tk.Frame(dialog, padx=10, pady=8)
-        form.pack(fill=tk.BOTH, expand=True)
-        form.columnconfigure(1, weight=1)
+        dialog.minsize(860, 640)
 
         title_var = tk.StringVar(value=getattr(element, "title", ""))
         designation_var = tk.StringVar(
             value=getattr(element, "designation", ""))
-        width_var = tk.StringVar(value=str(int(getattr(element, "width", 360))))
+        try:
+            width_value = int(getattr(element, "width",
+                                       ll.LogicBlock.MIN_WIDTH))
+        except (TypeError, ValueError):
+            width_value = int(ll.LogicBlock.MIN_WIDTH)
+        width_var = tk.StringVar(value=str(width_value))
 
-        def add_entry(row, caption, variable, width=48):
-            tk.Label(form, text=caption, anchor="w").grid(
-                row=row, column=0, sticky="nw", pady=(6, 0))
-            entry = tk.Entry(form, textvariable=variable, width=width)
-            entry.grid(row=row, column=1, sticky="we", pady=(6, 0))
-            return entry
+        outer = tk.Frame(dialog, padx=10, pady=8)
+        outer.pack(fill=tk.BOTH, expand=True)
+        outer.columnconfigure(0, weight=1)
+        outer.rowconfigure(3, weight=1)
 
-        add_entry(0, "Название блока:", title_var)
-        add_entry(1, "Обозначение:", designation_var)
-        add_entry(2, "Ширина (мир. ед.):", width_var)
+        # ---- шапка: название, обозначение, ширина ----
+        header = tk.Frame(outer)
+        header.grid(row=0, column=0, sticky="we")
+        header.columnconfigure(1, weight=1)
+        header.columnconfigure(3, weight=1)
+        tk.Label(header, text="Название блока:", anchor="w").grid(
+            row=0, column=0, sticky="w", pady=(0, 4))
+        tk.Entry(header, textvariable=title_var).grid(
+            row=0, column=1, sticky="we", padx=(6, 12), pady=(0, 4))
+        tk.Label(header, text="Обозначение:", anchor="w").grid(
+            row=0, column=2, sticky="w", pady=(0, 4))
+        tk.Entry(header, textvariable=designation_var, width=18).grid(
+            row=0, column=3, sticky="we", padx=(6, 0), pady=(0, 4))
+        tk.Label(header, text="Ширина, мир. ед.:", anchor="w").grid(
+            row=1, column=0, sticky="w")
+        tk.Spinbox(header, from_=int(ll.LogicBlock.MIN_WIDTH), to=1600,
+                   increment=20, textvariable=width_var, width=8).grid(
+            row=1, column=1, sticky="w", padx=(6, 12))
+        tk.Label(header, text="Ширина не меньше ширины по содержимому",
+                 fg=ui_theme.TEXT_MUTED, anchor="w").grid(
+            row=1, column=2, columnspan=2, sticky="w")
 
-        tk.Label(form, text="Входные сигналы (коды, по одному в строке):",
-                 anchor="w").grid(row=3, column=0, columnspan=2,
-                                  sticky="w", pady=(10, 0))
-        inputs_text = tk.Text(form, width=60, height=5, wrap="none")
-        inputs_text.grid(row=4, column=0, columnspan=2, sticky="we")
-        inputs_text.insert("1.0", "\n".join(getattr(element, "inputs", [])))
+        # ---- предпросмотр блока ----
+        preview = tk.Canvas(outer, height=170, bg=ui_theme.CANVAS,
+                            highlightthickness=1,
+                            highlightbackground=ui_theme.BORDER)
+        preview.grid(row=1, column=0, sticky="we", pady=(8, 6))
 
-        tk.Label(form,
-                 text="Сигналы блока: направление | русское | МЭК "
-                      "(направление: out/выход, in/вход, both, none)",
-                 anchor="w").grid(row=5, column=0, columnspan=2,
-                                  sticky="w", pady=(10, 0))
-        rows_text = tk.Text(form, width=60, height=6, wrap="none")
-        rows_text.grid(row=6, column=0, columnspan=2, sticky="we")
-        rows_text.insert("1.0", self._format_block_rows(
-            getattr(element, "rows", [])))
+        tk.Label(outer, anchor="w", fg=ui_theme.TEXT_MUTED,
+                 text="Код входа задаёт тип сигнала: A… — аналоговый, "
+                      "D… — дискретный, C… — управляющий. "
+                      "Двойной клик по строке таблицы меняет её."
+                 ).grid(row=2, column=0, sticky="we")
 
-        tk.Label(form, text="Вставленные логические узлы:", anchor="w").grid(
-            row=7, column=0, columnspan=2, sticky="w", pady=(10, 0))
-        functions_frame = tk.Frame(form)
-        functions_frame.grid(row=8, column=0, columnspan=2, sticky="we")
-        functions_list = tk.Listbox(functions_frame, height=5, width=52)
-        functions_list.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        functions = copy.deepcopy(getattr(element, "functions", []))
-        self._refresh_block_functions(functions_list, functions)
+        # ---- таблицы: входы, сигналы, логические узлы ----
+        notebook = ttk.Notebook(outer)
+        notebook.grid(row=3, column=0, sticky="nsew", pady=(6, 0))
+
+        def make_table(parent, columns, headings, widths, display=None):
+            frame = tk.Frame(parent, padx=6, pady=6)
+            frame.columnconfigure(0, weight=1)
+            frame.rowconfigure(0, weight=1)
+            tree = ttk.Treeview(frame, columns=columns, show="headings",
+                                selectmode="browse", height=7)
+            for name, heading, width in zip(columns, headings, widths):
+                tree.heading(name, text=heading)
+                tree.column(name, width=width, anchor="w")
+            if display:
+                tree.configure(displaycolumns=display)
+            scroll = ttk.Scrollbar(frame, orient="vertical",
+                                   command=tree.yview)
+            tree.configure(yscrollcommand=scroll.set)
+            tree.grid(row=0, column=0, sticky="nsew")
+            scroll.grid(row=0, column=1, sticky="ns")
+            buttons = tk.Frame(frame)
+            buttons.grid(row=1, column=0, columnspan=2, sticky="w",
+                         pady=(6, 0))
+            return frame, tree, buttons
+
+        def add_button(parent, text, command, width=12):
+            tk.Button(parent, text=text, width=width,
+                      command=command).pack(side=tk.LEFT, padx=(0, 4))
+
+        inputs_tab, inputs_tree, inputs_buttons = make_table(
+            notebook, ("code", "type"),
+            ("Код входа", "Тип сигнала"), (170, 240))
+        notebook.add(inputs_tab, text="Входы")
+
+        rows_tab, rows_tree, rows_buttons = make_table(
+            notebook, ("dir", "ru", "iec"),
+            ("Направление", "Наименование (рус.)", "Наименование (МЭК)"),
+            (140, 300, 220))
+        notebook.add(rows_tab, text="Сигналы")
+
+        functions_tab, functions_tree, functions_buttons = make_table(
+            notebook,
+            ("kind", "title", "inputs", "signal", "key", "ru", "iec"),
+            ("Вид узла", "Название", "Входов", "Сигнал", "", "", ""),
+            (130, 220, 70, 220, 90, 180, 180),
+            display=("kind", "title", "inputs", "signal"))
+        notebook.add(functions_tab, text="Логические узлы")
+
+        def fill_inputs(codes):
+            inputs_tree.delete(*inputs_tree.get_children())
+            for code in codes or []:
+                code = str(code).strip()
+                if code:
+                    inputs_tree.insert(
+                        "", "end", values=(code, ll.input_code_kind(code)))
+
+        def fill_rows(rows):
+            rows_tree.delete(*rows_tree.get_children())
+            for row in rows or []:
+                direction = row.get("dir") or "out"
+                rows_tree.insert("", "end", values=(
+                    ll.SIGNAL_DIRECTIONS.get(direction, "выход"),
+                    row.get("ru") or "", row.get("iec") or ""))
+
+        def fill_functions(functions):
+            functions_tree.delete(*functions_tree.get_children())
+            for function in functions or []:
+                kind = (function.get("kind") or "AND").upper()
+                if kind not in ll.FUNCTION_KINDS:
+                    kind = "CUSTOM"
+                functions_tree.insert("", "end", values=(
+                    ll.FUNCTION_KINDS[kind][1],
+                    function.get("title") or "",
+                    function.get("inputs") or 2,
+                    ll.signal_text(function.get("ru"), function.get("iec")),
+                    kind,
+                    function.get("ru") or "",
+                    function.get("iec") or ""))
+
+        fill_inputs(getattr(element, "inputs", []))
+        fill_rows(getattr(element, "rows", []))
+        fill_functions(getattr(element, "functions", []))
+
+        # ---- чтение таблиц в данные модели ----
+        def collect_inputs():
+            codes = []
+            for item in inputs_tree.get_children():
+                values = inputs_tree.item(item, "values")
+                code = str(values[0]).strip() if values else ""
+                if code:
+                    codes.append(code)
+            return codes
+
+        def collect_rows():
+            rows = []
+            for item in rows_tree.get_children():
+                values = rows_tree.item(item, "values")
+                if not values:
+                    continue
+                label = str(values[0]).strip().casefold()
+                direction = ll.SIGNAL_DIRECTION_ALIASES.get(label, "out")
+                if direction not in ll.SIGNAL_DIRECTIONS:
+                    direction = "out"
+                ru = str(values[1]).strip() if len(values) > 1 else ""
+                iec = str(values[2]).strip() if len(values) > 2 else ""
+                if not ru and not iec:
+                    continue
+                rows.append({"dir": direction, "ru": ru, "iec": iec})
+            return rows
+
+        def collect_functions():
+            functions = []
+            for item in functions_tree.get_children():
+                values = list(functions_tree.item(item, "values"))
+                values += [""] * (7 - len(values))
+                kind = str(values[4]).strip().upper() or "AND"
+                if kind not in ll.FUNCTION_KINDS:
+                    kind = "CUSTOM"
+                try:
+                    count = max(1, int(values[2]))
+                except (TypeError, ValueError):
+                    count = 2
+                functions.append({
+                    "kind": kind,
+                    "title": str(values[1]).strip(),
+                    "ru": str(values[5]).strip(),
+                    "iec": str(values[6]).strip(),
+                    "inputs": count,
+                })
+            return functions
+
+        def snapshot():
+            return {
+                "title": title_var.get().strip(),
+                "designation": designation_var.get().strip(),
+                "width": width_var.get().strip(),
+                "inputs": collect_inputs(),
+                "rows": collect_rows(),
+                "functions": collect_functions(),
+            }
+
+        def refresh_preview(*_args):
+            self._refresh_block_preview(preview, snapshot())
+
+        title_var.trace_add("write", refresh_preview)
+        designation_var.trace_add("write", refresh_preview)
+        width_var.trace_add("write", refresh_preview)
+        preview.bind("<Configure>", lambda event: refresh_preview())
+
+        # ---- действия с таблицами ----
+        def add_input():
+            code = self._ask_block_input(dialog)
+            if not code:
+                return
+            if code in collect_inputs():
+                messagebox.showinfo("Функциональный блок",
+                                    "Вход {} уже есть.".format(code),
+                                    parent=dialog)
+                return
+            inputs_tree.insert("", "end",
+                               values=(code, ll.input_code_kind(code)))
+            refresh_preview()
+
+        def edit_input():
+            selection = inputs_tree.selection()
+            if not selection:
+                return
+            values = inputs_tree.item(selection[0], "values")
+            code = self._ask_block_input(dialog, values[0] if values else "")
+            if not code:
+                return
+            inputs_tree.item(selection[0],
+                             values=(code, ll.input_code_kind(code)))
+            refresh_preview()
+
+        def remove_selected(tree):
+            for item in tree.selection():
+                tree.delete(item)
+            refresh_preview()
+
+        def move_selected(tree, offset):
+            selection = tree.selection()
+            if not selection:
+                return
+            item = selection[0]
+            index = tree.index(item) + offset
+            if index < 0:
+                return
+            tree.move(item, "", index)
+            tree.selection_set(item)
+            refresh_preview()
+
+        def add_row():
+            data = self._edit_block_signal(None, dialog)
+            if data is None:
+                return
+            rows_tree.insert("", "end", values=(
+                ll.SIGNAL_DIRECTIONS.get(data["dir"], "выход"),
+                data.get("ru", ""), data.get("iec", "")))
+            refresh_preview()
+
+        def edit_row():
+            selection = rows_tree.selection()
+            if not selection:
+                return
+            values = rows_tree.item(selection[0], "values")
+            current = {
+                "dir": ll.SIGNAL_DIRECTION_ALIASES.get(
+                    str(values[0]).strip().casefold(), "out"),
+                "ru": values[1] if len(values) > 1 else "",
+                "iec": values[2] if len(values) > 2 else "",
+            }
+            data = self._edit_block_signal(current, dialog)
+            if data is None:
+                return
+            rows_tree.item(selection[0], values=(
+                ll.SIGNAL_DIRECTIONS.get(data["dir"], "выход"),
+                data.get("ru", ""), data.get("iec", "")))
+            refresh_preview()
+
+        def insert_function(data):
+            kind = data.get("kind") if data.get("kind") in ll.FUNCTION_KINDS \
+                else "CUSTOM"
+            return (
+                ll.FUNCTION_KINDS[kind][1], data.get("title", ""),
+                data.get("inputs", 2),
+                ll.signal_text(data.get("ru"), data.get("iec")),
+                kind, data.get("ru", ""), data.get("iec", ""))
 
         def add_function():
             data = self._edit_logic_function_data(None, dialog)
-            if data is not None:
-                functions.append(data)
-                self._refresh_block_functions(functions_list, functions)
+            if data is None:
+                return
+            functions_tree.insert("", "end", values=insert_function(data))
+            refresh_preview()
 
         def edit_function():
-            selection = functions_list.curselection()
+            selection = functions_tree.selection()
             if not selection:
                 return
-            index = selection[0]
-            data = self._edit_logic_function_data(functions[index], dialog)
-            if data is not None:
-                functions[index] = data
-                self._refresh_block_functions(functions_list, functions)
+            values = list(functions_tree.item(selection[0], "values"))
+            values += [""] * (7 - len(values))
+            current = {
+                "kind": str(values[4]).upper() or "AND",
+                "title": values[1],
+                "ru": values[5],
+                "iec": values[6],
+                "inputs": values[2],
+            }
+            data = self._edit_logic_function_data(current, dialog)
+            if data is None:
+                return
+            functions_tree.item(selection[0],
+                                values=insert_function(data))
+            refresh_preview()
 
-        def remove_function():
-            selection = functions_list.curselection()
-            if selection:
-                del functions[selection[0]]
-                self._refresh_block_functions(functions_list, functions)
+        for text, command, width in (
+                ("Добавить…", add_input, 14),
+                ("Изменить…", edit_input, 14),
+                ("Удалить", lambda: remove_selected(inputs_tree), 10),
+                ("Вверх", lambda: move_selected(inputs_tree, -1), 8),
+                ("Вниз", lambda: move_selected(inputs_tree, 1), 8)):
+            add_button(inputs_buttons, text, command, width)
 
-        function_buttons = tk.Frame(form)
-        function_buttons.grid(row=9, column=0, columnspan=2, sticky="w",
-                              pady=(4, 0))
-        tk.Button(function_buttons, text="Добавить…", width=14,
-                  command=add_function).pack(side=tk.LEFT)
-        tk.Button(function_buttons, text="Изменить…", width=14,
-                  command=edit_function).pack(side=tk.LEFT, padx=(4, 0))
-        tk.Button(function_buttons, text="Удалить", width=10,
-                  command=remove_function).pack(side=tk.LEFT, padx=(4, 0))
+        for text, command, width in (
+                ("Добавить…", add_row, 14),
+                ("Изменить…", edit_row, 14),
+                ("Удалить", lambda: remove_selected(rows_tree), 10),
+                ("Вверх", lambda: move_selected(rows_tree, -1), 8),
+                ("Вниз", lambda: move_selected(rows_tree, 1), 8)):
+            add_button(rows_buttons, text, command, width)
 
+        for text, command, width in (
+                ("Добавить…", add_function, 14),
+                ("Изменить…", edit_function, 14),
+                ("Удалить", lambda: remove_selected(functions_tree), 10),
+                ("Вверх", lambda: move_selected(functions_tree, -1), 8),
+                ("Вниз", lambda: move_selected(functions_tree, 1), 8)):
+            add_button(functions_buttons, text, command, width)
+
+        inputs_tree.bind("<Double-1>", lambda event: edit_input())
+        rows_tree.bind("<Double-1>", lambda event: edit_row())
+        functions_tree.bind("<Double-1>", lambda event: edit_function())
+
+        # ---- кнопки окна ----
         result = {"ok": False, "delete": False}
 
         def accept(event=None):
+            inputs = collect_inputs()
+            duplicates = sorted({code for code in inputs
+                                 if inputs.count(code) > 1})
+            if duplicates:
+                messagebox.showerror(
+                    "Функциональный блок",
+                    "Коды входов не должны повторяться:\n{}".format(
+                        ", ".join(duplicates)), parent=dialog)
+                return
+            result["title"] = title_var.get().strip()
+            result["designation"] = designation_var.get().strip()
+            result["width"] = width_var.get().strip()
+            result["inputs"] = inputs
+            result["rows"] = collect_rows()
+            result["functions"] = collect_functions()
             result["ok"] = True
             dialog.destroy()
 
@@ -1158,74 +1613,183 @@ class LogicEditorMixin:
         tk.Button(buttons, text="Удалить блок", width=14,
                   command=remove).pack(side=tk.LEFT)
         dialog.bind("<Escape>", cancel)
+
+        dialog.update_idletasks()
+        refresh_preview()
         self._center_dialog(dialog)
         dialog.wait_window(dialog)
 
         if result["delete"]:
             self._push_undo()
             self.delete_element(element.id)
+            self._mark_modified()
             self.redraw_all()
             return
         if not result["ok"]:
             return
         self._push_undo()
-        element.title = title_var.get().strip()
-        element.designation = designation_var.get().strip()
+        element.title = result["title"]
+        element.designation = result["designation"]
         try:
-            element.width = max(element.MIN_WIDTH, float(width_var.get()))
+            element.width = max(ll.LogicBlock.MIN_WIDTH,
+                                float(result["width"] or 0))
         except (TypeError, ValueError):
             pass
-        element.inputs = [line.strip() for line in
-                          inputs_text.get("1.0", "end").splitlines()
-                          if line.strip()]
-        element.rows = self._parse_block_rows(
-            rows_text.get("1.0", "end"))
-        element.functions = functions
+        element.inputs = result["inputs"]
+        element.rows = result["rows"]
+        element.functions = result["functions"]
         element.generate_ports()
+        before = len(self.logic_links)
         self._prune_logic_links()
+        removed = before - len(self.logic_links)
+        self._mark_modified()
         self.redraw_all()
+        if removed:
+            messagebox.showinfo(
+                "Функциональный блок",
+                "Входов стало меньше — удалено связей: {}.".format(removed))
 
-    @staticmethod
-    def _format_block_rows(rows):
-        lines = []
-        for row in rows or []:
-            lines.append("{} | {} | {}".format(
-                row.get("dir") or "out",
-                row.get("ru") or "",
-                row.get("iec") or ""))
-        return "\n".join(lines)
+    def _refresh_block_preview(self, canvas, snapshot):
+        """Предпросмотр блока в окне свойств: те же линии, что на схеме."""
+        canvas.delete("all")
+        block = ll.LogicBlock("preview", 0.0, 0.0)
+        block.name = ""
+        block.title = snapshot.get("title") or "Функциональный блок"
+        block.designation = snapshot.get("designation") or ""
+        try:
+            block.width = max(ll.LogicBlock.MIN_WIDTH,
+                              float(snapshot.get("width") or 0))
+        except (TypeError, ValueError):
+            block.width = ll.LogicBlock.MIN_WIDTH
+        block.inputs = list(snapshot.get("inputs") or [])
+        block.rows = [dict(row) for row in snapshot.get("rows") or []]
+        block.functions = [dict(item) for item in
+                           snapshot.get("functions") or []]
+        block.generate_ports()
+        layout = block._layout()
+        pad = 12.0
+        width = max(canvas.winfo_width(), 240)
+        height = max(canvas.winfo_height(), 120)
+        scale = min((width - 2 * pad) / max(layout["width"], 1.0),
+                    (height - 2 * pad) / max(layout["height"], 1.0), 1.0)
+        scale = max(scale, 0.05)
+        offset_x = (pad + (width - 2 * pad - layout["width"] * scale) / 2.0
+                    - layout["x1"] * scale)
+        offset_y = (pad + (height - 2 * pad - layout["height"] * scale) / 2.0
+                    - layout["y1"] * scale)
+        block.draw(canvas, scale, offset_x, offset_y)
 
-    @staticmethod
-    def _parse_block_rows(text):
-        rows = []
-        for line in str(text or "").splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            parts = [part.strip() for part in line.split("|")]
-            if len(parts) == 1:
-                direction, ru, iec = "out", parts[0], ""
-            elif len(parts) == 2:
-                direction, ru, iec = parts[0] or "out", parts[1], ""
-            else:
-                direction, ru, iec = parts[0] or "out", parts[1], parts[2]
-            direction = ll.SIGNAL_DIRECTION_ALIASES.get(
-                direction.casefold(), direction)
-            if direction not in ll.SIGNAL_DIRECTIONS:
-                # Строка без направления: «русское | МЭК»
-                ru, iec = direction, ru
-                direction = "out"
-            rows.append({"dir": direction, "ru": ru, "iec": iec})
-        return rows
+    def _ask_block_input(self, parent, initial=""):
+        """Код входа блока: тип сигнала определяется по префиксу кода."""
+        dialog = tk.Toplevel(parent)
+        dialog.title("Вход функционального блока")
+        dialog.transient(parent)
+        dialog.resizable(False, False)
+        form = tk.Frame(dialog, padx=10, pady=8)
+        form.pack(fill=tk.BOTH, expand=True)
+        form.columnconfigure(1, weight=1)
+        value = tk.StringVar(value=initial)
+        tk.Label(form, text="Код входа:", anchor="w").grid(
+            row=0, column=0, sticky="w")
+        entry = tk.Entry(form, textvariable=value, width=18)
+        entry.grid(row=0, column=1, sticky="we", padx=(6, 0))
+        tk.Label(form, fg=ui_theme.TEXT_MUTED, anchor="w",
+                 text="A01 — аналоговый, D01 — дискретный, "
+                      "C01 — управляющий").grid(
+            row=1, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        result = {"code": ""}
 
-    @staticmethod
-    def _refresh_block_functions(listbox, functions):
-        listbox.delete(0, tk.END)
-        for function in functions:
-            kind = (function.get("kind") or "AND").upper()
-            kind_name = ll.FUNCTION_KINDS.get(kind, ll.FUNCTION_KINDS["CUSTOM"])[1]
-            title = (function.get("title") or "").strip() or kind_name
-            listbox.insert(tk.END, "{} — {}".format(kind_name, title))
+        def accept(event=None):
+            result["code"] = value.get().strip()
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(6, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="ОК", width=10,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        dialog.bind("<Return>", accept)
+        dialog.bind("<Escape>", cancel)
+        entry.focus_set()
+        entry.selection_range(0, tk.END)
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+        if parent is not None:
+            try:
+                parent.grab_set()
+            except tk.TclError:
+                pass
+        return result["code"]
+
+    def _edit_block_signal(self, data, parent):
+        """Строка сигнала блока: направление, русское и МЭК наименование."""
+        data = data or {}
+        dialog = tk.Toplevel(parent)
+        dialog.title("Сигнал функционального блока")
+        dialog.transient(parent)
+        dialog.resizable(False, False)
+        form = tk.Frame(dialog, padx=10, pady=8)
+        form.pack(fill=tk.BOTH, expand=True)
+        form.columnconfigure(1, weight=1)
+
+        keys = list(ll.SIGNAL_DIRECTIONS)
+        labels = [ll.SIGNAL_DIRECTIONS[key] for key in keys]
+        direction_var = tk.StringVar(
+            value=ll.SIGNAL_DIRECTIONS.get(data.get("dir") or "out", "выход"))
+        ru_var = tk.StringVar(value=data.get("ru") or "")
+        iec_var = tk.StringVar(value=data.get("iec") or "")
+
+        tk.Label(form, text="Направление:", anchor="w").grid(
+            row=0, column=0, sticky="w", pady=(4, 0))
+        combo = ttk.Combobox(form, state="readonly", width=24, values=labels)
+        if direction_var.get() in labels:
+            combo.current(labels.index(direction_var.get()))
+        combo.grid(row=0, column=1, sticky="we", pady=(4, 0))
+
+        tk.Label(form, text="Наименование (рус.):", anchor="w").grid(
+            row=1, column=0, sticky="w", pady=(4, 0))
+        tk.Entry(form, textvariable=ru_var, width=44).grid(
+            row=1, column=1, sticky="we", pady=(4, 0))
+        tk.Label(form, text="Наименование (МЭК):", anchor="w").grid(
+            row=2, column=0, sticky="w", pady=(4, 0))
+        tk.Entry(form, textvariable=iec_var, width=44).grid(
+            row=2, column=1, sticky="we", pady=(4, 0))
+
+        result = {"data": None}
+
+        def accept(event=None):
+            index = combo.current()
+            direction = keys[index] if 0 <= index < len(keys) else "out"
+            result["data"] = {
+                "dir": direction,
+                "ru": ru_var.get().strip(),
+                "iec": iec_var.get().strip(),
+            }
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(6, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="ОК", width=10,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        dialog.bind("<Return>", accept)
+        dialog.bind("<Escape>", cancel)
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+        if parent is not None:
+            try:
+                parent.grab_set()
+            except tk.TclError:
+                pass
+        return result["data"]
 
     def _edit_logic_function_data(self, data, parent):
         """Диалог логического узла для вставки в блок."""

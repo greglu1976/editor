@@ -8231,7 +8231,11 @@ class CircuitEditor(logic_editor.LogicEditorMixin):
         tool = self.current_tool
         if tool in library.COMPONENT_TYPES or logic_library.is_logic_type(tool):
             self._push_undo()
-            self.add_element(tool, wx, wy)
+            created = self.add_element(tool, wx, wy)
+            # Функциональный блок вставляется через своё окно свойств:
+            # иначе на полотно попадает блок с умолчаниями без настройки.
+            if tool == "logic_block" and created is not None:
+                self.edit_logic_block(created)
 
     def get_next_name(self, prefix, el_type=None):
         """Следующий свободный номер по префиксу.
@@ -8661,6 +8665,7 @@ class CircuitEditor(logic_editor.LogicEditorMixin):
 
         self.elements[el_id] = el
         self.redraw_all()
+        return el
 
     def delete_element(self, el_id):
         if el_id not in self.elements: return

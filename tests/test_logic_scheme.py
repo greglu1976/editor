@@ -16,7 +16,13 @@
 7. сохранение и загрузку JSON (элементы + связи);
 8. копирование/вставку с новыми номерами;
 9. отрисовку и экспорт в сцену PDF/PNG;
-10. удаление элемента вместе с его связями.
+10. удаление элемента вместе с его связями;
+11. диалог связи: введённый номер и тип не теряются после закрытия окна;
+12. окно функционального блока: таблицы входов/сигналов/узлов сохраняются;
+13. вставка блока с палитры сразу открывает окно свойств;
+14. смену типа выбранной связи из ленты и отмену;
+15. легенду типов связей на полотне;
+16. сквозную нумерацию связей.
 """
 
 from __future__ import annotations
@@ -390,6 +396,242 @@ def test_delete(app):
           "удаление элемента убирает его связи ФЛС")
 
 
+def _walk(widget):
+    result = [widget]
+    for child in widget.winfo_children():
+        result.extend(_walk(child))
+    return result
+
+
+def _dialogs(root):
+    return [w for w in root.winfo_children() if isinstance(w, tk.Toplevel)]
+
+
+def _find(widget, widget_class):
+    return [w for w in _walk(widget) if w.winfo_class() == widget_class]
+
+
+def _click(widget, text):
+    for button in _find(widget, "Button"):
+        if button.cget("text") == text:
+            button.invoke()
+            return True
+    return False
+
+
+def _dialog_action(root, action, delay=250):
+    """Выполнить action(диалог), пока wait_window уже ждёт закрытия."""
+    def run():
+        dialogs = _dialogs(root)
+        if dialogs:
+            action(dialogs[-1])
+    root.after(delay, run)
+
+
+def test_link_dialog(app, root):
+    print("12. диалог связи: номер и тип применяются")
+    _reset(app)
+    bus = app.elements[_add(app, "logic_bus", 100, 300)]
+    key = app.elements[_add(app, "logic_key", 350, 300)]
+    app.logic_link_kind = "discrete"
+    link = app._add_logic_link((bus.id, "p2"), (key.id, "left"))
+    app.is_modified = False
+
+    def fill(dialog):
+        entries = _find(dialog, "Entry")
+        if len(entries) < 3:
+            return
+        entries[0].delete(0, tk.END)
+        entries[0].insert(0, "А-12")
+        entries[1].insert(0, "Пуск")
+        entries[2].insert(0, "Start")
+        combos = _find(dialog, "TCombobox")
+        if combos:
+            combos[0].current(0)          # аналоговые цепи
+        _click(dialog, "Сохранить")
+
+    _dialog_action(root, fill)
+    app.edit_logic_link(link)
+    check(link["number"] == "А-12", "введённый номер сохранён")
+    check(link["kind"] == "analog", "выбранный тип связи сохранён")
+    check(link["ru"] == "Пуск" and link["iec"] == "Start",
+          "наименования сигнала сохранены")
+    check(app.is_modified is True, "схема помечена изменённой")
+    app.redraw_all()
+    texts = [app.canvas.itemcget(item, "text")
+             for item in app.canvas.find_all()
+             if app.canvas.type(item) == "text"]
+    check("А-12" in texts, "номер виден на линии")
+
+
+def test_block_dialog(app, root):
+    print("13. окно функционального блока: правки сохраняются")
+    _reset(app)
+    block = app.elements[_add(app, "logic_block", 600, 300)]
+    app.is_modified = False
+
+    def fill(dialog):
+        entries = _find(dialog, "Entry")
+        if not entries:
+            return
+        entries[0].delete(0, tk.END)
+        entries[0].insert(0, "Управление В")
+        trees = _find(dialog, "Treeview")
+        if len(trees) < 3:
+            return
+        inputs, rows, functions = trees[0], trees[1], trees[2]
+        inputs.delete(*inputs.get_children())
+        inputs.insert("", "end", values=("A01", "аналоговый"))
+        inputs.insert("", "end", values=("D01", "дискретный"))
+        rows.delete(*rows.get_children())
+        rows.insert("", "end", values=("выход", "Срабатывание", "Trip"))
+        functions.delete(*functions.get_children())
+        functions.insert("", "end",
+                         values=("И", "Пуск", "2", "Пуск (Start)",
+                                 "AND", "Пуск", "Start"))
+        _click(dialog, "Сохранить")
+
+    _dialog_action(root, fill)
+    app.edit_logic_block(block)
+    check(block.title == "Управление В", "название блока сохранено")
+    check(block.inputs == ["A01", "D01"], "входы сохранены")
+    check(bool(block.rows) and block.rows[0]["ru"] == "Срабатывание"
+          and block.rows[0]["dir"] == "out", "сигнал блока сохранён")
+    check(bool(block.functions) and block.functions[0]["kind"] == "AND"
+          and block.functions[0]["ru"] == "Пуск",
+          "логический узел сохранён")
+    check(sorted(block.ports) == ["in0", "in1", "out0", "out1"],
+          "выводы блока пересчитаны")
+    check(app.is_modified is True, "схема помечена изменённой")
+
+
+def test_block_insert_dialog(app):
+    print("14. вставка блока открывает окно свойств")
+    _reset(app)
+    app.set_tool("logic_block")
+    opened = []
+    original = app.edit_logic_block
+    app.edit_logic_block = lambda element: opened.append(element)
+    try:
+        app.on_left_click(_event(*app.world_to_screen(400, 300)))
+    finally:
+        app.edit_logic_block = original
+    check(len(opened) == 1, "окно блока открылось при вставке")
+    check(bool(opened) and opened[0].type == "logic_block",
+          "окно открыто для вставленного блока")
+
+
+def test_ribbon_kind(app):
+    print("15. тип выбранной связи меняется из ленты")
+    _reset(app)
+    bus = app.elements[_add(app, "logic_bus", 100, 300)]
+    key = app.elements[_add(app, "logic_key", 350, 300)]
+    link = app._add_logic_link((bus.id, "p2"), (key.id, "left"))
+    link["kind"] = "discrete"
+    app.set_tool("select")
+    app.selected_logic = link
+    app.set_logic_link_kind("control")
+    check(link["kind"] == "control", "тип связи изменён из ленты")
+    check(app.current_tool == "select", "режим выбора не сброшен")
+    app.undo_last_action()
+    check(bool(app.logic_links)
+          and app.logic_links[0]["kind"] == "discrete",
+          "отмена возвращает прежний тип")
+
+
+def test_legend(app):
+    print("16. легенда типов связей")
+    _reset(app)
+    bus = app.elements[_add(app, "logic_bus", 100, 300)]
+    key = app.elements[_add(app, "logic_key", 350, 300)]
+    link = app._add_logic_link((bus.id, "p2"), (key.id, "left"))
+    link["kind"] = "analog"
+    app.show_logic_legend = True
+    app.redraw_all()
+    items = app.canvas.find_withtag("logic_legend")
+    check(bool(items), "легенда нарисована")
+    texts = [app.canvas.itemcget(item, "text") for item in items
+             if app.canvas.type(item) == "text"]
+    check(any("Аналоговые" in str(text) for text in texts),
+          "в легенде есть тип связи схемы")
+    app.show_logic_legend = False
+    app.redraw_all()
+    check(not app.canvas.find_withtag("logic_legend"),
+          "выключенная легенда убрана с полотна")
+
+
+def test_renumber(app):
+    print("17. сквозная нумерация связей")
+    _reset(app)
+    bus = app.elements[_add(app, "logic_bus", 100, 300)]
+    key = app.elements[_add(app, "logic_key", 350, 300)]
+    first = app._add_logic_link((bus.id, "p2"), (key.id, "left"))
+    second = app._add_logic_link((bus.id, "p4"), (key.id, "right"))
+    first["number"] = "5"
+    second["number"] = "7"
+    app.renumber_logic_links()
+    check([link["number"] for link in app.logic_links]
+          == [str(ll.LOGIC_LINK_START), str(ll.LOGIC_LINK_START + 1)],
+          "номера идут по порядку от LOGIC_LINK_START")
+
+
+def test_block_preview(app, root):
+    print("18. предпросмотр блока в окне свойств")
+    canvas = tk.Canvas(root, width=320, height=180)
+    canvas.pack()
+    root.update()
+    snapshot = {
+        "title": "Управление В",
+        "designation": "Б1",
+        "width": "420",
+        "inputs": ["A01", "D01"],
+        "rows": [{"dir": "out", "ru": "Срабатывание", "iec": "Trip"}],
+        "functions": [{"kind": "AND", "title": "Пуск", "inputs": 2,
+                       "ru": "Пуск", "iec": "Start"}],
+    }
+    app._refresh_block_preview(canvas, snapshot)
+    root.update()
+    check(len(canvas.find_all()) > 10, "предпросмотр нарисован")
+    snapshot["inputs"] = ["D01"]
+    app._refresh_block_preview(canvas, snapshot)
+    root.update()
+    check(len(canvas.find_all()) > 10,
+          "предпросмотр перерисовывается без ошибок")
+    canvas.destroy()
+
+
+def test_block_input_dialog(app, root):
+    print("19. диалог кода входа блока")
+    def fill(dialog):
+        entries = _find(dialog, "Entry")
+        if entries:
+            entries[0].insert(0, "A05")
+        _click(dialog, "ОК")
+
+    _dialog_action(root, fill)
+    code = app._ask_block_input(None)
+    check(code == "A05", "код входа возвращается из диалога")
+
+
+def test_block_signal_dialog(app, root):
+    print("20. диалог сигнала блока")
+    def fill(dialog):
+        combos = _find(dialog, "TCombobox")
+        if combos:
+            combos[0].current(1)          # «вход»
+        entries = _find(dialog, "Entry")
+        if len(entries) >= 2:
+            entries[0].insert(0, "Блокировка")
+            entries[1].insert(0, "Block")
+        _click(dialog, "ОК")
+
+    _dialog_action(root, fill)
+    data = app._edit_block_signal({"dir": "out"}, None)
+    check(bool(data) and data["dir"] == "in", "направление сохранено")
+    check(bool(data) and data["ru"] == "Блокировка"
+          and data["iec"] == "Block", "наименования сохранены")
+
+
 def run_gui():
     import main
     main.messagebox.showinfo = lambda *args, **kwargs: None
@@ -412,6 +654,15 @@ def run_gui():
         test_copy_paste(app)
         test_export(app)
         test_delete(app)
+        test_link_dialog(app, root)
+        test_block_dialog(app, root)
+        test_block_insert_dialog(app)
+        test_ribbon_kind(app)
+        test_legend(app)
+        test_renumber(app)
+        test_block_preview(app, root)
+        test_block_input_dialog(app, root)
+        test_block_signal_dialog(app, root)
     finally:
         root.destroy()
 

@@ -135,6 +135,21 @@ SIGNAL_DIRECTION_ALIASES = {
     "внутренний": "none", "внутр": "none", "none": "none",
 }
 
+#: Тип входного сигнала блока по префиксу кода (A01, D01, C01 …).
+INPUT_CODE_KINDS = {
+    "A": "аналоговый",
+    "D": "дискретный",
+    "C": "управляющий",
+    "G": "GOOSE",
+    "S": "служебный",
+}
+
+
+def input_code_kind(code):
+    """Тип входного сигнала по коду: A… — аналоговый, D… — дискретный."""
+    prefix = str(code or "").strip()[:1].upper()
+    return INPUT_CODE_KINDS.get(prefix, "—")
+
 
 def link_style(kind):
     """Стиль линии связи: цвет, штрих, толщина."""
