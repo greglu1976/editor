@@ -1,1300 +1,1158 @@
 {
-  "name": "Типовые шкафы ШЭТ РЗА сборных шин, ошиновок и шинных аппаратов 6–750 кВ. Архитектура II типа",
-  "code": "Тест",
+  "name": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура II типа",
+  "code": "Отчет по НИР",
   "property": "ПАО «Россети»",
-  "date": "16.11.2026",
+  "date": "17.11.2026",
   "sections": [
     {
       "number": "",
       "header": "Введение",
       "header_style": "ДОК Заголовок вкл в содержание",
-      "content": "Настоящий стандарт содержит требования к низковольтным комплектным устройствам релейной защиты и автоматики сборных шин, ошиновок и шинных аппаратов 6–750 кВ, применяемых при построении системы автоматизации энергообъектов на основе архитектуры II типа или смешанной архитектуры [1].\nВ стандарте приведены базовые технические решения, необходимые для обеспечения типизации внешних электрических и информационных интерфейсов, общего конструктивного исполнения и идентификации устройств.",
+      "content": "Настоящий стандарт содержит требования к низковольтным комплектным устройствам релейной защиты и автоматики средств компенсации реактивной мощности напряжением 110–750 кВ, применяемых при построении системы автоматизации энергообъектов на основе архитектуры II типа или смешанной архитектуры [1].\nВ стандарте приведены базовые технические решения, необходимые для обеспечения типизации внешних электрических и информационных интерфейсов, общего конструктивного исполнения и идентификации устройств.",
       "subsections": [],
       "tables": [],
-      "figures": []
+      "figures": [],
+      "clauses": []
     },
     {
       "number": "1",
       "header": "Область применения",
-      "header_style": "ДОК Текст ур1 раздел",
+      "header_style": "ДОК Текст 3/4уров 1-раздел",
       "content": "Положения настоящего стандарта должны учитываться организациями, выполняющими работы по созданию, модернизации и проектированию низковольтных комплектных устройств информационно-технологических систем для электросетевых объектов Публичного акционерного общества «Федеральная сетевая компания - Россети».",
       "subsections": [],
       "tables": [],
-      "figures": []
+      "figures": [],
+      "clauses": []
     },
     {
       "number": "2",
       "header": "Нормативные ссылки",
-      "header_style": "ДОК Текст ур1 раздел",
-      "content": "В настоящем стандарте использованы нормативные ссылки на следующие стандарты:\nГОСТ 12969 Таблички для машин и приборов. Технические требования (с Изменениями № 1, 2)\nГОСТ 12971 Таблички прямоугольные для машин и приборов. Размеры (с Изменениями № 1, 2)\nГОСТ 24291 Электрическая часть электростанции и электрической сети. Термины и определения\nГОСТ IEC 61293 Оборудование электрическое. Маркировка с указанием номинальных значений характеристик источников электропитания. Требования техники безопасности\nГОСТ Р 12.1.019 Система стандартов безопасности труда. Электробезопасность. Общие требования и номенклатура видов защиты\nГОСТ Р 50571.4.41-2022 (МЭК 60364-4-41) Электроустановки низковольтные. Часть 4-41. Защита для обеспечения безопасности. Защита от поражения электрическим током\nГОСТ Р 54325 (IEC/TS 61850-2) Сети и системы связи на подстанциях. Часть 2. Термины и определения\nГОСТ Р 58601-2019 Единая энергетическая система и изолировано работающие части. Релейная защита и автоматика. Автономные регистраторы аварийных событий. Нормы и требования\nГОСТ Р 59279-2020 Схемы принципиальные электрические распределительных устройств от 35 до 750 кВ подстанций. Типовые решения. Рекомендации по применению\nПримечание - При пользовании настоящим стандартом целесообразно проверить действие ссылочных документов в информационной системе общего пользования - на официальном сайте федерального органа исполнительной власти в сфере стандартизации в сети Интернет или по ежегодно издаваемому информационному указателю \"Национальные стандарты\", который опубликован по состоянию на 1 января текущего года, и по выпускам ежемесячно издаваемого информационного указателя \"Национальные стандарты\" за текущий год. Если заменен ссылочный документ, на который дана недатированная ссылка, то рекомендуется использовать действующую версию этого документа с учетом всех внесенных в данную версию изменений. Если заменен ссылочный документ, на который дана датированная ссылка, то рекомендуется использовать версию этого документа с указанным выше годом утверждения (принятия). Если после утверждения настоящего стандарта в ссылочный документ, на который дана датированная ссылка, внесено изменение, затрагивающее положение, на которое дана ссылка, то это положение рекомендуется применять без учета данного изменения. Если ссылочный документ отменен без замены, то положение, в котором дана ссылка на него, рекомендуется применять в части, не затрагивающей эту ссылку.",
+      "header_style": "ДОК Текст 3/4уров 1-раздел",
+      "content": "В настоящем стандарте использованы нормативные ссылки на следующие стандарты:\nГОСТ 12969 Таблички для машин и приборов. Технические требования (с Изменениями № 1, 2)\nГОСТ 12971 Таблички прямоугольные для машин и приборов. Размеры (с Изменениями № 1, 2)\nГОСТ 24291 Электрическая часть электростанции и электрической сети. Термины и определения\nГОСТ IEC 61293 Оборудование электрическое. Маркировка с указанием номинальных значений характеристик источников электропитания. Требования техники безопасности\nГОСТ Р 12.1.019 Система стандартов безопасности труда. Электробезопасность. Общие требования и номенклатура видов защиты\nГОСТ Р 50571.4.41 (МЭК 60364-4-41) Электроустановки низковольтные. Часть 4-41. Защита для обеспечения безопасности. Защита от поражения электрическим током\nГОСТ Р 54325 (IEC/TS 61850-2) Сети и системы связи на подстанциях. Часть 2. Термины и определения\nГОСТ Р 58601-2019 Единая энергетическая система и изолировано работающие части. Релейная защита и автоматика. Автономные регистраторы аварийных событий. Нормы и требования\nГОСТ Р 59279 Единая энергетическая система и изолированно работающие энергосистемы. Электрические сети. Схемы принципиальные электрические распределительных устройств от 35 до 750 кВ подстанций. Типовые решения. Рекомендации по применению\nПримечание – При пользовании настоящим стандартом целесообразно проверить действие ссылочных документов в информационной системе общего пользования - на официальном сайте федерального органа исполнительной власти в сфере стандартизации в сети Интернет или по ежегодно издаваемому информационному указателю «Национальные стандарты», который опубликован по состоянию на 1 января текущего года, и по выпускам ежемесячно издаваемого информационного указателя \"Национальные стандарты\" за текущий год. Если заменен ссылочный документ, на который дана недатированная ссылка, то рекомендуется использовать действующую версию этого документа с учетом всех внесенных в данную версию изменений. Если заменен ссылочный документ, на который дана датированная ссылка, то рекомендуется использовать версию этого документа с указанным выше годом утверждения (принятия). Если после утверждения настоящего стандарта в ссылочный документ, на который дана датированная ссылка, внесено изменение, затрагивающее положение, на которое дана ссылка, то это положение рекомендуется применять без учета данного изменения. Если ссылочный документ отменен без замены, то положение, в котором дана ссылка на него, рекомендуется применять в части, не затрагивающей эту ссылку.",
       "subsections": [],
       "tables": [],
-      "figures": []
+      "figures": [],
+      "clauses": []
     },
     {
       "number": "3",
       "header": "Термины, определения и сокращения",
-      "header_style": "ДОК Текст ур1 раздел",
-      "content": "В настоящем стандарте применены термины по ГОСТ 24291, ГОСТ Р 54325.\nВ настоящем стандарте используются следующие сокращения:",
-      "subsections": [],
-      "tables": [
+      "header_style": "ДОК Текст 3/4уров 1-раздел",
+      "content": "В настоящем стандарте используются следующие сокращения:",
+      "subsections": [
         {
-          "number": "",
-          "name": "",
-          "reference": "",
-          "rows": [
-            {
-              "content": [
-                "DA",
-                "–",
-                "data attribute (атрибут данных);"
-              ],
-              "is_header_first_row": true,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "DO",
-                "–",
-                "data object (объект данных);"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "GOOSE",
-                "–",
-                "generic object oriented substation event (широковещательное объектно-ориентированное сообщение о событии на подстанции);"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "MMS",
-                "–",
-                "manufacturing message specification (спецификация производственного сообщения);"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "QR-код",
-                "–",
-                "quick response code (код быстрого отклика);"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АВР",
-                "–",
-                "автоматический ввод резерва;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АМТЗ",
-                "–",
-                "аварийная максимальная токовая защита;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АОДС",
-                "–",
-                "автоматика опережающего деления сети;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АПВ",
-                "–",
-                "автоматическое повторное включение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АС",
-                "–",
-                "аварийная сигнализация;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АСУ ТП",
-                "–",
-                "автоматизированная система управления технологическим процессом;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АТ",
-                "–",
-                "автотрансформатор;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АУ",
-                "–",
-                "автоматическое ускорение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АУВ",
-                "–",
-                "автоматика управления выключателем;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АЦП",
-                "–",
-                "аналогово-цифровой преобразователь;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БВКЗ",
-                "–",
-                "блокировка при внешних коротких замыкания;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БИ",
-                "–",
-                "блок испытательный;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БК",
-                "–",
-                "блокировка при качаниях;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БНН",
-                "–",
-                "блокировка при неисправности цепей напряжения;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БНТ",
-                "–",
-                "бросок намагничивающего тока;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БСТО",
-                "–",
-                "блокировка при сквозном токе через ошиновку;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БУ",
-                "–",
-                "блок управления"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БЧС",
-                "–",
-                "блокировка чувствительных ступеней;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "В",
-                "–",
-                "выключатель;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ВАПС",
-                "–",
-                "высокоавтоматизированная подстанция;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ВН",
-                "–",
-                "высшее напряжение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ВО",
-                "–",
-                "вторичная обмотка;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ВЧ",
-                "–",
-                "высокочастотный;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗ",
-                "–",
-                "дистанционная защита;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗО",
-                "–",
-                "дифференциальная защита ошиновки;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗ-фз",
-                "–",
-                "дистанционная защита по контуру «фаза-земля»;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗ-фф",
-                "–",
-                "дистанционная защита по контуру «фаза-фаза»;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ",
-                "–",
-                "дифференциальная защита шин;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДТЗт",
-                "–",
-                "дифференциальная токовая защита с торможением;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДТО",
-                "–",
-                "дифференциальная токовая отсечка;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДФЗ",
-                "–",
-                "дифференциально-фазная защита;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЗАВР",
-                "–",
-                "запрет АВР;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЗАПВ",
-                "–",
-                "запрет АПВ"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЗНР",
-                "–",
-                "защита от неполнофазного режима;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЗНФ",
-                "–",
-                "защита от непереключения фаз;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ИО",
-                "–",
-                "избирательный орган;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ИМ",
-                "–",
-                "информационная модель;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ИТС",
-                "–",
-                "информационно-технологическая система;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ИЧМ",
-                "–",
-                "интерфейс человек-машина;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ИЭУ",
-                "–",
-                "интеллектуальное электронное устройство;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "КЗ",
-                "–",
-                "короткое замыкание;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "КП",
-                "–",
-                "контроллер присоединения;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "КС",
-                "–",
-                "контроль синхронизма;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "КСВ",
-                "–",
-                "контроль силового выключателя;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "КСЗ",
-                "–",
-                "комплект ступенчатых защит;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "КСН",
-                "–",
-                "контроль синхронизма и напряжения;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "КТ",
-                "–",
-                "класс тревог;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "КЦТ",
-                "–",
-                "контроль цепей тока;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЛО",
-                "–",
-                "логика отключения;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЛОВ",
-                "–",
-                "логика отключения выключателя;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЛОП",
-                "–",
-                "логика опробования;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЛУТ",
-                "–",
-                "логика управления топологией;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЛЭП",
-                "–",
-                "линия электропередачи;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "МП",
-                "–",
-                "микропроцессорный;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "МТЗ",
-                "–",
-                "максимальная токовая защита;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "МФТО",
-                "–",
-                "междуфазная токовая отсечка;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "МЭК",
-                "–",
-                "Международная электротехническая комиссия;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "НВЧЗ",
-                "–",
-                "направленная высокочастотная фильтровая защита;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "НК",
-                "–",
-                "начало координат;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "НКУ",
-                "–",
-                "низковольтные комплектные устройства;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "НН",
-                "–",
-                "низшее напряжение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ННОШ",
-                "–",
-                "наличие напряжения на ошиновке;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ННШ",
-                "–",
-                "наличие напряжения на шинах;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ННЭ",
-                "–",
-                "наличие напряжения на энергообъекте (смежном присоединении);"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "НП",
-                "–",
-                "нулевая последовательность;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "НТД",
-                "–",
-                "нормативно-технический документ;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОАПВ",
-                "–",
-                "однофазное автоматическое повторное включение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОВ",
-                "–",
-                "обходной выключатель;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОЗУ",
-                "–",
-                "оперативное запоминающее устройство;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОКТ",
-                "–",
-                "орган контроля топологии"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОМП",
-                "–",
-                "определение места повреждения;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОН",
-                "–",
-                "орган направления;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОНМ",
-                "–",
-                "орган направления мощности;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОНОШ",
-                "–",
-                "отсутствие напряжения на ошиновке;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОНШ",
-                "–",
-                "отсутствие напряжения на шинах;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОНЭ",
-                "–",
-                "отсутствие напряжения на энергообъекте (смежном присоединении);"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОО",
-                "–",
-                "орган опробования / орган оперативного очувствления;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОП",
-                "–",
-                "обратная последовательность;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОС",
-                "–",
-                "оперативное состояние;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОСШ",
-                "–",
-                "обходная система шин;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОУ",
-                "–",
-                "оперативное ускорение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОУ-бв",
-                "–",
-                "оперативное ускорение без выдержки времени;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ОФ",
-                "–",
-                "орган фиксации;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ПА",
-                "–",
-                "противоаварийная автоматика;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ПАВ",
-                "–",
-                "полуавтоматическое включение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ПДС",
-                "–",
-                "преобразователь дискретных сигналов;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ПЗУ",
-                "–",
-                "постоянное запоминающее устройство;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ПО",
-                "–",
-                "пусковой орган;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ПП",
-                "–",
-                "прямая последовательность;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ПС",
-                "–",
-                "подстанция;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ПС1",
-                "–",
-                "предупредительная сигнализация первого уровня;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ПС2",
-                "–",
-                "предупредительная сигнализация второго уровня;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "Р",
-                "–",
-                "разъединитель;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "РАС",
-                "–",
-                "регистрация аварийных событий;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "РДУ",
-                "–",
-                "региональное диспетчерское управление;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "РЗ",
-                "–",
-                "релейная защита;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "РЗА",
-                "–",
-                "релейная защита и автоматика;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "РУ",
-                "–",
-                "распределительное устройство;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "СА",
-                "–",
-                "сетевая автоматика;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "СВ",
-                "–",
-                "секционный выключатель;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "СД",
-                "–",
-                "светодиод;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "СЗ",
-                "–",
-                "ступенчатые защиты;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "СКРМ",
-                "–",
-                "средства компенсации реактивной мощности;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "СН",
-                "–",
-                "среднее напряжение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "СТО",
-                "–",
-                "стандарт организации;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "СШ",
-                "–",
-                "система шин;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "Т",
-                "–",
-                "трансформатор;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТАПВ",
-                "–",
-                "трехфазное автоматическое повторное включение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП",
-                "–",
-                "токовая защита нулевой последовательности;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТН",
-                "–",
-                "трансформатор напряжения;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТТ",
-                "–",
-                "трансформатор тока;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТУ",
-                "–",
-                "телеускорение;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "УВ",
-                "–",
-                "управление выключателем;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "УПАСК",
-                "–",
-                "устройство передачи аварийных сигналов и команд;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "УРОВ",
-                "–",
-                "устройство резервирования отказа выключателя;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "УС",
-                "–",
-                "улавливание синхронизма;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "УТАПВ",
-                "–",
-                "ускоренное ТАПВ"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ФК",
-                "–",
-                "функциональная клавиша;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ФПВ",
-                "–",
-                "фиксация положения выключателя;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЦН",
-                "–",
-                "цепи напряжения;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЦП",
-                "–",
-                "центральный процессор;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЦТ",
-                "–",
-                "цепи тока;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЦУС",
-                "–",
-                "центр управления сетями;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЧС",
-                "–",
-                "чувствительные ступени;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЧТО",
-                "–",
-                "чувствительный токовый орган;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ШПДС",
-                "–",
-                "шкаф преобразователей дискретных сигналов;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ШС",
-                "–",
-                "шина станции;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ШСВ",
-                "–",
-                "шиносоединительный выключатель;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ШЭТ",
-                "–",
-                "шкаф электротехнический типовой;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "Э",
-                "–",
-                "энергообъект (смежное присоединение);"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЭМВ",
-                "–",
-                "электромагнит включения;"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ЭМО",
-                "–",
-                "электромагнит отключения."
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
+          "number": "3.1",
+          "header": "Термины и определения",
+          "header_style": "ДОК Текст 3уров 2-пункт",
+          "clauses": [
+            {
+              "number": "3.1.1",
+              "content": "В настоящем стандарте применены термины по ГОСТ 24291, ГОСТ Р 54325, а также следующие термины с соответствующими определениями:\nмаслонаполненное оборудование: Первичное силовое оборудование подстанции (трансформаторы, автотрансформаторы, реакторы), в котором для изоляции находящихся под напряжением частей и узлов, отвода тепла от нагревающихся при работе частей, а также для предохранения изоляции от увлажнения применяется трансформаторное масло.",
+              "subclauses": [],
+              "tables": [],
+              "figures": []
             }
-          ]
+          ],
+          "tables": [],
+          "figures": []
+        },
+        {
+          "number": "3.2",
+          "header": "Сокращения",
+          "header_style": "ДОК Текст 3уров 2-пункт",
+          "clauses": [],
+          "tables": [
+            {
+              "number": "",
+              "name": "",
+              "reference": "",
+              "rows": [
+                {
+                  "content": [
+                    "DA",
+                    "–",
+                    "data attribute (атрибут данных);"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "DO",
+                    "–",
+                    "data object (объект данных);"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "GOOSE",
+                    "–",
+                    "generic object oriented substation event (широковещательное объектно-ориентированное сообщение о событии на подстанции);"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "MMS",
+                    "–",
+                    "manufacturing message specification (спецификация производственного сообщения);"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "QR-код",
+                    "–",
+                    "quick response code (код быстрого отклика);"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "АКР",
+                    "–",
+                    "автоматика компенсационного реактора;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "АОР",
+                    "–",
+                    "автоматика охлаждения реактора;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "АПВ",
+                    "–",
+                    "автоматическое повторное включение;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "АПТ",
+                    "–",
+                    "автоматика пожаротушения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "АРМ",
+                    "–",
+                    "автоматизированное рабочее место;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "АС",
+                    "–",
+                    "аварийная сигнализация;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "АСУ ТП",
+                    "–",
+                    "автоматизированная система управления технологическими процессами;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "АТ",
+                    "–",
+                    "автотрансформатор;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "АЦП",
+                    "–",
+                    "аналого-цифровой преобразователь;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "б/к",
+                    "–",
+                    "блок-контакт;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "БИ",
+                    "–",
+                    "блок испытательный;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "БНН",
+                    "–",
+                    "блокировка при неисправности цепей напряжения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "БНТ",
+                    "–",
+                    "бросок намагничивающего тока;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "БП",
+                    "–",
+                    "блок питания;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "БСК",
+                    "–",
+                    "батарея статических конденсаторов;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "В",
+                    "–",
+                    "выключатель;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ВАПС",
+                    "–",
+                    "высокоавтоматизированная подстанция;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ВН",
+                    "–",
+                    "высшее напряжение;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ВО",
+                    "–",
+                    "вентильная/вторичная обмотка;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ГЗ",
+                    "–",
+                    "газовая защита;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ДЗ",
+                    "–",
+                    "дистанционная защита;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ДЗО",
+                    "–",
+                    "дифференциальная защита ошиновки;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ДЗР",
+                    "–",
+                    "дифференциальная защита реактора;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ДЗШ",
+                    "–",
+                    "дифференциальная защита шин;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ДТЗт",
+                    "–",
+                    "дифференциальная токовая защита с торможением;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ДТО",
+                    "–",
+                    "дифференциальная токовая отсечка;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ДТм",
+                    "–",
+                    "датчик температуры масла;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ДТо",
+                    "–",
+                    "датчик температуры обмотки;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЗВП",
+                    "–",
+                    "защита от внутренних повреждений;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЗДЗ",
+                    "–",
+                    "защита от дуговых замыканий;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЗМН",
+                    "–",
+                    "защита минимального напряжения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЗНР",
+                    "–",
+                    "защита от неполнофазного режима;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЗП",
+                    "–",
+                    "защита от перегрузки;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЗПВГ",
+                    "–",
+                    "защита от перегрузки высшими гармониками;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЗПН",
+                    "–",
+                    "защита от повышения напряжения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЗПО",
+                    "–",
+                    "защита от потери охлаждения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ИБ",
+                    "–",
+                    "информационная безопасность;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ИМ",
+                    "–",
+                    "информационная модель;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ИТС",
+                    "–",
+                    "информационно-технологическая система;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ИЧМ",
+                    "–",
+                    "интерфейс человек-машина;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ИЭУ",
+                    "–",
+                    "интеллектуальное электронное устройство;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КЗ",
+                    "–",
+                    "короткое замыкание;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КИ",
+                    "–",
+                    "контроль изоляции;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КИВ",
+                    "–",
+                    "контроль изоляции высоковольтных вводов;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КОН",
+                    "–",
+                    "контроль отсутствия напряжения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КОР",
+                    "–",
+                    "компенсационная обмотка реактора;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КП",
+                    "–",
+                    "контроллер присоединения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КПОВ",
+                    "–",
+                    "контроль перевода на обходной выключатель;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КР",
+                    "–",
+                    "компенсационный реактор;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КСВ",
+                    "–",
+                    "контроль силового выключателя;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КТ",
+                    "–",
+                    "класс тревог;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КЦН",
+                    "–",
+                    "контроль цепей напряжения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "КЦТ",
+                    "–",
+                    "контроль цепей тока;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЛАВ",
+                    "–",
+                    "логика аварийного включения выключателя;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЛО",
+                    "–",
+                    "логика отключения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЛОВ",
+                    "–",
+                    "логика отключения выключателя;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЛЭП",
+                    "–",
+                    "линия электропередачи;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "М/Д",
+                    "–",
+                    "местное/дистанционное (управление);"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "МО",
+                    "–",
+                    "маслонаполненное оборудование;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "МП",
+                    "–",
+                    "микропроцессорный;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "МТЗ",
+                    "–",
+                    "максимальная токовая защита;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "НВ",
+                    "–",
+                    "нейтральные выводы (реактора);"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "НН",
+                    "–",
+                    "низшее напряжение;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "НП",
+                    "–",
+                    "нулевая последовательность;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ОВ",
+                    "–",
+                    "обходной выключатель;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ОР",
+                    "–",
+                    "обходной разъединитель;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ОНМ",
+                    "–",
+                    "орган направления мощности;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ОП",
+                    "–",
+                    "обратная последовательность;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ОС",
+                    "–",
+                    "оперативное состояние;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ОТ",
+                    "–",
+                    "оперативный ток;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ОУР",
+                    "–",
+                    "обмотка управления реактора;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ПА",
+                    "–",
+                    "противоаварийная автоматика;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ПДЗР",
+                    "–",
+                    "поперечная дифференциальная защита реактора;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ПДС",
+                    "–",
+                    "преобразователь дискретных сигналов;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ПО",
+                    "–",
+                    "программное обеспечение;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ПС",
+                    "–",
+                    "подстанция;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ПС1",
+                    "–",
+                    "предупредительная сигнализация первого уровня;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ПС2",
+                    "–",
+                    "предупредительная сигнализация второго уровня;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ПТ",
+                    "–",
+                    "пожаротушение;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Р",
+                    "–",
+                    "разъединитель;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "РАС",
+                    "–",
+                    "регистрация аварийных событий;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "РДУ",
+                    "–",
+                    "региональное диспетчерское управление;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "РУ",
+                    "–",
+                    "распределительное устройство;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "СД",
+                    "–",
+                    "светодиод;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "СКРМ",
+                    "–",
+                    "средства компенсации реактивной мощности;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "СОР",
+                    "–",
+                    "сетевая обмотка реактора;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "СП",
+                    "–",
+                    "средняя перемычка;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ТЗ",
+                    "–",
+                    "технологические защиты;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ТЗНП",
+                    "–",
+                    "токовая защита нулевой последовательности;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ТЗОП",
+                    "–",
+                    "токовая защита обратной последовательности;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ТМПд",
+                    "–",
+                    "трансформатор масляный подмагничивания динамических режимов;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ТМПо",
+                    "–",
+                    "трансформатор масляный подмагничивания статических режимов основной;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ТМПр",
+                    "–",
+                    "трансформатор масляный подмагничивания статических режимов резервный;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ТН",
+                    "–",
+                    "трансформатор напряжения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ТО",
+                    "–",
+                    "токовый орган;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ТТ",
+                    "–",
+                    "трансформатор тока;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "УПАСК",
+                    "–",
+                    "устройство передачи аварийных сигналов и команд;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "УПНКП",
+                    "–",
+                    "устройство преднамеренной неодновременной коммутации полюсов;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "УРОВ",
+                    "–",
+                    "устройство резервирования отказа выключателя;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "УШР",
+                    "–",
+                    "управляемый шунтирующий реактор;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "УШРП",
+                    "–",
+                    "управляемый шунтирующий реактор с подмагничиванием;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "УШРТ",
+                    "–",
+                    "управляемый шунтирующий реактор трансформаторного типа;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ФК",
+                    "–",
+                    "функциональная клавиша;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ФПВ",
+                    "–",
+                    "фиксация положения выключателя;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЦН",
+                    "–",
+                    "цепи напряжения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЦП",
+                    "–",
+                    "центральный процессор;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЦС",
+                    "–",
+                    "центральная сигнализация;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЦТ",
+                    "–",
+                    "цепи тока;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЦУС",
+                    "–",
+                    "центр управления сетями;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ШР",
+                    "–",
+                    "шунтирующий реактор;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ШЭТ",
+                    "–",
+                    "шкаф электротехнический типовой;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЭМВ",
+                    "–",
+                    "электромагнит включения;"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "ЭМО",
+                    "–",
+                    "электромагнит отключения."
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                }
+              ]
+            }
+          ],
+          "figures": []
         }
       ],
-      "figures": []
+      "tables": [],
+      "figures": [],
+      "clauses": []
     },
     {
       "number": "4",
-      "header": "Общие требования к типовым шкафам",
-      "header_style": "ДОК Текст ур1 раздел",
+      "header": "Общие положения",
+      "header_style": "ДОК Текст 3/4уров 1-раздел",
       "content": "",
       "subsections": [
         {
           "number": "4.1",
-          "header": "Общие положения",
-          "header_style": "ДОК Текст ур2 подраздел",
+          "header": "Общие сведения",
+          "header_style": "ДОК Текст 3уров 2-пункт",
           "clauses": [
             {
               "number": "4.1.1",
-              "content": "Стандарт определяет минимально необходимый функциональный состав для устройств РЗА сборных шин, ошиновок и шинных аппаратов \n6–750 кВ, при этом не предъявляются требования к реализации внутренней логики функций защит, автоматики и управления.",
+              "content": "Стандарт определяет минимально необходимый функциональный состав для устройств РЗА СКРМ 110 – 750 кВ, при этом не предъявляются требования к реализации внутренней логики функций защит, автоматики и управления.",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -1326,26 +1184,26 @@
         },
         {
           "number": "4.2",
-          "header": "Система кодирования ШЭТ РЗА",
-          "header_style": "ДОК Текст ур2 подраздел",
+          "header": "Система кодирования типовых шкафов",
+          "header_style": "ДОК Текст 3уров 2-пункт",
           "clauses": [
             {
               "number": "4.2.1",
-              "content": "Всем НКУ РЗА и АСУ ТП типового применения, используемым на объектах ПАО «ФСК ЕЭС», должен присваиваться уникальный идентификационный шифр, который учитывает функциональное назначение устройства, применяемую архитектуру построения ПС и класс напряжения.",
+              "content": "Всем НКУ РЗА и АСУ ТП типового применения, используемым на объектах ПАО «Россети», должен присваиваться уникальный идентификационный шифр, который учитывает функциональное назначение устройства, применяемую архитектуру построения ПС и класс напряжения.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.2.2",
-              "content": "Структура шифра и принцип кодирования:",
+              "content": "Структура шифра и принцип кодирования шкафов:",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.2.3",
-              "content": "Идентификатор производителя НКУ указывается в составе шифра при маркировке готового НКУ. Примеры идентификаторов производителей приведены в таблице Таблица 4.2 -.\nПримечание – Список идентификаторов дополняется по обращению производителей в Департамент релейной защиты, метрологии и АСУ ТП ИА ПАО «ФСК ЕЭС».",
+              "content": "Идентификатор производителя аппаратуры для релейного отсека (шкафа) НКУ указывается в составе шифра при маркировке готового НКУ. Примеры идентификаторов производителей приведены в таблице Таблица 4.2 -.\nПримечание – Список идентификаторов не является полным и может дополняться по обращению производителей в Департамент релейной защиты, метрологии и АСУ ТП ИА ПАО «Россети».",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -1425,12 +1283,12 @@
             },
             {
               "number": "4.1",
-              "name": "Типы оборудования (элемента сети)",
+              "name": "Тип оборудования (элемент сети)",
               "reference": "Таблица 4.1",
               "rows": [
                 {
                   "content": [
-                    "Обозначение",
+                    "Обозначение типа оборудования",
                     "Тип оборудования (элемента сети)",
                     "Примечание"
                   ],
@@ -1521,7 +1379,7 @@
                 {
                   "content": [
                     "0",
-                    "Общеподстанционные устройства",
+                    "Общеподстанционное",
                     ""
                   ],
                   "is_header_first_row": false,
@@ -1531,12 +1389,12 @@
             },
             {
               "number": "4.2",
-              "name": "Идентификаторы производителей шкафов/устройств",
+              "name": "Идентификаторы производителей аппаратуры для релейных отсеков НКУ, шкафов и устройств",
               "reference": "Таблица 4.2",
               "rows": [
                 {
                   "content": [
-                    "Производитель",
+                    "Производитель шкафов/устройств",
                     "Идентификатор производителя шкафов/устройств",
                     "Идентификатор производителя шкафов/устройств",
                     "Идентификатор производителя шкафов/устройств"
@@ -1546,7 +1404,7 @@
                 },
                 {
                   "content": [
-                    "Производитель",
+                    "Производитель шкафов/устройств",
                     "РЗА",
                     "УПАСК",
                     "АСУ ТП"
@@ -1666,7 +1524,7 @@
                 },
                 {
                   "content": [
-                    "…",
+                    "...",
                     "",
                     "",
                     ""
@@ -1682,7 +1540,7 @@
         {
           "number": "4.3",
           "header": "Требования к конструктивному исполнению",
-          "header_style": "ДОК Текст ур2 подраздел",
+          "header_style": "ДОК Текст 3уров 2-пункт",
           "clauses": [
             {
               "number": "4.3.1",
@@ -1693,126 +1551,119 @@
             },
             {
               "number": "4.3.2",
-              "content": "Типовые габариты шкафов 800х600х2200 мм (ШхГхВ, включая цоколь 200 мм), кроме шкафов ДЗШ, ширину которых допускается выполнять до 1200 мм.",
+              "content": "Типовые габариты шкафов 800х600х2200 мм (ШхГхВ, включая цоколь 200 мм).",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.3.3",
-              "content": "Передняя дверь шкафа (рисунок Рисунок 4.1 -) обзорная из прозрачного материала (например, стекло с проводящей пленкой или с армированием металлической сеткой для обеспечения электромагнитной совместимости [6]). Задняя дверь (рисунок Рисунок 4.3 -), как правило, выполняется двухстворчатой. Все двери оборудуются стандартными замками.",
+              "content": "Передняя дверь шкафа (рисунок Рисунок 4.1 -) обзорная из прозрачного материала (например, стекло с проводящей пленкой или с армированием металлической сеткой для обеспечения электромагнитной совместимости [6]). Задняя дверь (рисунок Рисунок 4.2 -), как правило, выполняется двухстворчатой. Все двери оборудуются стандартными замками.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.3.4",
-              "content": "Эскиз общего вида типового шкафа с зонами расположения аппаратуры на монтажных панелях показан на рисунке Рисунок 4.2 -.",
+              "content": "Эскиз общего вида типового шкафа с зонами расположения аппаратуры на монтажных панелях приведен на рисунке Рисунок 4.3 -.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.3.5",
-              "content": "Надписи с диспетчерским наименованием шкафа необходимо размещать в следующих местах (рисунки Рисунок 4.1 - - Рисунок 4.3 -):\nв верхней части передней двери;\nв верхней части монтажной панели с фасадной стороны шкафа;\nв верхней части задней двери.\nНадписи должны выполняться в соответствии с порядком установки информационных знаков на подстанциях [7].",
+              "content": "Надписи с диспетчерским наименованием шкафа необходимо размещать в следующих местах (рисунки Рисунок 4.1 - - Рисунок 4.2 -):\nв верхней части передней двери;\nв верхней части монтажной панели с фасадной стороны шкафа;\nв верхней части задней двери.\nНадписи должны выполняться в соответствии с порядком установки информационных знаков на подстанциях [7].",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.3.6",
-              "content": "В шкафах с двумя монтажными единицами, соответствующие им ряды зажимов и аппаратура должны быть размещены на разных боковинах относительно вертикальной оси шкафа. В дополнение на фасаде шкафа наносится разграничительная линия.",
+              "content": "ИЭУ РЗА в составе шкафа должно контролировать состояния передней и задней дверей и формировать соответствующий информационный сигнал.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.3.7",
-              "content": "ИЭУ РЗА в составе шкафа должен контролировать состояния передней и задней дверей и формировать соответствующий информационный сигнал.",
+              "content": "С фасадной стороны шкафов РЗА на монтажной панели должна располагаться общешкафная светодиодная лампа желтого свечения (рисунок Рисунок 4.3 -), сигнализирующая о срабатывании или неисправности ИЭУ РЗА, а также неисправностях выявленных ИЭУ РЗА в связанном с ним технологическом процессе.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.3.8",
-              "content": "С фасадной стороны шкафов РЗА на монтажной панели должна располагаться общешкафная светодиодная лампа желтого свечения (рисунок Рисунок 4.2 -), сигнализирующая о срабатывании или неисправности ИЭУ РЗА, а также неисправностях выявленных ИЭУ РЗА в связанном с ним технологическом процессе.",
-              "subclauses": [],
-              "tables": [],
-              "figures": []
-            },
-            {
-              "number": "4.3.9",
               "content": "Шкафы должны иметь специализированные информационные таблички (шильдики), выполненные в соответствии с ГОСТ 12969, ГОСТ 12971, а также рисунком Рисунок 4.4 -.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
-              "number": "4.3.10",
-              "content": "Информационная табличка (шильдик) размещается на передней двери шкафа и дублируется на монтажной панели шкафа с лицевой стороны. Места размещения информационной таблички (шильдика) приведены на рисунках Рисунок 4.1 - и Рисунок 4.2 -.\n1 – шифр шкафа; 2 – дата выпуска шкафа в формате ММ.ГГГГ; 3 – поле для QR-кода",
+              "number": "4.3.9",
+              "content": "Информационная табличка (шильдик) размещается на передней двери НКУ и дублируется на монтажной панели шкафа с лицевой стороны. Места размещения информационной таблички (шильдика) для шкафа приведены на рисунках Рисунок 4.1 - и Рисунок 4.3 -.\n1 – шифр шкафа; 2 – дата выпуска шкафа в формате ММ.ГГГГ; 3 – поле для QR-кода",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
-              "number": "4.3.11",
+              "number": "4.3.10",
               "content": "На табличке (шильдике) в дополнение к текстовой информации должен наноситься QR-код содержащий:\nнаименование НКУ;\nшифр НКУ;\nосновные функции МП ИЭУ НКУ;\nноминальный вторичный переменный ток;\nноминальная частота;\nноминальное переменное напряжение;\nнапряжение оперативного постоянного тока;\nдата (месяц, год) выпуска шкафа в формате ММ.ГГГГ.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
-              "number": "4.3.12",
+              "number": "4.3.11",
               "content": "Маркировка оборудования с указанием номинальных значений характеристик источников электропитания должна выполняться в соответствии с ГОСТ IEC 61293.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
-              "number": "4.3.13",
+              "number": "4.3.12",
               "content": "Ряды зажимов должны располагаться на внутренних боковинах шкафа. Границы полезной высоты ряда зажимов от уровня пола: 300 – 2100 мм.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
-              "number": "4.3.14",
+              "number": "4.3.13",
               "content": "Для подключения оперативных цепей в шкафу, как правило, должны использоваться пружинные клеммы с разборной перемычкой.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
+              "number": "4.3.14",
+              "content": "Ряды зажимов вторичных цепей измерительных трансформаторов тока в шкафу выполняются с учетом возможности их дальнейшего транзита.",
+              "subclauses": [],
+              "tables": [],
+              "figures": []
+            },
+            {
               "number": "4.3.15",
-              "content": "Ряды зажимов вторичных цепей измерительных трансформаторов тока в ШЭТ РЗА выполняются с учетом возможности их дальнейшего транзита.",
+              "content": "Ввод контрольных, силовых и информационных кабелей в шкаф должен выполняться снизу шкафа с использованием специализированных герметичных кабельных вводов с зажимным механизмом для фиксации кабеля или металлорукава, обеспечивающих требуемую степень защиты. Применение резиновых сальников с вырезанием в них отверстия для кабеля не допускается. Типы, требуемые размеры и количество кабельных вводов должны уточняться в опросном листе на шкаф.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.3.16",
-              "content": "Ввод кабелей в шкаф РЗА должен выполняться, как правило, снизу шкафа с использованием специализированных кабельных вводов с зажимным механизмом для фиксации кабеля, обеспечивающих требуемую степень защиты. Применение резиновых сальников с вырезанием в них отверстия для кабеля не допускается.",
-              "subclauses": [],
-              "tables": [],
-              "figures": []
-            },
-            {
-              "number": "4.3.17",
               "content": "Заземление экранов контрольных, силовых и информационных кабелей в шкафах РЗА выполняется специальными зажимами в соответствии с методическими указаниями по обеспечению электромагнитной совместимости [6].",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
-              "number": "4.3.18",
-              "content": "Типовые шкафы должны соответствовать требованиям по электробезопасности электроустановок определяемым национальными стандартами ГОСТ Р 12.1.019, ГОСТ Р 50571.4.41.",
+              "number": "4.3.17",
+              "content": "Типовые шкафы должны соответствовать требованиям электробезопасности электроустановок определяемым национальными стандартами ГОСТ Р 12.1.019, ГОСТ Р 50571.4.41-2022.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
-              "number": "4.3.19",
-              "content": "В части требований к конструктивному исполнению шкафов, не противоречащих настоящему документу, необходимо руководствоваться соответствующими стандартами организации [1], [8].",
+              "number": "4.3.18",
+              "content": "В части требований к конструктивному исполнению шкафов, не противоречащих настоящему документу, необходимо руководствоваться соответствующими стандартами [1], [8].",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -1822,17 +1673,17 @@
           "figures": [
             {
               "number": "4.1",
-              "name": "Общий вид обзорной двери типового шкафа",
+              "name": "Общий вид обзорной двери шкафа",
               "reference": "Рисунок 4.1"
             },
             {
               "number": "4.2",
-              "name": "Внешний вид типового шкафа с зонами расположения аппаратуры на монтажных панелях",
+              "name": "Общий вид вариантов исполнения задней двери шкафа РЗА",
               "reference": "Рисунок 4.2"
             },
             {
               "number": "4.3",
-              "name": "Общий вид вариантов исполнения задней двери типового шкафа",
+              "name": "Внешний вид шкафа с зонами расположения аппаратуры на монтажных панелях",
               "reference": "Рисунок 4.3"
             },
             {
@@ -1845,7 +1696,7 @@
         {
           "number": "4.4",
           "header": "Функциональные требования к ИЭУ РЗА",
-          "header_style": "ДОК Текст ур2 подраздел",
+          "header_style": "ДОК Текст 3уров 2-пункт",
           "clauses": [
             {
               "number": "4.4.1",
@@ -1877,7 +1728,7 @@
             },
             {
               "number": "4.4.5",
-              "content": "Для сброса светодиодной индикации по месту должна предусматриваться кнопка на лицевой панели ИЭУ РЗА.",
+              "content": "Для сброса светодиодной индикации по месту должна предусматриваться кнопка на лицевой панели ИЭУ.",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -1891,14 +1742,14 @@
             },
             {
               "number": "4.4.7",
-              "content": "Изменение групп уставок ИЭУ РЗА должно выполняться дистанционно из АСУ ТП или по месту при помощи ИЧМ ИЭУ. Активация соответствующего меню на дисплее происходит с помощью функциональной клавиши «Группа уставок», при этом доступ к меню изменения группы уставок дополнительно ограничивается паролем.",
+              "content": "Изменение групп уставок ИЭУ РЗА должно выполняться дистанционно из АСУ ТП с контролем текущей группы или по месту при помощи ИЧМ ИЭУ. Активация соответствующего меню на дисплее происходит с помощью функциональной клавиши «Группа уставок», при этом доступ к меню изменения группы уставок дополнительно ограничивается паролем.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.4.8",
-              "content": "ИЭУ РЗА должны формировать и передавать отчеты, содержащие значения аналоговых параметров, измеряемых в нормальных и аварийных режимах работы энергосистемы. Требования предъявляемые к измеряемым значениям в нормальном режиме приведены в технических требованиях к МП устройствам РЗА [1]. Состав измерений аварийного режима (режим КЗ) представлен в таблице Таблица 4.3 -.",
+              "content": "4.4.8 ИЭУ РЗА должны формировать и передавать отчеты, содержащие значения аналоговых параметров, измеряемых в нормальных и аварийных режимах работы энергосистемы. Требования предъявляемые к измеряемым значениям в нормальном режиме приведены в технических требованиях к МП устройствам РЗА [1]. Состав измерений аварийного режима (режим КЗ) представлен в таблице Таблица 4.3 -.",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -1919,7 +1770,7 @@
             },
             {
               "number": "4.4.11",
-              "content": "Регистрация дискретных сигналов во внутреннем РАС должна осуществляться только для значащих атрибутов, но с учетом параметра качества каждого сигнала. При этом состояние регистрируемого бинарного сигнала должно совпадать с состоянием этого же сигнала на входе в алгоритм функции РЗА.",
+              "content": "Регистрация дискретных сигналов во внутреннем РАС должна осуществляться только для значащих аттрибутов, но с учетом параметра качества каждого сигнала. При этом состояние регистрируемого бинарного сигнала должно совпадать с состоянием этого же сигнала на входе в алгоритм функции РЗА.",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -2039,7 +1890,7 @@
                     "»",
                     "Среднее значение за 50 периодов",
                     "За последнюю секунду расчетной минуты предшествующей команде на отключение от защит",
-                    "–"
+                    "-"
                   ],
                   "is_header_first_row": false,
                   "is_header_second_row": false
@@ -2052,32 +1903,18 @@
         {
           "number": "4.5",
           "header": "Общие технические решения по РЗА",
-          "header_style": "ДОК Текст ур2 подраздел",
+          "header_style": "ДОК Текст 3уров 2-пункт",
           "clauses": [
             {
               "number": "4.5.1",
-              "content": "Функционал АУВ, согласно концепции построения II-ой и III-ей архитектуры ВАПС, размещается на уровне процесса (ШПДС, шкафы приводов), где собирается схема управления выключателем и выполняется сопряжение с информационным интерфейсом ПДС. Функции, которые формируют управляющие воздействия на выключатель, размещаются на уровне присоединения (ИЭУ РЗА). Это обеспечивает сохранение работоспособности функционала АУВ при неисправности любого из шкафов РЗА присоединения. В большинстве исполнений ШЭТ предусмотрена группа функций контроля и сетевой автоматики для отдельного выключателя, а также обеспечивается транзит оперативной команды включения от КП с контролем условий включения. Оперативное отключение от КП осуществляется непосредственно в ПДС.",
+              "content": "Функционал АУВ, согласно концепции построения II-ой и III-ей архитектуры ВАПС, размещается на уровне процесса (ШПДС, шкафы приводов), где собирается схема управления выключателем и выполняется сопряжение с иформационным интерфейсом ПДС. Функции, которые формируют управляющие воздействия на выключатель, размещаются на уровне присоединения (ИЭУ РЗА). Это обеспечивает сохранение работоспособности функционала АУВ при неисправности любого из шкафов РЗА присоединения. В большинстве исполнений ШЭТ предусмотрена группа функций контроля и сетевой автоматики для отдельного выключателя, а также обеспечивается транзит оперативной команды включения от КП с контролем условий включения. Оперативное отключение от КП осуществляется непосредственно в ПДС.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "4.5.2",
-              "content": "Объем одновременно введенных в работу функций СА (ТАПВ, ОАПВ, УТАПВ), относящихся к одному выключателю, определяется при проектировании.",
-              "subclauses": [],
-              "tables": [],
-              "figures": []
-            },
-            {
-              "number": "4.5.3",
-              "content": "Функции УРОВ, как правило, предусматриваются в составе каждого комплекта защит присоединения. При действии на отключение выключателя от защит выполняется пуск функции УРОВ (в составе своего комплекта защит) соответствующего выключателя, без перекрестного пуска от других комплектов защит. Исключением являются устройства РЗА, к которым не подводятся измерения переменного тока в цепи отключаемого от них выключателя (например, КСЗ АТ). Для данного типа защит реализуется пуск внешних функций УРОВ, размещаемых в других комплектах РЗА (ЛЭП, ошиновки, трансформатора или автотрансформатора), в которых предусмотрены функции токового контроля в цепи отключаемого выключателя.\nУРОВ выполняется, как правило, с действием на:\nсмежные (с отказавшим выключателем) выключатели через защиты смежных присоединений;\nостанов ВЧ передатчика (ДФЗ, НВЧЗ) защит ЛЭП;\nпуск аварийной команды телеотключения (необходимость уточняется при проектировании);\nзапрет АПВ выключателей (необходимость уточняется при проектировании).",
-              "subclauses": [],
-              "tables": [],
-              "figures": []
-            },
-            {
-              "number": "4.5.4",
-              "content": "ИЭУ РЗА ОВ 110 – 220 кВ при аварийном срабатывании должны формировать отчет с результатами работы функции ОМП. Состав отчета регламентирован техническими требованиями к МП устройствам РЗА [1].",
+              "content": "Объем одновременно введенных в работу функций СА (ТАПВ, ОАПВ), относящихся к одному выключателю, определяется при проектировании.\nФункции УРОВ, как правило, предусматриваются в составе каждого комплекта защит присоединения. При действии на отключение выключателя от защит выполняется пуск функции УРОВ (в составе своего комплекта защит) соответствующего выключателя, без перекрестного пуска от других комплектов защит. Исключением являются устройства РЗА, к которым не подводятся измерения переменного тока в цепи отключаемого от них выключателя (например, КСЗ АТ). Для данного типа защит реализуется пуск внешних функций УРОВ, размещаемых в других комплектах РЗА (ЛЭП, ошиновки, трансформатора или автотрансформатора), в которых предусмотрены функции токового контроля в цепи отключаемого выключателя.\nУРОВ выполняется с действием на:\n– смежные (с отказавшим выключателем) выключатели через защиты смежных присоединений;\n– останов ВЧ передатчика (ДФЗ, НВЧЗ) защит ЛЭП;\n– пуск аварийной команды телеотключения (необходимость уточняется при проектировании);\n– запрет АПВ выключателей (необходимость уточняется при проектировании).",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -2088,29 +1925,30 @@
         }
       ],
       "tables": [],
-      "figures": []
+      "figures": [],
+      "clauses": []
     },
     {
       "number": "5",
-      "header": "Типовые технические требования к шкафам РЗА сборных шин, ошиновок и шинных аппаратов 6-750 кВ построении ПС на базе архитектуры II типа",
-      "header_style": "ДОК Текст ур1 раздел",
+      "header": "Типовые технические требования",
+      "header_style": "ДОК Текст 3/4уров 1-раздел",
       "content": "",
       "subsections": [
         {
           "number": "5.1",
-          "header": "Перечень типовых шкафов РЗА сборных шин, ошиновок и шинных аппаратов 6-750 кВ",
-          "header_style": "ДОК Текст ур2 подраздел",
+          "header": "Перечень типовых шкафов РЗА СКРМ 110 кВ и выше",
+          "header_style": "ДОК Текст 3уров 2-пункт",
           "clauses": [
             {
               "number": "5.1.1",
-              "content": "В таблице Таблица 5.1 - приведен сводный перечень типовых шкафов РЗА сборных шин, ошиновок и шинных аппаратов 6-750 кВ для II архитектуры построения ПС.",
+              "content": "В таблице Таблица 5.1 - приведен сводный перечень типовых шкафов РЗА СКРМ для II архитектуры построения ПС.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "5.1.2",
-              "content": "В приложении В приведена типовая таблица применимости ШЭТ РЗА сборных шин, ошиновок и шинных аппаратов 6-750 кВ для II архитектуры построения ПС.",
+              "content": "В приложении В приведена типовая таблица применимости ШЭТ РЗА СКРМ 110 кВ и выше для II архитектуры построения ПС.",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -2119,17 +1957,52 @@
           "tables": [
             {
               "number": "5.1",
-              "name": "Шкафы ШЭТ РЗА сборных шин, ошиновок и шинных аппаратов 6-750 кВ для II архитектуры построения ПС",
+              "name": "Шкафы ШЭТ РЗА СКРМ напряжением 110 кВ и выше для II архитектуры построения ПС",
               "reference": "Таблица 5.1",
               "rows": [
                 {
                   "content": [
-                    "Наименование",
-                    "Код ШЭТ",
-                    "Функции РЗА",
-                    "Примечание"
+                    "Наименование шкафа РЗА",
+                    "Шифр ШЭТ",
+                    "Функции РЗА"
                   ],
                   "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Шкаф защит батареи статических конденсаторов, УРОВ",
+                    "Шкаф защит батареи статических конденсаторов 110–330 кВ типа ШЭТ 431.11-15.3",
+                    "ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ, ТЗОП, ТЗНП ВН, ТЗНП НЕЙТР, ЗНР, УРОВ, РАС"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Шкаф защит шунтирующего реактора 330–750 кВ, УРОВ",
+                    "Шкаф защит шунтирующего реактора напряжением 330–750 кВ типа ШЭТ 431.12-1",
+                    "ДТЗ СО (ДЗР ШР), ПДЗР, ДТЗ НП КОР-СОР (ДЗР УШРТ), ГЗ, ТЗ, КИВ, МТЗ, ТЗОП, ТЗНП ВН, ТЗНП НВ, ЗНР, МТЗ КОР, ТЗНП КОР, ТЗОП КОР, МТЗ НН, КИ НН, УРОВ, АУР, РАС"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Шкаф защит шунтирующего реактора 110–220 кВ, УРОВ",
+                    "Шкаф защит шунтирующего реактора напряжением 110–220 кВ типа ШЭТ 431.13-1",
+                    "ДТЗ СО (ДЗР ШР), ПДЗР, ДТЗ НП КОР-СОР (ДЗР УШРТ), ГЗ, ТЗ, МТЗ, ТЗОП, ТЗНП ВН, ТЗНП НВ, ЗНР, МТЗ КОР, ТЗНП КОР, ТЗОП КОР, МТЗ НН, КИ НН, УРОВ, РАС"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Шкаф защит и автоматики компенсационного реактора, УРОВ, АКР",
+                    "Шкаф защит и автоматики компенсационного реактора напряжением 35–110 кВ типа ШЭТ 431.14-1",
+                    "ДЗР, ГЗ, ТЗ, ДЗ, ЗП, УРОВ, АКР, РАС"
+                  ],
+                  "is_header_first_row": false,
                   "is_header_second_row": false
                 }
               ]
@@ -2140,11 +2013,11 @@
         {
           "number": "5.2",
           "header": "Пояснения к техническим требованиям",
-          "header_style": "ДОК Текст ур2 подраздел",
+          "header_style": "ДОК Текст 3уров 2-пункт",
           "clauses": [
             {
               "number": "5.2.1",
-              "content": "Структурно-функциональные схемы, поясняющие основной принцип построения логической модели алгоритма РЗА ИЭУ и взаимодействия с другими устройствами, приведены в приложении А. Схемы выполнены в объеме достаточном для понимания общей концепции работы устройства, в которой отражены только обязательные информационные сигналы. Реальная внутренняя логика устройства производителя вне зависимости от вариантов ее построения должна соответствовать приведенной информационной модели (реализовывать описанный информационный интерфейс).",
+              "content": "Структурно-функциональные схемы, поясняющие основной принцип построения логической модели алгоритма РЗА ИЭУ и взаимодействия с другими устройствами, приведены в приложении АПриложение А. Схемы выполнены в объеме достаточном для понимания общей концепции работы устройства, в которой отражены только обязательные информационные сигналы. Реальная внутренняя логика устройства производителя вне зависимости от вариантов ее построения должна соответствовать приведенной информационной модели (реализовывать описанный информационный интерфейс).",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -2165,7 +2038,7 @@
             },
             {
               "number": "5.2.4",
-              "content": "Для определения информационных сигналов, регистрируемых во внутреннем РАС, в таблицах информационного обмена предусмотрен соответствующий столбец («РАС»), в котором фиксируются следующие значения:\n«-» – сигнал не регистрируется;\n«+» – сигнал регистрируется;\n«П» – сигнал регистрируется и пускает РАС.\nПринятые наименования регистрируемых данных в осциллограмме приведены в приложении Б.",
+              "content": "Для определения информационных сигналов, регистрируемых во внутреннем РАС, в таблицах информационного обмена предусмотрен соответствующий столбец («РАС»), в котором фиксируются следующие значения:\n«-» – сигнал не регистрируется;\n«+» – сигнал регистрируется;\n«П» – сигнал регистрируется и пускает РАС.\nПринятые наименования регистрируемых данных в осциллограмме приведены в приложении БПриложение Б.",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -2179,28 +2052,35 @@
             },
             {
               "number": "5.2.6",
-              "content": "Аналоговая и дискретная информация, источником которой является ИЭУ, предназначенная для вертикального и горизонтального обмена, организована в виде наборов данных (dataset), согласно [5], [12]. Наборы данных для сообщений (GOOSE) сформированы по направлению и типу передаваемой информации, для отчетов (Report) по назначению. При разработке файлов описания модели устройства необходимо придерживаться установленного настоящим стандартом порядка следования данных в наборе. Для каждого сообщения указывается класс, согласно передаваемой в нем информации, в соответствии требованиями корпоративного профиля [5].",
+              "content": "Аналоговая и дискретная информация, источником которой является ИЭУ, предназначенная для вертикального и горизонтального обмена, организована в виде наборов данных (dataset), согласно [5], [12]. Наборы данных для сообщений (GOOSE) сформированы по направлению и типу передаваемой информации, для отчетов (Report) по назначению. При разработке файлов описания модели устройства необходимо придерживаться установленного настоящим стандартом порядка следования данных в наборе.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "5.2.7",
-              "content": "В таблицах информационных сигналов в составе исходящих сообщений показаны значащие атрибуты (DA) для каждого объекта данных (DO) в наборе, которые не влияют на формирование самого набора, но определяют связь между элементами ИМ и их отражением в АСУ ТП. В соответствии с требованиями [5] в наборы данных для отчетов включаются объекты данных целиком, передача отдельных атрибутов данных не предусматривается.",
+              "content": "Для каждого сообщения указывается класс, согласно передаваемой в нем информации, в соответствии требованиями корпоративного профиля [5].",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "5.2.8",
-              "content": "Для GOOSE-сообщений в стандарте приводятся наименования наборов данных, и частично поля идентификаторов устройства-отправителя (ldName) и сообщения (goID), не зависящие от проектных технических решений. Остальные поля идентификаторов, а также обязательные коммуникационные параметры, такие как Destination MAC-адрес, APPID, VLAN ID, MaxTime, MinTime и другие, определяются на стадии проектирования в соответствии с нормативными документами по проектированию ВАПС [12], [13].",
+              "content": "В таблицах информационных сигналов в составе исходящих сообщений показаны значащие атрибуты (DA) для каждого объекта данных (DO) в наборе, которые не влияют на формирование самого набора, но определяют связь между элементами ИМ и их отражением в АСУ ТП. В соответствии с требованиями [5] в наборы данных для отчетов включаются объекты данных целиком, передача отдельных атрибутов данных не предусматривается.",
               "subclauses": [],
               "tables": [],
               "figures": []
             },
             {
               "number": "5.2.9",
-              "content": "Для отчетов, предаваемых по протоколу MMS, в стандарте приводятся наименования наборов данных, и частично поля идентификаторов устройства-отправителя (ldName) и отчета (rptID), не зависящие от проектных технических решений. Остальные поля идентификаторов, а также обязательные параметры управляющего блока передачи отчетов определяются на стадии проектирования в соответствии с нормативными документами по проектированию ВАПС [12], [13].",
+              "content": "Для GOOSE-сообщений в стандарте приводятся наименования наборов данных, и поля идентификаторов устройства-отправителя (ldName) и сообщения (goID), в части, не зависящей от проектных технических решений. Остальные поля идентификаторов, а также обязательные коммуникационные параметры, такие как Destination MAC-адрес, APPID, VLAN ID, MaxTime, MinTime и другие, определяются на стадии проектирования в соответствии с нормативными документами по проектированию ВАПС [12], [13].",
+              "subclauses": [],
+              "tables": [],
+              "figures": []
+            },
+            {
+              "number": "5.2.10",
+              "content": "Для отчетов, передаваемых по протоколу MMS, в стандарте приводятся наименования наборов данных, и поля идентификаторов устройства-отправителя (ldName) и отчета (rptID), в части, не зависящей от проектных технических решений. Остальные поля идентификаторов, а также обязательные параметры управляющего блока передачи отчетов определяются на стадии проектирования в соответствии с нормативными документами по проектированию ВАПС [12], [13].",
               "subclauses": [],
               "tables": [],
               "figures": []
@@ -2208,488 +2088,6 @@
           ],
           "tables": [],
           "figures": []
-        },
-        {
-          "number": "5.3",
-          "header": "Шкаф защиты сборных шин 35 кВ типа ШЭТ 140.11-1",
-          "header_style": "ДОК Текст ур2 подраздел",
-          "clauses": [
-            {
-              "number": "5.3.1",
-              "content": "Шкаф дифференциальной защиты для одной или двух секций сборных шин 35 кВ с жесткой фиксацией присоединений к шинам и количеством не более 10 (включая СВ между защищаемыми секциями).",
-              "subclauses": [],
-              "tables": [],
-              "figures": []
-            },
-            {
-              "number": "5.3.2",
-              "content": "Описание шкафа и ссылки на информационные материалы, определяющие типовые требования, приведены в таблице Таблица 5.2 -.",
-              "subclauses": [],
-              "tables": [],
-              "figures": []
-            }
-          ],
-          "tables": [
-            {
-              "number": "5.4",
-              "name": "Входные дискретные сигналы (ШЭТ 140.11-1)",
-              "reference": "Таблица 5.4",
-              "rows": [
-                {
-                  "content": [
-                    "Дискретный сигнал",
-                    "Место размещения источника сигнала",
-                    "Объединение по опер. току, № группы",
-                    "Примечание"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Дверь шкафа закрыта",
-                    "Внутренний",
-                    "1",
-                    "Контроль положения дверей"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG1",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG2",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG3",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG4",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG5",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG6",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG7",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG8",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG9",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG10",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG11",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SG12",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует рабочему положению испытательного блока"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA1",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA2",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA3",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA4",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA5",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA6",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA7",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA8",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA9",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Положение SA10",
-                    "Внутренний",
-                    "1",
-                    "Наличие сигнала на входе соответствует введенной цепи управления В"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                }
-              ]
-            },
-            {
-              "number": "5.6",
-              "name": "Выходные дискретные воздействия (ШЭТ 140.11-1)",
-              "reference": "Таблица 5.6",
-              "rows": [
-                {
-                  "content": [
-                    "Дискретный сигнал (гальванически развязанный выходной контакт для каждого из приемных устройств)",
-                    "Вывод воздействия",
-                    "Примечание"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В1 через ЭМО1",
-                    "SA1",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В1 через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В2 через ЭМО1",
-                    "SA2",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В2 через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В3 через ЭМО1",
-                    "SA3",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В3 через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В4 через ЭМО1",
-                    "SA4",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В4 через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В5 через ЭМО1",
-                    "SA5",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В5 через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В6 через ЭМО1",
-                    "SA6",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В6 через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В7 через ЭМО1",
-                    "SA7",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В7 через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В8 через ЭМО1",
-                    "SA8",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В8 через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В9 через ЭМО1",
-                    "SA9",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В9 через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В10 (СВ) через ЭМО1",
-                    "SA10",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Отключить В10 (СВ) через ЭМО2",
-                    "»",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Вызов к шкафу",
-                    "–",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                }
-              ]
-            }
-          ],
-          "figures": [
-            {
-              "number": "5.1",
-              "name": "Поясняющая схема подключения ШЭТ 140.01-1",
-              "reference": "Рисунок 5.1"
-            }
-          ]
         },
         {
           "number": "5.3",
@@ -4737,33 +4135,56 @@
         }
       ],
       "tables": [],
-      "figures": []
+      "figures": [],
+      "clauses": []
     },
     {
       "number": "А",
       "header": "Структурно-функциональные схемы",
-      "header_style": "ДОК ПРИЛ ур1 Заголовок",
+      "header_style": "ПРИЛ Заголовок",
       "content": "",
       "subsections": [],
       "tables": [],
-      "figures": []
+      "figures": [
+        {
+          "number": "А.1",
+          "name": "Структурно-функциональная схема ИЭУ РЗ БСК 110–330 кВ",
+          "reference": "Рисунок А.1"
+        },
+        {
+          "number": "А.2",
+          "name": "Структурно-функциональная схема ИЭУ РЗ ШР 330–750 кВ",
+          "reference": "Рисунок А.2"
+        },
+        {
+          "number": "А.3",
+          "name": "Структурно-функциональная схема ИЭУ РЗ ШР 110–220 кВ",
+          "reference": "Рисунок А.3"
+        },
+        {
+          "number": "А.4",
+          "name": "Структурно-функциональная схема ИЭУ РЗ КР",
+          "reference": "Рисунок А.4"
+        }
+      ],
+      "clauses": []
     },
     {
       "number": "Б",
       "header": "Обозначение регистрируемых дискретных сигналов в осциллограмме",
-      "header_style": "ДОК ПРИЛ ур1 Заголовок",
+      "header_style": "ПРИЛ Заголовок",
       "content": "",
       "subsections": [],
       "tables": [
         {
           "number": "Б.1",
-          "name": "Обозначения регистрируемых дискретных сигналов",
+          "name": "Данные для обозначения регистрируемых сигналов в осциллограмме",
           "reference": "Таблица Б.1",
           "rows": [
             {
               "content": [
-                "Информционный сигнал функции устройства",
-                "Обозначение в осциллограмме"
+                "Сигнал функции устройства",
+                "Обозначение сигнала"
               ],
               "is_header_first_row": true,
               "is_header_second_row": false
@@ -4778,56 +4199,104 @@
             },
             {
               "content": [
-                "Запрет (Т)АПВ В[n]",
-                "Вх_ЗАПВ_В[n].запрет"
+                "Срабатывание сигнального контакта ГЗ [ф]",
+                "Вх_ГЗсигн[ф].срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "Оперативно включить В[n]",
-                "Вх_Включить В[n].срабатывание"
+                "Срабатывание отключающего контакта ГЗ [ф]",
+                "Вх_ГЗоткл[ф].срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "Отключение В[n]",
-                "Вх_Отключение В[n].срабатывание"
+                "Низкая изоляция отключающих цепей ГЗ [ф]",
+                "Вх_ГЗоткл[ф].неисправность"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "Пуск УРОВ НН",
-                "Вх_УРОВ НН.пуск"
+                "Срабатывание ДТм авар [ф]",
+                "Вх_ДТм_авар[ф].срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "Срабатывание ЗНР",
-                "Вх_ЗНР.срабатывание"
+                "Срабатывание ДТм сигн [ф]",
+                "Вх_ДТм_сигн[ф].срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "Срабатывание ЗНФ В[n]",
-                "Вх_ЗНФ В[n].срабатывание"
+                "Низкая изоляция отключающих цепей ДТм [ф]",
+                "Вх_ДТм_авар[ф].неисправность"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "Срабатывание УРОВ В[n]",
-                "Вх_УРОВ В[n].срабатывание"
+                "Срабатывание ДТо авар [ф]",
+                "Вх_ДТо_авар[ф].срабатывание"
+              ],
+              "is_header_first_row": false,
+              "is_header_second_row": false
+            },
+            {
+              "content": [
+                "Срабатывание ДТо сигн",
+                "Вх_ДТо_сигн[ф].срабатывание"
+              ],
+              "is_header_first_row": false,
+              "is_header_second_row": false
+            },
+            {
+              "content": [
+                "Низкая изоляция отключающих цепей ДТо",
+                "Вх_ДТо_авар[ф].неисправность"
+              ],
+              "is_header_first_row": false,
+              "is_header_second_row": false
+            },
+            {
+              "content": [
+                "Отказ охлаждения [ф]",
+                "Вх_СО[ф].отказ"
+              ],
+              "is_header_first_row": false,
+              "is_header_second_row": false
+            },
+            {
+              "content": [
+                "Срабатывание [функция]",
+                "Вх_[функция].срабатывание"
+              ],
+              "is_header_first_row": false,
+              "is_header_second_row": false
+            },
+            {
+              "content": [
+                "Отключение от АПТ[ф]",
+                "Вх_АПТ[ф].отключение"
+              ],
+              "is_header_first_row": false,
+              "is_header_second_row": false
+            },
+            {
+              "content": [
+                "Статус ОАПВ В[n]",
+                "Вх_ОАПВ[n].цикл"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
@@ -4842,94 +4311,6 @@
             },
             {
               "content": [
-                "АМТЗ / АМТЗ-н [n] ст: Пуск",
-                "АМТЗ-н [n] ст.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АМТЗ / АМТЗ-н [n] ст: Срабатывание",
-                "АМТЗ-н [n] ст.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АМТЗ / АМТЗ-о [n] ст: Пуск",
-                "АМТЗ-о [n] ст.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АМТЗ / АМТЗ-о [n] ст: Срабатывание",
-                "АМТЗ-о [n] ст.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АМТЗ / АМТЗ-ф [n] ст: Пуск",
-                "АМТЗ-ф [n] ст.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АМТЗ / АМТЗ-ф [n] ст: Срабатывание",
-                "АМТЗ-ф [n] ст.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АОДС / АОДС: Срабатывание",
-                "АОДС.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "АУ / АУ: Срабатывание",
-                "АУ.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БК / БК-I: Срабатывание БК-б",
-                "БК-б.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БК / БК-I: Срабатывание БК-м",
-                "БК-м.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "БК / БК-Z: Блокировка",
-                "БК-Z.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
                 "БНН / БНН: Срабатывание",
                 "БНН.срабатывание"
               ],
@@ -4938,143 +4319,39 @@
             },
             {
               "content": [
-                "ДЗ / АУ ДЗ: Пуск",
-                "АУ ДЗ.пуск"
+                "ДЗ / ДЗ: Пуск",
+                "ДЗ.пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗ / ДЗ-фз [n] ст: Пуск",
-                "ДЗ-фз [n] ст.пуск"
+                "ДЗ / ДЗ: Срабатывание",
+                "ДЗ.срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗ / ДЗ-фз [n] ст: Пуск (1в)",
-                "ДЗ-фз [n] ст(1в) .пуск"
+                "Д2Г: Пуск",
+                "Д2Г.Пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗ / ДЗ-фз [n] ст: Пуск (2в)",
-                "ДЗ-фз [n] ст(2в) .пуск"
+                "Д5Г: Пуск",
+                "Д5Г.Пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗ / ДЗ-фз [n] ст: Срабатывание",
-                "ДЗ-фз [n] ст.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗ / ДЗ-фф [n] ст: Пуск",
-                "ДЗ-фф [n] ст.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗ / ДЗ-фф [n] ст: Пуск (1в)",
-                "ДЗ-фф [n] ст(1в).пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗ / ДЗ-фф [n] ст: Пуск (2в)",
-                "ДЗ-фф [n] ст(2в).пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗ / ДЗ-фф [n] ст: Срабатывание",
-                "ДЗ-фф [n] ст.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗ / ОУ ДЗ: Срабатывание",
-                "ОУ ДЗ.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗ / ОУ-бв ДЗ: Срабатывание",
-                "ОУ-бв ДЗ.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗО / БВКЗ: Срабатывание",
-                "БВКЗ.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗО / ДЗО: Пуск",
-                "ДЗО.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗО / ДЗО: Пуск ЧТО",
-                "ЧТО.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗО / ДЗО: Срабатывание",
-                "ДЗО.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗО / КЦТ: Неисправность",
-                "КЦТ.неисправность"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗО НН / Д2Г: Пуск",
-                "Д2Г.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗО НН / ДТЗт: Срабатывание",
+                "ДЗР / ДТЗт: Срабатывание",
                 "ДТЗт.срабатывание"
               ],
               "is_header_first_row": false,
@@ -5082,7 +4359,7 @@
             },
             {
               "content": [
-                "ДЗО НН / ДТО: Срабатывание",
+                "ДЗР / ДТО: Срабатывание",
                 "ДТО.срабатывание"
               ],
               "is_header_first_row": false,
@@ -5090,152 +4367,56 @@
             },
             {
               "content": [
-                "ДЗШ / БВКЗ ИО[n]: Срабатывание",
-                "БВКЗ ИО[n].срабатывание"
+                "ДТЗ / ДТЗт: Срабатывание",
+                "ДТЗт.срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗШ / БВКЗ ПО: Срабатывание",
-                "БВКЗ ПО.срабатывание"
+                "ДТЗ НП / ДТЗт: Срабатывание",
+                "ДТЗтНП.срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗШ / БВКЗ: Срабатывание",
-                "БВКЗ.срабатывание"
+                "ЗВП / ЗВП сигн. ст.: Срабатывание",
+                "ЗВП_сигн.Срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗШ / ВыхЛ: Срабатывание ДЗШ С[n]",
-                "ДЗШ С[n].срабатывание"
+                "ЗВП / ЗВП откл. ст.: Пуск",
+                "ЗВП_откл.Пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗШ / ДЗШ: Пуск",
-                "ДЗШ.пуск"
+                "ЗВП / ЗВП откл. ст.: Срабатывание",
+                "ЗВП_откл.Срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗШ / ДЗШ: Пуск ЧТО",
-                "ЧТО.пуск"
+                "ЗМН / ЗМН: Пуск",
+                "ЗМН.Пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ДЗШ / ДЗШ: Срабатывание",
-                "ДЗШ.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / ИО[n]: Пуск",
-                "ДЗШ ИО[n].пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / ИО[n]: Пуск ЧТО",
-                "ЧТО ИО[n].пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / ИО[n]: Срабатывание",
-                "ДЗШ ИО[n].срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / ИО2: Пуск",
-                "ДЗШ ИО2.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / ИО2: Пуск ЧТО",
-                "ЧТО ИО2.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / ИО2: Срабатывание",
-                "ДЗШ ИО2.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / КЦТ ИО[n]: Неисправность",
-                "КЦТ ИО[n].неисправность"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / КЦТ ПО: Неисправность",
-                "КЦТ ПО.неисправность"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / КЦТ: Неисправность",
-                "КЦТ.неисправность"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / ПО: Пуск",
-                "ДЗШ ПО.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / ПО: Пуск ЧТО",
-                "ЧТО ПО.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ДЗШ / ПО: Срабатывание",
-                "ДЗШ ПО.срабатывание"
+                "ЗМН / ЗМН: Срабатывание",
+                "ЗМН.Срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
@@ -5250,240 +4431,240 @@
             },
             {
               "content": [
-                "КСВ / КСВ: Аварийно отключен",
-                "Аварийно отключен.срабатывание"
+                "ЗНР / ЗНР: Срабатывание (Э1)",
+                "ЗНР.СрабатываниеЭ1"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСВ / КСВ: Блокировка включения",
-                "КСВ.блокировка"
+                "ЗНР / ЗНР: Срабатывание (Э2)",
+                "ЗНР.СрабатываниеЭ2"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСВ В[n] / КСВ: Аварийно отключен",
-                "Аварийно отключен В[n].срабатывание"
+                "ЗПВГ / ЗПВГ сигн. ст.: Срабатывание",
+                "ЗПВГ_сигн.Срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСВ В[n] / КСВ: Блокировка включения",
-                "КСВ В[n].блокировка"
+                "ЗПВГ / ЗПВГ откл. ст.: Пуск",
+                "ЗПВГ_откл.Пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСН / КСН: Разрешение оперативного включения",
-                "КСН операт вкл.разрешение"
+                "ЗПВГ / ЗПВГ откл. ст.: Срабатывание",
+                "ЗПВГ_откл.Срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСН / КСН: Разрешение ПАВ",
-                "КСН ПАВ.разрешение"
+                "ЗПН / ЗПН: Пуск",
+                "ЗПН.Пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСН / КСН: Разрешение ТАПВ",
-                "КСН ТАПВ.разрешение"
+                "ЗПН / ЗПН: Срабатывание",
+                "ЗПН.Срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСН / КСН: Разрешение ТАПВо",
-                "КСН ТАПВо.разрешение"
+                "ЗПО / ЗПО [n] ст.: Срабатывание",
+                "ЗПО [n] ст.срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСН / КСН: Разрешение ТАПВш",
-                "КСН ТАПВш.разрешение"
+                "КИ [сторона] / Контроль 3U0: Срабатывание",
+                "КИ [сторона].срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСН В[n] / КСН: Разрешение оперативного включения",
-                "КСН В[n] операт вкл.разрешение"
+                "КИ [сторона] / Контроль 3U0: Пуск",
+                "КИ [сторона].пуск3U0"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "КСН В[n] / КСН: Разрешение ТАПВ",
-                "КСН В[n] ТАПВ.разрешение"
+                "КИ [сторона] / Контроль U2: Пуск",
+                "КИ [сторона].пускU2"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО / ЗАПВ: Запрет АПВ",
-                "ЗАПВ.срабатывание"
+                "КИВ / КИВ [ф]: Аварийный уровень изоляции",
+                "КИВ [ф].отключение"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО / ЗАПВ: Запрет АПВ С[n]",
-                "ЗАПВ С[n].срабатывание"
+                "КИВ / КИВ [ф]: Сигнальный уровень изоляции",
+                "КИВ [ф].сигнал"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО / ЛО: Отключение",
-                "Отключение.срабатывание"
+                "КИВ / КИВ общ: Заблокировано",
+                "КИВ.заблокировано"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО / ЛО: Отключение C[n]",
-                "Отключение С[n].срабатывание"
+                "КИВ / КЦН: Неисправность ЦН",
+                "КИВ ЦН.неисправность"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО / ЛО: Срабатывание",
-                "ЛО.срабатывание"
+                "КИВ / КЦТ: Обрыв токовых цепей",
+                "КИВ ЦТ.неисправность"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО / ЛОВ: Отключение",
-                "ЛОВ.срабатывание"
+                "КИВ / КИВ общ: Загрубление",
+                "КИВ.загрубление"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО / ЛОВ: Отключить аварийно",
-                "Отключить В.срабатывание"
+                "КЦН [сторона] / КЦН: Неисправность ЦН",
+                "КЦН [сторона].неисправность"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО В[n] / ЗАПВ: Запрет АПВ",
-                "ЗАПВ В[n].срабатывание"
+                "КЦН [сторона] / КЦН: Пуск U2макс",
+                "КЦН [сторона].пускU2"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО В[n] / ЛО: Отключение",
-                "ЛО В[n].срабатывание"
+                "КЦН [сторона] / КЦН: Пуск Uмин",
+                "КЦН [сторона].пускUмин"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО В[n] / ЛО: Отключить аварийно",
-                "Отключить В[n].срабатывание"
+                "ЛО ГЗ откл / ЛО [ф]: Отключение",
+                "ГЗоткл[ф].отключение"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО СВ / ЗАВР: Запрет АВР",
-                "ЗАВР СВ.срабатывание"
+                "ЛО ГЗ сигн / ЛО [ф]: Отключение",
+                "ГЗсигн[ф].отключение"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО Т (АТ) / ЗАПВ: Запрет АПВ",
-                "ЗАПВ Т(АТ).срабатывание"
+                "ЛО ГЗ откл / ЛО [ф]: Заблокировано",
+                "ГЗоткл[ф].заблокировано"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО Т (АТ) / ЛО: Отключение",
-                "ЛО Т(АТ).срабатывание"
+                "ЛО ТЗ / ЛО ДТм [ф]: Заблокировано",
+                "ДТм[ф].заблокировано"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛО Т (АТ) / ЛО: Отключить аварийно",
-                "Отключить Т(АТ).срабатывание"
+                "ЛО ТЗ / ЛО ДТо [ф]: Заблокировано",
+                "ДТо[ф].заблокировано"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛОП / БНТ В[n]: Пуск",
-                "БНТ В[n].пуск"
+                "ЛППТ / ПТ [ф]: Пуск",
+                "ПТ [ф].пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ЛОП / ОО В[n]: Срабатывание",
-                "ОО В[n].срабатывание"
+                "МТЗ [сторона] / МТЗ [n] ст.: Пуск",
+                "МТЗ [сторона] [n] ст.пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "МФТО / МФТО: Срабатывание",
-                "МФТО.срабатывание"
+                "МТЗ [сторона] / МТЗ [n] ст.: Срабатывание",
+                "МТЗ [сторона] [n] ст.срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ПАВ / ПАВ: Включить",
-                "ПАВ.срабатывание"
+                "МТЗ [сторона] / БНТ: Пуск",
+                "МТЗ [сторона] БНТ.пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ПАВ / ПАВ: Статус",
-                "ПАВ.цикл"
+                "ПДЗР / ДТЗт: Срабатывание",
+                "ДТЗт.Срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
@@ -5506,144 +4687,32 @@
             },
             {
               "content": [
-                "ТАПВ / ТАПВ: Включить",
-                "ТАПВ.срабатывание"
+                "ТЗНП [сторона] / ТЗНП [n] ст: Пуск",
+                "ТЗНП [сторона] [n] ст.пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ТАПВ / ТАПВ: Статус",
-                "ТАПВ.готово, ТАПВ.цикл"
+                "ТЗНП [сторона] / ТЗНП [n] ст: Срабатывание",
+                "ТЗНП [сторона] [n] ст.срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ТАПВ / ТАПВо: Включить",
-                "ТАПВо.срабатывание"
+                "ТЗОП [сторона] / ТЗОП [n] ст: Пуск",
+                "ТЗОП [сторона] [n] ст.пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ТАПВ / ТАПВо: Статус",
-                "ТАПВо.готово, ТАПВ.цикл"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТАПВ / ТАПВш: Включить",
-                "ТАПВш.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТАПВ / ТАПВш: Статус",
-                "ТАПВш.готово, ТАПВ.цикл"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТАПВ В[n] / ТАПВ: Включить",
-                "ТАПВ В[n].срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТАПВ В[n] / ТАПВ: Статус",
-                "ТАПВ В[n].готово, ТАПВ В[n].цикл"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / АУ ТЗНП: Пуск",
-                "АУ ТЗНП.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / БНТ: Пуск",
-                "БНТ ТЗНП.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / ОНМб НП: Пуск",
-                "ОНМб НП.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / ОНМб ОП: Пуск",
-                "ОНМб ОП.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / ОНМр НП: Пуск",
-                "ОНМр НП.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / ОНМр ОП: Пуск",
-                "ОНМр ОП.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / ОУ ТЗНП: Срабатывание",
-                "ОУ ТЗНП.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / ОУ-бв ТЗНП: Срабатывание",
-                "ОУ-бв ТЗНП.срабатывание"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / ТЗНП [n] ст: Пуск",
-                "ТЗНП [n] ст.пуск"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ТЗНП / ТЗНП [n] ст: Срабатывание",
-                "ТЗНП [n] ст.срабатывание"
+                "ТЗОП [сторона] / ТЗОП [n] ст: Срабатывание",
+                "ТЗОП [сторона] [n] ст.срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
@@ -5666,72 +4735,56 @@
             },
             {
               "content": [
-                "УРОВ В[n] / УРОВ: Действие на себя",
-                "УРОВ на себя В[n].срабатывание"
+                "ФО БСК / ФО: Блокировка включения",
+                "ФО.БлокВкл"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "УРОВ В[n] / УРОВ: Пуск",
-                "УРОВ В[n].пуск"
+                "ФПВ В[n] / ФПВ: Положение [ф]",
+                "Положение В[n][ф].включено,\nПоложение В[n][ф].отключено"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "УРОВ В[n] / УРОВ: Срабатывание",
-                "УРОВ В[n].срабатывание"
+                "КОН / КОН: Пуск",
+                "КОН.Пуск"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ФПВ / ФПВ: Положение ф. B",
-                "Положение ф.А.включено, \nПоложение ф.А.отключено"
+                "КСВ В [сторона] / КСВ: Аварийно отключен",
+                "Аварийно отключен В[n].срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ФПВ / ФПВ: Положение ф. А",
-                "Положение ф.B.включено, \nПоложение ф.B.отключено"
+                "КСВ В [сторона] / КСВ: Блокировка включения",
+                "КСВ В[n].блокировка"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ФПВ / ФПВ: Положение ф. С",
-                "Положение ф.C.включено, \nПоложение ф.C.отключено"
+                "КСВ В / КСВ: Аварийно включен",
+                "Аварийно включен В[n].срабатывание"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "ФПВ В[n] / ФПВ: Положение ф. B",
-                "Положение В[n]А.включено,\nПоложение В[n]А.отключено"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ФПВ В[n] / ФПВ: Положение ф. А",
-                "Положение В[n]B.включено,\nПоложение В[n]B. отключено"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "ФПВ В[n] / ФПВ: Положение ф. С",
-                "Положение В[n]C.включено,\nПоложение В[n]C. отключено"
+                "Примечание:\n[сторона] – сторона (обмотка) маслонаполненного оборудования (ВН, НН, КОР, ОУР)\n[функция] – функция (устройство) РЗА (ДЗО, ДЗШ, УРОВ, ЗНР, ЗДЗ, АПТ, АОР)\n[ф] – фаза (А, В, С, Р)\n[n] – числовое значение в соответствии с проектом",
+                "Примечание:\n[сторона] – сторона (обмотка) маслонаполненного оборудования (ВН, НН, КОР, ОУР)\n[функция] – функция (устройство) РЗА (ДЗО, ДЗШ, УРОВ, ЗНР, ЗДЗ, АПТ, АОР)\n[ф] – фаза (А, В, С, Р)\n[n] – числовое значение в соответствии с проектом"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
@@ -5743,7 +4796,7 @@
       "clauses": [
         {
           "number": "Б.1",
-          "content": "В таблице Таблица Б.1 - приведены обозначения для регистрируемых дискретных сигналов, которые используются в качестве основы для описания канала в файле конфигурации формата COMTRADE в соответствии с ГОСТ Р 58601-2019 (приложения В, Е). Уточненное наименование регистрируемого сигнала выполняется на этапе параметрирования конкретного устройства.",
+          "content": "В таблице Таблица Б.1 - приведены данные, необходимые для обозначения в осциллограмме регистрируемых сигналов. Значения в столбце обозначения сигнала используются для описания канала в файле конфигурации формата COMTRADE в соответствии с ГОСТ Р 58601-2019 (приложения В, Е). Полное описание регистрируемого сигнала создается на этапе параметрирования конкретного устройства в соответствии с ГОСТ Р 58601.",
           "subclauses": [],
           "tables": [],
           "figures": []
@@ -5753,7 +4806,7 @@
     {
       "number": "В",
       "header": "Таблица применимости типовых шкафов",
-      "header_style": "ДОК ПРИЛ ур1 Заголовок",
+      "header_style": "ПРИЛ Заголовок",
       "content": "",
       "subsections": [],
       "tables": [
@@ -5764,11 +4817,10 @@
           "rows": [
             {
               "content": [
-                "Присоединение \n(элемент схемы)",
+                "Присоединение (элемент схемы)",
                 "Вариант исполнения",
                 "Шкафы ШЭТ",
-                "Функции ИТС в составе ИЭУ",
-                "Примечание"
+                "Функции ИТС в составе ИЭУ"
               ],
               "is_header_first_row": true,
               "is_header_second_row": false
@@ -5815,6 +4867,16 @@
             },
             {
               "content": [
+                "ШР (УШРТ, УШРП) 110–220 кВ",
+                "»",
+                "431.13-1",
+                "ДТЗ СО (ДЗР ШР), ПДЗР, ДТЗ НП КОР-СОР (ДЗР УШРТ), ГЗ, ТЗ, МТЗ, ТЗОП, ТЗНП ВН, ТЗНП НВ, ЗНР, МТЗ КОР, ТЗНП КОР, ТЗОП КОР, МТЗ НН, КИ НН, УРОВ, РАС"
+              ],
+              "is_header_first_row": false,
+              "is_header_second_row": false
+            },
+            {
+              "content": [
                 "КР 35–110 кВ",
                 "»",
                 "431.14-1",
@@ -5830,7 +4892,7 @@
       "clauses": [
         {
           "number": "В.1",
-          "content": "В таблице Таблица В.1 - приведен алгоритм выбора типовых шкафов РЗА сборных шин, ошиновок и шинных аппаратов 6–750 кВ для II архитектуры построения ПС.",
+          "content": "В таблице Таблица В.1 - приведен алгоритм выбора типовых шкафов РЗА СКРМ для II архитектуры построения ПС.",
           "subclauses": [],
           "tables": [],
           "figures": []
@@ -5876,14 +4938,14 @@
             {
               "content": [
                 "СТО 56947007-29.240.10.248-2017",
-                "Нормы технологического проектирования подстанций переменного тока с высшим напряжением 35 - 750 кВ (НТП ПС), ПАО «ФСК ЕЭС»"
+                "Нормы технологического проектирования подстанций переменного тока с высшим напряжением 35–750 кВ (НТП ПС), ПАО «ФСК ЕЭС»"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
             },
             {
               "content": [
-                "СТО 56947007-25.040.30.309-2020",
+                "СТО 56947007 -25.040.30.309-2020",
                 "Корпоративный профиль МЭК 61850 ПАО «ФСК ЕЭС»"
               ],
               "is_header_first_row": false,
@@ -5908,7 +4970,7 @@
             {
               "content": [
                 "СТО 56947007-29.120.70.042-2010",
-                "Требования к шкафам управления и РЗА с микропроцессорными устройствами, ОАО «ФСК ЕЭС»"
+                "Требования к шкафам управления и РЗА с микропроцессорными устройствами, ОАО «ФСК ЕЭС»."
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
@@ -5940,7 +5002,7 @@
             {
               "content": [
                 "СТО 56947007-29.240.10.299-2020",
-                "Цифровая подстанция. Методические указания по проектированию ЦПС"
+                "Цифровая подстанция. Методические указания по проектированию ЦПС, ПАО «ФСК ЕЭС»"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
@@ -5949,14 +5011,6 @@
               "content": [
                 "СТО 56947007-29.240.10.302-2020",
                 "Типовые технические требования к организации и производительности технологических ЛВС в АСУ ТП ПС ЕНЭС, ПАО «ФСК ЕЭС»"
-              ],
-              "is_header_first_row": false,
-              "is_header_second_row": false
-            },
-            {
-              "content": [
-                "СТО 56947007-29.240.30.010-2008",
-                "Схемы принципиальные электрические распределительных устройств подстанций 35-750 кВ. Типовые решения, ОАО «ФСК ЕЭС»"
               ],
               "is_header_first_row": false,
               "is_header_second_row": false
@@ -5972,7 +5026,8 @@
           ]
         }
       ],
-      "figures": []
+      "figures": [],
+      "clauses": []
     }
   ],
   "cabinets": [
@@ -12679,7 +11734,7 @@
       "containers": []
     },
     {
-      "cypher": "ШЭТ 431.12-1",
+      "cypher": "ШЭТ 431.22-1",
       "architecture": "II тип",
       "name": "Шкаф защит шунтирующего реактора 330–750 кВ, УРОВ",
       "controllable_element": "Выключатель ШР",
@@ -23341,6 +22396,284 @@
                       "conditions": "-"
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "number": 2,
+          "description": "Комплект ИЭУ шкафа",
+          "type": "ИЭУ",
+          "tag": "Невыпущенные СТО",
+          "group": "СКРМ",
+          "ieds": [
+            {
+              "number": "2",
+              "analog_inputs": [
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG1",
+                  "contacts_count": "6+1",
+                  "note": "Токи ВН"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG2",
+                  "contacts_count": "6+1",
+                  "note": "Токи расщепленной нейтрали ШР первой группы"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG3",
+                  "contacts_count": "6+1",
+                  "note": "Токи расщепленной нейтрали ШР второй группы"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG4",
+                  "contacts_count": "6+1",
+                  "note": "Токи треугольника КОР(ВО2)"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG5",
+                  "contacts_count": "6+1",
+                  "note": "Токи ОУР(ВО1)"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG6",
+                  "contacts_count": "6+1",
+                  "note": "Токи НН"
+                },
+                {
+                  "circuit_type": "Ia, Ib, Ic",
+                  "test_block": "SG7",
+                  "contacts_count": "6+1",
+                  "note": "Токи КИВ"
+                },
+                {
+                  "circuit_type": "Ua, Ub, Uc",
+                  "test_block": "SG8",
+                  "contacts_count": "4+1",
+                  "note": "Напряжения ТН НН"
+                },
+                {
+                  "circuit_type": "Ua, Ub, Uc",
+                  "test_block": "SG9",
+                  "contacts_count": "4+1",
+                  "note": "Напряжения КИВ"
+                }
+              ],
+              "osc_analog_signals": [],
+              "incoming_goose_signals": [],
+              "inner_discrete_circuits": [],
+              "datasets": [],
+              "ports": [],
+              "functional_buttons": [],
+              "leds": [],
+              "control_commands": [],
+              "functions": [
+                {
+                  "name": "АУР",
+                  "russian_path": "АУР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ЗНР",
+                  "russian_path": "ЗНР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "КИ НН",
+                  "russian_path": "КИ НН",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "КИВ",
+                  "russian_path": "КИВ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "МТЗ КОР",
+                  "russian_path": "МТЗ КОР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "МТЗ НН",
+                  "russian_path": "МТЗ НН",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "МТЗ",
+                  "russian_path": "МТЗ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ПДЗР",
+                  "russian_path": "ПДЗР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗНП ВН",
+                  "russian_path": "ТЗНП ВН",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗНП КОР",
+                  "russian_path": "ТЗНП КОР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗНП НВ",
+                  "russian_path": "ТЗНП НВ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗОП КОР",
+                  "russian_path": "ТЗОП КОР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ТЗОП",
+                  "russian_path": "ТЗОП",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "УРОВ",
+                  "russian_path": "УРОВ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "number": 3,
+          "description": "Комплект ИЭУ шкафа",
+          "type": "ИЭУ",
+          "tag": "Невыпущенные СТО",
+          "group": "СКРМ",
+          "ieds": [
+            {
+              "number": 1,
+              "analog_inputs": [
+                {
+                  "circuit_type": "In",
+                  "test_block": "SG1",
+                  "contacts_count": "2+1",
+                  "note": "Ток в нулевом проводе соединенных в «звезду» ТТ, встроенных в нейтральные выводы ШР"
+                },
+                {
+                  "circuit_type": "In",
+                  "test_block": "SG2",
+                  "contacts_count": "2+1",
+                  "note": "Ток стороны высоковольтного ввода КР"
+                },
+                {
+                  "circuit_type": "In",
+                  "test_block": "SG3",
+                  "contacts_count": "2+1",
+                  "note": "Ток стороны нейтрали КР"
+                },
+                {
+                  "circuit_type": "Un",
+                  "test_block": "SG4",
+                  "contacts_count": "2+1",
+                  "note": "Напряжение стороны высоковольтного ввода КР"
+                }
+              ],
+              "osc_analog_signals": [],
+              "incoming_goose_signals": [],
+              "inner_discrete_circuits": [],
+              "datasets": [],
+              "ports": [],
+              "functional_buttons": [],
+              "leds": [],
+              "control_commands": [],
+              "functions": [
+                {
+                  "name": "АКР",
+                  "russian_path": "АКР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ДЗ",
+                  "russian_path": "ДЗ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ДЗР",
+                  "russian_path": "ДЗР",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "ЗП",
+                  "russian_path": "ЗП",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
+                },
+                {
+                  "name": "УРОВ",
+                  "russian_path": "УРОВ",
+                  "isMainFunction": true,
+                  "isInITS": false,
+                  "iec_name": "",
+                  "parameters": []
                 }
               ]
             }
