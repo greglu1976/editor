@@ -874,6 +874,115 @@ def test_editor():
                       for table in es.iter_tables(window.data)),
               "таблицы перепривязаны, шкаф удалён")
 
+        # правка номера и наименования таблицы в панели
+        target_table = next(table for table in es.iter_tables(window.data)
+                            if table.get("cabinet"))
+        window._fill_tree()
+        root.update()
+        table_iid = window._find_iid(target_table)
+        window.tree.selection_set(table_iid)
+        root.update()
+        old_name = target_table["name"]
+        code = target_table["cabinet"]
+        new_name = old_name.replace(code, "ШЭТ 999-1")
+        window.vars["name"].set(new_name)
+        window.vars["number"].set("99.99")
+        applied = window._apply_pending()
+        root.update()
+        check(applied and target_table["name"] == new_name
+              and target_table["number"] == "99.99"
+              and target_table["reference"] == "Таблица 99.99",
+              "номер и наименование таблицы правятся в панели")
+        check(window.tree.item(window._find_iid(target_table), "text")
+              == "Таблица 99.99 " + new_name,
+              "подпись таблицы в дереве обновилась")
+
+        # смена вида данных таблицы шкафа отклоняется
+        original_error = ea_editor.messagebox.showerror
+        errors = []
+        ea_editor.messagebox.showerror = lambda *args, **kwargs: errors.append(
+            args)
+        window.vars["name"].set("Ряды зажимов шкафа " + code)
+        rejected = window._apply_pending()
+        ea_editor.messagebox.showerror = original_error
+        check(not rejected and errors and target_table["name"] == new_name,
+              "смена вида данных таблицы отклоняется")
+        window.vars["name"].set(target_table["name"])
+        window._apply_pending()
+        root.update()
+
+        # смена шифра шкафа перепривязывает его таблицы
+        owner = next(item for item in es.cabinets(window.data)
+                     if any(table.get("cabinet") == item.get("cypher")
+                            for table in es.iter_tables(window.data)))
+        window._fill_tree()
+        root.update()
+        owner_iid = window._find_iid(owner)
+        window.tree.selection_set(owner_iid)
+        root.update()
+        old_code = owner["cypher"]
+        new_code = "ШЭТ 777-1"
+        linked = [table for table in es.iter_tables(window.data)
+                  if table.get("cabinet") == old_code]
+        named = [table for table in linked
+                 if old_code in (table.get("name") or "")]
+        window.vars["cypher"].set(new_code)
+        window._apply_pending()
+        root.update()
+        check(owner["cypher"] == new_code
+              and all(table.get("cabinet") == new_code for table in linked)
+              and all(new_code in (table.get("name") or "")
+                      for table in named),
+              "смена шифра шкафа перепривязывает его таблицы")
+        check(all(window.tree.item(window._find_iid(table), "text")
+                  == "%s %s" % (table.get("reference") or "Таблица",
+                                table.get("name") or "")
+                  for table in linked),
+              "подписи таблиц обновились после смены шифра")
+
+        # шифр не может совпасть с другим шкафом
+        other_code = next(item["cypher"] for item in es.cabinets(window.data)
+                          if item is not owner)
+        errors = []
+        ea_editor.messagebox.showerror = lambda *args, **kwargs: errors.append(
+            args)
+        window.vars["cypher"].set(other_code)
+        rejected = window._apply_pending()
+        ea_editor.messagebox.showerror = original_error
+        check(not rejected and errors and owner["cypher"] == new_code,
+              "шифр шкафа не может совпадать с другим шкафом")
+        window.vars["cypher"].set(new_code)
+        window._apply_pending()
+        root.update()
+
+        # групповая привязка таблиц к другому шкафу
+        group_tables = [table for table in es.iter_tables(window.data)
+                        if table.get("cabinet") == new_code][:2]
+        window._fill_tree()
+        root.update()
+        group_iids = [window._find_iid(table) for table in group_tables]
+        window.tree.selection_set(group_iids)
+        root.update()
+        labels = [entry[0] for entry in
+                  window._menu_items(group_iids[0],
+                                     window._nodes[group_iids[0]]) if entry]
+        check(any("Привязать выделенное (2) к другому шкафу" in label
+                  for label in labels),
+              "в меню группы таблиц есть привязка к шкафу")
+        target_cabinet = next(item for item in es.cabinets(window.data)
+                              if item is not owner)
+        window._choose_cabinet = lambda *args, **kwargs: target_cabinet
+        ea_editor.messagebox.askyesno = lambda *args, **kwargs: True
+        try:
+            window._rebind_group(window._selection_iids())
+            root.update()
+        finally:
+            window._choose_cabinet = original_choose_cabinet
+            ea_editor.messagebox.askyesno = original_confirm
+        check(all(table.get("cabinet") == target_cabinet["cypher"]
+                  for table in group_tables),
+              "группа таблиц привязана к другому шкафу")
+
         cabinet_iid = next(key for key, node in window._nodes.items()
                            if node[0] == "cabinet")
         menu = window._menu_items(cabinet_iid, window._nodes[cabinet_iid])

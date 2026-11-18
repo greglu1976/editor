@@ -166,6 +166,24 @@ _KIT_FIELDS = (
 _DATE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
 
 
+def _replace_strings(node, old, new):
+    """Заменить ``old`` на ``new`` во всех строках структуры данных."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if isinstance(value, str):
+                if old in value:
+                    node[key] = value.replace(old, new)
+            else:
+                _replace_strings(value, old, new)
+    elif isinstance(node, list):
+        for index, value in enumerate(node):
+            if isinstance(value, str):
+                if old in value:
+                    node[index] = value.replace(old, new)
+            else:
+                _replace_strings(value, old, new)
+
+
 # ---------------------------------------------------------------------------
 # Окно
 # ---------------------------------------------------------------------------
@@ -541,6 +559,31 @@ class StandardEditorWindow(tk.Toplevel):
         caption = "%s %s" % (table.get("reference") or "Таблица",
                              table.get("name") or "")
         self.caption.config(text=caption.strip())
+        self._panel_item = table
+        form = tk.Frame(self.body)
+        form.pack(fill=tk.X, padx=4, pady=(0, 4))
+        form.columnconfigure(1, weight=1)
+        tk.Label(form, text="Номер:", font=ui_theme.font(9),
+                 anchor="w").grid(row=0, column=0, sticky="w", pady=2)
+        number = tk.StringVar(value=str(table.get("number") or ""))
+        tk.Entry(form, textvariable=number, font=ui_theme.font(9),
+                 width=14).grid(row=0, column=1, sticky="w", pady=2)
+        self.vars["number"] = number
+        tk.Label(form, text="Наименование:", font=ui_theme.font(9),
+                 anchor="w").grid(row=1, column=0, sticky="w", pady=2)
+        name = tk.StringVar(value=str(table.get("name") or ""))
+        tk.Entry(form, textvariable=name, font=ui_theme.font(9),
+                 width=90).grid(row=1, column=1, sticky="we", pady=2)
+        self.vars["name"] = name
+        if table.get("cabinet"):
+            link = tk.Frame(form)
+            link.grid(row=2, column=0, columnspan=2, sticky="we", pady=(2, 0))
+            tk.Label(link, text="Данные шкафа: %s" % table.get("cabinet"),
+                     font=ui_theme.font(8), fg=ui_theme.TEXT_MUTED,
+                     anchor="w").pack(side=tk.LEFT)
+            _button(link, "Привязать к другому шкафу…",
+                    lambda: self._rebind_table(self._current_node),
+                    width=26, side=tk.RIGHT)
         try:
             headers, rows, note = ee.load(self.data, table)
         except ee.TableEditError as exc:
@@ -565,7 +608,67 @@ class StandardEditorWindow(tk.Toplevel):
                         self._apply_grid if editable else None)
         if editable:
             self._grid_table = table
-            self._pending = self._apply_grid
+        self._pending = self._apply_table
+
+    def _apply_table(self):
+        """Записать номер, наименование и строки таблицы."""
+        table = self._panel_item
+        if table is None:
+            return False
+        changed = False
+        if self._grid_apply is not None:
+            changed = bool(self._grid_apply()) or changed
+        number = str(self.vars["number"].get()).strip()
+        name = str(self.vars["name"].get()).strip()
+        old_number = str(table.get("number") or "")
+        old_name = str(table.get("name") or "")
+        # проверяем только изменённые поля: в данных встречаются таблицы
+        # без номера и наименования, их нельзя ломать при простом открытии
+        if number != old_number:
+            if not number:
+                raise ee.TableEditError("номер таблицы не может быть пустым")
+            for other in es.iter_tables(self.data):
+                if (other is not table
+                        and str(other.get("number") or "") == number):
+                    raise ee.TableEditError("номер таблицы уже занят: %s"
+                                            % number)
+        if name != old_name and table.get("cabinet"):
+            if not name:
+                raise ee.TableEditError(
+                    "наименование таблицы не может быть пустым")
+            old_kind = es.table_kind(old_name)
+            new_kind = es.table_kind(name)
+            if new_kind is None:
+                raise ee.TableEditError(
+                    "в наименовании нет вида данных (Описание, Входные "
+                    "аналоговые измерения, Ряды зажимов и т. п.): "
+                    "таблица шкафа станет пустой")
+            if old_kind and new_kind != old_kind:
+                raise ee.TableEditError(
+                    "вид данных таблицы менять нельзя: форма (%s) "
+                    "не совпадёт со строками шкафа" % st.kind_name(old_kind))
+        if number != old_number:
+            table["number"] = number
+            table["reference"] = "Таблица %s" % number
+            changed = True
+        if name != old_name:
+            table["name"] = name
+            changed = True
+        if changed:
+            label = "%s %s" % (table.get("reference") or "Таблица", name)
+            self.caption.config(text=label)
+            self._refresh_label(label)
+            self.status.config(text="Таблица %s сохранена в памяти" % number)
+            code = str(table.get("cabinet") or "")
+            mentioned = [item.get("cypher") for item in es.cabinets(self.data)
+                         if item.get("cypher") and item.get("cypher") != code
+                         and item.get("cypher") in name]
+            if code and mentioned:
+                self.status.config(
+                    text="В наименовании шкаф %s, а таблица привязана к %s — "
+                         "нажмите «Привязать к другому шкафу…»"
+                         % (mentioned[0], code))
+        return changed
 
     def _make_grid(self, parent, headers, rows, editable, apply=None):
         box = tk.Frame(parent)
@@ -738,6 +841,14 @@ class StandardEditorWindow(tk.Toplevel):
                 and description == self._snapshot["description"]
                 and rows == self._snapshot["rows"]):
             return False
+        previous = str(self._snapshot["fields"].get("cypher") or "")
+        code = fields["cypher"]
+        if not code:
+            raise ee.TableEditError("шифр шкафа не может быть пустым")
+        if code != previous and any(
+                other is not item and other.get("cypher") == code
+                for other in es.cabinets(self.data)):
+            raise ee.TableEditError("шкаф с таким шифром уже есть: %s" % code)
         old = item.get("power_supplies") or []
         supplies = []
         for index, row in enumerate(rows):
@@ -752,10 +863,30 @@ class StandardEditorWindow(tk.Toplevel):
         item["power_supplies"] = supplies
         self._snapshot = {"fields": dict(fields), "description": description,
                           "rows": [list(row) for row in rows]}
+        if code != previous:
+            if previous:
+                _replace_strings(item, previous, code)
+                self._rebind_links(previous, code)
         label = "Шкаф %s — %s" % (fields["cypher"], fields["name"])
         self.caption.config(text=label)
         self._refresh_label(label)
         return True
+
+    def _rebind_links(self, old, new):
+        """После смены шифра шкафа обновить ссылки и подписи таблиц."""
+        if not old or old == new:
+            return
+        count = st.rebind_tables(self.data, old, new)
+        for iid, node in self._nodes.items():
+            if node[0] != "table" or node[1].get("cabinet") != new:
+                continue
+            label = "%s %s" % (node[1].get("reference") or "Таблица",
+                               node[1].get("name") or "")
+            if self.tree.exists(iid):
+                self.tree.item(iid, text=label.strip())
+        if count:
+            self.status.config(
+                text="Шифр шкафа изменён, таблиц перепривязано: %d" % count)
 
     # ------------------------------------------------------------ комплект
     def _render_kit(self, kit):
@@ -1416,6 +1547,45 @@ class StandardEditorWindow(tk.Toplevel):
         self.status.config(text="Таблица %s привязана к шкафу %s"
                                 % (table.get("number") or "", code))
 
+    def _rebind_group(self, group):
+        """Привязать выделенные таблицы к одному шкафу."""
+        tables = []
+        for iid in group:
+            owner = self._owners.get(iid)
+            if self._node_kind(iid) == "table" and owner and owner[1]:
+                tables.append(owner[1])
+        if not tables:
+            return
+        current = {str(table.get("cabinet") or "") for table in tables}
+        others = [item for item in es.cabinets(self.data)
+                  if str(item.get("cypher") or "") not in current]
+        if not others:
+            messagebox.showinfo("Редактор стандарта",
+                                "В стандарте нет другого шкафа.", parent=self)
+            return
+        target = self._choose_cabinet(
+            others, "К какому шкафу привязать таблицы (%d)" % len(tables))
+        if target is None:
+            return
+        code = str(target.get("cypher") or "")
+        empty = [str(table.get("number") or "(без номера)") for table in tables
+                 if not self._table_rows_for(table, target)]
+        if empty and not messagebox.askyesno(
+                "Редактор стандарта",
+                "У шкафа %s нет данных для таблиц: %s.\n"
+                "Они останутся с одной шапкой. Продолжить?"
+                % (code, ", ".join(empty[:8])), parent=self):
+            return
+
+        def action():
+            for table in tables:
+                st.rebind_table(table, code)
+            return tables
+
+        self._mutate(action)
+        self.status.config(text="Таблиц привязано к %s: %d"
+                                % (code, len(tables)))
+
     def _ask_rebind(self, cabinet_item):
         """Спросить шкаф для таблиц удаляемого шкафа; None — отказались."""
         code = str(cabinet_item.get("cypher") or "")
@@ -1552,6 +1722,12 @@ class StandardEditorWindow(tk.Toplevel):
         """Меню действий над выделенной группой узлов."""
         kinds = {self._node_kind(iid) for iid in group}
         items = []
+        if kinds == {"table"}:
+            items += [
+                ("Привязать выделенное (%d) к другому шкафу…" % len(group),
+                 lambda: self._rebind_group(group)),
+                None,
+            ]
         if kinds <= {"table", "figure"}:
             items += [
                 ("Переместить выделенное (%d) в другой раздел…" % len(group),
@@ -1672,14 +1848,17 @@ class StandardEditorWindow(tk.Toplevel):
 
     # ------------------------------------------------------------- запись
     def _apply_pending(self):
-        """Записать правки текущей панели в данные; False — не удалось."""
-        function, self._pending = self._pending, None
+        """Записать правки текущей панели в данные; False — не удалось.
+
+        Панель остаётся активной: повторные правки того же узла тоже
+        записываются (панель сбрасывает обработчик при перерисовке).
+        """
+        function = self._pending
         if function is None:
             return True
         try:
             changed = function()
         except ee.TableEditError as exc:
-            self._pending = function
             messagebox.showerror("Редактор стандарта", str(exc), parent=self)
             return False
         if changed:
