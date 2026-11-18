@@ -12,7 +12,9 @@
 
 Если в папке стандартов (рядом с JSON или в ``EA/``) лежит ``template.docx``,
 он берётся за основу: сохраняются его стили, колонтитулы и параметры
-страницы, а содержимое строится заново.
+страницы, а содержимое строится заново. Номера разделов и подразделов в
+заголовки не пишутся — их автоматически проставляет шаблон нумерацией
+стилей «Заголовок 1» и «Заголовок 2».
 
     python ea_docx.py --out "Отчет.docx"
     python ea_docx.py --file "EA/....json" --out "Отчет.docx" --max-rows 50
@@ -167,13 +169,22 @@ def _clause_lines(content):
     return result
 
 
-def _heading(doc, text, level):
+def _heading(doc, text, level, numbered=True):
+    """Заголовок уровня ``level``; номер ставит шаблон, а не текст.
+
+    ``numbered=False`` отключает автонумерацию абзаца (``numId=0``) — для
+    «Содержания» и разделов без номера вроде «Введения», иначе они сдвинули
+    бы нумерацию разделов шаблона.
+    """
     heading = doc.add_heading(level=level)
     run = heading.add_run(text)
     _font(run, {1: 14, 2: 12, 3: 11}.get(level, 11), bold=True)
     heading.paragraph_format.space_before = Pt(10)
     heading.paragraph_format.space_after = Pt(4)
     heading.paragraph_format.keep_with_next = True
+    if not numbered:
+        props = heading._p.get_or_add_pPr()
+        props.get_or_add_numPr().get_or_add_numId().val = 0
     return heading
 
 
@@ -195,7 +206,7 @@ def _field(paragraph, instruction):
 
 
 def _toc(doc):
-    _heading(doc, "Содержание", 1)
+    _heading(doc, "Содержание", 1, numbered=False)
     paragraph = doc.add_paragraph()
     _field(paragraph, r'TOC \o "1-2" \h \z \u')
 
@@ -296,19 +307,27 @@ def _render_container(doc, data, container, level, max_rows, counters):
 
 
 def _render_sections(doc, data, max_rows, counters):
+    """Разделы и подразделы: в тексте заголовка только название.
+
+    Номер раздела и подраздела не выводится — его автоматически проставляет
+    шаблон Word через нумерацию стилей «Заголовок 1» и «Заголовок 2».
+    """
     for section in es.sections(data):
         number = str(section.get("number") or "").strip()
         header = str(section.get("header") or "").strip()
         if not header and not number:
             continue
-        _heading(doc, ("%s %s" % (number, header)).strip(), 1)
+        _heading(doc, header or number, 1,
+                 numbered=bool(number) and bool(header))
         counters["разделы"] += 1
         _render_container(doc, data, section, 2, max_rows, counters)
         for sub in section.get("subsections") or []:
-            title = ("%s %s" % (sub.get("number") or "",
-                                sub.get("header") or "")).strip()
-            if title:
-                _heading(doc, title, 2)
+            sub_number = str(sub.get("number") or "").strip()
+            title = str(sub.get("header") or "").strip()
+            if not title and not sub_number:
+                continue
+            _heading(doc, title or sub_number, 2,
+                     numbered=bool(sub_number) and bool(title))
             _render_container(doc, data, sub, 3, max_rows, counters)
 
 

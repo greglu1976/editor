@@ -251,8 +251,10 @@ def test_docx(data):
     doc = Document(path)
     headings = [paragraph.text for paragraph in doc.paragraphs
                 if paragraph.style.name.startswith("Heading")]
-    check(any(text.startswith("5.3 Шкаф защит") for text in headings),
+    check(any(text.startswith("Шкаф защит батареи") for text in headings),
           "заголовок подраздела шкафа на месте")
+    check(not any(text[:1].isdigit() for text in headings),
+          "номера разделов и подразделов не вписаны в заголовки")
     check(not any(text.startswith("Приложение. Шкафы") for text in headings),
           "приложения со шкафами нет")
 
