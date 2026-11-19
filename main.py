@@ -92,7 +92,7 @@ ELEMENT_TYPE_TITLES = {
 ELEMENT_TYPE_TITLES.update(logic_library.ELEMENT_TYPE_TITLES)
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
-APP_TITLE = "Редактор электрических схем v31.1"
+APP_TITLE = "Редактор электрических схем v31.2"
 
 #: Подпись разработчика в окне «Разработчик» (вкладка «?»).
 DEVELOPER = "(с) 2026 Лубов Г.А., \ndeepseek"
