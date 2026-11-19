@@ -64,4 +64,4 @@ ELEMENT_TYPE_TITLES = {
 ELEMENT_TYPE_TITLES.update(logic_library.ELEMENT_TYPE_TITLES)
 
 #: Название программы: идёт в заголовок окна после имени чертежа.
-APP_TITLE = "Редактор электрических схем v31.2"
+APP_TITLE = "Редактор электрических схем v32"
