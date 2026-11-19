@@ -7,8 +7,8 @@
             "x": 630,
             "y": 250,
             "label": [
-                17.2,
-                -1.2
+                -4.7,
+                -2.8
             ],
             "logic": {
                 "title": "Защита от внутренних повреждений",
@@ -115,7 +115,7 @@
             "y": 340,
             "rotation": 0,
             "logic": {
-                "length": 480.0,
+                "length": 1200.0,
                 "title": "",
                 "description": "",
                 "signal_ru": "",
@@ -236,7 +236,7 @@
                         "outputs": [
                             {
                                 "id": "out1",
-                                "name": "",
+                                "name": "Срабатывание",
                                 "description": "",
                                 "iec_name": "",
                                 "type": "discrete_process_level"
@@ -303,13 +303,120 @@
                 "signal_iec": "",
                 "signal_no": ""
             }
+        },
+        {
+            "id": "LO3f52",
+            "type": "logic_block",
+            "name": "Б4",
+            "x": 640,
+            "y": 770,
+            "label": [
+                17.2,
+                -1.2
+            ],
+            "logic": {
+                "title": "Максимальная токовая защита",
+                "designation": "МТЗ",
+                "width": 360,
+                "functions": [
+                    {
+                        "kind": "CUSTOM",
+                        "title": "1 ступень",
+                        "name": "1 ст.",
+                        "ru": "",
+                        "iec": "",
+                        "iec_name": "",
+                        "LNclass": "",
+                        "inputs": [
+                            {
+                                "id": "in1",
+                                "name": "A1",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "analog_process_level"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "out1",
+                                "name": "Срабатывание",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "discrete_process_level"
+                            },
+                            {
+                                "id": "out2",
+                                "name": "Пуск",
+                                "description": "",
+                                "iec_name": "Str",
+                                "type": "discrete_process_level"
+                            }
+                        ],
+                        "settings": [
+                            {
+                                "name": "Tср",
+                                "min_value": "",
+                                "max_value": "",
+                                "step": "",
+                                "unit": "с",
+                                "default_value": "0",
+                                "description": "Время срабатывания"
+                            },
+                            {
+                                "name": "Iср",
+                                "min_value": "",
+                                "max_value": "",
+                                "step": "",
+                                "unit": "А",
+                                "default_value": "0",
+                                "description": "Ток срабатывания"
+                            }
+                        ],
+                        "parameters": []
+                    },
+                    {
+                        "kind": "CUSTOM",
+                        "title": "2 ступень",
+                        "name": "2 ст.",
+                        "ru": "",
+                        "iec": "",
+                        "iec_name": "",
+                        "LNclass": "",
+                        "inputs": [
+                            {
+                                "id": "in1",
+                                "name": "A1",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "analog_process_level"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "out1",
+                                "name": "Срабатывание",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "discrete_process_level"
+                            }
+                        ],
+                        "settings": [],
+                        "parameters": []
+                    }
+                ],
+                "isMainFunction": true,
+                "isInITS": true,
+                "iec_name": "",
+                "russian_path": "",
+                "corp_prof_name": ""
+            }
         }
     ],
     "connections": [],
     "logic_links": [
         {
             "from": "LOe4a3#fn0_in0",
-            "to": "LO475d#p6",
+            "to": "LO475d#p24",
             "kind": "analog",
             "id": "1",
             "number": "9115",
@@ -348,11 +455,25 @@
             "continuation": "2",
             "number": "1011",
             "ru": "Срабатывание",
-            "arrow": false
+            "arrow": false,
+            "label_offset": [
+                0.7,
+                -23.4
+            ],
+            "mark_offsets": {
+                "end": [
+                    76.5,
+                    -18.0
+                ],
+                "start": [
+                    -36.1,
+                    -17.4
+                ]
+            }
         },
         {
             "from": "LO1219#stub",
-            "to": "LO475d#p3",
+            "to": "LO475d#p21",
             "kind": "analog",
             "id": "4",
             "continuation": "1",
@@ -376,7 +497,7 @@
         },
         {
             "from": "LOe4a3#fn1_in0",
-            "to": "LO475d#p10",
+            "to": "LO475d#p28",
             "kind": "analog",
             "id": "5",
             "continuation": "1",
@@ -400,7 +521,7 @@
         },
         {
             "from": "LObadf#stub",
-            "to": "LO475d#p6",
+            "to": "LO475d#p24",
             "kind": "analog",
             "id": "6",
             "number": "9101",
@@ -423,7 +544,7 @@
         },
         {
             "from": "LOb0f1#stub",
-            "to": "LO475d#p9",
+            "to": "LO475d#p27",
             "kind": "analog",
             "id": "7",
             "number": "9102",
@@ -446,7 +567,7 @@
         },
         {
             "from": "LO51fe#fn0_in0",
-            "to": "LO475d#p18",
+            "to": "LO475d#p36",
             "kind": "analog",
             "id": "8",
             "continuation": "6",
@@ -470,7 +591,7 @@
         },
         {
             "from": "LO51fe#fn0_in1",
-            "to": "LO475d#p19",
+            "to": "LO475d#p37",
             "kind": "analog",
             "id": "9",
             "continuation": "7",
@@ -499,7 +620,21 @@
             "id": "10",
             "number": "1021",
             "ru": "Срабатывание",
-            "arrow": false
+            "arrow": false,
+            "label_offset": [
+                1.0,
+                -24.0
+            ],
+            "mark_offsets": {
+                "end": [
+                    69.5,
+                    -16.9
+                ],
+                "start": [
+                    -34.2,
+                    -17.9
+                ]
+            }
         },
         {
             "from": "LOa71a#left",
@@ -510,11 +645,34 @@
             "number": "1021",
             "ru": "Срабатывание",
             "arrow": false
+        },
+        {
+            "from": "LO51fe#fn1_out0",
+            "to": "LO8220#p22",
+            "kind": "internal",
+            "id": "12",
+            "number": "1022",
+            "ru": "Срабатывание",
+            "arrow": false,
+            "label_offset": [
+                3.1,
+                -19.9
+            ],
+            "mark_offsets": {
+                "start": [
+                    -31.7,
+                    -19.4
+                ],
+                "end": [
+                    70.5,
+                    -16.9
+                ]
+            }
         }
     ],
     "view": {
-        "zoom": 1.4929,
-        "offset_x": 159.85,
-        "offset_y": 86.01
+        "zoom": 0.8208,
+        "offset_x": 494.04,
+        "offset_y": 245.46
     }
 }
