@@ -881,12 +881,19 @@ class LogicFunction(LogicComponent):
                                 outline="black", width=lw)
         symbol, kind_name = FUNCTION_KINDS.get(self.kind,
                                                FUNCTION_KINDS["CUSTOM"])
-        cx, cy = self.world_to_screen(x1 + 28, (y1 + y2) / 2.0)
+        # Символ ставим правее подписей входов, чтобы не накладывался
+        # на них, но не дальше правого края рамки.
+        inputs = self._input_slots()
+        labels_right = max([6.0 + _text_width(
+            slot_label(slot, "in%d" % index), 6)
+            for index, slot in enumerate(inputs)] or [0.0])
+        cx, cy = self.world_to_screen(
+            min(max(x1 + 40, x1 + labels_right + 8), x2 - 16),
+            (y1 + y2) / 2.0)
         canvas.create_text(cx, cy, text=symbol,
                            font=("Arial", _font_size(zoom, 14), "bold"),
                            fill="black")
 
-        inputs = self._input_slots()
         for index, (slot, point) in enumerate(zip(
                 inputs, self._slot_points(x1, y1, y2, len(inputs)))):
             sx, sy = self.world_to_screen(*point)
@@ -1105,12 +1112,19 @@ class LogicBlock(LogicComponent):
                                 outline="#444444", width=lw)
         kind = (function.get("kind") or "AND").upper()
         symbol, kind_name = FUNCTION_KINDS.get(kind, FUNCTION_KINDS["CUSTOM"])
-        canvas.create_text(sx1 + 14 * zoom, (sy1 + sy2) / 2.0,
+        inputs = function.get("inputs") or []
+        # Символ ставим правее подписей входов, чтобы не накладывался
+        # на них, но не дальше правого края функции.
+        labels_right = max([5.0 + _text_width(
+            slot_label(slot, "in%d" % index), 6)
+            for index, slot in enumerate(inputs)] or [0.0])
+        symbol_x = min(max(30.0, labels_right + 8.0),
+                       (fx2 - fx1) - 16.0)
+        canvas.create_text(sx1 + symbol_x * zoom, (sy1 + sy2) / 2.0,
                            text=symbol,
                            font=("Arial", _font_size(zoom, 13), "bold"),
                            fill="black")
 
-        inputs = function.get("inputs") or []
         for index, (slot, point) in enumerate(zip(
                 inputs, self._function_slot_points(fx1, py, height,
                                                    len(inputs)))):
