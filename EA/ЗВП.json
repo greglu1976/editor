@@ -1,191 +1,361 @@
 {
-  "elements": [
-    {
-      "id": "LOe4a3",
-      "type": "logic_block",
-      "name": "Б2",
-      "x": 640,
-      "y": 250,
-      "label": [
-        1.4,
-        -7.0
-      ],
-      "logic": {
-        "title": "Защита от внутренних повреждений",
-        "designation": "ЗВП",
-        "width": 360,
-        "functions": [
-          {
-            "kind": "CUSTOM",
-            "title": "Сигнальная ступень",
-            "name": "",
-            "ru": "",
-            "iec": "",
-            "iec_name": "",
-            "LNclass": "",
-            "inputs": [
-              {
-                "id": "in1",
-                "name": "A1",
-                "description": "",
+    "elements": [
+        {
+            "id": "LOe4a3",
+            "type": "logic_block",
+            "name": "Б2",
+            "x": 720,
+            "y": 250,
+            "label": [
+                1.4,
+                -7.0
+            ],
+            "logic": {
+                "title": "Защита от внутренних повреждений",
+                "designation": "ЗВП",
+                "width": 360,
+                "functions": [
+                    {
+                        "kind": "CUSTOM",
+                        "title": "Сигнальная ступень",
+                        "name": "Сигнальная ступень",
+                        "ru": "",
+                        "iec": "",
+                        "iec_name": "",
+                        "LNclass": "",
+                        "inputs": [
+                            {
+                                "id": "in1",
+                                "name": "A1",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "analog_process_level"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "out1",
+                                "name": "Срабатывание",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "discrete_process_level"
+                            },
+                            {
+                                "id": "out2",
+                                "name": "Пуск",
+                                "description": "",
+                                "iec_name": "Str",
+                                "type": "discrete_process_level"
+                            }
+                        ],
+                        "settings": [
+                            {
+                                "name": "Tср",
+                                "min_value": "",
+                                "max_value": "",
+                                "step": "",
+                                "unit": "с",
+                                "default_value": "0",
+                                "description": "Время срабатывания"
+                            },
+                            {
+                                "name": "Iср",
+                                "min_value": "",
+                                "max_value": "",
+                                "step": "",
+                                "unit": "А",
+                                "default_value": "0",
+                                "description": "Ток срабатывания"
+                            }
+                        ],
+                        "parameters": []
+                    },
+                    {
+                        "kind": "CUSTOM",
+                        "title": "Отключающая ступень",
+                        "name": "",
+                        "ru": "",
+                        "iec": "",
+                        "iec_name": "",
+                        "LNclass": "",
+                        "inputs": [
+                            {
+                                "id": "in1",
+                                "name": "A1",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "analog_process_level"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "out1",
+                                "name": "Срабатывание",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "discrete_process_level"
+                            }
+                        ],
+                        "settings": [],
+                        "parameters": []
+                    }
+                ],
+                "isMainFunction": true,
+                "isInITS": true,
                 "iec_name": "",
-                "type": "analog_process_level"
-              }
-            ],
-            "outputs": [
-              {
-                "id": "out1",
-                "name": "Срабатывание",
+                "russian_path": "",
+                "corp_prof_name": ""
+            }
+        },
+        {
+            "id": "LO475d",
+            "type": "logic_bus",
+            "name": "Ш1",
+            "x": 240,
+            "y": 340,
+            "rotation": 0,
+            "logic": {
+                "length": 480.0,
+                "title": "",
                 "description": "",
-                "iec_name": "",
-                "type": "discrete_process_level"
-              }
-            ],
-            "settings": [
-              {
-                "name": "Tср",
-                "min_value": "",
-                "max_value": "",
-                "step": "",
-                "unit": "с",
-                "default_value": "0",
-                "description": "Время срабатывания"
-              },
-              {
-                "name": "Iср",
-                "min_value": "",
-                "max_value": "",
-                "step": "",
-                "unit": "А",
-                "default_value": "0",
-                "description": "Ток срабатывания"
-              }
-            ],
-            "parameters": []
-          },
-          {
-            "kind": "CUSTOM",
-            "title": "Отключающая ступень",
-            "name": "",
-            "ru": "",
-            "iec": "",
-            "iec_name": "",
-            "LNclass": "",
-            "inputs": [
-              {
-                "id": "in1",
-                "name": "A1",
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": "",
+                "color": "#00acc1",
+                "rotation": 0
+            }
+        },
+        {
+            "id": "LO8220",
+            "type": "logic_bus",
+            "name": "Ш2",
+            "x": 1080,
+            "y": 340,
+            "rotation": 0,
+            "logic": {
+                "length": 480.0,
+                "title": "",
                 "description": "",
-                "iec_name": "",
-                "type": "analog_process_level"
-              }
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": "",
+                "color": "#00acc1",
+                "rotation": 0
+            }
+        },
+        {
+            "id": "LOcb4a",
+            "type": "logic_led",
+            "name": "HL1",
+            "x": 1400,
+            "y": 180,
+            "logic": {
+                "title": "Светодиод",
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": ""
+            }
+        },
+        {
+            "id": "LO1219",
+            "type": "logic_port_in",
+            "name": "X1",
+            "x": -30,
+            "y": 160,
+            "label": [
+                -2.1,
+                9.4
             ],
-            "outputs": [
-              {
-                "id": "out1",
-                "name": "Срабатывание",
-                "description": "",
+            "logic": {
+                "title": "Входной порт",
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": ""
+            }
+        },
+        {
+            "id": "LO51fe",
+            "type": "logic_block",
+            "name": "Б3",
+            "x": 720,
+            "y": 480,
+            "logic": {
+                "title": "Защита от перегрузки токами высших гармоник",
+                "designation": "ЗПВГ",
+                "width": 360,
+                "functions": [
+                    {
+                        "kind": "CUSTOM",
+                        "title": "Сигнальная ступень",
+                        "name": "",
+                        "ru": "",
+                        "iec": "",
+                        "iec_name": "",
+                        "LNclass": "",
+                        "inputs": [
+                            {
+                                "id": "in1",
+                                "name": "A1",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "analog_process_level"
+                            },
+                            {
+                                "id": "in2",
+                                "name": "A2",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "analog_process_level"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "out1",
+                                "name": "Срабатывание",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "discrete_process_level"
+                            }
+                        ],
+                        "settings": [],
+                        "parameters": []
+                    }
+                ],
+                "isMainFunction": false,
+                "isInITS": false,
                 "iec_name": "",
-                "type": "discrete_process_level"
-              }
+                "russian_path": "",
+                "corp_prof_name": ""
+            }
+        },
+        {
+            "id": "LObadf",
+            "type": "logic_port_in",
+            "name": "X2",
+            "x": -30,
+            "y": 220,
+            "label": [
+                -1.7,
+                9.4
             ],
-            "settings": [],
-            "parameters": []
-          }
-        ],
-        "isMainFunction": true,
-        "isInITS": true,
-        "iec_name": "",
-        "russian_path": "",
-        "corp_prof_name": ""
-      }
-    },
-    {
-      "id": "LO475d",
-      "type": "logic_bus",
-      "name": "Ш1",
-      "x": 240,
-      "y": 340,
-      "rotation": 0,
-      "logic": {
-        "length": 480,
-        "title": "Шина",
-        "description": "",
-        "signal_ru": "",
-        "signal_iec": "",
-        "signal_no": "",
-        "color": "#00acc1",
-        "rotation": 0
-      }
-    },
-    {
-      "id": "LO8220",
-      "type": "logic_bus",
-      "name": "Ш2",
-      "x": 1030,
-      "y": 340,
-      "rotation": 0,
-      "logic": {
-        "length": 480,
-        "title": "Шина",
-        "description": "",
-        "signal_ru": "",
-        "signal_iec": "",
-        "signal_no": "",
-        "color": "#00acc1",
-        "rotation": 0
-      }
-    },
-    {
-      "id": "LOcb4a",
-      "type": "logic_led",
-      "name": "HL1",
-      "x": 1260,
-      "y": 180,
-      "logic": {
-        "title": "Светодиод",
-        "signal_ru": "",
-        "signal_iec": "",
-        "signal_no": ""
-      }
+            "logic": {
+                "title": "Входной порт",
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": ""
+            }
+        },
+        {
+            "id": "LOb0f1",
+            "type": "logic_port_in",
+            "name": "X3",
+            "x": -30,
+            "y": 280,
+            "label": [
+                -0.7,
+                7.3
+            ],
+            "logic": {
+                "title": "Входной порт",
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": ""
+            }
+        }
+    ],
+    "connections": [],
+    "logic_links": [
+        {
+            "from": "LOe4a3#fn0_in0",
+            "to": "LO475d#p6",
+            "kind": "analog",
+            "id": "1",
+            "number": "9115",
+            "ru": "Токи Ia, Ib, Ic средней перемычки",
+            "arrow": false
+        },
+        {
+            "from": "LOcb4a#left",
+            "to": "LO8220#p4",
+            "kind": "internal",
+            "id": "2",
+            "continuation": "2",
+            "number": "1011",
+            "ru": "Срабатывание",
+            "arrow": false
+        },
+        {
+            "from": "LOe4a3#fn0_out0",
+            "to": "LO8220#p6",
+            "kind": "internal",
+            "id": "3",
+            "continuation": "2",
+            "number": "1011",
+            "ru": "Срабатывание",
+            "arrow": false
+        },
+        {
+            "from": "LO1219#stub",
+            "to": "LO475d#p3",
+            "kind": "analog",
+            "id": "4",
+            "continuation": "1",
+            "number": "9115",
+            "ru": "Токи Ia, Ib, Ic средней перемычки",
+            "arrow": false
+        },
+        {
+            "from": "LOe4a3#fn1_in0",
+            "to": "LO475d#p10",
+            "kind": "analog",
+            "id": "5",
+            "continuation": "1",
+            "number": "9115",
+            "ru": "Токи Ia, Ib, Ic средней перемычки",
+            "arrow": false
+        },
+        {
+            "from": "LObadf#stub",
+            "to": "LO475d#p6",
+            "kind": "analog",
+            "id": "6",
+            "number": "9101",
+            "ru": "Токи Ia, Ib, Ic ВН",
+            "arrow": false
+        },
+        {
+            "from": "LOb0f1#stub",
+            "to": "LO475d#p9",
+            "kind": "analog",
+            "id": "7",
+            "number": "9102",
+            "ru": "Токи Ia, Ib, Ic ОВ",
+            "arrow": false
+        },
+        {
+            "from": "LO51fe#fn0_in0",
+            "to": "LO475d#p18",
+            "kind": "analog",
+            "id": "8",
+            "continuation": "6",
+            "number": "9101",
+            "ru": "Токи Ia, Ib, Ic ВН",
+            "arrow": false
+        },
+        {
+            "from": "LO51fe#fn0_in1",
+            "to": "LO475d#p19",
+            "kind": "analog",
+            "id": "9",
+            "continuation": "7",
+            "number": "9102",
+            "ru": "Токи Ia, Ib, Ic ОВ",
+            "arrow": false
+        }
+    ],
+    "view": {
+        "zoom": 1.5492,
+        "offset_x": 631.94,
+        "offset_y": 24.5
     }
-  ],
-  "connections": [],
-  "logic_links": [
-    {
-      "from": "LOe4a3#fn0_in0",
-      "to": "LO475d#p6",
-      "kind": "analog",
-      "id": "1",
-      "number": "9115",
-      "ru": "Токи Ia, Ib, Ic средней перемычки",
-      "arrow": false
-    },
-    {
-      "from": "LOe4a3#fn0_out0",
-      "to": "LO8220#p6",
-      "kind": "internal",
-      "id": "2",
-      "number": "1011",
-      "ru": "Срабатывание",
-      "arrow": false
-    },
-    {
-      "from": "LOcb4a#left",
-      "to": "LO8220#p4",
-      "kind": "internal",
-      "id": "2",
-      "number": "1011",
-      "arrow": false
-    }
-  ],
-  "view": {
-    "zoom": 1.9152,
-    "offset_x": -290.3,
-    "offset_y": 73.36
-  },
-  "name": "",
-  "code": "",
-  "property": "",
-  "date": ""
 }
