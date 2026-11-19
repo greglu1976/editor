@@ -11,14 +11,14 @@
 2. вертикальную шину: отводы через клетку, изменение длины;
 3. связи: тип, цвет, номер, русское и МЭК наименование;
 4. свойства связи и присваивание следующего номера;
-5. функциональный блок: входы, строки сигналов, вложенные логические узлы;
+5. функциональный блок как контейнер: функции со входами слева и выходами справа;
 6. изломы связи: вставка, удаление, перетаскивание;
 7. сохранение и загрузку JSON (элементы + связи);
 8. копирование/вставку с новыми номерами;
 9. отрисовку и экспорт в сцену PDF/PNG;
 10. удаление элемента вместе с его связями;
 11. диалог связи: введённый номер и тип не теряются после закрытия окна;
-12. окно функционального блока: таблицы входов/сигналов/узлов сохраняются;
+12. окно функционального блока: таблица функций сохраняется;
 13. вставка блока с палитры сразу открывает окно свойств;
 14. смену типа выбранной связи из ленты и отмену;
 15. легенду типов связей на полотне;
@@ -117,22 +117,27 @@ def test_payload():
     print("2. поля элементов и сериализация модели")
     block = ll.LogicBlock("B1", 0, 0)
     block.title = "Управление В"
-    block.inputs = ["D01", "A01"]
-    block.rows = [{"dir": "out", "ru": "Состояние", "iec": "State"}]
-    block.functions = [{"kind": "OR", "title": "Пуск", "inputs": 2}]
+    block.functions = [{"kind": "OR", "title": "Пуск",
+                        "inputs": [{"name": "D01"}, {"name": "D02"}],
+                        "outputs": [{"name": "Пуск"}]}]
     payload = ll.element_payload(block)
     check(payload["title"] == "Управление В"
-          and payload["inputs"] == ["D01", "A01"]
-          and payload["rows"][0]["ru"] == "Состояние"
-          and payload["functions"][0]["kind"] == "OR",
-          "поля блока попадают в JSON")
+          and payload["functions"][0]["kind"] == "OR"
+          and len(payload["functions"][0]["inputs"]) == 2
+          and len(payload["functions"][0]["outputs"]) == 1,
+          "поля блока и слоты функций попадают в JSON")
+    check("inputs" not in payload and "rows" not in payload,
+          "у блока нет собственных входов и строк сигналов")
 
     restored = ll.LogicBlock("B2", 0, 0)
     ll.restore_element(restored, payload)
-    check(restored.title == block.title and restored.inputs == block.inputs,
+    check(restored.title == block.title
+          and restored.functions[0]["kind"] == "OR",
           "поля блока читаются обратно")
-    check("in0" in restored.ports and "out0" in restored.ports,
-          "после восстановления выводы пересчитаны")
+    check("fn0_in0" in restored.ports and "fn0_out0" in restored.ports
+          and not any(name.startswith(("in", "out"))
+                      for name in restored.ports),
+          "после восстановления порты только у слотов функций")
 
     bus = ll.LogicBus("S1", 0, 0)
     bus.length = 300
@@ -293,39 +298,36 @@ def test_link_geometry(app):
 
 
 def test_block(app):
-    print("7. функциональный блок и логические узлы")
+    print("7. функциональный блок — контейнер, входы/выходы на функциях")
     _reset(app)
     block = app.elements[_add(app, "logic_block", 500, 300)]
-    block.inputs = ["A01", "D01", "C01"]
-    block.rows = [
-        {"dir": "out", "ru": "Состояние", "iec": "State"},
-        {"dir": "out", "ru": "Индикация исправности", "iec": "Health"},
-        {"dir": "in", "ru": "Пуск", "iec": "Start"},
-    ]
     block.functions = [
         {"kind": "AND", "title": "Логика пуска", "ru": "Пуск",
-         "iec": "Start", "inputs": 3},
+         "iec": "Start", "inputs": 3, "outputs": 1},
         {"kind": "TIMER", "title": "Задержка", "ru": "Выдержка",
-         "iec": "Delay", "inputs": 1},
+         "iec": "Delay", "inputs": 1, "outputs": 1},
     ]
     block.generate_ports()
-    inputs = [name for name in block.ports if name.startswith("in")]
-    outputs = [name for name in block.ports if name.startswith("out")]
-    check(len(inputs) == 3, "три входа блока")
-    check(len(outputs) == 4, "выходы строк (2) и узлов (2)")
+    check(not any(name.startswith(("in", "out"))
+                  for name in block.ports),
+          "у блока нет собственных входов и выходов")
+    inputs = [name for name in block.ports if "_in" in name]
+    outputs = [name for name in block.ports if "_out" in name]
+    check(len(inputs) == 4, "четыре входа функций")
+    check(len(outputs) == 2, "два выхода функций")
     check(all("node_id" in port for port in block.ports.values()),
-          "у выводов есть идентификаторы узлов")
+          "у портов есть идентификаторы узлов")
 
     app.redraw_all()
     texts = [app.canvas.itemcget(item, "text")
              for item in app.canvas.find_all()
              if app.canvas.type(item) == "text"]
     joined = "\n".join(texts)
-    check("Состояние" in joined and "State" in joined,
-          "сигнал блока виден по-русски и по МЭК")
     check("Логика пуска" in joined and "&" in joined,
-          "вложенный узел И нарисован")
-    check("Выдержка" in joined, "вложенный узел с сигналом нарисован")
+          "вложенная функция И нарисована")
+    check("Выдержка" in joined, "вложенная функция с сигналом нарисована")
+    check("Пуск" in joined and "Start" in joined,
+          "сигнал функции виден по-русски и по МЭК")
 
 
 def test_round_trip(app):
@@ -335,10 +337,8 @@ def test_round_trip(app):
     key = app.elements[_add(app, "logic_key", 350, 300)]
     block = app.elements[_add(app, "logic_block", 600, 300)]
     block.title = "Управление В"
-    block.inputs = ["D01", "D02"]
-    block.rows = [{"dir": "out", "ru": "Срабатывание", "iec": "Trip"}]
     block.functions = [{"kind": "OR", "title": "Пуск", "ru": "Пуск",
-                        "iec": "Start", "inputs": 2}]
+                        "iec": "Start", "inputs": 2, "outputs": 1}]
     block.generate_ports()
     link = app._add_logic_link((bus.id, "p3"), (key.id, "left"))
     link["kind"] = "control"
@@ -516,32 +516,27 @@ def test_block_dialog(app, root):
         entries[0].delete(0, tk.END)
         entries[0].insert(0, "Управление В")
         trees = _find(dialog, "Treeview")
-        if len(trees) < 3:
+        if not trees:
             return
-        inputs, rows, functions = trees[0], trees[1], trees[2]
-        inputs.delete(*inputs.get_children())
-        inputs.insert("", "end", values=("A01", "аналоговый"))
-        inputs.insert("", "end", values=("D01", "дискретный"))
-        rows.delete(*rows.get_children())
-        rows.insert("", "end", values=("выход", "Срабатывание", "Trip"))
+        functions = trees[0]
         functions.delete(*functions.get_children())
         functions.insert("", "end",
-                         values=("И", "Пуск", "2", "Пуск (Start)",
+                         values=("И", "Пуск", "2", "1", "Пуск (Start)",
                                  "AND", "Пуск", "Start"))
         _click(dialog, "Сохранить")
 
     _dialog_action(root, fill)
     app.edit_logic_block(block)
     check(block.title == "Управление В", "название блока сохранено")
-    check(block.inputs == ["A01", "D01"], "входы сохранены")
-    check(bool(block.rows) and block.rows[0]["ru"] == "Срабатывание"
-          and block.rows[0]["dir"] == "out", "сигнал блока сохранён")
     check(bool(block.functions) and block.functions[0]["kind"] == "AND"
           and block.functions[0]["ru"] == "Пуск",
-          "логический узел сохранён")
+          "функция сохранена")
+    check(len(block.functions[0]["inputs"]) == 2
+          and len(block.functions[0]["outputs"]) == 1,
+          "входы и выходы функции сохранены")
     check(sorted(block.ports) == [
-        "fn0_in0", "fn0_in1", "fn0_out0", "in0", "in1", "out0", "out1"],
-        "выводы блока и слоты функции пересчитаны")
+        "fn0_in0", "fn0_in1", "fn0_out0"],
+        "порты только у слотов функции")
     check(app.is_modified is True, "схема помечена изменённой")
 
 
@@ -624,15 +619,14 @@ def test_block_preview(app, root):
         "title": "Управление В",
         "designation": "Б1",
         "width": "420",
-        "inputs": ["A01", "D01"],
-        "rows": [{"dir": "out", "ru": "Срабатывание", "iec": "Trip"}],
         "functions": [{"kind": "AND", "title": "Пуск", "inputs": 2,
-                       "ru": "Пуск", "iec": "Start"}],
+                       "outputs": 1, "ru": "Пуск", "iec": "Start"}],
     }
     app._refresh_block_preview(canvas, snapshot)
     root.update()
     check(len(canvas.find_all()) > 10, "предпросмотр нарисован")
-    snapshot["inputs"] = ["D01"]
+    snapshot["functions"] = snapshot["functions"] + [
+        {"kind": "OR", "title": "Задержка", "inputs": 1, "outputs": 1}]
     app._refresh_block_preview(canvas, snapshot)
     root.update()
     check(len(canvas.find_all()) > 10,
@@ -640,45 +634,12 @@ def test_block_preview(app, root):
     canvas.destroy()
 
 
-def test_block_input_dialog(app, root):
-    print("19. диалог кода входа блока")
-    def fill(dialog):
-        entries = _find(dialog, "Entry")
-        if entries:
-            entries[0].insert(0, "A05")
-        _click(dialog, "ОК")
-
-    _dialog_action(root, fill)
-    code = app._ask_block_input(None)
-    check(code == "A05", "код входа возвращается из диалога")
-
-
-def test_block_signal_dialog(app, root):
-    print("20. диалог сигнала блока")
-    def fill(dialog):
-        combos = _find(dialog, "TCombobox")
-        if combos:
-            combos[0].current(1)          # «вход»
-        entries = _find(dialog, "Entry")
-        if len(entries) >= 2:
-            entries[0].insert(0, "Блокировка")
-            entries[1].insert(0, "Block")
-        _click(dialog, "ОК")
-
-    _dialog_action(root, fill)
-    data = app._edit_block_signal({"dir": "out"}, None)
-    check(bool(data) and data["dir"] == "in", "направление сохранено")
-    check(bool(data) and data["ru"] == "Блокировка"
-          and data["iec"] == "Block", "наименования сохранены")
-
-
 def test_block_grid(app):
-    print("21. сетка выводов блока и узлы от верхней кромки")
+    print("19. сетка и стороны портов функций")
     _reset(app)
     block = app.elements[_add(app, "logic_block", 500, 300)]
-    block.inputs = ["D01", "D02", "D03"]
-    block.rows = [{"dir": "out", "ru": "Состояние", "iec": "State"}]
-    block.functions = [{"kind": "AND", "title": "Пуск", "inputs": 2}]
+    block.functions = [{"kind": "AND", "title": "Пуск", "inputs": 2,
+                        "outputs": 1}]
     block.generate_ports()
     layout = block._layout()
     cell = ll.CELL
@@ -687,30 +648,24 @@ def test_block_grid(app):
           "кромки блока на сетке")
     check(all(port["x"] % cell == 0 and port["y"] % cell == 0
               for port in block.ports.values()),
-          "все выводы блока на сетке")
+          "все порты на сетке")
+    check(all(block.ports[name]["x"] == layout["fx1"]
+              for name in ("fn0_in0", "fn0_in1")),
+          "входы_functions слева от функции")
+    check(block.ports["fn0_out0"]["x"] == layout["fx2"],
+          "выход функции справа от функции")
 
-    inputs = [block.ports["in{}".format(index)]["y"] for index in range(3)]
-    check(inputs == [layout["y1"] + 60, layout["y1"] + 80,
-                     layout["y1"] + 100],
-          "входы идут по клетке от верхней кромки")
-
-    function_y = block.ports["out1"]["y"]
-    check(function_y - layout["y1"] == 100,
-          "первый узел начинается от верхней кромки")
-    check(block.ports["out0"]["y"] - layout["y1"] == 160,
-          "строки сигналов идут после узлов")
-
-    block.inputs = ["D01", "D02", "D03", "D04", "D05", "D06"]
+    first_offset = block.ports["fn0_in0"]["y"] - layout["y1"]
+    block.functions = block.functions + [
+        {"kind": "OR", "title": "Задержка", "inputs": 1, "outputs": 1}]
     block.generate_ports()
     grown = block._layout()
-    check(block.ports["out1"]["y"] == function_y,
-          "добавление дискретных входов не сдвигает узлы")
-    check(grown["y1"] == layout["y1"], "верх блока остаётся на месте")
+    check(block.ports["fn0_in0"]["y"] - grown["y1"] == first_offset,
+          "добавление функции не сдвигает предыдущую относительно верха")
     check(grown["height"] > layout["height"],
-          "блок растёт только вниз под новые входы")
-    check(grown["y2"] > layout["y2"], "нижняя кромка уходит вниз")
+          "блок растёт вниз под новую функцию")
     check(all(port["y"] % cell == 0 for port in block.ports.values()),
-          "выводы остаются на сетке после роста")
+          "порты остаются на сетке после роста")
 
 
 def run_gui():
@@ -742,8 +697,6 @@ def run_gui():
         test_legend(app)
         test_renumber(app)
         test_block_preview(app, root)
-        test_block_input_dialog(app, root)
-        test_block_signal_dialog(app, root)
         test_block_grid(app)
     finally:
         root.destroy()

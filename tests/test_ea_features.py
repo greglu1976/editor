@@ -13,7 +13,9 @@
 4. архив неиспользуемых файлов старой ветки;
 5. кнопки и узлы окна «СТО (EA)…»;
 6. редактирование таблиц (``ea_edit``) и окно редактора (``ea_editor``);
-7. добавление/удаление узлов стандарта (``ea_structure``).
+7. добавление/удаление узлов стандарта (``ea_structure``);
+8. схему ФЛС в составе ИЭУ: поле ``IED.scheme``, генерацию из функций,
+   рендер в PNG и вставку в DOCX (``logic_scheme_render``).
 """
 
 from __future__ import annotations
@@ -1126,7 +1128,8 @@ def test_structure_ops(data):
     ied = st.new_ied(clone, kit)
     st.add(kit["ieds"], ied)
     check(isinstance(kit["number"], int) and isinstance(ied["number"], int)
-          and len(ied) == 11,
+          and ied.get("description") == "" and ied.get("scheme") == ""
+          and len(ied) == 13,
           "комплект и ИЭУ созданы с числовыми номерами и наборами данных")
 
     st.remove(sub["tables"], table)
@@ -1416,6 +1419,167 @@ def test_editor_fields():
         root.destroy()
 
 
+# ---------------------------------------------------------------------------
+# 16. Схема ФЛС в составе ИЭУ
+# ---------------------------------------------------------------------------
+def test_ied_scheme(data):
+    """Поле IED.scheme, рендер схемы и вставка в DOCX."""
+    print("16. схема ФЛС в составе ИЭУ")
+    import zipfile
+
+    import logic_scheme_render as lsr
+    import ea_structure as st
+
+    check(sc_missing("IED", "scheme") is False,
+          "поле IED.scheme есть в схеме structure2")
+    fresh = st.new_ied(data, {"ieds": []})
+    check(fresh.get("scheme") == "", "новое ИЭУ создаётся с полем scheme")
+
+    cabinet = es.cabinets(data)[0]
+    kit = next(k for k in cabinet.get("kits") or [] if k.get("ieds"))
+    ied = kit["ieds"][0]
+
+    # Генерация схемы из функциональной модели ИЭУ.
+    scheme = lsr.scheme_from_ied(ied)
+    blocks = [el for el in scheme["elements"]
+              if el["type"] == "logic_block"]
+    check(len(blocks) == len(ied.get("function_blocks") or []),
+          "блоки схемы соответствуют блокам функций ИЭУ")
+    if blocks and (ied.get("function_blocks") or []):
+        functions = blocks[0]["logic"]["functions"]
+        check(bool(functions)
+              and len(functions)
+              == len(ied["function_blocks"][0].get("functions") or []),
+              "функции блока перенесены в схему")
+
+    # Рендер схемы в PNG.
+    folder = tempfile.mkdtemp()
+    scheme_path = os.path.join(folder, "scheme.json")
+    with open(scheme_path, "w", encoding="utf-8") as handle:
+        import json
+        json.dump(scheme, handle, ensure_ascii=False)
+    image_path = os.path.join(folder, "scheme.png")
+    try:
+        width, height = lsr.export_png_file(scheme_path, image_path)
+        check(width > 0 and height > 0 and os.path.getsize(image_path) > 0,
+              "схема рендерится в PNG (%dx%d)" % (width, height))
+
+        # DOCX: рисунок со схемой вставляется картинкой.
+        clone = es.load(REFERENCE)
+        figure = _first_figure(clone)
+        check(figure is not None, "в стандарте есть рисунки")
+        figure["scheme"] = scheme_path
+        out = os.path.join(folder, "doc.docx")
+        ea_docx.build(clone, out, toc=False)
+        with zipfile.ZipFile(out) as archive:
+            media = [name for name in archive.namelist()
+                     if name.startswith("word/media/")
+                     and name.endswith(".png")]
+        check(bool(media), "DOCX содержит вставленную схему (PNG)")
+
+        # Миграция: поле scheme появляется у ИЭУ и рисунков.
+        sample = {"cabinets": [{"kits": [{"ieds": [{}]}]}],
+                  "sections": [{"figures": []}]}
+        import ea_schema as sc2
+        sc2.normalize_document(sample)
+        ied2 = sample["cabinets"][0]["kits"][0]["ieds"][0]
+        check("scheme" in ied2, "миграция добавляет IED.scheme")
+    finally:
+        import shutil
+        shutil.rmtree(folder, ignore_errors=True)
+
+    # GUI: панель ИЭУ с файлом схемы, предпросмотром и применением.
+    if tk is None:
+        print("  --   tkinter нет: панель ИЭУ не проверяется")
+        return
+    try:
+        import ea_editor
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        print("  --   окно не открыть: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    window = None
+    try:
+        window = ea_editor.show(path, root)
+        root.update()
+        ied_iid = next(iid for iid, node in window._nodes.items()
+                       if node[0] == "ied")
+        window.tree.selection_set(ied_iid)
+        root.update()
+        ied = window._panel_item
+        check("scheme" in window.vars, "панель ИЭУ содержит поле схемы")
+
+        code = window._ied_cabinet_code()
+        check(code == str(cabinet.get("cypher") or ""),
+              "шифр шкафа для имени файла схемы найден: %s" % code)
+
+        # Файл схемы (абсолютный путь) и предпросмотр.
+        scheme_path = os.path.join(folder, "ied-scheme.json")
+        with open(scheme_path, "w", encoding="utf-8") as handle:
+            import json
+            json.dump(lsr.scheme_from_ied(ied), handle,
+                      ensure_ascii=False)
+        window.vars["scheme"].set(scheme_path)
+        window._apply_pending()
+        root.update()
+        window._ied_scheme_file = window._ied_scheme_path(
+            window._panel_item)
+        window._refresh_ied_scheme_preview()
+        root.update()
+        check(window._ied_scheme_file == scheme_path,
+              "файл схемы найден по полю ИЭУ")
+        check(len(window._scheme_preview.find_all()) > 0,
+              "предпросмотр схемы нарисован")
+        check(ied.get("scheme") == scheme_path,
+              "файл схемы сохраняется в ИЭУ")
+
+        # Убрать схему.
+        window._clear_ied_scheme()
+        window._apply_pending()
+        root.update()
+        check(ied.get("scheme") == "", "схема убирается из ИЭУ")
+
+        # Панель рисунка тоже работает со схемой.
+        figure_iid = next(iid for iid, node in window._nodes.items()
+                          if node[0] == "figure")
+        window.tree.selection_set(figure_iid)
+        root.update()
+        check("scheme" in window.vars, "панель рисунка содержит поле схемы")
+        figure = window._panel_item
+        window.vars["scheme"].set(scheme_path)
+        window._apply_pending()
+        root.update()
+        check(figure.get("scheme") == scheme_path,
+              "файл схемы сохраняется в рисунке")
+    finally:
+        if window is not None:
+            window.destroy()
+        root.destroy()
+        import shutil
+        shutil.rmtree(folder, ignore_errors=True)
+
+
+def sc_missing(cls, key):
+    """Есть ли поле ``key`` у класса ``cls`` в схеме structure2?"""
+    import ea_schema as sc
+    return key not in [name for name, _t, _v in sc.fields(cls)]
+
+
+def _first_figure(data):
+    """Первый рисунок стандарта (обход разделов и подразделов)."""
+    for section in data.get("sections") or []:
+        for figure in section.get("figures") or []:
+            return figure
+        for sub in section.get("subsections") or []:
+            for figure in sub.get("figures") or []:
+                return figure
+    return None
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
@@ -1434,6 +1598,7 @@ def main(argv=None):
     test_merge_all_cabinets()
     test_typical_transfer()
     test_structure2_schema()
+    test_ied_scheme(data)
     if not args.no_gui:
         test_gui(data)
         test_fields()

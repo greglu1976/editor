@@ -7,8 +7,10 @@
 через :func:`ea_standard.table_view` — ровно то же, что показывает окно
 «СТО (EA)…», поэтому документ и окно не расходятся.
 
-Рисунки в JSON хранят только номер и название (сами изображения остаются в
-исходном документе), поэтому в DOCX выводится подпись рисунка.
+Рисунок, у которого заполнено поле ``scheme`` (файл ФЛС редактора),
+вставляется в документ картинкой: схема рендерится в PNG тем же кодом,
+что и экспорт редактора (:mod:`logic_scheme_render`). Остальные рисунки
+выводятся подписью (сами изображения остаются в исходном документе).
 
 Если в папке стандартов (рядом с JSON или в ``EA/``) лежит ``template.docx``,
 он берётся за основу: сохраняются его стили, колонтитулы и параметры
@@ -26,6 +28,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+import tempfile
 
 import ea_standard as es
 
@@ -283,11 +286,58 @@ def _render_table(doc, data, table, max_rows, counters):
     counters["строки"] += _table(doc, headers, rows, max_rows=max_rows)
 
 
+# ---------------------------------------------------------------------------
+# Рисунки со схемами редактора
+# ---------------------------------------------------------------------------
+#: Максимальная ширина картинки схемы в документе, см (лист А4 альбомный).
+SCHEME_WIDTH_CM = 24.0
+
+
+def _scheme_image(doc, figure):
+    """Вставить картинку схемы ФЛС по полю ``figure["scheme"]``.
+
+    Схема — JSON редактора рядом с файлом стандарта (или абсолютный путь).
+    Рендер — :mod:`logic_scheme_render` (тот же вид, что в редакторе);
+    при любой ошибке картинка пропускается и остаётся подпись рисунка.
+    Возвращает True, если картинка вставлена.
+    """
+    reference = str(figure.get("scheme") or "").strip()
+    if not reference:
+        return False
+    try:
+        import logic_scheme_render as lsr
+    except Exception:                                # pragma: no cover
+        return False
+    path = reference
+    if not os.path.isabs(path):
+        path = os.path.join(es.folder(), reference)
+    if not os.path.isfile(path):
+        return False
+    handle, image_path = tempfile.mkstemp(suffix=".png")
+    os.close(handle)
+    try:
+        lsr.export_png_file(path, image_path)
+        paragraph = doc.add_paragraph()
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = paragraph.add_run()
+        run.add_picture(image_path, width=Cm(SCHEME_WIDTH_CM))
+    except Exception:
+        return False
+    finally:
+        try:
+            os.remove(image_path)
+        except OSError:
+            pass
+    return True
+
+
 def _render_container(doc, data, container, level, max_rows, counters):
     _text_block(doc, container.get("content"))
     for table in container.get("tables") or []:
         _render_table(doc, data, table, max_rows, counters)
     for figure in container.get("figures") or []:
+        # Сначала картинка схемы (если файл задан и читается), затем подпись.
+        _scheme_image(doc, figure)
         paragraph = doc.add_paragraph()
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         _font(paragraph.add_run(

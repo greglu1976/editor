@@ -1465,12 +1465,12 @@ class LogicEditorMixin:
         preview.grid(row=1, column=0, sticky="we", pady=(8, 6))
 
         tk.Label(outer, anchor="w", fg=ui_theme.TEXT_MUTED,
-                 text="Код входа задаёт тип сигнала: A… — аналоговый, "
-                      "D… — дискретный, C… — управляющий. "
-                      "Двойной клик по строке таблицы меняет её."
+                 text="Блок — контейнер: все входы и выходы находятся на "
+                      "функциях. Вход функции — слева, выход — справа; "
+                      "двойной клик по строке меняет функцию."
                  ).grid(row=2, column=0, sticky="we")
 
-        # ---- таблицы: входы, сигналы, логические узлы ----
+        # ---- таблица функций: единственные владельцы входов и выходов ----
         notebook = ttk.Notebook(outer)
         notebook.grid(row=3, column=0, sticky="nsew", pady=(6, 0))
 
@@ -1499,40 +1499,15 @@ class LogicEditorMixin:
             tk.Button(parent, text=text, width=width,
                       command=command).pack(side=tk.LEFT, padx=(0, 4))
 
-        inputs_tab, inputs_tree, inputs_buttons = make_table(
-            notebook, ("code", "type"),
-            ("Код входа", "Тип сигнала"), (170, 240))
-        notebook.add(inputs_tab, text="Входы")
-
-        rows_tab, rows_tree, rows_buttons = make_table(
-            notebook, ("dir", "ru", "iec"),
-            ("Направление", "Наименование (рус.)", "Наименование (МЭК)"),
-            (140, 300, 220))
-        notebook.add(rows_tab, text="Сигналы")
-
         functions_tab, functions_tree, functions_buttons = make_table(
             notebook,
-            ("kind", "title", "inputs", "signal", "key", "ru", "iec"),
-            ("Вид узла", "Название", "Входов", "Сигнал", "", "", ""),
-            (130, 220, 70, 220, 90, 180, 180),
-            display=("kind", "title", "inputs", "signal"))
-        notebook.add(functions_tab, text="Логические узлы")
-
-        def fill_inputs(codes):
-            inputs_tree.delete(*inputs_tree.get_children())
-            for code in codes or []:
-                code = str(code).strip()
-                if code:
-                    inputs_tree.insert(
-                        "", "end", values=(code, ll.input_code_kind(code)))
-
-        def fill_rows(rows):
-            rows_tree.delete(*rows_tree.get_children())
-            for row in rows or []:
-                direction = row.get("dir") or "out"
-                rows_tree.insert("", "end", values=(
-                    ll.SIGNAL_DIRECTIONS.get(direction, "выход"),
-                    row.get("ru") or "", row.get("iec") or ""))
+            ("kind", "title", "inputs", "outputs", "signal", "key", "ru",
+             "iec"),
+            ("Вид узла", "Название", "Входов", "Выходов", "Сигнал", "",
+             "", ""),
+            (130, 200, 70, 70, 200, 90, 160, 160),
+            display=("kind", "title", "inputs", "outputs", "signal"))
+        notebook.add(functions_tab, text="Функции")
 
         function_store = {}
         function_seq = [0]
@@ -1545,6 +1520,7 @@ class LogicEditorMixin:
                 ll.FUNCTION_KINDS[kind][1],
                 function.get("title") or "",
                 len(function.get("inputs") or []),
+                len(function.get("outputs") or []),
                 ll.signal_text(function.get("ru"), function.get("iec")),
                 kind,
                 function.get("ru") or "",
@@ -1561,37 +1537,9 @@ class LogicEditorMixin:
                 functions_tree.insert("", "end", iid=iid,
                                       values=function_values(data))
 
-        fill_inputs(getattr(element, "inputs", []))
-        fill_rows(getattr(element, "rows", []))
         fill_functions(getattr(element, "functions", []))
 
         # ---- чтение таблиц в данные модели ----
-        def collect_inputs():
-            codes = []
-            for item in inputs_tree.get_children():
-                values = inputs_tree.item(item, "values")
-                code = str(values[0]).strip() if values else ""
-                if code:
-                    codes.append(code)
-            return codes
-
-        def collect_rows():
-            rows = []
-            for item in rows_tree.get_children():
-                values = rows_tree.item(item, "values")
-                if not values:
-                    continue
-                label = str(values[0]).strip().casefold()
-                direction = ll.SIGNAL_DIRECTION_ALIASES.get(label, "out")
-                if direction not in ll.SIGNAL_DIRECTIONS:
-                    direction = "out"
-                ru = str(values[1]).strip() if len(values) > 1 else ""
-                iec = str(values[2]).strip() if len(values) > 2 else ""
-                if not ru and not iec:
-                    continue
-                rows.append({"dir": direction, "ru": ru, "iec": iec})
-            return rows
-
         def collect_functions():
             functions = []
             for item in functions_tree.get_children():
@@ -1599,18 +1547,23 @@ class LogicEditorMixin:
                 if data is None:
                     # Строка, добавленная в таблицу напрямую (импорт/тест).
                     values = list(functions_tree.item(item, "values"))
-                    values += [""] * (7 - len(values))
-                    kind = str(values[4]).strip().upper() or "AND"
+                    values += [""] * (8 - len(values))
+                    kind = str(values[5]).strip().upper() or "AND"
                     try:
                         count = max(1, int(values[2]))
                     except (TypeError, ValueError):
                         count = 2
+                    try:
+                        out_count = max(1, int(values[3]))
+                    except (TypeError, ValueError):
+                        out_count = 1
                     data = {
                         "kind": kind,
                         "title": values[1],
-                        "ru": values[5],
-                        "iec": values[6],
+                        "ru": values[6],
+                        "iec": values[7],
                         "inputs": count,
+                        "outputs": out_count,
                     }
                 functions.append(ll.normalize_function(data))
             return functions
@@ -1620,8 +1573,6 @@ class LogicEditorMixin:
                 "title": title_var.get().strip(),
                 "designation": designation_var.get().strip(),
                 "width": width_var.get().strip(),
-                "inputs": collect_inputs(),
-                "rows": collect_rows(),
                 "functions": collect_functions(),
             }
 
@@ -1634,31 +1585,6 @@ class LogicEditorMixin:
         preview.bind("<Configure>", lambda event: refresh_preview())
 
         # ---- действия с таблицами ----
-        def add_input():
-            code = self._ask_block_input(dialog)
-            if not code:
-                return
-            if code in collect_inputs():
-                messagebox.showinfo("Функциональный блок",
-                                    "Вход {} уже есть.".format(code),
-                                    parent=dialog)
-                return
-            inputs_tree.insert("", "end",
-                               values=(code, ll.input_code_kind(code)))
-            refresh_preview()
-
-        def edit_input():
-            selection = inputs_tree.selection()
-            if not selection:
-                return
-            values = inputs_tree.item(selection[0], "values")
-            code = self._ask_block_input(dialog, values[0] if values else "")
-            if not code:
-                return
-            inputs_tree.item(selection[0],
-                             values=(code, ll.input_code_kind(code)))
-            refresh_preview()
-
         def remove_selected(tree):
             for item in tree.selection():
                 tree.delete(item)
@@ -1674,34 +1600,6 @@ class LogicEditorMixin:
                 return
             tree.move(item, "", index)
             tree.selection_set(item)
-            refresh_preview()
-
-        def add_row():
-            data = self._edit_block_signal(None, dialog)
-            if data is None:
-                return
-            rows_tree.insert("", "end", values=(
-                ll.SIGNAL_DIRECTIONS.get(data["dir"], "выход"),
-                data.get("ru", ""), data.get("iec", "")))
-            refresh_preview()
-
-        def edit_row():
-            selection = rows_tree.selection()
-            if not selection:
-                return
-            values = rows_tree.item(selection[0], "values")
-            current = {
-                "dir": ll.SIGNAL_DIRECTION_ALIASES.get(
-                    str(values[0]).strip().casefold(), "out"),
-                "ru": values[1] if len(values) > 1 else "",
-                "iec": values[2] if len(values) > 2 else "",
-            }
-            data = self._edit_block_signal(current, dialog)
-            if data is None:
-                return
-            rows_tree.item(selection[0], values=(
-                ll.SIGNAL_DIRECTIONS.get(data["dir"], "выход"),
-                data.get("ru", ""), data.get("iec", "")))
             refresh_preview()
 
         def store_function(data):
@@ -1733,22 +1631,6 @@ class LogicEditorMixin:
             refresh_preview()
 
         for text, command, width in (
-                ("Добавить…", add_input, 14),
-                ("Изменить…", edit_input, 14),
-                ("Удалить", lambda: remove_selected(inputs_tree), 10),
-                ("Вверх", lambda: move_selected(inputs_tree, -1), 8),
-                ("Вниз", lambda: move_selected(inputs_tree, 1), 8)):
-            add_button(inputs_buttons, text, command, width)
-
-        for text, command, width in (
-                ("Добавить…", add_row, 14),
-                ("Изменить…", edit_row, 14),
-                ("Удалить", lambda: remove_selected(rows_tree), 10),
-                ("Вверх", lambda: move_selected(rows_tree, -1), 8),
-                ("Вниз", lambda: move_selected(rows_tree, 1), 8)):
-            add_button(rows_buttons, text, command, width)
-
-        for text, command, width in (
                 ("Добавить…", add_function, 14),
                 ("Изменить…", edit_function, 14),
                 ("Удалить", lambda: remove_selected(functions_tree), 10),
@@ -1756,28 +1638,15 @@ class LogicEditorMixin:
                 ("Вниз", lambda: move_selected(functions_tree, 1), 8)):
             add_button(functions_buttons, text, command, width)
 
-        inputs_tree.bind("<Double-1>", lambda event: edit_input())
-        rows_tree.bind("<Double-1>", lambda event: edit_row())
         functions_tree.bind("<Double-1>", lambda event: edit_function())
 
         # ---- кнопки окна ----
         result = {"ok": False, "delete": False}
 
         def accept(event=None):
-            inputs = collect_inputs()
-            duplicates = sorted({code for code in inputs
-                                 if inputs.count(code) > 1})
-            if duplicates:
-                messagebox.showerror(
-                    "Функциональный блок",
-                    "Коды входов не должны повторяться:\n{}".format(
-                        ", ".join(duplicates)), parent=dialog)
-                return
             result["title"] = title_var.get().strip()
             result["designation"] = designation_var.get().strip()
             result["width"] = width_var.get().strip()
-            result["inputs"] = inputs
-            result["rows"] = collect_rows()
             result["functions"] = collect_functions()
             result["isMainFunction"] = bool(main_var.get())
             result["isInITS"] = bool(its_var.get())
@@ -1830,8 +1699,6 @@ class LogicEditorMixin:
                                 float(result["width"] or 0))
         except (TypeError, ValueError):
             pass
-        element.inputs = result["inputs"]
-        element.rows = result["rows"]
         element.functions = result["functions"]
         element.generate_ports()
         before = len(self.logic_links)
@@ -1842,7 +1709,7 @@ class LogicEditorMixin:
         if removed:
             messagebox.showinfo(
                 "Функциональный блок",
-                "Входов стало меньше — удалено связей: {}.".format(removed))
+                "Связей с удалёнными портами удалено: {}.".format(removed))
 
     def _refresh_block_preview(self, canvas, snapshot):
         """Предпросмотр блока в окне свойств: те же линии, что на схеме."""
@@ -1856,8 +1723,6 @@ class LogicEditorMixin:
                               float(snapshot.get("width") or 0))
         except (TypeError, ValueError):
             block.width = ll.LogicBlock.MIN_WIDTH
-        block.inputs = list(snapshot.get("inputs") or [])
-        block.rows = [dict(row) for row in snapshot.get("rows") or []]
         block.functions = [dict(item) for item in
                            snapshot.get("functions") or []]
         block.generate_ports()
@@ -1873,118 +1738,6 @@ class LogicEditorMixin:
         offset_y = (pad + (height - 2 * pad - layout["height"] * scale) / 2.0
                     - layout["y1"] * scale)
         block.draw(canvas, scale, offset_x, offset_y)
-
-    def _ask_block_input(self, parent, initial=""):
-        """Код входа блока: тип сигнала определяется по префиксу кода."""
-        dialog = tk.Toplevel(parent)
-        dialog.title("Вход функционального блока")
-        dialog.transient(parent)
-        dialog.resizable(False, False)
-        form = tk.Frame(dialog, padx=10, pady=8)
-        form.pack(fill=tk.BOTH, expand=True)
-        form.columnconfigure(1, weight=1)
-        value = tk.StringVar(value=initial)
-        tk.Label(form, text="Код входа:", anchor="w").grid(
-            row=0, column=0, sticky="w")
-        entry = tk.Entry(form, textvariable=value, width=18)
-        entry.grid(row=0, column=1, sticky="we", padx=(6, 0))
-        tk.Label(form, fg=ui_theme.TEXT_MUTED, anchor="w",
-                 text="A01 — аналоговый, D01 — дискретный, "
-                      "C01 — управляющий").grid(
-            row=1, column=0, columnspan=2, sticky="w", pady=(4, 0))
-        result = {"code": ""}
-
-        def accept(event=None):
-            result["code"] = value.get().strip()
-            dialog.destroy()
-
-        def cancel(event=None):
-            dialog.destroy()
-
-        buttons = tk.Frame(dialog)
-        buttons.pack(fill=tk.X, padx=10, pady=(6, 8))
-        tk.Button(buttons, text="Отмена", width=10,
-                  command=cancel).pack(side=tk.RIGHT)
-        tk.Button(buttons, text="ОК", width=10,
-                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
-        dialog.bind("<Return>", accept)
-        dialog.bind("<Escape>", cancel)
-        entry.focus_set()
-        entry.selection_range(0, tk.END)
-        self._center_dialog(dialog)
-        dialog.wait_window(dialog)
-        if parent is not None:
-            try:
-                parent.grab_set()
-            except tk.TclError:
-                pass
-        return result["code"]
-
-    def _edit_block_signal(self, data, parent):
-        """Строка сигнала блока: направление, русское и МЭК наименование."""
-        data = data or {}
-        dialog = tk.Toplevel(parent)
-        dialog.title("Сигнал функционального блока")
-        dialog.transient(parent)
-        dialog.resizable(False, False)
-        form = tk.Frame(dialog, padx=10, pady=8)
-        form.pack(fill=tk.BOTH, expand=True)
-        form.columnconfigure(1, weight=1)
-
-        keys = list(ll.SIGNAL_DIRECTIONS)
-        labels = [ll.SIGNAL_DIRECTIONS[key] for key in keys]
-        direction_var = tk.StringVar(
-            value=ll.SIGNAL_DIRECTIONS.get(data.get("dir") or "out", "выход"))
-        ru_var = tk.StringVar(value=data.get("ru") or "")
-        iec_var = tk.StringVar(value=data.get("iec") or "")
-
-        tk.Label(form, text="Направление:", anchor="w").grid(
-            row=0, column=0, sticky="w", pady=(4, 0))
-        combo = ttk.Combobox(form, state="readonly", width=24, values=labels)
-        if direction_var.get() in labels:
-            combo.current(labels.index(direction_var.get()))
-        combo.grid(row=0, column=1, sticky="we", pady=(4, 0))
-
-        tk.Label(form, text="Наименование (рус.):", anchor="w").grid(
-            row=1, column=0, sticky="w", pady=(4, 0))
-        tk.Entry(form, textvariable=ru_var, width=44).grid(
-            row=1, column=1, sticky="we", pady=(4, 0))
-        tk.Label(form, text="Наименование (МЭК):", anchor="w").grid(
-            row=2, column=0, sticky="w", pady=(4, 0))
-        tk.Entry(form, textvariable=iec_var, width=44).grid(
-            row=2, column=1, sticky="we", pady=(4, 0))
-
-        result = {"data": None}
-
-        def accept(event=None):
-            index = combo.current()
-            direction = keys[index] if 0 <= index < len(keys) else "out"
-            result["data"] = {
-                "dir": direction,
-                "ru": ru_var.get().strip(),
-                "iec": iec_var.get().strip(),
-            }
-            dialog.destroy()
-
-        def cancel(event=None):
-            dialog.destroy()
-
-        buttons = tk.Frame(dialog)
-        buttons.pack(fill=tk.X, padx=10, pady=(6, 8))
-        tk.Button(buttons, text="Отмена", width=10,
-                  command=cancel).pack(side=tk.RIGHT)
-        tk.Button(buttons, text="ОК", width=10,
-                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
-        dialog.bind("<Return>", accept)
-        dialog.bind("<Escape>", cancel)
-        self._center_dialog(dialog)
-        dialog.wait_window(dialog)
-        if parent is not None:
-            try:
-                parent.grab_set()
-            except tk.TclError:
-                pass
-        return result["data"]
 
     def _ask_fields(self, parent, title, fields, values=None):
         """Небольшой модальный диалог: список полей → словарь значений."""

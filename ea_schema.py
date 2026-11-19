@@ -100,6 +100,9 @@ CLASSES = {
             ("name", "s", ""),
             ("reference", "s", ""),
             ("number", "s", ""),
+            # Файл функционально-логической схемы редактора, связанный
+            # с рисунком (дополнение редактора к модели EA).
+            ("scheme", "s", ""),
         ],
         "children": [],
     },
@@ -153,7 +156,14 @@ CLASSES = {
         "children": [("ieds", "IED"), ("terminal_rows", "TerminalRow")],
     },
     "IED": {
-        "fields": [("number", "i", 0), ("description", "s", "")],
+        "fields": [
+            ("number", "i", 0),
+            ("description", "s", ""),
+            # Файл функционально-логической схемы редактора, входящей
+            # в состав ИЭУ (FunctionalLogicScheme в structure2.xml —
+            # дополнение редактора к модели EA).
+            ("scheme", "s", ""),
+        ],
         "children": [
             ("function_blocks", "FunctionBlock"),
             ("analog_inputs", "AnalogInput"),
@@ -397,6 +407,7 @@ LABELS = {
     "header_style": "Стиль заголовка",
     "content": "Содержание",
     "reference": "Ссылка",
+    "scheme": "Файл схемы редактора",
     "colums_width": "Ширина колонок",
     "cabinet": "Шкаф",
     "rows": "Строки",

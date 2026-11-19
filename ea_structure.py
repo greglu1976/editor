@@ -221,6 +221,7 @@ def new_figure(data, container, number=None, name=None, base=None):
         "number": value,
         "name": name or "Новый рисунок",
         "reference": "Рисунок %s" % value,
+        "scheme": "",
     }
 
 
@@ -270,6 +271,9 @@ def new_ied(data, kit, number=None):
     return {
         "number": _as_number(number if number is not None else next_number(
             kit.get("ieds") or [])),
+        "description": "",
+        # Файл ФЛС редактора, входящей в состав ИЭУ (structure2.xml).
+        "scheme": "",
         **{key: [] for key in _IED_LISTS},
     }
 

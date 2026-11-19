@@ -16,7 +16,7 @@ import json
 import os
 import re
 import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import ea_catalog as ec
 import ea_edit as ee
@@ -1001,9 +1001,84 @@ class StandardEditorWindow(tk.Toplevel):
             tk.Entry(form, textvariable=var, font=ui_theme.font(9),
                      width=width).grid(row=row, column=1, sticky="we", pady=2)
             self.vars[key] = var
+
+        # Файл схемы редактора: рисунок в документе строится по нему.
+        row = len(fields)
+        tk.Label(form, text="Файл схемы:", font=ui_theme.font(9),
+                 anchor="w").grid(row=row, column=0, sticky="w", pady=2)
+        scheme_frame = tk.Frame(form)
+        scheme_frame.grid(row=row, column=1, sticky="we", pady=2)
+        scheme_var = tk.StringVar(value=str(figure.get("scheme") or ""))
+        self.vars["scheme"] = scheme_var
+        scheme_entry = tk.Entry(scheme_frame, textvariable=scheme_var,
+                                font=ui_theme.font(9))
+        scheme_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        scheme_entry.bind("<Return>", lambda event: self._apply_pending())
+        scheme_entry.bind("<KP_Enter>", lambda event: self._apply_pending())
+        _button(scheme_frame, "Выбрать…", self._pick_figure_scheme, width=10)
+        tk.Label(self.body, font=ui_theme.font(8),
+                 fg=ui_theme.TEXT_MUTED, anchor="w", justify="left",
+                 text="Если файл схемы задан, рисунок вставляется в документ "
+                      "картинкой (экспорт схемы редактора); иначе выводится "
+                      "только подпись."
+                 ).pack(fill=tk.X, padx=4, pady=(2, 4))
+        self._figure_scheme_preview = tk.Canvas(
+            self.body, height=self.IED_SCHEME_PREVIEW_H,
+            bg=ui_theme.CANVAS, highlightthickness=1,
+            highlightbackground=ui_theme.BORDER)
+        self._figure_scheme_preview.pack(fill=tk.X, padx=4, pady=(0, 2))
+        self._refresh_figure_scheme_preview()
+
         self._snapshot = {key: str(figure.get(key) or "")
                           for key, _l, _w in fields}
+        self._snapshot["scheme"] = str(figure.get("scheme") or "")
         self._pending = self._apply_figure
+
+    def _figure_scheme_path(self):
+        """Абсолютный путь к файлу схемы рисунка или None."""
+        figure = self._panel_item
+        if figure is None:
+            return None
+        reference = str(figure.get("scheme") or "").strip()
+        if not reference:
+            return None
+        if os.path.isabs(reference):
+            return reference if os.path.isfile(reference) else None
+        path = os.path.join(es.folder(), reference)
+        return path if os.path.isfile(path) else None
+
+    def _pick_figure_scheme(self):
+        """Выбор файла схемы для рисунка."""
+        path = filedialog.askopenfilename(
+            parent=self, title="Файл схемы для рисунка",
+            initialdir=self._ied_scheme_dir(),
+            filetypes=[("Схемы редактора", "*.json"), ("Все файлы", "*.*")])
+        if not path:
+            return
+        reference = path
+        try:
+            relative = os.path.relpath(path, es.folder())
+            if not relative.startswith(".."):
+                reference = relative
+        except ValueError:
+            pass
+        self.vars["scheme"].set(reference)
+        self._refresh_figure_scheme_preview()
+
+    def _refresh_figure_scheme_preview(self):
+        """Перерисовать предпросмотр схемы рисунка."""
+        canvas = getattr(self, "_figure_scheme_preview", None)
+        if canvas is None:
+            return
+        saved_preview = getattr(self, "_scheme_preview", None)
+        saved_file = getattr(self, "_ied_scheme_file", None)
+        self._scheme_preview = canvas
+        self._ied_scheme_file = self._figure_scheme_path()
+        try:
+            self._refresh_ied_scheme_preview()
+        finally:
+            self._scheme_preview = saved_preview
+            self._ied_scheme_file = saved_file
 
     def _apply_figure(self):
         item = self._panel_item
@@ -1020,6 +1095,9 @@ class StandardEditorWindow(tk.Toplevel):
         return True
 
     # ----------------------------------------------------------------- ИЭУ
+    #: Высота предпросмотра схемы ФЛС в панели ИЭУ, пикселей.
+    IED_SCHEME_PREVIEW_H = 220
+
     def _render_ied(self, ied):
         self.caption.config(text="ИЭУ %s" % ied.get("number", ""))
         self._panel_item = ied
@@ -1036,6 +1114,39 @@ class StandardEditorWindow(tk.Toplevel):
         entry.bind("<KP_Enter>", lambda event: self._apply_pending())
         self.vars["number"] = number
 
+        # ---- ФЛС в составе ИЭУ (FunctionalLogicScheme, structure2.xml) ----
+        scheme = tk.Frame(self.body)
+        scheme.pack(fill=tk.X, padx=4, pady=(8, 2))
+        tk.Label(scheme, text="Функционально-логическая схема:",
+                 font=ui_theme.font(9, "bold"), anchor="w").pack(fill=tk.X)
+        row = tk.Frame(scheme)
+        row.pack(fill=tk.X, pady=(2, 0))
+        scheme_var = tk.StringVar(
+            value=str(ied.get("scheme") or "").strip())
+        self.vars["scheme"] = scheme_var
+        tk.Label(row, text="Файл схемы:", font=ui_theme.font(9),
+                 anchor="w").pack(side=tk.LEFT)
+        path_entry = tk.Entry(row, textvariable=scheme_var,
+                              font=ui_theme.font(9))
+        path_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(6, 4))
+        path_entry.bind("<Return>", lambda event: self._apply_pending())
+        path_entry.bind("<KP_Enter>", lambda event: self._apply_pending())
+        _button(row, "Выбрать…", self._pick_ied_scheme, width=10)
+        buttons = tk.Frame(scheme)
+        buttons.pack(fill=tk.X, pady=(4, 0))
+        _button(buttons, "Создать из функций…",
+                self._make_ied_scheme_from_functions, width=22)
+        _button(buttons, "Открыть в редакторе…",
+                self._open_ied_scheme, width=22)
+        _button(buttons, "Убрать", self._clear_ied_scheme, width=8)
+        self._scheme_preview = tk.Canvas(
+            self.body, height=self.IED_SCHEME_PREVIEW_H,
+            bg=ui_theme.CANVAS, highlightthickness=1,
+            highlightbackground=ui_theme.BORDER)
+        self._scheme_preview.pack(fill=tk.X, padx=4, pady=(6, 0))
+        self._ied_scheme_file = self._ied_scheme_path(ied)
+        self._refresh_ied_scheme_preview()
+
         tk.Label(self.body, text="Цифровые порты:", font=ui_theme.font(9),
                  anchor="w").pack(fill=tk.X, padx=4, pady=(6, 2))
         tools = tk.Frame(self.body)
@@ -1048,17 +1159,244 @@ class StandardEditorWindow(tk.Toplevel):
                         self._apply_ied)
         self._snapshot = {
             "number": str(ied.get("number") or ""),
+            "scheme": str(ied.get("scheme") or ""),
             "rows": [list(row) for row in self._grid_rows],
         }
         self._pending = self._apply_ied
+
+    # ---------------------------------------------------------- ФЛС ИЭУ
+    def _ied_scheme_path(self, ied):
+        """Абсолютный путь к файлу схемы ИЭУ или None."""
+        reference = str((ied or {}).get("scheme") or "").strip()
+        if not reference:
+            return None
+        if os.path.isabs(reference):
+            return reference if os.path.isfile(reference) else None
+        path = os.path.join(es.folder(), reference)
+        return path if os.path.isfile(path) else None
+
+    def _ied_scheme_dir(self):
+        """Папка для новых файлов схем — рядом со стандартом."""
+        folder = es.folder()
+        target = os.path.join(folder, "schemes")
+        return target if os.path.isdir(target) else folder
+
+    def _scheme_suggest_name(self, ied):
+        """Имя файла схемы по шифру шкафа и номеру ИЭУ."""
+        return "флс-%s-%s.json" % (
+            (self._ied_cabinet_code() or "ИЭУ").replace(" ", "_"),
+            str((ied or {}).get("number") or "1"))
+
+    def _ied_cabinet_code(self):
+        """Шифр шкафа, в котором лежит текущее ИЭУ (для имени файла)."""
+        item = self._panel_item
+        if item is None:
+            return ""
+        # iid узла ИЭУ: родитель — комплект, его родитель — шкаф.
+        ied_iid = None
+        for iid, node in getattr(self, "_nodes", {}).items():
+            if node[0] == "ied" and node[1] is item:
+                ied_iid = iid
+                break
+        current = ied_iid
+        while current is not None:
+            owner = self._owners.get(current)
+            if owner is None:
+                return ""
+            parent_iid = owner[2]
+            node = self._nodes.get(parent_iid) if parent_iid else None
+            if node is not None and node[0] == "cabinet":
+                return str(node[1].get("cypher") or "")
+            current = parent_iid
+        return ""
+
+    def _pick_ied_scheme(self):
+        """Выбор существующего файла схемы для ИЭУ."""
+        path = filedialog.askopenfilename(
+            parent=self, title="Файл схемы ФЛС",
+            initialdir=self._ied_scheme_dir(),
+            filetypes=[("Схемы редактора", "*.json"), ("Все файлы", "*.*")])
+        if not path:
+            return
+        reference = path
+        try:
+            relative = os.path.relpath(path, es.folder())
+            if not relative.startswith(".."):
+                reference = relative
+        except ValueError:
+            pass
+        self.vars["scheme"].set(reference)
+        self._ied_scheme_file = path if os.path.isfile(path) else None
+        self._refresh_ied_scheme_preview()
+
+    def _clear_ied_scheme(self):
+        """Убрать ссылку на файл схемы у ИЭУ."""
+        self.vars["scheme"].set("")
+        self._ied_scheme_file = None
+        self._refresh_ied_scheme_preview()
+
+    def _make_ied_scheme_from_functions(self):
+        """Сгенерировать ФЛС ИЭУ из блоков и функций (structure2)."""
+        ied = self._panel_item
+        if ied is None:
+            return
+        import logic_scheme_render as lsr
+        scheme = lsr.scheme_from_ied(ied)
+        initial = os.path.join(self._ied_scheme_dir(),
+                               self._scheme_suggest_name(ied))
+        path = filedialog.asksaveasfilename(
+            parent=self, title="Куда сохранить схему ФЛС",
+            initialdir=self._ied_scheme_dir(),
+            initialfile=os.path.basename(initial),
+            defaultextension=".json",
+            filetypes=[("Схемы редактора", "*.json")])
+        if not path:
+            return
+        try:
+            with open(path, "w", encoding="utf-8") as handle:
+                json.dump(scheme, handle, ensure_ascii=False, indent=2)
+        except OSError as exc:
+            messagebox.showerror("Схема ФЛС",
+                                 "Не удалось записать файл:\n%s" % exc,
+                                 parent=self)
+            return
+        try:
+            reference = os.path.relpath(path, es.folder())
+            if reference.startswith(".."):
+                reference = path
+        except ValueError:
+            reference = path
+        self.vars["scheme"].set(reference)
+        self._ied_scheme_file = path
+        self._refresh_ied_scheme_preview()
+        self._apply_pending()
+
+    def _open_ied_scheme(self):
+        """Открыть файл схемы ИЭУ в редакторе схем (новое окно)."""
+        ied = self._panel_item
+        path = self._ied_scheme_path(ied)
+        if not path:
+            messagebox.showinfo(
+                "Схема ФЛС",
+                "У ИЭУ нет файла схемы.\n\n"
+                "Выберите существующий файл или создайте схему "
+                "из функций ИЭУ.", parent=self)
+            return
+        # Редактор схем — отдельное приложение: запускаем новый процесс,
+        # чтобы не зависеть от того, открыт ли он сейчас.
+        import subprocess
+        import sys
+        try:
+            subprocess.Popen([sys.executable,
+                              os.path.join(os.path.dirname(
+                                  os.path.abspath(__file__)), "main.py"),
+                              path])
+        except OSError as exc:
+            messagebox.showerror("Схема ФЛС",
+                                 "Не удалось открыть редактор:\n%s" % exc,
+                                 parent=self)
+
+    def _refresh_ied_scheme_preview(self):
+        """Перерисовать предпросмотр схемы ФЛС в панели ИЭУ."""
+        canvas = getattr(self, "_scheme_preview", None)
+        if canvas is None:
+            return
+        canvas.delete("all")
+        path = getattr(self, "_ied_scheme_file", None)
+        if not path:
+            canvas.create_text(
+                canvas.winfo_width() or 400,
+                self.IED_SCHEME_PREVIEW_H / 2.0,
+                text="Схема не выбрана", anchor="center",
+                font=ui_theme.font(9), fill=ui_theme.TEXT_MUTED)
+            return
+        try:
+            import logic_scheme_render as lsr
+            data = lsr.load(path)
+            recorder = lsr.pdfexport.SceneRecorder()
+            lsr.render_scene(recorder, data)
+            bounds = recorder.bounds() or (0.0, 0.0, 800.0, 600.0)
+        except Exception:
+            canvas.create_text(
+                canvas.winfo_width() or 400,
+                self.IED_SCHEME_PREVIEW_H / 2.0,
+                text="Не удалось прочитать схему", anchor="center",
+                font=ui_theme.font(9), fill=ui_theme.TEXT_MUTED)
+            return
+        min_x, min_y, max_x, max_y = bounds
+        width = canvas.winfo_width() or 400
+        height = self.IED_SCHEME_PREVIEW_H
+        margin = 6.0
+        scale = min((width - 2 * margin) / max(20.0, max_x - min_x),
+                    (height - 2 * margin) / max(20.0, max_y - min_y))
+        offset_x = -min_x * scale + (width - (max_x - min_x) * scale) / 2.0
+        offset_y = -min_y * scale + (height - (max_y - min_y) * scale) / 2.0
+
+        class _Scaled:
+            """Канва-адаптер: те же примитивы в масштабе предпросмотра."""
+
+            def __init__(self, canvas, scale, dx, dy):
+                self._canvas = canvas
+                self._scale = scale
+                self._dx = dx
+                self._dy = dy
+
+            def create_line(self, *coords, **kwargs):
+                pts = []
+                for x, y in zip(coords[0::2], coords[1::2]):
+                    pts.extend((x * self._scale + self._dx,
+                                y * self._scale + self._dy))
+                return self._canvas.create_line(*pts, **kwargs)
+
+            def create_rectangle(self, x1, y1, x2, y2, **kwargs):
+                return self._canvas.create_rectangle(
+                    x1 * self._scale + self._dx, y1 * self._scale + self._dy,
+                    x2 * self._scale + self._dx, y2 * self._scale + self._dy,
+                    **kwargs)
+
+            def create_polygon(self, *coords, **kwargs):
+                pts = []
+                for x, y in zip(coords[0::2], coords[1::2]):
+                    pts.extend((x * self._scale + self._dx,
+                                y * self._scale + self._dy))
+                return self._canvas.create_polygon(*pts, **kwargs)
+
+            def create_oval(self, x1, y1, x2, y2, **kwargs):
+                return self._canvas.create_oval(
+                    x1 * self._scale + self._dx, y1 * self._scale + self._dy,
+                    x2 * self._scale + self._dx, y2 * self._scale + self._dy,
+                    **kwargs)
+
+            def create_arc(self, x1, y1, x2, y2, **kwargs):
+                return self._canvas.create_arc(
+                    x1 * self._scale + self._dx, y1 * self._scale + self._dy,
+                    x2 * self._scale + self._dx, y2 * self._scale + self._dy,
+                    **kwargs)
+
+            def create_text(self, x, y, **kwargs):
+                return self._canvas.create_text(
+                    x * self._scale + self._dx, y * self._scale + self._dy,
+                    **kwargs)
+
+        try:
+            lsr.render_scene(_Scaled(canvas, scale, offset_x, offset_y), data)
+        except Exception:
+            canvas.delete("all")
+            canvas.create_text(
+                width / 2.0, height / 2.0,
+                text="Не удалось нарисовать схему", anchor="center",
+                font=ui_theme.font(9), fill=ui_theme.TEXT_MUTED)
 
     def _apply_ied(self):
         item = self._panel_item
         if item is None:
             return False
         number = self.vars["number"].get().strip()
+        scheme = self.vars["scheme"].get().strip()
         rows = [list(row) for row in self._grid_rows]
-        if number == self._snapshot["number"] and rows == self._snapshot["rows"]:
+        if (number == self._snapshot["number"]
+                and scheme == self._snapshot["scheme"]
+                and rows == self._snapshot["rows"]):
             return False
         old = item.get("ports") or []
         ports = []
@@ -1070,8 +1408,9 @@ class StandardEditorWindow(tk.Toplevel):
             port["description"] = description
             ports.append(port)
         item["number"] = number
+        item["scheme"] = scheme
         item["ports"] = ports
-        self._snapshot = {"number": number,
+        self._snapshot = {"number": number, "scheme": scheme,
                           "rows": [list(row) for row in rows]}
         self.caption.config(text="ИЭУ %s" % number)
         self._refresh_label("ИЭУ %s" % number)

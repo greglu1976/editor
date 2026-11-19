@@ -121,31 +121,6 @@ FUNCTION_KINDS = {
 
 FUNCTION_KIND_ORDER = ("AND", "OR", "NOT", "XOR", "RS", "TIMER", "CUSTOM")
 
-#: Направление сигнала в строке блока/функции.
-SIGNAL_DIRECTIONS = {
-    "out": "выход",
-    "in": "вход",
-    "both": "вход/выход",
-    "none": "внутренний",
-}
-
-#: Русские обозначения направления, которые принимает диалог блока.
-SIGNAL_DIRECTION_ALIASES = {
-    "выход": "out", "исх": "out", "out": "out",
-    "вход": "in", "вх": "in", "in": "in",
-    "вход/выход": "both", "вх/вых": "both", "both": "both",
-    "внутренний": "none", "внутр": "none", "none": "none",
-}
-
-#: Тип входного сигнала блока по префиксу кода (A01, D01, C01 …).
-INPUT_CODE_KINDS = {
-    "A": "аналоговый",
-    "D": "дискретный",
-    "C": "управляющий",
-    "G": "GOOSE",
-    "S": "служебный",
-}
-
 #: Перечисление SlotTypes из structure2.xml.
 SLOT_TYPES = ea_model.SLOT_TYPES
 SLOT_TYPE_ORDER = ea_model.SLOT_TYPE_ORDER
@@ -258,12 +233,6 @@ def function_height(function, minimum=80, cell=20):
     """Высота функции кратна сетке и вмещает все входы и выходы."""
     need = function_slot_rows(function) * cell + 2 * cell
     return _round_up(max(minimum, need), cell)
-
-
-def input_code_kind(code):
-    """Тип входного сигнала по коду: A… — аналоговый, D… — дискретный."""
-    prefix = str(code or "").strip()[:1].upper()
-    return INPUT_CODE_KINDS.get(prefix, "—")
 
 
 def link_style(kind):
@@ -825,12 +794,12 @@ class LogicFunction(LogicComponent):
 # 5. ФУНКЦИОНАЛЬНЫЙ БЛОК
 # ==========================================================================
 class LogicBlock(LogicComponent):
-    """Функциональный блок (логическое устройство).
+    """Функциональный блок — контейнер для функций (structure2.xml).
 
-    Внутри блока две колонки: слева — входы (A01, D01, C01 …), справа —
-    вставленные логические узлы и строки сигналов. Узлы начинаются от
-    верхней кромки блока, поэтому число входов не сдвигает их: входы
-    растут вниз в своей колонке.
+    Блок — это рамка с именем сверху; внутри сверху вниз идут функции.
+    Собственных входов и выходов у блока нет: все слоты (входы слева,
+    выходы справа) принадлежат функциям, и у каждого слота есть свой
+    порт для подключения связи.
 
     Геометрия кратна сетке (``CELL`` = 20): кромки блока лежат на линиях
     сетки, все выводы — на их пересечениях, поэтому связи ложатся по
@@ -838,11 +807,9 @@ class LogicBlock(LogicComponent):
     """
 
     HEADER = 40       # полоса заголовка — 2 клетки
-    GAP = 20          # отступ от заголовка до содержимого — 1 клетка
-    GUTTER = 120      # колонка входов — 6 клеток
-    ROW_H = 40        # строка сигнала — 2 клетки
-    FUNC_H = 80       # логический узел — 4 клетки
+    GAP = 20          # отступ от заголовка до функций — 1 клетка
     PAD = 20          # отступ справа и снизу — 1 клетка
+    FUNC_H = 80       # минимальная высота функции — 4 клетки
     MIN_WIDTH = 360
 
     def __init__(self, comp_id, x, y, grid_size=20):
@@ -851,12 +818,11 @@ class LogicBlock(LogicComponent):
         self.title = "Функциональный блок"
         self.designation = ""
         self.width = self.MIN_WIDTH
-        self.inputs = ["D01", "D02", "D03"]
-        self.rows = [
-            {"dir": "out", "ru": "Состояние", "iec": "State"},
-            {"dir": "out", "ru": "Индикация исправности", "iec": "Health"},
-        ]
-        self.functions = []
+        # Блок — контейнер: сразу с одной функцией, чтобы у него были
+        # входы слева и выход справа; остальные функции добавляет пользователь.
+        self.functions = [normalize_function({
+            "kind": "AND", "title": "Функция", "inputs": 1, "outputs": 1,
+        })]
         # Поля FunctionBlock из structure2.xml.
         self.isMainFunction = False
         self.isInITS = False
@@ -868,78 +834,49 @@ class LogicBlock(LogicComponent):
     # ---------- геометрия ----------
     def _block_width(self):
         widest = _text_width(self.title, 9) + 2 * CELL
-        for code in self.inputs:
-            widest = max(widest, self.GUTTER + _text_width(code, 8) + 2 * CELL)
-        for row in self.rows:
-            widest = max(widest,
-                         self.GUTTER + _text_width(row.get("ru"), 8) + 3 * CELL
-                         + _text_width(row.get("iec"), 7) + self.PAD)
         for function in self.functions:
             function = normalize_function(function)
-            slots = [slot_label(slot)
-                     for slot in (function.get("inputs") or [])]
-            slots += [slot_label(slot)
-                      for slot in (function.get("outputs") or [])]
             widest = max(widest,
-                         self.GUTTER + _text_width(function.get("title"), 8)
-                         + 5 * CELL + _text_width(function.get("ru"), 8)
-                         + self.PAD)
-            for label in slots:
-                widest = max(widest,
-                             self.GUTTER + 5 * CELL + _text_width(label, 7)
-                             + self.PAD)
+                         _text_width(function.get("title"), 8)
+                         + _text_width(function.get("ru"), 8)
+                         + 6 * CELL + self.PAD)
+            for slot in ((function.get("inputs") or [])
+                         + (function.get("outputs") or [])):
+                widest = max(widest, 6 * CELL
+                             + _text_width(slot_label(slot), 7) + self.PAD)
         width = max(self.MIN_WIDTH, float(self.width or 0), widest)
         return _round_up(width, 2 * CELL)
 
     def _layout(self):
-        """Раскладка блока: кромки и выводы лежат на сетке.
-
-        Отступы считаются от верхней кромки: заголовок, клетка отступа,
-        затем независимые колонки — входы слева, узлы и сигналы справа.
-        Поэтому число дискретных входов не меняет положение узлов.
-        """
+        """Рамка блока: имя сверху, функции сверху вниз; кромки на сетке."""
         width = self._block_width()
         x1 = _round_to(self.x - width / 2.0, CELL)
         x2 = x1 + width
+        # Функции занимают внутреннюю область; их левая и правая кромки —
+        # это и есть порты входов и выходов соответственно.
+        fx1 = _round_to(x1 + self.PAD + CELL, CELL)
+        fx2 = _round_to(x2 - self.PAD - CELL, CELL)
 
         content_top = self.HEADER + self.GAP
-        input_offsets = [content_top + CELL * index
-                         for index in range(len(self.inputs))]
-        function_offsets = []
+        spans = []
         offset = content_top
         for function in self.functions:
             function = normalize_function(function)
             height = function_height(function, self.FUNC_H, CELL)
-            function_offsets.append((function, offset + height / 2.0, height))
+            spans.append((function, offset, height))
             offset += height
-        rows_top = offset
-        row_offsets = [rows_top + self.ROW_H * index + self.ROW_H / 2.0
-                       for index in range(len(self.rows))]
-
-        # Номинальная высота — по правой колонке (узлы и сигналы).
-        # Верх блока привязан к ней, поэтому входы не сдвигают узлы:
-        # когда их становится больше, блок растёт только вниз.
-        right_bottom = rows_top + self.ROW_H * len(self.rows)
-        nominal_height = _round_up(max(content_top, right_bottom) + self.PAD,
-                                   2 * CELL)
-        inputs_bottom = content_top + CELL * (len(self.inputs) + 1)
-        height = max(nominal_height,
-                     _round_up(inputs_bottom + self.PAD, 2 * CELL))
-        y1 = _round_to(self.y - nominal_height / 2.0, CELL)
+        content_height = offset - content_top
+        height = _round_up(content_top + max(content_height, self.FUNC_H)
+                           + self.PAD, 2 * CELL)
+        y1 = _round_to(self.y - height / 2.0, CELL)
         y2 = y1 + height
 
         return {
             "x1": x1, "x2": x2, "y1": y1, "y2": y2,
             "width": width, "height": height,
-            "gutter": self.GUTTER,
-            "content_x1": x1 + self.GUTTER,
-            "content_x2": x2 - self.PAD,
-            "inputs": [(code, y1 + offset)
-                       for code, offset in zip(self.inputs, input_offsets)],
-            "rows": [(row, y1 + offset)
-                     for row, offset in zip(self.rows, row_offsets)],
-            "functions": [(function, y1 + center, height)
-                          for function, center, height in function_offsets],
+            "fx1": fx1, "fx2": fx2,
+            "functions": [(function, y1 + top + item_height / 2.0, item_height)
+                          for function, top, item_height in spans],
         }
 
     @staticmethod
@@ -950,51 +887,16 @@ class LogicBlock(LogicComponent):
         return [(x, top + CELL * index) for index in range(count)]
 
     def generate_ports(self):
+        """Порты есть только у слотов функций: входы слева, выходы справа."""
         layout = self._layout()
         self.ports = {}
-        for index, (code, py) in enumerate(layout["inputs"]):
-            self.ports["in{}".format(index)] = {
-                "x": layout["x1"], "y": py,
-                "node_id": "N_{}_in{}".format(self.id, index),
-                "direction": "in",
-                "slot_id": "in{}".format(index + 1),
-                "slot_type": slot_type_for_code(code),
-                "slot_name": str(code),
-                "slot_iec": "",
-            }
-        out_index = 0
-        for row, py in layout["rows"]:
-            if (row.get("dir") or "out") in ("out", "both"):
-                self.ports["out{}".format(out_index)] = {
-                    "x": layout["x2"], "y": py,
-                    "node_id": "N_{}_out{}".format(self.id, out_index),
-                    "direction": "out",
-                    "slot_id": "out{}".format(out_index + 1),
-                    "slot_type": DEFAULT_SLOT_TYPE,
-                    "slot_name": row.get("ru") or "",
-                    "slot_iec": row.get("iec") or "",
-                }
-                out_index += 1
         for fn_index, (function, py, height) in enumerate(
                 layout["functions"]):
             function = normalize_function(function)
-            self.ports["out{}".format(out_index)] = {
-                "x": layout["x2"], "y": py,
-                "node_id": "N_{}_out{}".format(self.id, out_index),
-                "direction": "out",
-                "slot_id": "fn{}_out1".format(fn_index + 1),
-                "slot_type": DEFAULT_SLOT_TYPE,
-                "slot_name": function.get("title") or "",
-                "slot_iec": function.get("iec") or "",
-            }
-            out_index += 1
-            # Порты слотов внутри функции: связи между функциями блока.
-            fx1 = _round_to(layout["content_x1"] + 8, CELL)
-            fx2 = _round_to(layout["content_x2"] - 8, CELL)
             for slot_index, (slot, point) in enumerate(zip(
                     function.get("inputs") or [],
                     self._function_slot_points(
-                        fx1, py, height,
+                        layout["fx1"], py, height,
                         len(function.get("inputs") or [])))):
                 self.ports["fn{}_in{}".format(fn_index, slot_index)] = {
                     "x": point[0], "y": point[1],
@@ -1009,7 +911,7 @@ class LogicBlock(LogicComponent):
             for slot_index, (slot, point) in enumerate(zip(
                     function.get("outputs") or [],
                     self._function_slot_points(
-                        fx2, py, height,
+                        layout["fx2"], py, height,
                         len(function.get("outputs") or [])))):
                 self.ports["fn{}_out{}".format(fn_index, slot_index)] = {
                     "x": point[0], "y": point[1],
@@ -1028,14 +930,15 @@ class LogicBlock(LogicComponent):
         layout = self._layout()
         x1, x2 = layout["x1"], layout["x2"]
         y1, y2 = layout["y1"], layout["y2"]
-        fx1 = layout["content_x1"]
-        fx2 = layout["content_x2"]
         sx1, sy1 = self.world_to_screen(x1, y1)
         sx2, sy2 = self.world_to_screen(x2, y2)
         lw = max(1, int(2 * zoom))
 
         canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#fbfdff",
                                 outline="black", width=lw)
+        # Линия под заголовком отделяет имя контейнера от функций.
+        hy = (y1 + self.HEADER) * zoom + offset_y
+        canvas.create_line(sx1, hy, sx2, hy, fill="#c8d3e0", width=1)
         # Заголовок — по центру блока: кромки привязаны к сетке и могут
         # сместиться относительно точки вставки на полклетки.
         self._draw_title(canvas, zoom, offset_x, offset_y,
@@ -1047,50 +950,7 @@ class LogicBlock(LogicComponent):
                                font=("Arial", _font_size(zoom, 7)),
                                fill="#1f4e79")
 
-        # Граница колонки входов
-        gx = fx1 * zoom + offset_x
-        canvas.create_line(gx, sy1 + self.HEADER * zoom, gx, sy2,
-                           fill="#c8d3e0", width=1)
-
-        # Входы: отводы на сетке в левой колонке
-        for index, (code, py) in enumerate(layout["inputs"]):
-            px = x1 * zoom + offset_x
-            spy = py * zoom + offset_y
-            canvas.create_line(px - 8 * zoom, spy, px, spy,
-                               width=lw, fill="black")
-            canvas.create_text(px + 7 * zoom, spy, text=code, anchor="w",
-                               font=("Arial", _font_size(zoom, 8)),
-                               fill="black")
-
-        # Строки сигналов — в правой колонке, под узлами
-        for row, py in layout["rows"]:
-            by1 = (py - self.ROW_H / 2.0 + 4) * zoom + offset_y
-            by2 = (py + self.ROW_H / 2.0 - 4) * zoom + offset_y
-            canvas.create_rectangle(
-                fx1 * zoom + offset_x + 4 * zoom, by1,
-                fx2 * zoom + offset_x - 4 * zoom, by2,
-                fill="#ececec", outline="#b8b8b8", width=1)
-            ru = (row.get("ru") or "").strip()
-            iec = (row.get("iec") or "").strip()
-            canvas.create_text(fx1 * zoom + offset_x + 10 * zoom,
-                               py * zoom + offset_y, text=ru or iec,
-                               anchor="w",
-                               font=("Arial", _font_size(zoom, 8)),
-                               fill="black")
-            if iec and iec != ru:
-                canvas.create_text(fx2 * zoom + offset_x - 10 * zoom,
-                                   py * zoom + offset_y, text=iec,
-                                   anchor="e",
-                                   font=("Arial", _font_size(zoom, 6)),
-                                   fill="#666666")
-            direction = row.get("dir") or "out"
-            if direction in ("out", "both"):
-                px = x2 * zoom + offset_x
-                canvas.create_line(px, py * zoom + offset_y,
-                                   px + 8 * zoom, py * zoom + offset_y,
-                                   width=lw, fill="black")
-
-        # Вставленные логические узлы — от верхней кромки
+        # Функции идут сверху вниз; входы слева, выходы справа.
         for function, py, height in layout["functions"]:
             self._draw_function(canvas, zoom, offset_x, offset_y,
                                 layout, function, py, height)
@@ -1098,10 +958,9 @@ class LogicBlock(LogicComponent):
     def _draw_function(self, canvas, zoom, offset_x, offset_y,
                        layout, function, py, height):
         function = normalize_function(function)
-        fx1 = _round_to(layout["content_x1"] + 8, CELL)
-        fx2 = _round_to(layout["content_x2"] - 8, CELL)
-        fy1 = py - (height - 16) / 2.0
-        fy2 = py + (height - 16) / 2.0
+        fx1, fx2 = layout["fx1"], layout["fx2"]
+        fy1 = py - height / 2.0 + CELL / 2.0
+        fy2 = py + height / 2.0 - CELL / 2.0
         sx1, sy1 = self.world_to_screen(fx1, fy1)
         sx2, sy2 = self.world_to_screen(fx2, fy2)
         lw = max(1, int(1.6 * zoom))
@@ -1151,11 +1010,6 @@ class LogicBlock(LogicComponent):
                                text=signal_text(ru, iec), anchor="w",
                                font=("Arial", _font_size(zoom, 7)),
                                fill="#7b1fa2", justify="left")
-        # Первый выход функции — на правую кромку блока (как раньше).
-        canvas.create_line(sx2, py * zoom + offset_y,
-                           layout["x2"] * zoom + offset_x,
-                           py * zoom + offset_y,
-                           width=lw, fill="black")
 
     def get_bounding_box(self):
         layout = self._layout()
@@ -1186,8 +1040,8 @@ LOGIC_FIELDS = {
                   "signal_no", "color", "rotation"),
     "logic_key": ("title", "signal_ru", "signal_iec", "signal_no", "show_led"),
     "logic_led": ("title", "signal_ru", "signal_iec", "signal_no"),
-    "logic_block": ("title", "designation", "width", "inputs", "rows",
-                    "functions", "isMainFunction", "isInITS", "iec_name",
+    "logic_block": ("title", "designation", "width", "functions",
+                    "isMainFunction", "isInITS", "iec_name",
                     "russian_path", "corp_prof_name"),
     "logic_function": ("kind", "title", "iec_name", "LNclass",
                        "signal_ru", "signal_iec", "signal_no", "input_count",
@@ -1218,23 +1072,12 @@ def restore_element(el, payload):
             setattr(el, field, value)
     # Защита от ручных правок JSON: приводим списки и числа к рабочему виду.
     if getattr(el, "type", "") == "logic_block":
-        inputs = getattr(el, "inputs", None)
-        el.inputs = [str(code) for code in inputs] if isinstance(inputs, list) else []
-        rows = getattr(el, "rows", None)
-        el.rows = []
-        for row in rows if isinstance(rows, list) else []:
-            if isinstance(row, dict):
-                direction = str(row.get("dir") or "out").casefold()
-                direction = SIGNAL_DIRECTION_ALIASES.get(direction, direction)
-                if direction not in SIGNAL_DIRECTIONS:
-                    direction = "out"
-                el.rows.append({
-                    "dir": direction,
-                    "ru": str(row.get("ru") or ""),
-                    "iec": str(row.get("iec") or ""),
-                })
-            else:
-                el.rows.append({"dir": "out", "ru": str(row), "iec": ""})
+        # Блок — контейнер: собственных входов и выходов нет, все слоты
+        # принадлежат функциям (structure2.xml). Устаревшие поля inputs/rows
+        # из старых схем больше не восстанавливаются.
+        for field in ("inputs", "rows"):
+            if hasattr(el, field):
+                delattr(el, field)
         functions = getattr(el, "functions", None)
         el.functions = []
         for function in functions if isinstance(functions, list) else []:
