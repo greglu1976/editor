@@ -5558,7 +5558,7 @@
           "group": "",
           "ieds": [
             {
-              "number": 1,
+              "number": "1",
               "analog_inputs": [
                 {
                   "circuit_type": "Ia, Ib, Ic",
@@ -12070,7 +12070,7 @@
                 }
               ],
               "description": "",
-              "scheme": ""
+              "scheme": "ЗВП.json"
             }
           ]
         },

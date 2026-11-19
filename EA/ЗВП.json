@@ -1,0 +1,187 @@
+{
+    "elements": [
+        {
+            "id": "LOe4a3",
+            "type": "logic_block",
+            "name": "Б2",
+            "x": 640,
+            "y": 250,
+            "label": [
+                1.4,
+                -7.0
+            ],
+            "logic": {
+                "title": "Защита от внутренних повреждений",
+                "designation": "ЗВП",
+                "width": 360,
+                "functions": [
+                    {
+                        "kind": "CUSTOM",
+                        "title": "Сигнальная ступень",
+                        "name": "",
+                        "ru": "",
+                        "iec": "",
+                        "iec_name": "",
+                        "LNclass": "",
+                        "inputs": [
+                            {
+                                "id": "in1",
+                                "name": "A1",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "analog_process_level"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "out1",
+                                "name": "Срабатывание",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "discrete_process_level"
+                            }
+                        ],
+                        "settings": [
+                            {
+                                "name": "Tср",
+                                "min_value": "",
+                                "max_value": "",
+                                "step": "",
+                                "unit": "с",
+                                "default_value": "0",
+                                "description": "Время срабатывания"
+                            },
+                            {
+                                "name": "Iср",
+                                "min_value": "",
+                                "max_value": "",
+                                "step": "",
+                                "unit": "А",
+                                "default_value": "0",
+                                "description": "Ток срабатывания"
+                            }
+                        ],
+                        "parameters": []
+                    },
+                    {
+                        "kind": "CUSTOM",
+                        "title": "Отключающая ступень",
+                        "name": "",
+                        "ru": "",
+                        "iec": "",
+                        "iec_name": "",
+                        "LNclass": "",
+                        "inputs": [
+                            {
+                                "id": "in1",
+                                "name": "A1",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "analog_process_level"
+                            }
+                        ],
+                        "outputs": [
+                            {
+                                "id": "out1",
+                                "name": "Срабатывание",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "discrete_process_level"
+                            }
+                        ],
+                        "settings": [],
+                        "parameters": []
+                    }
+                ],
+                "isMainFunction": true,
+                "isInITS": true,
+                "iec_name": "",
+                "russian_path": "",
+                "corp_prof_name": ""
+            }
+        },
+        {
+            "id": "LO475d",
+            "type": "logic_bus",
+            "name": "Ш1",
+            "x": 240,
+            "y": 340,
+            "rotation": 0,
+            "logic": {
+                "length": 480,
+                "title": "Шина",
+                "description": "",
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": "",
+                "color": "#00acc1",
+                "rotation": 0
+            }
+        },
+        {
+            "id": "LO8220",
+            "type": "logic_bus",
+            "name": "Ш2",
+            "x": 1030,
+            "y": 340,
+            "rotation": 0,
+            "logic": {
+                "length": 480,
+                "title": "Шина",
+                "description": "",
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": "",
+                "color": "#00acc1",
+                "rotation": 0
+            }
+        },
+        {
+            "id": "LOcb4a",
+            "type": "logic_led",
+            "name": "HL1",
+            "x": 1260,
+            "y": 180,
+            "logic": {
+                "title": "Светодиод",
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": ""
+            }
+        }
+    ],
+    "connections": [],
+    "logic_links": [
+        {
+            "from": "LOe4a3#fn0_in0",
+            "to": "LO475d#p6",
+            "kind": "analog",
+            "id": "1",
+            "number": "9115",
+            "ru": "Токи Ia, Ib, Ic средней перемычки",
+            "arrow": false
+        },
+        {
+            "from": "LOe4a3#fn0_out0",
+            "to": "LO8220#p6",
+            "kind": "internal",
+            "id": "2",
+            "number": "1011",
+            "ru": "Срабатывание",
+            "arrow": false
+        },
+        {
+            "from": "LOcb4a#left",
+            "to": "LO8220#p4",
+            "kind": "internal",
+            "id": "2",
+            "number": "1011",
+            "arrow": false
+        }
+    ],
+    "view": {
+        "zoom": 1.9152,
+        "offset_x": -290.3,
+        "offset_y": 73.36
+    }
+}
