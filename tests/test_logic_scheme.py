@@ -28,7 +28,8 @@
     наименований (из элемента с маркировкой или из связи-источника);
 22. перенос точек: захват излома любой связи и перетаскивание линии целиком;
 23. перетаскивание номера и наименования связи мышкой со сохранением
-    смещений в JSON и в экспорте; у новых связей стрелка отключена.
+    смещений в JSON и в экспорте; у новых связей стрелка отключена;
+24. перепривязку связей к другим отводам при изменении длины шины.
 """
 
 from __future__ import annotations
@@ -238,6 +239,46 @@ def test_bus(app):
           "уменьшение длины сдвигает нижний вывод")
     check(len([n for n in bus.ports if n.startswith("p")]) < len(taps),
           "отводов стало меньше")
+
+    # Перепривязка связей: отводы нумеруются от верхнего края, поэтому
+    # после изменения длины связь должна остаться на прежней высоте —
+    # за счёт перехода на другой отвод.
+    _reset(app)
+    bus = app.elements[_add(app, "logic_bus", 100, 300)]
+    key = app.elements[_add(app, "logic_key", 350, 300)]
+    app.logic_link_kind = "discrete"
+    link = app._add_logic_link((bus.id, "p2"), (key.id, "left"))
+    old_point = app._logic_ref_point(link["from"])
+    old_ports = {name: (port["x"], port["y"])
+                 for name, port in bus.ports.items()}
+    bus.length += 80          # все отводы сдвигаются на 2 клетки
+    bus.generate_ports()
+    app._rebind_logic_bus_links(bus, old_ports)
+    app._prune_logic_links()
+    check(link in app.logic_links,
+          "связь сохранилась после изменения длины шины")
+    check(close(app._logic_ref_point(link["from"])[1], old_point[1]),
+          "связь осталась на прежней высоте")
+    check(app._logic_split_ref(link["from"])[1] != "p2",
+          "связь перепривязана к другому отводу")
+
+    # Уменьшение длины: отвод исчезает, связь перепривязывается, а не
+    # пропадает вместе с ним.
+    last_tap = max((name for name in bus.ports if name.startswith("p")),
+                   key=lambda name: int(name[1:]))
+    key2 = app.elements[_add(app, "logic_key", 350, 500)]
+    link2 = app._add_logic_link((bus.id, last_tap), (key2.id, "left"))
+    old_ports = {name: (port["x"], port["y"])
+                 for name, port in bus.ports.items()}
+    bus.length -= 80
+    bus.generate_ports()
+    app._rebind_logic_bus_links(bus, old_ports)
+    app._prune_logic_links()
+    check(last_tap not in bus.ports, "отвод на краю шины исчез")
+    check(link2 in app.logic_links,
+          "связь с исчезнувшего отвода сохранена")
+    check(app._logic_ref_point(link2["from"]) is not None,
+          "связь перепривязана к оставшемуся отводу")
 
 
 def test_links(app):

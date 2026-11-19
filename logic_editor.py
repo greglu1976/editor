@@ -284,6 +284,36 @@ class LogicEditorMixin:
             if self._logic_ref_valid(link.get("from"))
             and self._logic_ref_valid(link.get("to"))]
 
+    def _rebind_logic_bus_links(self, element, old_ports):
+        """Перепривязка связей к отводам шины после изменения её длины.
+
+        Отводы шины нумеруются от верхнего края, поэтому при изменении
+        длины все точки подключения уезжают по вертикали, а при
+        уменьшении длины часть отводов исчезает вместе со связями.
+        Связь, привязанная к отводу, перепривязывается к ближайшему
+        новому отводу — к тому, который оказался на прежнем месте
+        подключения. Служебные выводы (верх, низ, середина) не меняются.
+        """
+        taps = [name for name in element.ports if name.startswith("p")]
+        if not taps:
+            # Отводов не осталось — подключаем к ближайшему выводу шины.
+            taps = list(element.ports)
+        if not taps:
+            return
+        points = [(name, element.ports[name]["x"], element.ports[name]["y"])
+                  for name in taps]
+        for link in self.logic_links:
+            for end in ("from", "to"):
+                element_id, port_name = self._logic_split_ref(link.get(end))
+                if element_id != element.id \
+                        or not port_name.startswith("p") \
+                        or port_name not in old_ports:
+                    continue
+                old_x, old_y = old_ports[port_name]
+                best = min(points, key=lambda item: math.hypot(
+                    item[1] - old_x, item[2] - old_y))[0]
+                link[end] = "{}#{}".format(element.id, best)
+
     def _logic_route(self, link):
         start = self._logic_ref_point((link or {}).get("from"))
         end = self._logic_ref_point((link or {}).get("to"))
@@ -1546,6 +1576,10 @@ class LogicEditorMixin:
         if not result["ok"]:
             return
         self._push_undo()
+        old_ports = None
+        if getattr(element, "type", "") == "logic_bus":
+            old_ports = {name: (port["x"], port["y"])
+                         for name, port in element.ports.items()}
         element.title = title_var.get().strip()
         element.signal_ru = ru_var.get().strip()
         element.signal_iec = iec_var.get().strip()
@@ -1553,6 +1587,8 @@ class LogicEditorMixin:
         if extra_builder is not None:
             self._apply_logic_extra(element, extra_vars)
         element.generate_ports()
+        if old_ports is not None:
+            self._rebind_logic_bus_links(element, old_ports)
         self._prune_logic_links()
         self._mark_modified()
         self.redraw_all()
