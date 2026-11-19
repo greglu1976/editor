@@ -167,6 +167,9 @@ class LogicEditorMixin:
             self._ribbon_button(row, "Свойства блока",
                                 self.edit_selected_logic_block,
                                 _ri_logic_block, 96).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Структура функции",
+                                self.edit_selected_logic_function_structure,
+                                _ri_logic_function, 104).pack(side=tk.LEFT),
         ])
         self._ribbon_group(page, "Нумерация", lambda row: [
             self._ribbon_button(row, "Присвоить номер",
@@ -418,22 +421,60 @@ class LogicEditorMixin:
         second_ref = "{}#{}".format(*second)
         if first_ref == second_ref:
             return None
+        start_el = self.elements.get(first[0])
+        end_el = self.elements.get(second[0])
+        if start_el is None or end_el is None:
+            return None
+        start_port = start_el.ports.get(first[1]) or {}
+        end_port = end_el.ports.get(second[1]) or {}
+        # Соединяются выход со входом или вывод с шиной; два входа или два
+        # выхода напрямую не соединяются — объединение идёт через шину.
+        if (start_port.get("direction") == end_port.get("direction")
+                and start_port.get("direction") in ("in", "out")):
+            return None
         self._push_undo()
+        source = (start_port if start_port.get("direction") == "out"
+                  else end_port if end_port.get("direction") == "out" else {})
         link = {
             "from": first_ref,
             "to": second_ref,
             "kind": self.logic_link_kind,
+            "id": ll.next_link_id(self.logic_links),
             "number": ll.next_logic_number(self.logic_links),
-            "ru": "",
-            "iec": "",
+            "ru": source.get("slot_name") or "",
+            "iec": source.get("slot_iec") or "",
             "arrow": True,
         }
         self.logic_links.append(link)
         return link
 
+    def _logic_continuation(self, link):
+        """Связь до шины, продолжением которой является данная связь."""
+        reference = str((link or {}).get("continuation") or "").strip()
+        if not reference:
+            return {}
+        for other in self.logic_links:
+            if other is link:
+                continue
+            if str(other.get("id") or "").strip() == reference:
+                return other
+        return {}
+
     def _logic_link_label_text(self, link):
         """Подпись сигнала на линии; не дублирует подпись клавиши/светодиода."""
         text = ll.signal_text(link.get("ru"), link.get("iec"))
+        if not text:
+            # Имя связи по умолчанию — от имени выхода функции.
+            for ref in (link.get("from"), link.get("to")):
+                element_id, port_name = self._logic_split_ref(ref)
+                element = self.elements.get(element_id)
+                if element is None:
+                    continue
+                port = element.ports.get(port_name) or {}
+                if port.get("direction") == "out":
+                    text = ll.port_signal_text(port)
+                    if text:
+                        break
         if not text:
             return ""
         link_ru = (link.get("ru") or "").strip()
@@ -457,6 +498,8 @@ class LogicEditorMixin:
     def _logic_link_number(self, link):
         """Номер на линии; не повторяет маркировку подключённого элемента."""
         number = (link.get("number") or "").strip()
+        if not number:
+            number = (self._logic_continuation(link).get("number") or "").strip()
         if not number:
             return ""
         for ref in (link.get("from"), link.get("to")):
@@ -532,6 +575,27 @@ class LogicEditorMixin:
                 return nx, ny, box
         return fallback
 
+    def _logic_end_number_anchor(self, route, number, occupied):
+        """Позиция маркировки у второго конца линии."""
+        x1, y1 = route[-2]
+        x2, y2 = route[-1]
+        distance = math.hypot(x2 - x1, y2 - y1)
+        if distance < 1e-6:
+            return None
+        ux, uy = (x2 - x1) / distance, (y2 - y1) / distance
+        fallback = None
+        for fraction, side in ((0.35, 1.0), (0.55, 1.0),
+                               (0.55, -1.0), (0.25, -1.0)):
+            shift = min(distance * fraction, 90.0)
+            nx = x2 - ux * shift - uy * 9.0 * side
+            ny = y2 - uy * shift + ux * 9.0 * side
+            box = self._logic_text_box(nx, ny, number)
+            if fallback is None:
+                fallback = (nx, ny, box)
+            if not self._logic_box_busy(box, occupied):
+                return nx, ny, box
+        return fallback
+
     def _logic_label_anchor(self, route, text, occupied, offset=12.0):
         """Позиция подписи сигнала вдоль линии с обходом занятых мест."""
         fallback = None
@@ -549,15 +613,23 @@ class LogicEditorMixin:
         return fallback
 
     def _logic_annotations(self, prepared):
-        """Номера и подписи связей: [(link, (x, y, box) | None)] без наложений."""
+        """Маркировки и подписи связей без наложений.
+
+        Маркировка рисуется у обоих концов связи (structure2: «на концах и
+        на начале»), имя — вдоль линии.
+        """
         numbers, labels, occupied = [], [], []
         for link, route in prepared:
             number = self._logic_link_number(link)
-            anchor = self._logic_number_anchor(route, number, occupied) \
+            start = self._logic_number_anchor(route, number, occupied) \
                 if number else None
-            if anchor is not None:
-                occupied.append(anchor[2])
-            numbers.append((link, anchor))
+            if start is not None:
+                occupied.append(start[2])
+            end = self._logic_end_number_anchor(route, number, occupied) \
+                if number else None
+            if end is not None:
+                occupied.append(end[2])
+            numbers.append((link, start, end))
         for link, route in prepared:
             text = self._logic_link_label_text(link)
             anchor = self._logic_label_anchor(route, text, occupied) \
@@ -624,9 +696,10 @@ class LogicEditorMixin:
                                     tags="logic_link")
 
         font = ("Arial", max(1, int(6 * self.zoom)))
-        for link, anchor in numbers:
+
+        def draw_number(link, anchor):
             if anchor is None:
-                continue
+                return
             x, y, box = anchor
             sx, sy = self.world_to_screen(x, y)
             bx1, by1, bx2, by2 = self._logic_screen_box(box)
@@ -638,6 +711,10 @@ class LogicEditorMixin:
                 fill=ll.link_style(link.get("kind"))["color"],
                 font=font, anchor="center", tags="logic_label")
             self._logic_label_boxes.append((link, self._logic_screen_box(box)))
+
+        for link, start, end in numbers:
+            draw_number(link, start)
+            draw_number(link, end)
         for link, anchor in labels:
             if anchor is None:
                 continue
@@ -759,15 +836,19 @@ class LogicEditorMixin:
                 canvas.create_line(*coords, fill=color, width=1,
                                    dash=style["dash"])
 
-        for link, anchor in numbers:
+        def draw_number(link, anchor):
             if anchor is None:
-                continue
+                return
             x, y, box = anchor
             canvas.create_rectangle(box[0], box[1], box[2], box[3],
                                     fill="white", outline="")
             canvas.create_text(x, y, text=self._logic_link_number(link),
                                fill=ll.link_style(link.get("kind"))["color"],
                                font=("Arial", 6), anchor="center")
+
+        for link, start, end in numbers:
+            draw_number(link, start)
+            draw_number(link, end)
         for link, anchor in labels:
             if anchor is None:
                 continue
@@ -786,7 +867,7 @@ class LogicEditorMixin:
             "to": link.get("to", ""),
             "kind": link.get("kind", "discrete"),
         }
-        for field in ("number", "ru", "iec"):
+        for field in ("id", "continuation", "number", "ru", "iec"):
             value = link.get(field)
             if isinstance(value, str) and value.strip():
                 record[field] = value.strip()
@@ -827,12 +908,14 @@ class LogicEditorMixin:
                          if link.get("kind") in ll.LOGIC_LINK_KINDS
                          else "discrete"),
             }
-            for field in ("number", "ru", "iec"):
+            for field in ("id", "continuation", "number", "ru", "iec"):
                 value = link.get(field)
                 if isinstance(value, str) and value.strip():
                     entry[field] = value.strip()
             if link.get("arrow") is False:
                 entry["arrow"] = False
+            if id_mapping is not None or not entry.get("id"):
+                entry["id"] = ll.next_link_id(result)
             points = self._clean_points(link.get("points"))
             if points:
                 entry["points"] = points
@@ -879,6 +962,9 @@ class LogicEditorMixin:
         number_var = tk.StringVar(value=link.get("number", ""))
         ru_var = tk.StringVar(value=link.get("ru", ""))
         iec_var = tk.StringVar(value=link.get("iec", ""))
+        id_var = tk.StringVar(value=str(link.get("id") or ""))
+        continuation_var = tk.StringVar(
+            value=str(link.get("continuation") or ""))
         arrow_var = tk.BooleanVar(value=bool(link.get("arrow", True)))
 
         tk.Label(form, text="Тип связи:", anchor="w").grid(
@@ -934,12 +1020,15 @@ class LogicEditorMixin:
 
         add_entry(3, "Наименование (рус.):", ru_var)
         add_entry(4, "Наименование (МЭК):", iec_var)
+        add_entry(5, "ID связи:", id_var)
+        add_entry(6, "Продолжение после шины (ID):", continuation_var)
         tk.Checkbutton(form, text="Стрелка по направлению связи",
                        variable=arrow_var).grid(
-            row=5, column=1, sticky="w", pady=(6, 0))
+            row=7, column=1, sticky="w", pady=(6, 0))
 
         result = {"ok": False, "delete": False, "kind": kind,
-                  "number": "", "ru": "", "iec": "", "arrow": True}
+                  "number": "", "ru": "", "iec": "", "id": "",
+                  "continuation": "", "arrow": True}
 
         def accept(event=None):
             # Все значения снимаем ДО destroy(): после закрытия окна виджеты
@@ -951,6 +1040,8 @@ class LogicEditorMixin:
             result["number"] = number_var.get().strip()
             result["ru"] = ru_var.get().strip()
             result["iec"] = iec_var.get().strip()
+            result["id"] = id_var.get().strip()
+            result["continuation"] = continuation_var.get().strip()
             result["arrow"] = bool(arrow_var.get())
             result["ok"] = True
             dialog.destroy()
@@ -991,12 +1082,16 @@ class LogicEditorMixin:
         new_number = result.get("number", "")
         new_ru = result.get("ru", "")
         new_iec = result.get("iec", "")
+        new_id = result.get("id", "")
+        new_continuation = result.get("continuation", "")
         new_arrow = bool(result.get("arrow", True))
         changed = (
             new_kind != link.get("kind")
             or new_number != (link.get("number") or "")
             or new_ru != (link.get("ru") or "")
             or new_iec != (link.get("iec") or "")
+            or new_id != (link.get("id") or "")
+            or new_continuation != (link.get("continuation") or "")
             or new_arrow != bool(link.get("arrow", True))
         )
         if not changed:
@@ -1006,6 +1101,8 @@ class LogicEditorMixin:
         link["number"] = new_number
         link["ru"] = new_ru
         link["iec"] = new_iec
+        link["id"] = new_id
+        link["continuation"] = new_continuation
         link["arrow"] = new_arrow
         self._mark_modified()
         self.redraw_all()
@@ -1059,6 +1156,53 @@ class LogicEditorMixin:
                                 "Выберите функциональный блок на схеме.")
             return
         self.edit_logic_element(blocks[0])
+
+    def edit_selected_logic_function_structure(self):
+        selected = [self.elements[el_id] for el_id in self.selected_elements
+                    if el_id in self.elements]
+        functions = [el for el in selected if el.type == "logic_function"]
+        if not functions:
+            messagebox.showinfo(
+                "Логика",
+                "Выберите логическую функцию на схеме.")
+            return
+        self.edit_logic_function_structure(functions[0])
+
+    def edit_logic_function_structure(self, element):
+        """Слоты, уставки и параметры отдельной функции."""
+        if element is None:
+            return
+        data = self._edit_logic_function_data({
+            "kind": getattr(element, "kind", "AND"),
+            "title": getattr(element, "title", ""),
+            "name": getattr(element, "name", ""),
+            "iec_name": getattr(element, "iec_name", ""),
+            "LNclass": getattr(element, "LNclass", ""),
+            "ru": getattr(element, "signal_ru", ""),
+            "iec": getattr(element, "signal_iec", ""),
+            "inputs": element._input_slots(),
+            "outputs": element._output_slots(),
+            "settings": getattr(element, "settings", []),
+            "parameters": getattr(element, "parameters", []),
+        }, self.root)
+        if data is None:
+            return
+        self._push_undo()
+        element.kind = data["kind"]
+        element.title = data["title"]
+        element.iec_name = data["iec_name"]
+        element.LNclass = data["LNclass"]
+        element.signal_ru = data["ru"]
+        element.signal_iec = data["iec"]
+        element.inputs = list(data["inputs"])
+        element.outputs = list(data["outputs"])
+        element.settings = list(data["settings"])
+        element.parameters = list(data["parameters"])
+        element.input_count = max(1, len(element.inputs))
+        element.generate_ports()
+        self._prune_logic_links()
+        self._mark_modified()
+        self.redraw_all()
 
     def edit_logic_element(self, element):
         if element is None:
@@ -1159,10 +1303,13 @@ class LogicEditorMixin:
     def edit_logic_bus(self, element):
         length_var = tk.StringVar(value=str(int(getattr(element, "length", 480))))
         color_var = tk.StringVar(value=getattr(element, "color", "#00acc1"))
+        description_var = tk.StringVar(
+            value=getattr(element, "description", ""))
 
         def extra(form, row, variables):
             variables["length"] = length_var
             variables["color"] = color_var
+            variables["description"] = description_var
             tk.Label(form, text="Длина шины:", anchor="w").grid(
                 row=row, column=0, sticky="w", pady=(6, 0))
             tk.Entry(form, textvariable=length_var, width=12).grid(
@@ -1171,7 +1318,11 @@ class LogicEditorMixin:
                 row=row + 1, column=0, sticky="w", pady=(6, 0))
             tk.Entry(form, textvariable=color_var, width=12).grid(
                 row=row + 1, column=1, sticky="w", pady=(6, 0))
-            return row + 2
+            tk.Label(form, text="Описание:", anchor="w").grid(
+                row=row + 2, column=0, sticky="w", pady=(6, 0))
+            tk.Entry(form, textvariable=description_var, width=42).grid(
+                row=row + 2, column=1, sticky="we", pady=(6, 0))
+            return row + 3
 
         self._logic_common_dialog(element, "Шина ФЛС — свойства", extra)
 
@@ -1224,6 +1375,8 @@ class LogicEditorMixin:
                 element.input_count = max(1, int(variables["inputs"].get()))
             except (TypeError, ValueError):
                 pass
+        if "description" in variables and hasattr(element, "description"):
+            element.description = variables["description"].get().strip()
 
     # ---------- функциональный блок ----------
     def edit_logic_block(self, element):
@@ -1251,6 +1404,14 @@ class LogicEditorMixin:
         except (TypeError, ValueError):
             width_value = int(ll.LogicBlock.MIN_WIDTH)
         width_var = tk.StringVar(value=str(width_value))
+        # Поля FunctionBlock из structure2.xml.
+        main_var = tk.BooleanVar(
+            value=bool(getattr(element, "isMainFunction", False)))
+        its_var = tk.BooleanVar(
+            value=bool(getattr(element, "isInITS", False)))
+        iec_var = tk.StringVar(value=getattr(element, "iec_name", ""))
+        path_var = tk.StringVar(value=getattr(element, "russian_path", ""))
+        corp_var = tk.StringVar(value=getattr(element, "corp_prof_name", ""))
 
         outer = tk.Frame(dialog, padx=10, pady=8)
         outer.pack(fill=tk.BOTH, expand=True)
@@ -1278,6 +1439,24 @@ class LogicEditorMixin:
         tk.Label(header, text="Ширина не меньше ширины по содержимому",
                  fg=ui_theme.TEXT_MUTED, anchor="w").grid(
             row=1, column=2, columnspan=2, sticky="w")
+        tk.Label(header, text="МЭК 61850:", anchor="w").grid(
+            row=2, column=0, sticky="w", pady=(4, 0))
+        tk.Entry(header, textvariable=iec_var, width=24).grid(
+            row=2, column=1, sticky="we", padx=(6, 12), pady=(4, 0))
+        tk.Label(header, text="Путь (рус.):", anchor="w").grid(
+            row=2, column=2, sticky="w", pady=(4, 0))
+        tk.Entry(header, textvariable=path_var, width=18).grid(
+            row=2, column=3, sticky="we", padx=(6, 0), pady=(4, 0))
+        tk.Label(header, text="Корпоративное имя:", anchor="w").grid(
+            row=3, column=0, sticky="w", pady=(4, 0))
+        tk.Entry(header, textvariable=corp_var, width=24).grid(
+            row=3, column=1, sticky="we", padx=(6, 12), pady=(4, 0))
+        flags = tk.Frame(header)
+        flags.grid(row=3, column=2, columnspan=2, sticky="w", pady=(4, 0))
+        tk.Checkbutton(flags, text="Основная функция",
+                       variable=main_var).pack(side=tk.LEFT)
+        tk.Checkbutton(flags, text="В ИТС",
+                       variable=its_var).pack(side=tk.LEFT, padx=(10, 0))
 
         # ---- предпросмотр блока ----
         preview = tk.Canvas(outer, height=170, bg=ui_theme.CANVAS,
@@ -1355,20 +1534,32 @@ class LogicEditorMixin:
                     ll.SIGNAL_DIRECTIONS.get(direction, "выход"),
                     row.get("ru") or "", row.get("iec") or ""))
 
+        function_store = {}
+        function_seq = [0]
+
+        def function_values(function):
+            kind = (function.get("kind") or "AND").upper()
+            if kind not in ll.FUNCTION_KINDS:
+                kind = "CUSTOM"
+            return (
+                ll.FUNCTION_KINDS[kind][1],
+                function.get("title") or "",
+                len(function.get("inputs") or []),
+                ll.signal_text(function.get("ru"), function.get("iec")),
+                kind,
+                function.get("ru") or "",
+                function.get("iec") or "")
+
         def fill_functions(functions):
             functions_tree.delete(*functions_tree.get_children())
+            function_store.clear()
             for function in functions or []:
-                kind = (function.get("kind") or "AND").upper()
-                if kind not in ll.FUNCTION_KINDS:
-                    kind = "CUSTOM"
-                functions_tree.insert("", "end", values=(
-                    ll.FUNCTION_KINDS[kind][1],
-                    function.get("title") or "",
-                    function.get("inputs") or 2,
-                    ll.signal_text(function.get("ru"), function.get("iec")),
-                    kind,
-                    function.get("ru") or "",
-                    function.get("iec") or ""))
+                data = ll.normalize_function(function)
+                function_seq[0] += 1
+                iid = "f{}".format(function_seq[0])
+                function_store[iid] = data
+                functions_tree.insert("", "end", iid=iid,
+                                      values=function_values(data))
 
         fill_inputs(getattr(element, "inputs", []))
         fill_rows(getattr(element, "rows", []))
@@ -1404,22 +1595,24 @@ class LogicEditorMixin:
         def collect_functions():
             functions = []
             for item in functions_tree.get_children():
-                values = list(functions_tree.item(item, "values"))
-                values += [""] * (7 - len(values))
-                kind = str(values[4]).strip().upper() or "AND"
-                if kind not in ll.FUNCTION_KINDS:
-                    kind = "CUSTOM"
-                try:
-                    count = max(1, int(values[2]))
-                except (TypeError, ValueError):
-                    count = 2
-                functions.append({
-                    "kind": kind,
-                    "title": str(values[1]).strip(),
-                    "ru": str(values[5]).strip(),
-                    "iec": str(values[6]).strip(),
-                    "inputs": count,
-                })
+                data = function_store.get(item)
+                if data is None:
+                    # Строка, добавленная в таблицу напрямую (импорт/тест).
+                    values = list(functions_tree.item(item, "values"))
+                    values += [""] * (7 - len(values))
+                    kind = str(values[4]).strip().upper() or "AND"
+                    try:
+                        count = max(1, int(values[2]))
+                    except (TypeError, ValueError):
+                        count = 2
+                    data = {
+                        "kind": kind,
+                        "title": values[1],
+                        "ru": values[5],
+                        "iec": values[6],
+                        "inputs": count,
+                    }
+                functions.append(ll.normalize_function(data))
             return functions
 
         def snapshot():
@@ -1511,40 +1704,32 @@ class LogicEditorMixin:
                 data.get("ru", ""), data.get("iec", "")))
             refresh_preview()
 
-        def insert_function(data):
-            kind = data.get("kind") if data.get("kind") in ll.FUNCTION_KINDS \
-                else "CUSTOM"
-            return (
-                ll.FUNCTION_KINDS[kind][1], data.get("title", ""),
-                data.get("inputs", 2),
-                ll.signal_text(data.get("ru"), data.get("iec")),
-                kind, data.get("ru", ""), data.get("iec", ""))
+        def store_function(data):
+            function_seq[0] += 1
+            iid = "f{}".format(function_seq[0])
+            function_store[iid] = ll.normalize_function(data)
+            return iid, function_values(function_store[iid])
 
         def add_function():
             data = self._edit_logic_function_data(None, dialog)
             if data is None:
                 return
-            functions_tree.insert("", "end", values=insert_function(data))
+            iid, values = store_function(data)
+            functions_tree.insert("", "end", iid=iid, values=values)
             refresh_preview()
 
         def edit_function():
             selection = functions_tree.selection()
             if not selection:
                 return
-            values = list(functions_tree.item(selection[0], "values"))
-            values += [""] * (7 - len(values))
-            current = {
-                "kind": str(values[4]).upper() or "AND",
-                "title": values[1],
-                "ru": values[5],
-                "iec": values[6],
-                "inputs": values[2],
-            }
+            iid = selection[0]
+            current = function_store.get(iid) or {}
             data = self._edit_logic_function_data(current, dialog)
             if data is None:
                 return
-            functions_tree.item(selection[0],
-                                values=insert_function(data))
+            function_store[iid] = ll.normalize_function(data)
+            functions_tree.item(iid, values=function_values(
+                function_store[iid]))
             refresh_preview()
 
         for text, command, width in (
@@ -1594,6 +1779,11 @@ class LogicEditorMixin:
             result["inputs"] = inputs
             result["rows"] = collect_rows()
             result["functions"] = collect_functions()
+            result["isMainFunction"] = bool(main_var.get())
+            result["isInITS"] = bool(its_var.get())
+            result["iec_name"] = iec_var.get().strip()
+            result["russian_path"] = path_var.get().strip()
+            result["corp_prof_name"] = corp_var.get().strip()
             result["ok"] = True
             dialog.destroy()
 
@@ -1630,6 +1820,11 @@ class LogicEditorMixin:
         self._push_undo()
         element.title = result["title"]
         element.designation = result["designation"]
+        element.isMainFunction = result["isMainFunction"]
+        element.isInITS = result["isInITS"]
+        element.iec_name = result["iec_name"]
+        element.russian_path = result["russian_path"]
+        element.corp_prof_name = result["corp_prof_name"]
         try:
             element.width = max(ll.LogicBlock.MIN_WIDTH,
                                 float(result["width"] or 0))
@@ -1791,64 +1986,419 @@ class LogicEditorMixin:
                 pass
         return result["data"]
 
-    def _edit_logic_function_data(self, data, parent):
-        """Диалог логического узла для вставки в блок."""
+    def _ask_fields(self, parent, title, fields, values=None):
+        """Небольшой модальный диалог: список полей → словарь значений."""
+        values = dict(values or {})
         dialog = tk.Toplevel(parent)
-        dialog.title("Логический узел")
+        dialog.title(title)
         dialog.transient(parent)
         dialog.resizable(False, False)
-
         form = tk.Frame(dialog, padx=10, pady=8)
         form.pack(fill=tk.BOTH, expand=True)
         form.columnconfigure(1, weight=1)
+        variables = {}
+        row = 0
+        for key, caption, width in fields:
+            tk.Label(form, text=caption, anchor="w").grid(
+                row=row, column=0, sticky="w", pady=(4, 0))
+            variable = tk.StringVar(value=str(values.get(key, "") or ""))
+            variables[key] = variable
+            if key == "type":
+                keys = list(ll.SLOT_TYPE_ORDER)
+                combo = ttk.Combobox(
+                    form, state="readonly", width=width,
+                    values=[ll.SLOT_TYPES[key_] for key_ in keys])
+                current = variables[key].get()
+                if current in keys:
+                    combo.current(keys.index(current))
+                combo.grid(row=row, column=1, sticky="we", pady=(4, 0))
+                combo.bind(
+                    "<<ComboboxSelected>>",
+                    lambda event, c=combo, v=variable, ks=keys:
+                    v.set(ks[c.current()]))
+            else:
+                tk.Entry(form, textvariable=variable, width=width).grid(
+                    row=row, column=1, sticky="we", pady=(4, 0))
+            row += 1
+        result = {"data": None}
 
-        data = data or {}
-        kind_var = tk.StringVar(value=(data.get("kind") or "AND").upper())
+        def accept(event=None):
+            result["data"] = {key: variable.get().strip()
+                              for key, variable in variables.items()}
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(6, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="ОК", width=10,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        dialog.bind("<Return>", accept)
+        dialog.bind("<Escape>", cancel)
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+        if parent is not None:
+            try:
+                parent.grab_set()
+            except tk.TclError:
+                pass
+        return result["data"]
+
+    def _edit_logic_function_data(self, data, parent):
+        """Функция ФЛС: вид, слоты, уставки и параметры.
+
+        Уставки и параметры (программные переключатели) находятся внутри
+        функции и на схеме не отображаются — их правят здесь.
+        """
+        dialog = tk.Toplevel(parent)
+        dialog.title("Функция — свойства")
+        dialog.transient(parent)
+        dialog.resizable(True, True)
+        dialog.minsize(760, 560)
+
+        data = ll.normalize_function(data or {})
+        kind_var = tk.StringVar(value=data.get("kind") or "AND")
         title_var = tk.StringVar(value=data.get("title") or "")
+        name_var = tk.StringVar(value=data.get("name") or "")
+        iec_name_var = tk.StringVar(value=data.get("iec_name") or "")
+        lnclass_var = tk.StringVar(value=data.get("LNclass") or "")
         ru_var = tk.StringVar(value=data.get("ru") or "")
         iec_var = tk.StringVar(value=data.get("iec") or "")
-        inputs_var = tk.StringVar(value=str(data.get("inputs") or 2))
 
-        tk.Label(form, text="Вид узла:", anchor="w").grid(
-            row=0, column=0, sticky="w", pady=(6, 0))
+        outer = tk.Frame(dialog, padx=10, pady=8)
+        outer.pack(fill=tk.BOTH, expand=True)
+        outer.columnconfigure(1, weight=1)
+        outer.columnconfigure(3, weight=1)
+
+        tk.Label(outer, text="Вид узла:", anchor="w").grid(
+            row=0, column=0, sticky="w", pady=(4, 0))
         keys = list(ll.FUNCTION_KINDS)
         combo = ttk.Combobox(
-            form, state="readonly", width=32,
+            outer, state="readonly", width=32,
             values=["{} — {}".format(key, ll.FUNCTION_KINDS[key][1])
                     for key in keys])
         if kind_var.get() in keys:
             combo.current(keys.index(kind_var.get()))
-        combo.grid(row=0, column=1, sticky="we", pady=(6, 0))
+        combo.grid(row=0, column=1, columnspan=3, sticky="we",
+                   pady=(4, 0))
         combo.bind("<<ComboboxSelected>>",
                    lambda event: kind_var.set(keys[combo.current()]))
 
-        def add_entry(row, caption, variable, width=40):
-            tk.Label(form, text=caption, anchor="w").grid(
-                row=row, column=0, sticky="w", pady=(6, 0))
-            tk.Entry(form, textvariable=variable, width=width).grid(
-                row=row, column=1, sticky="we", pady=(6, 0))
+        def add_entry(row, column, caption, variable, width=30):
+            tk.Label(outer, text=caption, anchor="w").grid(
+                row=row, column=column, sticky="w", pady=(4, 0))
+            tk.Entry(outer, textvariable=variable, width=width).grid(
+                row=row, column=column + 1, sticky="we",
+                padx=(6, 12), pady=(4, 0))
 
-        add_entry(1, "Название узла:", title_var)
-        add_entry(2, "Сигнал (рус.):", ru_var)
-        add_entry(3, "Сигнал (МЭК):", iec_var)
-        tk.Label(form, text="Число входов:", anchor="w").grid(
-            row=4, column=0, sticky="w", pady=(6, 0))
-        tk.Spinbox(form, from_=1, to=12, textvariable=inputs_var,
-                   width=6).grid(row=4, column=1, sticky="w", pady=(6, 0))
+        add_entry(1, 0, "Название:", title_var)
+        add_entry(1, 2, "Имя функции:", name_var)
+        add_entry(2, 0, "МЭК 61850:", iec_name_var)
+        add_entry(2, 2, "LNclass:", lnclass_var)
+        add_entry(3, 0, "Сигнал (рус.):", ru_var)
+        add_entry(3, 2, "Сигнал (МЭК):", iec_var)
+
+        notebook = ttk.Notebook(outer)
+        notebook.grid(row=4, column=0, columnspan=4, sticky="nsew",
+                      pady=(8, 0))
+        outer.rowconfigure(4, weight=1)
+
+        def make_table(parent, columns, headings, widths):
+            frame = tk.Frame(parent, padx=6, pady=6)
+            frame.columnconfigure(0, weight=1)
+            frame.rowconfigure(0, weight=1)
+            tree = ttk.Treeview(frame, columns=columns, show="headings",
+                                selectmode="browse", height=6)
+            for name, heading, width in zip(columns, headings, widths):
+                tree.heading(name, text=heading)
+                tree.column(name, width=width, anchor="w")
+            scroll = ttk.Scrollbar(frame, orient="vertical",
+                                   command=tree.yview)
+            tree.configure(yscrollcommand=scroll.set)
+            tree.grid(row=0, column=0, sticky="nsew")
+            scroll.grid(row=0, column=1, sticky="ns")
+            buttons = tk.Frame(frame)
+            buttons.grid(row=1, column=0, columnspan=2, sticky="w",
+                         pady=(6, 0))
+            return frame, tree, buttons
+
+        def add_button(parent, text, command, width=12):
+            tk.Button(parent, text=text, width=width,
+                      command=command).pack(side=tk.LEFT, padx=(0, 4))
+
+        inputs_tab, inputs_tree, inputs_buttons = make_table(
+            notebook, ("name", "desc", "iec", "type"),
+            ("Наименование", "Описание", "МЭК", "Тип слота"),
+            (190, 240, 160, 220))
+        notebook.add(inputs_tab, text="Входы")
+        outputs_tab, outputs_tree, outputs_buttons = make_table(
+            notebook, ("name", "desc", "iec", "type"),
+            ("Наименование", "Описание", "МЭК", "Тип слота"),
+            (190, 240, 160, 220))
+        notebook.add(outputs_tab, text="Выходы")
+        settings_tab, settings_tree, settings_buttons = make_table(
+            notebook,
+            ("name", "min", "max", "step", "unit", "default", "desc"),
+            ("Уставка", "Мин.", "Макс.", "Шаг", "Ед.", "По умолч.",
+             "Описание"),
+            (150, 70, 70, 60, 60, 90, 220))
+        notebook.add(settings_tab, text="Уставки")
+        parameters_tab, parameters_tree, parameters_buttons = make_table(
+            notebook, ("name", "value", "default", "desc"),
+            ("Параметр", "Значение", "По умолч.", "Описание"),
+            (150, 180, 110, 260))
+        notebook.add(parameters_tab, text="Параметры")
+
+        def fill_slots(tree, slots):
+            tree.delete(*tree.get_children())
+            for slot in slots:
+                tree.insert("", "end", values=(
+                    slot.get("name", ""), slot.get("description", ""),
+                    slot.get("iec_name", ""),
+                    ll.slot_type_title(slot.get("type", ""))))
+
+        def fill_settings(tree, settings):
+            tree.delete(*tree.get_children())
+            for setting in settings:
+                tree.insert("", "end", values=(
+                    setting.get("name", ""), setting.get("min_value", ""),
+                    setting.get("max_value", ""), setting.get("step", ""),
+                    setting.get("unit", ""), setting.get("default_value", ""),
+                    setting.get("description", "")))
+
+        def fill_parameters(tree, parameters):
+            tree.delete(*tree.get_children())
+            for parameter in parameters:
+                tree.insert("", "end", values=(
+                    parameter.get("name", ""), parameter.get("value", ""),
+                    parameter.get("default_value", ""),
+                    parameter.get("description", "")))
+
+        fill_slots(inputs_tree, data.get("inputs") or [])
+        fill_slots(outputs_tree, data.get("outputs") or [])
+        fill_settings(settings_tree, data.get("settings") or [])
+        fill_parameters(parameters_tree, data.get("parameters") or [])
+
+        def selected_values(tree):
+            selection = tree.selection()
+            return list(tree.item(selection[0], "values")) if selection \
+                else None
+
+        def slot_type_key(title):
+            for key, value in ll.SLOT_TYPES.items():
+                if value == title:
+                    return key
+            return ll.DEFAULT_SLOT_TYPE
+
+        def add_slot(tree, direction):
+            values = self._ask_fields(
+                dialog, "Вход функции" if direction == "in" else "Выход функции",
+                (("name", "Наименование", 34),
+                 ("description", "Описание", 34),
+                 ("iec_name", "МЭК", 34),
+                 ("type", "Тип слота", 34)),
+                {"type": ll.DEFAULT_SLOT_TYPE})
+            if values is None:
+                return
+            slot = ll.new_slot(direction, values["name"],
+                               values["description"], values["iec_name"],
+                               values["type"])
+            tree.insert("", "end", values=(
+                slot["name"], slot["description"], slot["iec_name"],
+                ll.slot_type_title(slot["type"])))
+
+        def edit_slot(tree, direction):
+            current = selected_values(tree)
+            if current is None:
+                return
+            current += [""] * (4 - len(current))
+            values = self._ask_fields(
+                dialog, "Слот функции",
+                (("name", "Наименование", 34),
+                 ("description", "Описание", 34),
+                 ("iec_name", "МЭК", 34),
+                 ("type", "Тип слота", 34)),
+                {"name": current[0], "description": current[1],
+                 "iec_name": current[2], "type": slot_type_key(current[3])})
+            if values is None:
+                return
+            tree.item(tree.selection()[0], values=(
+                values["name"], values["description"], values["iec_name"],
+                ll.slot_type_title(values["type"])))
+
+        def add_setting():
+            values = self._ask_fields(
+                dialog, "Уставка",
+                (("name", "Наименование", 34),
+                 ("min_value", "Минимум", 34),
+                 ("max_value", "Максимум", 34),
+                 ("step", "Шаг", 34),
+                 ("unit", "Единица", 34),
+                 ("default_value", "По умолчанию", 34),
+                 ("description", "Описание", 34)))
+            if values is None:
+                return
+            settings_tree.insert("", "end", values=(
+                values["name"], values["min_value"], values["max_value"],
+                values["step"], values["unit"], values["default_value"],
+                values["description"]))
+
+        def edit_setting():
+            current = selected_values(settings_tree)
+            if current is None:
+                return
+            current += [""] * (7 - len(current))
+            keys = ("name", "min_value", "max_value", "step", "unit",
+                    "default_value", "description")
+            labels = ("Наименование", "Минимум", "Максимум", "Шаг",
+                      "Единица", "По умолчанию", "Описание")
+            values = self._ask_fields(
+                dialog, "Уставка",
+                tuple((key, label, 34)
+                      for key, label in zip(keys, labels)),
+                dict(zip(keys, current)))
+            if values is None:
+                return
+            settings_tree.item(settings_tree.selection()[0], values=tuple(
+                values[key] for key in keys))
+
+        def add_parameter():
+            values = self._ask_fields(
+                dialog, "Параметр (программный переключатель)",
+                (("name", "Наименование", 34),
+                 ("value", "Значение / состояния", 34),
+                 ("default_value", "По умолчанию", 34),
+                 ("description", "Описание", 34)))
+            if values is None:
+                return
+            parameters_tree.insert("", "end", values=(
+                values["name"], values["value"], values["default_value"],
+                values["description"]))
+
+        def edit_parameter():
+            current = selected_values(parameters_tree)
+            if current is None:
+                return
+            current += [""] * (4 - len(current))
+            keys = ("name", "value", "default_value", "description")
+            labels = ("Наименование", "Значение / состояния",
+                      "По умолчанию", "Описание")
+            values = self._ask_fields(
+                dialog, "Параметр",
+                tuple((key, label, 34)
+                      for key, label in zip(keys, labels)),
+                dict(zip(keys, current)))
+            if values is None:
+                return
+            parameters_tree.item(parameters_tree.selection()[0], values=tuple(
+                values[key] for key in keys))
+
+        def remove_selected(tree):
+            for item in tree.selection():
+                tree.delete(item)
+
+        def move_selected(tree, offset):
+            selection = tree.selection()
+            if not selection:
+                return
+            item = selection[0]
+            index = tree.index(item) + offset
+            if index < 0:
+                return
+            tree.move(item, "", index)
+            tree.selection_set(item)
+
+        for tree, buttons, direction in (
+                (inputs_tree, inputs_buttons, "in"),
+                (outputs_tree, outputs_buttons, "out")):
+            add_button(buttons, "Добавить…",
+                       lambda t=tree, d=direction: add_slot(t, d), 14)
+            add_button(buttons, "Изменить…",
+                       lambda t=tree, d=direction: edit_slot(t, d), 14)
+            add_button(buttons, "Удалить",
+                       lambda t=tree: remove_selected(t), 10)
+            add_button(buttons, "Вверх",
+                       lambda t=tree: move_selected(t, -1), 8)
+            add_button(buttons, "Вниз",
+                       lambda t=tree: move_selected(t, 1), 8)
+            tree.bind("<Double-1>",
+                      lambda event, t=tree, d=direction: edit_slot(t, d))
+
+        for text, command in (("Добавить…", add_setting),
+                              ("Изменить…", edit_setting),
+                              ("Удалить",
+                               lambda: remove_selected(settings_tree)),
+                              ("Вверх",
+                               lambda: move_selected(settings_tree, -1)),
+                              ("Вниз",
+                               lambda: move_selected(settings_tree, 1))):
+            add_button(settings_buttons, text, command)
+        settings_tree.bind("<Double-1>", lambda event: edit_setting())
+
+        for text, command in (("Добавить…", add_parameter),
+                              ("Изменить…", edit_parameter),
+                              ("Удалить",
+                               lambda: remove_selected(parameters_tree)),
+                              ("Вверх",
+                               lambda: move_selected(parameters_tree, -1)),
+                              ("Вниз",
+                               lambda: move_selected(parameters_tree, 1))):
+            add_button(parameters_buttons, text, command)
+        parameters_tree.bind("<Double-1>",
+                             lambda event: edit_parameter())
 
         result = {"data": None}
 
+        def collect_slots(tree, direction):
+            slots = []
+            for item in tree.get_children():
+                values = list(tree.item(item, "values"))
+                values += [""] * (4 - len(values))
+                slots.append(ll.new_slot(
+                    direction, values[0], values[1], values[2],
+                    slot_type_key(values[3])))
+            return slots
+
+        def collect_settings():
+            settings = []
+            for item in settings_tree.get_children():
+                values = list(settings_tree.item(item, "values"))
+                values += [""] * (7 - len(values))
+                settings.append({
+                    "name": values[0], "min_value": values[1],
+                    "max_value": values[2], "step": values[3],
+                    "unit": values[4], "default_value": values[5],
+                    "description": values[6],
+                })
+            return settings
+
+        def collect_parameters():
+            parameters = []
+            for item in parameters_tree.get_children():
+                values = list(parameters_tree.item(item, "values"))
+                values += [""] * (4 - len(values))
+                parameters.append({
+                    "name": values[0], "value": values[1],
+                    "default_value": values[2], "description": values[3],
+                })
+            return parameters
+
         def accept(event=None):
-            try:
-                count = max(1, int(inputs_var.get()))
-            except (TypeError, ValueError):
-                count = 2
             result["data"] = {
                 "kind": kind_var.get() or "AND",
                 "title": title_var.get().strip(),
+                "name": name_var.get().strip(),
+                "iec_name": iec_name_var.get().strip(),
+                "LNclass": lnclass_var.get().strip(),
                 "ru": ru_var.get().strip(),
                 "iec": iec_var.get().strip(),
-                "inputs": count,
+                "inputs": collect_slots(inputs_tree, "in"),
+                "outputs": collect_slots(outputs_tree, "out"),
+                "settings": collect_settings(),
+                "parameters": collect_parameters(),
             }
             dialog.destroy()
 
@@ -1861,7 +2411,6 @@ class LogicEditorMixin:
                   command=cancel).pack(side=tk.RIGHT)
         tk.Button(buttons, text="Сохранить", width=12,
                   command=accept).pack(side=tk.RIGHT, padx=(0, 6))
-        dialog.bind("<Return>", accept)
         dialog.bind("<Escape>", cancel)
         self._center_dialog(dialog)
         dialog.wait_window(dialog)

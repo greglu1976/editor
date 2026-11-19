@@ -264,7 +264,7 @@ class EAStandardWindow(tk.Toplevel):
                         kit_node, tk.END,
                         text="ИЭУ %s — функций %d"
                              % (ied.get("number", ""),
-                                len(ied.get("functions") or [])))
+                                es.function_count(ied)))
                     self._nodes[ied_node] = ("ied", item, kit, ied)
         self._update_actions(None)
 
@@ -402,7 +402,8 @@ class EAStandardWindow(tk.Toplevel):
     def _show_ied(self, kit, ied):
         caption = "ИЭУ %s — комплект %s" % (ied.get("number", ""),
                                            kit.get("number", ""))
-        functions = ied.get("functions") or []
+        blocks = es.function_blocks(ied)
+        functions = list(es.iter_functions(ied))
         if not functions:
             rows = [
                 ["Порты", str(len(ied.get("ports") or []))],
@@ -416,15 +417,18 @@ class EAStandardWindow(tk.Toplevel):
             self._show_card(caption, ["Параметр", "Значение"], rows)
             self.status.config(text=caption)
             return
-        headers = ["Функция", "МЭК 61850", "Основная", "В ИТС", "Параметров"]
-        rows = [[function.get("russian_path") or function.get("name") or "",
+        headers = ["Блок", "Функция", "МЭК 61850", "Основная", "В ИТС",
+                   "Параметров"]
+        rows = [[es.block_label(block),
+                 function.get("name") or "",
                  function.get("iec_name") or "",
-                 "да" if function.get("isMainFunction") else "",
-                 "да" if function.get("isInITS") else "",
+                 "да" if block.get("isMainFunction") else "",
+                 "да" if block.get("isInITS") else "",
                  str(len(function.get("parameters") or []))]
-                for function in functions]
+                for block, function in functions]
         self._show_grid(caption, headers, rows)
-        self.status.config(text="Функций: %d" % len(functions))
+        self.status.config(text="Блоков: %d · функций: %d"
+                                % (len(blocks), len(functions)))
 
     def _show_text(self, title, content):
         self._clear_right()

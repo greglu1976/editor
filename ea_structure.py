@@ -45,7 +45,8 @@ _FUNCTION_HEADERS = ("Функция", "Параметр", "Описание", "
 
 _IED_LISTS = ("analog_inputs", "osc_analog_signals", "incoming_goose_signals",
               "inner_discrete_circuits", "datasets", "ports",
-              "functional_buttons", "leds", "control_commands", "functions")
+              "functional_buttons", "leds", "control_commands",
+              "function_blocks")
 
 
 # ---------------------------------------------------------------------------

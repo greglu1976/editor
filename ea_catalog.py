@@ -110,14 +110,14 @@ def _voltage(scope):
 
 
 def _function_names(ieds, flag="isMainFunction"):
-    """Названия функций ИЭУ без повторов (порядок — как в стандарте)."""
+    """Названия блоков функций ИЭУ без повторов (порядок — как в модели)."""
     names = []
     for ied in ieds:
-        for function in ied.get("functions") or []:
-            if not function.get(flag):
+        for block in es.function_blocks(ied):
+            if not block.get(flag):
                 continue
-            name = (function.get("russian_path")
-                    or function.get("name") or "").strip()
+            name = (block.get("name")
+                    or block.get("russian_path") or "").strip()
             if name and name not in names:
                 names.append(name)
     return names
@@ -474,7 +474,16 @@ def kit_from_catalog(kit, number=None, cabinet=None):
         "isMainFunction": True,
         "isInITS": False,
         "iec_name": "",
-        "parameters": [],
+        "corp_prof_name": "",
+        "functions": [{
+            "name": name,
+            "iec_name": "",
+            "LNclass": "",
+            "inputs": [],
+            "outputs": [],
+            "settings": [],
+            "parameters": [],
+        }],
     } for name in entry.get("functions") or []]
     analog = [{
         "circuit_type": row.get("signals") or "",
@@ -488,7 +497,7 @@ def kit_from_catalog(kit, number=None, cabinet=None):
     for index, ied in enumerate(komplekts.effective_ieds(entry)):
         record = st.new_ied(None, result, number=index + 1)
         if index == 0:
-            record["functions"] = copy.deepcopy(functions)
+            record["function_blocks"] = copy.deepcopy(functions)
             record["analog_inputs"] = copy.deepcopy(analog)
             if ports:
                 record["ports"] = copy.deepcopy(ports)

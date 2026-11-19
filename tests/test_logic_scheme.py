@@ -144,6 +144,45 @@ def test_payload():
 # ==========================================================================
 # GUI
 # ==========================================================================
+def test_structure2_model():
+    print("2a. модель structure2: слоты, уставки, параметры")
+    function = ll.normalize_function({
+        "kind": "AND",
+        "inputs": 2,
+        "outputs": 2,
+        "settings": [{"name": "t", "unit": "с"}],
+        "parameters": [{"name": "Режим", "conditions": "а / б"}],
+    })
+    check(len(function["inputs"]) == 2 and len(function["outputs"]) == 2,
+          "входы и выходы функции нормализованы")
+    check(function["settings"][0]["unit"] == "с", "уставка сохранена")
+    check(function["parameters"][0]["value"] == "а / б",
+          "состояния переключателя стали значением параметра")
+
+    comp = ll.LogicFunction("F1", 0, 0)
+    comp.inputs = [ll.new_slot("in", "Пуск", "", "Start",
+                               "discrete_process_level")]
+    comp.outputs = [ll.new_slot("out", "Отключение", "", "Trip",
+                                "control_operation")]
+    comp.settings = [{"name": "t", "unit": "с", "min_value": "0",
+                      "max_value": "10", "step": "0.1",
+                      "default_value": "1", "description": ""}]
+    comp.parameters = [{"name": "Режим", "value": "а / б",
+                        "default_value": "а", "description": ""}]
+    comp.generate_ports()
+    check("in0" in comp.ports and comp.ports["in0"]["slot_name"] == "Пуск",
+          "вход функции получил порт с именем слота")
+    check(comp.ports["out0"]["slot_type"] == "control_operation",
+          "тип выхода — управляющее воздействие")
+    payload = ll.element_payload(comp)
+    restored = ll.LogicFunction("F2", 0, 0)
+    ll.restore_element(restored, payload)
+    check(len(restored.inputs) == 1 and len(restored.outputs) == 1,
+          "слоты читаются из JSON")
+    check(restored.settings and restored.parameters,
+          "уставки и параметры читаются из JSON")
+
+
 def test_elements(app):
     print("3. элементы ФЛС")
     _reset(app)
@@ -500,8 +539,9 @@ def test_block_dialog(app, root):
     check(bool(block.functions) and block.functions[0]["kind"] == "AND"
           and block.functions[0]["ru"] == "Пуск",
           "логический узел сохранён")
-    check(sorted(block.ports) == ["in0", "in1", "out0", "out1"],
-          "выводы блока пересчитаны")
+    check(sorted(block.ports) == [
+        "fn0_in0", "fn0_in1", "fn0_out0", "in0", "in1", "out0", "out1"],
+        "выводы блока и слоты функции пересчитаны")
     check(app.is_modified is True, "схема помечена изменённой")
 
 
@@ -718,6 +758,7 @@ def main(argv=None):
 
     test_numbering()
     test_payload()
+    test_structure2_model()
     if args.no_gui:
         print("\nGUI-проверки пропущены (--no-gui)")
     elif tk is None:

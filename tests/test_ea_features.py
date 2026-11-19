@@ -96,7 +96,7 @@ def test_catalog(data):
           and ea_kit["description"] == source["desc"],
           "типовой комплект каталога → комплект стандарта")
     check(len(ea_kit["ieds"]) == len(komplekts.effective_ieds(source))
-          and ea_kit["ieds"][0]["functions"],
+          and es.function_blocks(ea_kit["ieds"][0]),
           "ИЭУ и функции перенесены в стандарт")
     check(set(ea_catalog.function_names(ea_kit)) <= set(source["functions"]),
           "функции сохраняются при обратном преобразовании")
@@ -1234,7 +1234,7 @@ def test_typical_transfer():
     check(card["kits"] and card["kits"][0]["ieds"],
           "комплекты и ИЭУ типового шкафа перенесены")
     ied = next(kit["ieds"][0] for kit in card["kits"] if kit["ieds"])
-    check(bool(ied["functions"]), "функции ИЭУ перенесены")
+    check(bool(es.function_blocks(ied)), "функции ИЭУ перенесены")
     check(bool(ied["analog_inputs"]), "аналоговые измерения перенесены")
     check(bool(card["power_supplies"]), "вводы питания перенесены")
     signals = cabs.signals_for(source)
