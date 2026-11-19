@@ -261,12 +261,8 @@ def _save_signals(data, table, kind, rows):
         dataset["signals"] = new
 
 
-def _function_label(function):
-    path = str(function.get("russian_path") or "")
-    name = str(function.get("name") or "")
-    if path and path != name:
-        return "%s / %s" % (path, name)
-    return name
+def _function_label(block, function):
+    return es.function_label(block, function)
 
 
 def _load_functions(data, table):
@@ -274,12 +270,12 @@ def _load_functions(data, table):
     ied = _ied(cabinet)
     headers = ["Функция", "Параметр", "Описание", "Состояния"]
     rows = []
-    for function in ied.get("functions") or []:
-        rows.append([_function_label(function), "", "", ""])
+    for block, function in es.iter_functions(ied):
+        rows.append([_function_label(block, function), "", "", ""])
         for parameter in function.get("parameters") or []:
             rows.append(["", parameter.get("name", ""),
                          parameter.get("description", ""),
-                         parameter.get("conditions", "")])
+                         parameter.get("value", "")])
     return headers, rows, ""
 
 
@@ -287,54 +283,79 @@ def _save_functions(data, table, rows):
     cabinet = _cabinet(data, table)
     ied = _ied(cabinet)
     # подпись функции не всегда однозначна («НВЧЗ» — и путь, и имя),
-    # поэтому исходные функции раздаём по подписям по очереди
+    # поэтому исходные блоки и функции раздаём по подписям по очереди
     pending = {}
-    for function in ied.get("functions") or []:
-        pending.setdefault(_function_label(function), []).append(function)
-    result = []
+    for block, function in es.iter_functions(ied):
+        pending.setdefault(_function_label(block, function), []).append(
+            (block, function))
+    blocks, index = [], {}
     current = None
     while rows and _blank(rows[-1]):
         rows = rows[:-1]
     for row in rows:
         cells = [str(value or "").strip() for value in row[:4]]
         cells += [""] * (4 - len(cells))
-        label, name, description, conditions = cells
-        if not label and not name and not description and not conditions:
+        label, name, description, states = cells
+        if not label and not name and not description and not states:
             # пустая строка внутри функции — пустой параметр: в исходных
             # данных такие строки встречаются, терять их нельзя
             if current is None:
                 continue
             current["parameters"].append(
-                {"name": "", "description": "", "conditions": ""})
+                {"name": "", "value": "", "default_value": "",
+                 "description": ""})
             continue
-        if not name and not description and not conditions:
+        if not name and not description and not states:
             queue = pending.get(label)
-            previous = queue.pop(0) if queue else {}
-            if previous:
-                path = str(previous.get("russian_path") or "")
-                func = str(previous.get("name") or "")
-            elif " / " in label:
-                path, func = label.split(" / ", 1)
-            else:
-                path, func = "", label
+            previous = queue.pop(0) if queue else ({}, {})
+            previous_block, previous_function = previous
+            block_name = es.block_label(previous_block)
+            func_name = str(previous_function.get("name") or "")
+            if not block_name:
+                if " / " in label:
+                    block_name, _, func_name = label.partition(" / ")
+                else:
+                    block_name, func_name = label, label
+            if not func_name:
+                func_name = label
+            block = index.get(block_name)
+            if block is None:
+                block = {
+                    "name": block_name,
+                    "russian_path": str(
+                        previous_block.get("russian_path")
+                        or block_name),
+                    "isMainFunction": bool(
+                        previous_block.get("isMainFunction")),
+                    "isInITS": bool(previous_block.get("isInITS")),
+                    "iec_name": previous_block.get("iec_name", ""),
+                    "corp_prof_name": previous_block.get(
+                        "corp_prof_name", ""),
+                    "functions": [],
+                }
+                index[block_name] = block
+                blocks.append(block)
             current = {
-                "name": func,
-                "russian_path": path,
-                "isMainFunction": bool(previous.get("isMainFunction")),
-                "isInITS": bool(previous.get("isInITS")),
-                "iec_name": previous.get("iec_name", ""),
+                "name": func_name,
+                "iec_name": previous_function.get("iec_name", ""),
+                "LNclass": previous_function.get("LNclass", ""),
+                "inputs": list(previous_function.get("inputs") or []),
+                "outputs": list(previous_function.get("outputs") or []),
+                "settings": list(previous_function.get("settings") or []),
                 "parameters": [],
             }
-            result.append(current)
+            block["functions"].append(current)
             continue
         if current is None:
             raise TableEditError("параметр «%s» без функции" % name)
         current["parameters"].append({
             "name": name,
+            "value": states,
+            "default_value": "",
             "description": description,
-            "conditions": conditions,
         })
-    ied["functions"] = result
+    ied["function_blocks"] = blocks
+    ied.pop("functions", None)
 
 
 def _load_terminals(data, table):

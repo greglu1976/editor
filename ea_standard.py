@@ -28,9 +28,23 @@ import os
 import sys
 
 import apppaths
+import ea_model
 
 #: Папка со стандартами: ``db/EA`` в сборке, ``EA`` рядом с исходниками.
 FOLDER = apppaths.data_dir("EA")
+
+#: Расширенная модель structure2.xml — общий слой с редактором ФЛС.
+SLOT_TYPES = ea_model.SLOT_TYPES
+SLOT_TYPE_ORDER = ea_model.SLOT_TYPE_ORDER
+function_blocks = ea_model.function_blocks
+block_functions = ea_model.block_functions
+iter_functions = ea_model.iter_functions
+function_count = ea_model.function_count
+function_label = ea_model.function_label
+block_label = ea_model.block_label
+normalize_function = ea_model.normalize_function
+normalize_function_block = ea_model.normalize_function_block
+migrate_document = ea_model.migrate_document
 
 #: Фрагменты названий таблиц шкафа -> вид данных в Cabinet (порядок важен).
 KINDS = (
@@ -216,12 +230,17 @@ def _text(value):
     return str(value)
 
 
-def _function_names(functions, flag):
+def _function_names(ied, flag):
+    """Названия блоков функций ИЭУ с указанным признаком.
+
+    Для каталога важна группа («ДТЗ»), а не конкретная функция внутри неё;
+    перечень функций смотрится в карточке ИЭУ.
+    """
     names = []
-    for item in functions:
-        if not item.get(flag):
+    for block in function_blocks(ied):
+        if not block.get(flag):
             continue
-        name = item.get("russian_path") or item.get("name") or ""
+        name = (block.get("name") or block.get("russian_path") or "").strip()
         if name and name not in names:
             names.append(name)
     return ", ".join(names)
@@ -235,8 +254,9 @@ def _cabinet_row_count(cabinet_item):
     total += len(ied.get("ports") or [])
     for key in ("analog_inputs", "inner_discrete_circuits",
                 "incoming_goose_signals", "functional_buttons", "leds",
-                "osc_analog_signals", "control_commands", "functions"):
+                "osc_analog_signals", "control_commands"):
         total += len(ied.get(key) or [])
+    total += function_count(ied)
     for dataset in ied.get("datasets") or []:
         total += 1 + len(dataset.get("signals") or [])
     for block in cabinet_item.get("terminal_blocks") or []:
@@ -249,7 +269,7 @@ def _cabinet_row_count(cabinet_item):
 def cabinet_card(cabinet_item):
     """Параметры шкафа для карточки (список [подпись, значение])."""
     ied = _ied(cabinet_item)
-    functions = ied.get("functions") or []
+    functions = function_count(ied)
     terminals = sum(len(row.get("terminals") or [])
                     for block in cabinet_item.get("terminal_blocks") or []
                     for row in block.get("rows") or [])
@@ -271,7 +291,7 @@ def cabinet_card(cabinet_item):
         ["Наборов данных", str(len(ied.get("datasets") or []))],
         ["Сигналов в наборах", str(sum(len(d.get("signals") or [])
                                        for d in ied.get("datasets") or []))],
-        ["Функций", str(len(functions))],
+        ["Функций", str(functions)],
         ["Описание", (cabinet_item.get("description") or "").strip()],
     ]
 
@@ -355,9 +375,9 @@ def _description_value(key, cabinet_item, refs, figures):
             return _text(cabinet_item.get(field))
     ied = _ied(cabinet_item)
     if low.startswith("основные функции"):
-        return _function_names(ied.get("functions") or [], "isMainFunction")
+        return _function_names(ied, "isMainFunction")
     if low.startswith("функции итс"):
-        return _function_names(ied.get("functions") or [], "isInITS")
+        return _function_names(ied, "isInITS")
     if low.startswith("вводы питания"):
         return "; ".join(p.get("purpose", "")
                          for p in cabinet_item.get("power_supplies") or [])
@@ -459,19 +479,14 @@ def _rows_commands(ied):
 
 
 def _rows_functions(ied):
-    rows, group = [], None
-    for function in ied.get("functions") or []:
-        path = _text(function.get("russian_path"))
-        name = _text(function.get("name"))
-        current = (path, name)
-        if current != group:
-            group = current
-            label = name if not path or path == name else "%s / %s" % (path, name)
-            rows.append([label, "", ""])
+    """Таблица «Основные параметры функций»: блок/функция и её параметры."""
+    rows = []
+    for block, function in iter_functions(ied):
+        rows.append([function_label(block, function), "", ""])
         for parameter in function.get("parameters") or []:
             rows.append([_text(parameter.get("name")),
                          _text(parameter.get("description")),
-                         _text(parameter.get("conditions"))])
+                         _text(parameter.get("value"))])
     return rows
 
 
@@ -656,18 +671,15 @@ def _ea_report_rows(ied):
 
 
 def _ea_function_params(ied):
-    """Параметры функций ИЭУ — из functions[].parameters[]."""
+    """Параметры функций ИЭУ — из function_blocks[].functions[].parameters[]."""
     rows = []
-    for func in ied.get("functions") or []:
-        path = _text(func.get("russian_path"))
-        name = _text(func.get("name"))
-        label = name if not path or path == name else "%s / %s" % (path, name)
-        rows.append([label, "", ""])
-        for param in func.get("parameters") or []:
+    for block, function in iter_functions(ied):
+        rows.append([function_label(block, function), "", ""])
+        for parameter in function.get("parameters") or []:
             rows.append([
-                _text(param.get("name")),
-                _text(param.get("description")),
-                _text(param.get("conditions")),
+                _text(parameter.get("name")),
+                _text(parameter.get("description")),
+                _text(parameter.get("value")),
             ])
     return rows
 
@@ -717,12 +729,12 @@ def _ea_ports(ied):
 
 def _ea_mp_functions(ied):
     """Основные функции МП ИЭУ."""
-    return _function_names(ied.get("functions") or [], "isMainFunction")
+    return _function_names(ied, "isMainFunction")
 
 
 def _ea_its_functions(ied):
     """Функции ИТС."""
-    return _function_names(ied.get("functions") or [], "isInITS")
+    return _function_names(ied, "isInITS")
 
 
 def record(cabinet_item, standard_code=None, cabinet_id=None):

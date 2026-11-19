@@ -33,11 +33,65 @@ Standard
 значения подставляет шкаф. Таблицы вне шкафов (термины, сокращения,
 применимость, библиография) хранят данные сами — им неоткуда их тянуть.
 
+## Функции, слоты, уставки и параметры
+
+Функции ИЭУ хранятся не плоским списком, а блоками — как в
+`EA/structure2.xml`:
+
+```
+IED
+├── functional_keys, leds, ...           (прочие данные ИЭУ)
+└── function_blocks
+    └── FunctionBlock                    блок (группа, «ДТЗ»)
+        └── functions                    функции блока
+            ├── inputs / outputs         слоты с типом
+            ├── settings                 уставки
+            └── parameters               параметры
+```
+
+```json
+{
+  "name": "ДТЗ",
+  "isMainFunction": true,
+  "isInITS": false,
+  "iec_name": "PDIF",
+  "russian_path": "ДТЗ",
+  "corp_prof_name": "ДТЗ",
+  "functions": [{
+    "name": "Дифференциальная защита",
+    "iec_name": "PDIF1",
+    "LNclass": "PDIF",
+    "inputs": [{"name": "IA", "iec_name": "TCTR1.AmpSv", "slot_type": "analog_process_level"}],
+    "outputs": [{"name": "Срабатывание", "iec_name": "PDIF1.Op", "slot_type": "control_operation"}],
+    "settings": [{"name": "Уставка срабатывания", "value": "0.2", "unit": "о.е."}],
+    "parameters": [{"name": "Режим", "value": "Вкл", "description": "..."}]
+  }]
+}
+```
+
+Тип слота — одно из значений `SlotTypes` модели: `analog_process_level`,
+`discrete_process_level`, `control_operation`, `internal_info_exchange`,
+`external_info_exchange`. Тип задаёт вид связи ФЛС
+(`ea_model.LINK_KIND_BY_SLOT`) и подпись в редакторе
+(`ea_model.slot_type_title`).
+
+Доступ к модели — [`ea_model.py`](ea_model.py): `function_blocks(ied)` читает
+`function_blocks` или собирает их из старого плоского `functions`,
+`iter_functions(ied)` обходит функции всех блоков, `normalize_*` приводят
+поля к общему виду (`conditions` → `value` у параметра), `migrate_document()`
+переводит стандарт на новую структуру. `ea_standard.py` переэкспортирует
+этот API, поэтому остальные модули работают с функциями одинаково.
+
+Файлы стандартов уже переведены на `function_blocks`
+(`tools/migrate_standards_structure2.py`, повторный запуск безопасен);
+старый формат с `functions` продолжает читаться.
+
 ## Модули
 
 | Файл | Роль |
 |---|---|
 | [`ea_standard.py`](ea_standard.py) | чтение папки, обход дерева, `table_view()` — сборка строк таблицы из шкафа, `cabinet_card()`, `validate()`, CLI |
+| [`ea_model.py`](ea_model.py) | модель structure2: блоки функций, слоты и их типы, уставки, параметры, нормализация и миграция |
 | [`ea_ui.py`](ea_ui.py) | окно «СТО (EA)…»: дерево документа и шкафов, таблицы, карточки, размещение на схеме, новый стандарт, DOCX |
 | [`ea_edit.py`](ea_edit.py) | обратимое представление таблиц: `load()` → шапка и строки, `save()` → обратно в `cabinets` |
 | [`ea_structure.py`](ea_structure.py) | фабрики новых узлов, добавление/удаление (`new_*`, `add`, `remove`, `delete_issues`), перенос и копирование таблиц и рисунков (`move_node`, `copy_table`, `copy_figure`, `next_table_number`), привязка таблиц к шкафу (`rebind_table`, `rebind_tables`) |
@@ -48,6 +102,7 @@ Standard
 | [`ea_docx.py`](ea_docx.py) | выгрузка стандарта в Word: титул, оглавление, разделы и таблицы из шкафов |
 | [`main.py`](main.py) | кнопка «СТО (EA)…» на вкладке «Стандарты» и метод `show_ea_standards` |
 | [`EA/docx2json.py`](EA/docx2json.py) | сборка JSON стандарта из DOCX по модели EA |
+| [`tools/migrate_standards_structure2.py`](tools/migrate_standards_structure2.py) | перевод JSON стандартов на `function_blocks` (`--check` — только отчёт) |
 | [`tests/test_ea_standard.py`](tests/test_ea_standard.py) | проверка данных, сборки таблиц, CLI и окна |
 | [`tests/test_ea_features.py`](tests/test_ea_features.py) | размещение, новый стандарт, DOCX, архив, редактор таблиц, перенос типовых шкафов и комплектов, групповые перенос/копирование/удаление в дереве |
 

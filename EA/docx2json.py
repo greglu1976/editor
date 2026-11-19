@@ -115,6 +115,18 @@ def table_rows(table):
     return rows
 
 
+def table_widths(table):
+    """Ширины колонок в twips (поле ``colums_width`` модели structure2)."""
+    widths = []
+    for column in table.columns:
+        value = getattr(column, "width", None)
+        try:
+            widths.append(int(round(float(value) / 635.0)))
+        except (TypeError, ValueError):
+            widths.append(0)
+    return widths if any(widths) else []
+
+
 # --- счётчики и дерево ----------------------------------------------------------
 
 class DocBuilder:
@@ -233,6 +245,9 @@ class DocBuilder:
             "rows": table_rows(table),
             "_rows": [dedup_cells(r) for r in table.rows],
         }
+        widths = table_widths(table)
+        if widths:
+            node["colums_width"] = widths
         self.container()["tables"].append(node)
 
     def add_figure(self, name):
@@ -596,7 +611,14 @@ def parse_commands(table):
 
 
 def parse_functions(table, main_funcs, its_funcs):
-    out, current = [], None
+    """Таблица параметров → блоки функций по модели structure2.
+
+    Строка-заголовок «группа / функция» открывает функцию; несколько
+    функций с одной группой входят в один FunctionBlock. Параметры
+    (уставки и программные переключатели) хранятся внутри функции.
+    """
+    blocks, index = [], {}
+    current = None
     for row in table["_rows"][1:]:
         c = row
         if not c or is_note_row(c):
@@ -608,24 +630,41 @@ def parse_functions(table, main_funcs, its_funcs):
             name, explanation, states = c[0], c[1], c[2]
         if len(c) < 3 or (name and name == explanation == states):
             group, _, func = name.partition(" / ")
+            group = clean(group)
+            func = clean(func or group)
+            block = index.get(group)
+            if block is None:
+                block = {
+                    "name": group,
+                    "russian_path": group,
+                    "isMainFunction": group in main_funcs,
+                    "isInITS": group in its_funcs,
+                    "iec_name": "",
+                    "corp_prof_name": "",
+                    "functions": [],
+                }
+                index[group] = block
+                blocks.append(block)
             current = {
-                "name": clean(func or group),
-                "russian_path": clean(group),
-                "isMainFunction": clean(group) in main_funcs,
-                "isInITS": clean(group) in its_funcs,
+                "name": func,
                 "iec_name": "",
+                "LNclass": "",
+                "inputs": [],
+                "outputs": [],
+                "settings": [],
                 "parameters": [],
             }
-            out.append(current)
+            block["functions"].append(current)
             continue
         if current is None:
             continue
         current["parameters"].append({
             "name": name,
+            "value": states,
+            "default_value": "",
             "description": explanation,
-            "conditions": states,
         })
-    return out
+    return blocks
 
 
 def parse_terminals(table):
@@ -681,7 +720,7 @@ def build_ied(sub, desc, number, multi, main_funcs, its_funcs):
         "functional_buttons": [],
         "leds": [],
         "control_commands": [],
-        "functions": [],
+        "function_blocks": [],
     }
 
     t = pick("Входные аналоговые измерения")
@@ -707,7 +746,7 @@ def build_ied(sub, desc, number, multi, main_funcs, its_funcs):
         ied["control_commands"] = parse_commands(t)
     t = pick("Основные параметры функций")
     if t:
-        ied["functions"] = parse_functions(t, main_funcs, its_funcs)
+        ied["function_blocks"] = parse_functions(t, main_funcs, its_funcs)
 
     # наборы данных: сообщения (GOOSE) и отчеты (MMS)
     msg_defs, rpt_defs = [], []
@@ -905,7 +944,7 @@ def main():
         ieds = c["kits"][0]["ieds"]
         print(f"  {c['cypher']}: ИЭУ {len(ieds)}, сигналов в наборах "
               f"{sum(len(d['signals']) for ied in ieds for d in ied['datasets'])}, "
-              f"функций {sum(len(ied['functions']) for ied in ieds)}, клемм "
+              f"функций {sum(len(b['functions']) for ied in ieds for b in ied['function_blocks'])}, клемм "
               f"{sum(len(r['terminals']) for b in c['terminal_blocks'] for r in b['rows'])}")
     print(f"записано: {dst}")
 
