@@ -424,7 +424,8 @@ def test_gui(data):
         window.tree.selection_set(ieds[0])
         window._show()
         root.update()
-        check(len(window.table["columns"]) == 5,
+        #-structure2: в таблице функций есть колонка «Параметров».
+        check(len(window.table["columns"]) == 6,
               "функции ИЭУ в таблице: %d колонок"
               % len(window.table["columns"]))
         check(hasattr(window, "export_docx"), "в окне есть выгрузка DOCX")
@@ -1287,6 +1288,134 @@ def test_typical_transfer():
           "в новый стандарт попали только выбранные шкафы")
 
 
+def test_structure2_schema():
+    """Схема structure2 и миграция JSON: поля есть, перезапись идемпотентна."""
+    print("14. схема structure2")
+    import ea_schema as sc
+
+    check(sc.child_class("Function", "settings") == "Setting",
+          "схема знает вложенные коллекции функции")
+    check(sc.kind_of("Setting", "min_value") == "s",
+          "уставки хранят числовые поля строками")
+    node = {"name": "F", "Location": "ряд 1"}
+    check(sc.normalize("TerminalRow", node) and node["location"] == "ряд 1"
+          and "Location" not in node,
+          "старое имя Location переименовано в location")
+    sample = {"number": "1"}
+    check(sc.normalize("TerminalRow", sample)
+          and "assembly_unit" in sample,
+          "новое поле TerminalRow.assembly_unit добавлено")
+    fresh = sc.new_node("Function")
+    check(all(key in fresh for key, _cls in sc.children("Function")),
+          "новый узел Function содержит все коллекции схемы")
+
+    for path in es.files():
+        data = es.load(path)
+        check(all("description" in ied
+                  for cabinet in es.cabinets(data)
+                  for kit in cabinet.get("kits") or []
+                  for ied in kit.get("ieds") or []),
+              "%s: у всех ИЭУ есть description"
+              % os.path.basename(path))
+        check(all("colums_width" in table for table in es.iter_tables(data)),
+              "%s: у всех таблиц есть colums_width"
+              % os.path.basename(path))
+        check(not sc.normalize_document(data),
+              "%s: схема ничего не добавляет повторно"
+              % os.path.basename(path))
+
+
+def test_editor_fields():
+    """Редактор правит, добавляет и удаляет любое поле; дерево функций."""
+    print("15. произвольные поля в редакторе")
+    if tk is None:
+        print("  --   tkinter нет: редактор не проверяется")
+        return
+    try:
+        import ea_editor
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        print("  --   окно не открыть: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    window = None
+    original_ask = ea_editor.simpledialog.askstring
+    original_yes = ea_editor.messagebox.askyesno
+    try:
+        window = ea_editor.show(path, root)
+        root.update()
+        kinds = {node[0] for node in window._nodes.values()}
+        check({"block", "function", "parameter"} <= kinds,
+              "в дереве есть блоки, функции и параметры ИЭУ")
+
+        function_iid = next(iid for iid, node in window._nodes.items()
+                            if node[0] == "function")
+        window.tree.selection_set(function_iid)
+        root.update()
+        item = window._field_item
+        check(window._field_keys == ["name", "iec_name", "LNclass",
+                                     "inputs", "outputs", "settings",
+                                     "parameters"],
+              "панель показывает все поля функции")
+
+        window.field_list.selection_set(1)
+        ea_editor.simpledialog.askstring = lambda *a, **k: "PDIFX"
+        window._edit_field()
+        root.update()
+        check(item["iec_name"] == "PDIFX",
+              "произвольное поле функции отредактировано")
+
+        answers = iter(["custom_field", "42"])
+        ea_editor.simpledialog.askstring = lambda *a, **k: next(answers)
+        window._add_field()
+        root.update()
+        check(item.get("custom_field") == 42,
+              "добавлено новое поле с приведением типа")
+
+        window.field_list.selection_clear(0, "end")
+        window.field_list.selection_set(
+            window._field_keys.index("custom_field"))
+        ea_editor.messagebox.askyesno = lambda *a, **k: True
+        window._delete_field()
+        root.update()
+        check("custom_field" not in item, "поле удалено")
+
+        block_iid = next(iid for iid, node in window._nodes.items()
+                         if node[0] == "block")
+        ied_iid = window._owners[block_iid][2]
+        window.tree.selection_set(ied_iid)
+        root.update()
+        ied = window._owners[ied_iid][1]
+        before = len(ied["function_blocks"])
+        ea_editor.simpledialog.askstring = lambda *a, **k: "Новый блок"
+        window._add_generic_child(ied_iid, "block")
+        root.update()
+        after = len(ied["function_blocks"])
+        check(after == before + 1, "блок функций добавлен в ИЭУ")
+
+        fresh = ied["function_blocks"][-1]
+        fresh_iid = window._find_iid(fresh)
+        ea_editor.messagebox.askyesno = lambda *a, **k: True
+        window._delete_node(fresh_iid)
+        root.update()
+        check(fresh not in ied["function_blocks"], "блок функций удалён")
+
+        window.save()
+        root.update()
+        check(es.load(path)["cabinets"] == window.data["cabinets"]
+              or len(es.validate(es.load(path))) == 0,
+              "структура после правок записывается и проходит проверку")
+    finally:
+        ea_editor.simpledialog.askstring = original_ask
+        ea_editor.messagebox.askyesno = original_yes
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
@@ -1304,10 +1433,12 @@ def main(argv=None):
     test_structure_ops(data)
     test_merge_all_cabinets()
     test_typical_transfer()
+    test_structure2_schema()
     if not args.no_gui:
         test_gui(data)
         test_fields()
         test_editor()
+        test_editor_fields()
     print("")
     if FAILURES:
         print("ПРОВАЛЕНО: %d" % len(FAILURES))

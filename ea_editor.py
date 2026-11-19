@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import tkinter as tk
@@ -20,6 +21,7 @@ from tkinter import messagebox, simpledialog, ttk
 import ea_catalog as ec
 import ea_edit as ee
 import ea_merge as em
+import ea_schema as sc
 import ea_standard as es
 import ea_structure as st
 import komplekts
@@ -164,6 +166,18 @@ _KIT_FIELDS = (
 )
 
 _DATE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
+
+#: Узлы дерева, для которых панель строится целиком по схеме structure2.
+_GENERIC_KINDS = ("block", "function", "slot", "setting", "parameter")
+
+#: Вид узла → ключ коллекции и класс схемы для добавления потомка.
+_GENERIC_CHILD = {
+    "block": ("function_blocks", "FunctionBlock", "блок"),
+    "function": (None, "Function", "функцию"),
+    "slot": (None, "Input", "вход"),
+    "setting": (None, "Setting", "уставку"),
+    "parameter": (None, "Parameter", "параметр"),
+}
 
 
 def _replace_strings(node, old, new):
@@ -340,11 +354,51 @@ class StandardEditorWindow(tk.Toplevel):
                         text="ИЭУ %s" % ied.get("number", ""))
                     self._register_node(ied_node, ("ied", ied), ieds, ied,
                                    kit_node)
+                    self._add_function_tree(ied_node, ied)
 
         self._current_node = meta
         self.tree.selection_set(meta)
         self.tree.focus(meta)
         self._render(self._nodes[meta])
+
+    def _add_function_tree(self, ied_node, ied):
+        """Показать блоки, функции, входы/выходы, уставки и параметры ИЭУ."""
+        blocks = ied.get("function_blocks")
+        if not isinstance(blocks, list):
+            blocks = ied.get("functions")
+        for block in blocks or []:
+            if not isinstance(block, dict):
+                continue
+            label = "Блок — %s" % (block.get("name")
+                                   or block.get("russian_path") or "без имени")
+            bnode = self.tree.insert(ied_node, tk.END, text=label)
+            self._register_node(bnode, ("block", block), blocks, block,
+                                ied_node)
+            functions = block.setdefault("functions", [])
+            for function in functions:
+                if not isinstance(function, dict):
+                    continue
+                flabel = "Функция — %s" % (function.get("name") or "без имени")
+                fnode = self.tree.insert(bnode, tk.END, text=flabel)
+                self._register_node(fnode, ("function", function, block),
+                                    functions, function, bnode)
+                for key, kind, word in (
+                        ("inputs", "slot", "Вход"),
+                        ("outputs", "slot", "Выход"),
+                        ("settings", "setting", "Уставка"),
+                        ("parameters", "parameter", "Параметр")):
+                    entries = function.setdefault(key, [])
+                    for entry in entries:
+                        if not isinstance(entry, dict):
+                            continue
+                        elabel = "%s — %s" % (word, entry.get("name")
+                                              or "без имени")
+                        enode = self.tree.insert(fnode, tk.END, text=elabel)
+                        node = ((kind, entry, "in" if key == "inputs"
+                                 else "out") if kind == "slot"
+                                else (kind, entry))
+                        self._register_node(enode, node, entries, entry,
+                                            fnode)
 
     def _add_tables(self, parent, container):
         tables = container.setdefault("tables", [])
@@ -429,10 +483,16 @@ class StandardEditorWindow(tk.Toplevel):
         self._grid_apply = None
         self._panel_item = None
         self._snapshot = None
+        self._field_item = None
+        self._field_cls = None
+        self._field_keys = []
         self.vars = {}
         if not node:
             return
         kind = node[0]
+        if kind in _GENERIC_KINDS:
+            self._render_generic(node)
+            return
         if kind == "meta":
             self._render_meta()
         elif kind == "root":
@@ -454,6 +514,9 @@ class StandardEditorWindow(tk.Toplevel):
             self._render_kit(node[1])
         elif kind == "ied":
             self._render_ied(node[1])
+        item = self._generic_item(node)
+        if item is not None:
+            self._render_fields(item, self._generic_class(node))
 
     def _clear(self):
         for child in self.body.winfo_children():
@@ -1014,6 +1077,193 @@ class StandardEditorWindow(tk.Toplevel):
         self._refresh_label("ИЭУ %s" % number)
         return True
 
+    # --------------------------------------------- поля по схеме structure2
+    def _generic_class(self, node):
+        """Класс схемы для узла дерева."""
+        kind = node[0]
+        if kind == "text":
+            return {"section": "Section", "subsection": "Subsection",
+                    "clause": "Clause"}.get(node[1], "Section")
+        if kind == "slot":
+            return "Output" if (len(node) > 2 and node[2] == "out") else "Input"
+        return sc.KIND_CLASS.get(kind)
+
+    def _generic_item(self, node):
+        """Словарь данных, соответствующий узлу дерева."""
+        if not node:
+            return None
+        if node[0] == "meta":
+            return self.data
+        if node[0] == "text":
+            return node[2] if len(node) > 2 else None
+        return node[1] if len(node) > 1 else None
+
+    def _render_generic(self, node):
+        """Панель узла функциональной модели: только произвольные поля."""
+        item = self._generic_item(node)
+        cls = self._generic_class(node)
+        if not isinstance(item, dict):
+            self.caption.config(text="Узел")
+            return
+        self._panel_item = item
+        kind = node[0]
+        if kind == "block":
+            caption = "Блок функций — %s" % (item.get("name") or "без имени")
+        elif kind == "function":
+            caption = "Функция — %s" % (item.get("name") or "без имени")
+        elif kind == "slot":
+            caption = "%s — %s" % ("Выход" if node[2] == "out" else "Вход",
+                                   item.get("name") or "без имени")
+        elif kind == "setting":
+            caption = "Уставка — %s" % (item.get("name") or "без имени")
+        else:
+            caption = "Параметр — %s" % (item.get("name") or "без имени")
+        self.caption.config(text=caption)
+        self._render_fields(item, cls, main=True)
+
+    def _render_fields(self, item, cls=None, main=False):
+        """Список всех полей узла с правкой, добавлением и удалением."""
+        if not isinstance(item, dict):
+            return
+        frame = ttk.LabelFrame(self.body, text="Поля узла", padding=4)
+        frame.pack(fill=tk.BOTH, expand=main,
+                   padx=4, pady=(2 if main else 8, 4))
+        self._field_item = item
+        self._field_cls = cls
+        self._field_keys = []
+        box = tk.Frame(frame)
+        box.pack(fill=tk.BOTH, expand=True)
+        scroll = tk.Scrollbar(box, orient=tk.VERTICAL)
+        listing = tk.Listbox(box, height=8 if not main else 16,
+                             exportselection=False, font=ui_theme.font(9),
+                             yscrollcommand=scroll.set)
+        scroll.config(command=listing.yview)
+        scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        listing.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        for key, value in item.items():
+            if isinstance(value, (dict, list)):
+                text = "%s: [%d]" % (sc.label(key), len(value))
+            else:
+                text = "%s = %s" % (sc.label(key), value)
+            listing.insert(tk.END, text)
+            self._field_keys.append(key)
+        listing.bind("<Double-Button-1>", lambda event: self._edit_field())
+        self.field_list = listing
+        tools = tk.Frame(frame)
+        tools.pack(fill=tk.X, pady=(4, 0))
+        _button(tools, "Изменить…", self._edit_field)
+        _button(tools, "Добавить поле…", self._add_field)
+        _button(tools, "Удалить поле", self._delete_field)
+
+    def _selected_field(self):
+        selection = self.field_list.curselection() \
+            if getattr(self, "field_list", None) else ()
+        if not selection:
+            messagebox.showinfo("Редактор стандарта",
+                                "Выберите поле в списке.", parent=self)
+            return None
+        return self._field_keys[selection[0]]
+
+    def _parse_field_value(self, key, text, current):
+        """Привести введённое значение к типу существующего поля/схемы."""
+        kind = sc.kind_of(self._field_cls, key)
+        if isinstance(current, bool) or kind == "b":
+            return text.strip().lower() in ("1", "да", "true", "yes")
+        if isinstance(current, int) or kind == "i":
+            try:
+                return int(text.strip())
+            except ValueError:
+                return text
+        if isinstance(current, float) or kind == "f":
+            try:
+                return float(text.replace(",", "."))
+            except ValueError:
+                return text
+        if isinstance(current, (list, dict)) or kind in ("l", "d"):
+            try:
+                parsed = json.loads(text)
+                if isinstance(parsed, type(current)) or (
+                        isinstance(current, (str, int, float))
+                        and kind in ("l", "d")
+                        and isinstance(parsed, (list, dict))):
+                    return parsed
+            except ValueError:
+                pass
+        if kind is None and not isinstance(current, (list, dict, bool)):
+            stripped = text.strip()
+            if stripped.lstrip("-").isdigit():
+                return int(stripped)
+            try:
+                return float(stripped.replace(",", "."))
+            except ValueError:
+                pass
+        return text
+
+    def _rerender_current(self):
+        node = self._nodes.get(self._current_node)
+        if node:
+            self._render(node)
+
+    def _edit_field(self):
+        key = self._selected_field()
+        if key is None or not self._apply_pending():
+            return
+        item = self._field_item
+        current = item.get(key)
+        if isinstance(current, (list, dict)):
+            initial = json.dumps(current, ensure_ascii=False)
+        else:
+            initial = "" if current is None else str(current)
+        value = simpledialog.askstring(
+            "Поле «%s»" % sc.label(key), "Значение:",
+            initialvalue=initial, parent=self)
+        if value is None:
+            return
+        item[key] = self._parse_field_value(key, value, current)
+        self._changed = True
+        self._update_title()
+        self._rerender_current()
+
+    def _add_field(self):
+        if not self._apply_pending():
+            return
+        item = self._field_item
+        suggestions = sc.missing_fields(self._field_cls, item)
+        key = self._ask("Имя нового поля (подсказка: %s)"
+                        % (", ".join(suggestions[:4]) or "любое"),
+                        suggestions[0] if suggestions else "")
+        if key is None or not key.strip():
+            return
+        key = key.strip()
+        if key in item:
+            messagebox.showinfo("Редактор стандарта",
+                                "Такое поле уже есть: %s" % key, parent=self)
+            return
+        default = sc.default_of(self._field_cls, key)
+        initial = json.dumps(default, ensure_ascii=False) \
+            if isinstance(default, (list, dict)) else str(default)
+        value = self._ask("Значение поля «%s»" % sc.label(key), initial)
+        if value is None:
+            return
+        item[key] = self._parse_field_value(key, value, default)
+        self._changed = True
+        self._update_title()
+        self._rerender_current()
+
+    def _delete_field(self):
+        key = self._selected_field()
+        if key is None or not self._apply_pending():
+            return
+        if not messagebox.askyesno(
+                "Редактор стандарта",
+                "Удалить поле «%s» из этого узла?" % sc.label(key),
+                parent=self):
+            return
+        del self._field_item[key]
+        self._changed = True
+        self._update_title()
+        self._rerender_current()
+
     def _refresh_label(self, text):
         """Обновить подпись текущего узла дерева после правки полей."""
         iid = self._current_node
@@ -1347,6 +1597,31 @@ class StandardEditorWindow(tk.Toplevel):
 
         self._mutate(action)
 
+    def _add_generic_child(self, parent_iid, kind, direction=None):
+        """Добавить блок, функцию, вход/выход, уставку или параметр."""
+        parent = self._owners[parent_iid][1]
+        if not isinstance(parent, dict):
+            return
+        if kind == "slot":
+            cls = "Output" if direction == "out" else "Input"
+            key = "outputs" if direction == "out" else "inputs"
+            word = "выход" if direction == "out" else "вход"
+        else:
+            key, cls, word = _GENERIC_CHILD[kind]
+        container = parent.setdefault(key, [])
+        if not self._apply_pending():
+            return
+        name = self._ask("Наименование (%s)" % word, "Новый %s" % word)
+        if name is None:
+            return
+
+        def action():
+            item = sc.new_node(cls, name=name.strip())
+            st.add(container, item)
+            return item
+
+        self._mutate(action)
+
     def _container_targets(self):
         """Контейнеры документа, куда можно положить таблицу или рисунок."""
         entries = []
@@ -1623,7 +1898,8 @@ class StandardEditorWindow(tk.Toplevel):
             if not owner or owner[1] is None:
                 continue
             if kind not in ("section", "subsection", "clause", "table",
-                            "figure", "cabinet", "kit", "ied"):
+                            "figure", "cabinet", "kit", "ied") \
+                    and kind not in _GENERIC_KINDS:
                 continue
             entries.append((iid, kind, owner[0], owner[1], owner[2]))
         if not entries:
@@ -1682,7 +1958,8 @@ class StandardEditorWindow(tk.Toplevel):
         container, item, parent_iid = owner
         kind = node[1] if node[0] == "text" else node[0]
         if kind not in ("section", "subsection", "clause", "table",
-                        "figure", "cabinet", "kit", "ied"):
+                        "figure", "cabinet", "kit", "ied") \
+                and kind not in _GENERIC_KINDS:
             return
         issues = st.delete_issues(self.data, item, kind)
         rebind = None
@@ -1697,7 +1974,10 @@ class StandardEditorWindow(tk.Toplevel):
         label = {"section": "раздел", "subsection": "подраздел",
                  "clause": "пункт", "table": "таблицу",
                  "figure": "рисунок", "cabinet": "шкаф",
-                 "kit": "комплект", "ied": "ИЭУ"}[kind]
+                 "kit": "комплект", "ied": "ИЭУ",
+                 "block": "блок функций", "function": "функцию",
+                 "slot": "вход/выход", "setting": "уставку",
+                 "parameter": "параметр"}.get(kind, "узел")
         count = st.descendant_count(item) if isinstance(item, dict) else 0
         message = "Удалить %s?" % label
         if count:
@@ -1807,6 +2087,38 @@ class StandardEditorWindow(tk.Toplevel):
             ]
         if kind == "figure":
             return [("Удалить рисунок", lambda: self._delete_node(iid))]
+        if kind == "ied":
+            return [
+                ("Добавить блок функций…",
+                 lambda: self._add_generic_child(iid, "block")),
+                None, ("Удалить ИЭУ", lambda: self._delete_node(iid)),
+            ]
+        if kind == "block":
+            return [
+                ("Добавить функцию…",
+                 lambda: self._add_generic_child(iid, "function")),
+                None, ("Удалить блок", lambda: self._delete_node(iid)),
+            ]
+        if kind == "function":
+            return [
+                ("Добавить вход…",
+                 lambda: self._add_generic_child(iid, "slot", "in")),
+                ("Добавить выход…",
+                 lambda: self._add_generic_child(iid, "slot", "out")),
+                ("Добавить уставку…",
+                 lambda: self._add_generic_child(iid, "setting")),
+                ("Добавить параметр…",
+                 lambda: self._add_generic_child(iid, "parameter")),
+                None, ("Удалить функцию", lambda: self._delete_node(iid)),
+            ]
+        if kind == "slot":
+            word = "выход" if node[2] == "out" else "вход"
+            return [("Удалить %s" % word,
+                     lambda: self._delete_node(iid))]
+        if kind == "setting":
+            return [("Удалить уставку", lambda: self._delete_node(iid))]
+        if kind == "parameter":
+            return [("Удалить параметр", lambda: self._delete_node(iid))]
         return [("Удалить ИЭУ", lambda: self._delete_node(iid))]
 
     def _on_right_click(self, event):

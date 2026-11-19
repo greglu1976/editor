@@ -34,7 +34,9 @@ _CHILD_KEY = {
 
 #: Ключи, в которых лежат потомки узла (для подсчёта при удалении).
 _DESCENDANT_KEYS = ("subsections", "clauses", "subclauses", "tables",
-                    "figures", "kits", "ieds")
+                    "figures", "kits", "ieds", "function_blocks",
+                    "functions", "inputs", "outputs", "settings",
+                    "parameters")
 
 _DEFAULT_SECTION_STYLE = "ДОК Заголовок вкл в содержание"
 _DEFAULT_SUBSECTION_STYLE = "ДОК Текст 3уров 2-пункт"
