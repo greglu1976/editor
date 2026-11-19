@@ -26,7 +26,9 @@
 20. входной и выходной порты: выводы, наименование сигнала, JSON;
 21. «Обновить связи»: общий номер — привязка продолжением и выравнивание
     наименований (из элемента с маркировкой или из связи-источника);
-22. перенос точек: захват излома любой связи и перетаскивание линии целиком.
+22. перенос точек: захват излома любой связи и перетаскивание линии целиком;
+23. перетаскивание номера и наименования связи мышкой со сохранением
+    смещений в JSON и в экспорте; у новых связей стрелка отключена.
 """
 
 from __future__ import annotations
@@ -48,6 +50,7 @@ except ImportError:         # pragma: no cover
     tk = None
 
 import logic_library as ll
+import logic_scheme_render as lsr
 
 FAILURES = []
 
@@ -261,7 +264,12 @@ def test_links(app):
           "цвет линии соответствует типу")
     polygons = [item for item in app.canvas.find_withtag("logic_link")
                 if app.canvas.type(item) == "polygon"]
-    check(bool(polygons), "стрелка направления нарисована")
+    check(not polygons, "у новой связи стрелки нет (по умолчанию)")
+    link["arrow"] = True
+    app.redraw_all()
+    polygons = [item for item in app.canvas.find_withtag("logic_link")
+                if app.canvas.type(item) == "polygon"]
+    check(bool(polygons), "включённая стрелка нарисована")
 
     # выбор и свойства через модель
     app.selected_logic = link
@@ -412,6 +420,7 @@ def test_export(app):
     link["kind"] = "analog"
     link["ru"] = "Напряжение"
     link["iec"] = "Voltage"
+    link["arrow"] = True
     link["points"] = [[200.0, 300.0], [200.0, 220.0]]
     recorder = pdfexport.SceneRecorder()
     app._draw_scene(recorder)
@@ -845,6 +854,110 @@ def test_point_drag(app):
     check(link["points"] == before, "клик без сдвига не меняет линию")
 
 
+def test_mark_drag(app):
+    print("23. номер и наименование перетаскиваются, стрелка выключена")
+    _reset(app)
+    port_in = app.elements[_add(app, "logic_port_in", 100, 200)]
+    block = app.elements[_add(app, "logic_block", 700, 200)]
+    app.logic_link_kind = "discrete"
+    link = app._add_logic_link((port_in.id, "stub"), (block.id, "fn0_in0"))
+    check(link.get("arrow") is False, "у новой связи стрелка отключена")
+    link["ru"] = "Отключение ОТТН"
+    app.current_tool = "select"
+    app.selected_logic = None
+    app.zoom = 1.0
+    app.offset_x = app.offset_y = 0.0
+    app.redraw_all()
+
+    def box_of(part):
+        for item_link, item_part, box in app._logic_label_boxes:
+            if item_link is link and item_part == part:
+                return box
+        return None
+
+    # Перетаскивание наименования.
+    box = box_of("label")
+    check(box is not None, "наименование нарисовано на полотне")
+    cx, cy = (box[0] + box[2]) / 2.0, (box[1] + box[3]) / 2.0
+    app.on_left_click(_event(cx, cy))
+    check(app._dragging_logic_mark is not None
+          and app._dragging_logic_mark[1] == "label",
+          "клик по наименованию начал перетаскивание")
+    app.on_drag(_event(cx + 50, cy + 30))
+    app.on_release(_event(cx + 50, cy + 30))
+    check(link.get("label_offset") == [50.0, 30.0],
+          "смещение наименования сохранено в связи")
+    app.redraw_all()
+    moved = box_of("label")
+    check(abs(moved[0] - box[0] - 50) < 2.0
+          and abs(moved[1] - box[1] - 30) < 2.0,
+          "наименование нарисовано в новом месте")
+
+    # Перетаскивание номера у начала линии.
+    box = box_of("start")
+    check(box is not None, "номер нарисован у начала линии")
+    cx, cy = (box[0] + box[2]) / 2.0, (box[1] + box[3]) / 2.0
+    app.on_left_click(_event(cx, cy))
+    check(app._dragging_logic_mark is not None
+          and app._dragging_logic_mark[1] == "start",
+          "клик по номеру начал перетаскивание")
+    app.on_drag(_event(cx + 20, cy - 40))
+    app.on_release(_event(cx + 20, cy - 40))
+    check(link.get("mark_offsets", {}).get("start") == [20.0, -40.0],
+          "смещение номера сохранено в связи")
+
+    # Клики без движения ничего не меняют.
+    before = [list(link.get("label_offset") or [0.0, 0.0])]
+    box = box_of("label")
+    cx, cy = (box[0] + box[2]) / 2.0, (box[1] + box[3]) / 2.0
+    app.on_left_click(_event(cx, cy))
+    app.on_release(_event(cx, cy))
+    check([list(link.get("label_offset") or [0.0, 0.0])] == before,
+          "клик без движения не сдвигает наименование")
+
+    # Сериализация: смещения и стрелка сохраняются в JSON.
+    record = app._logic_link_record(link)
+    check(record.get("label_offset") == [50.0, 30.0]
+          and record.get("mark_offsets") == {"start": [20.0, -40.0]}
+          and record.get("arrow") is False,
+          "смещения и стрелка попадают в JSON")
+    restored = app._build_logic_links([record], None)
+    check(restored[0].get("label_offset") == [50.0, 30.0]
+          and restored[0].get("mark_offsets") == {"start": [20.0, -40.0]}
+          and restored[0].get("arrow") is False,
+          "смещения и стрелка читаются обратно")
+
+    # Экспорт PDF/PNG: аннотации со смещениями.
+    data = {"elements": [], "connections": [], "logic_links": [record]}
+    for element in app.elements.values():
+        item = {"id": element.id, "type": element.type,
+                "name": element.name, "x": element.x, "y": element.y}
+        if ll.is_logic_type(element.type):
+            item["logic"] = ll.element_payload(element)
+        data["elements"].append(item)
+    elements = lsr.build_elements(data)
+    links = lsr.build_logic_links(data, elements)
+    prepared = [(item, lsr.route(elements, item)) for item in links]
+    numbers, labels = lsr.annotations(elements, links, prepared)
+    plain = {key: value for key, value in record.items()
+             if key not in ("label_offset", "mark_offsets")}
+    data2 = {"elements": data["elements"], "connections": [],
+             "logic_links": [plain]}
+    elements2 = lsr.build_elements(data2)
+    links2 = lsr.build_logic_links(data2, elements2)
+    prepared2 = [(item, lsr.route(elements2, item)) for item in links2]
+    numbers2, labels2 = lsr.annotations(elements2, links2, prepared2)
+    label, label2 = labels[0][1], labels2[0][1]
+    check(abs(label[0] - (label2[0] + 50)) < 0.5
+          and abs(label[1] - (label2[1] + 30)) < 0.5,
+          "экспорт рисует наименование со смещением")
+    number, number2 = numbers[0][1], numbers2[0][1]
+    check(number is not None and number2 is not None
+          and abs(number[0] - (number2[0] + 20)) < 0.5
+          and abs(number[1] - (number2[1] - 40)) < 0.5,
+          "экспорт рисует номер со смещением")
+
+
 def run_gui():
     import main
     main.messagebox.showinfo = lambda *args, **kwargs: None
@@ -878,6 +991,7 @@ def run_gui():
         test_ports(app)
         test_update_links(app)
         test_point_drag(app)
+        test_mark_drag(app)
     finally:
         root.destroy()
 

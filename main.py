@@ -826,6 +826,9 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         # Перетаскивание линии связи ФЛС целиком: (связь, исходные
         # изломы, точка старта в мировых координатах).
         self._dragging_logic_route = None
+        # Перетаскивание номера/наименования связи ФЛС: (связь, часть,
+        # старт экрана, исходное смещение).
+        self._dragging_logic_mark = None
         
         # --- ВЫДЕЛЕНИЕ И БУФЕР ОБМЕНА ---
         self.current_tool = "select"
@@ -998,7 +1001,8 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                               "Клик по связи — выбор, двойной клик —\n"
                               "излом, Delete — удалить.\n"
                               "Излом тащится мышкой у любой связи,\n"
-                              "линия целиком — за саму линию.\n"
+                              "линия целиком — за саму линию,\n"
+                              "номер и наименование — за себя.\n"
                               "Ctrl+F — поиск, R — вращение,\n"
                               "Esc — снять выделение и режим «Выбрать».",
                  bg=ui_theme.PALETTE, fg=ui_theme.TEXT_MUTED,
@@ -6478,6 +6482,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._dragging_point = None
         self._point_drag_changed = False
         self._dragging_logic_route = None
+        self._dragging_logic_mark = None
         self._protection_start = None
         self._bind_start = None
         self._analog_start = None
@@ -7995,6 +8000,28 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                 self.canvas.config(cursor="fleur")
                 return
 
+            # А0б) НОМЕР ИЛИ НАИМЕНОВАНИЕ СВЯЗИ ФЛС — перетаскивание
+            mark = self._logic_annotation_at(event.x, event.y)
+            if mark is not None:
+                link, part = mark
+                self.selected_logic = link
+                self.selected_elements = []
+                self.selected_connection = None
+                self.selected_analog = None
+                self.selected_protection = None
+                self.selected_container_link = None
+                if part == "label":
+                    original = self._label_offset(link)
+                else:
+                    original = self._mark_offset(link, part)
+                self._dragging_logic_mark = (link, part,
+                                             (event.x, event.y), original)
+                self._point_drag_changed = False
+                self._pre_change_state = self._capture_state()
+                self.canvas.config(cursor="fleur")
+                self.redraw_all()
+                return
+
             # выбор связи снимается кликом мимо неё
             self.selected_connection = None
             self.selected_analog = None
@@ -8446,6 +8473,27 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                     self._point_drag_changed = True
                     self.redraw_all()
             return
+        # ПЕРЕТАСКИВАНИЕ НОМЕРА/НАИМЕНОВАНИЯ СВЯЗИ ФЛС
+        if self._dragging_logic_mark is not None:
+            link, part, (start_sx, start_sy), original = \
+                self._dragging_logic_mark
+            if link not in self.logic_links:
+                self._dragging_logic_mark = None
+            else:
+                # Смещение плавное, без привязки к сетке — как у подписи.
+                dx = (event.x - start_sx) / self.zoom
+                dy = (event.y - start_sy) / self.zoom
+                offset = [round(original[0] + dx, 1),
+                          round(original[1] + dy, 1)]
+                if offset != original:
+                    if part == "label":
+                        link["label_offset"] = offset
+                    else:
+                        link.setdefault("mark_offsets", {})[part] = offset
+                    self._point_drag_changed = True
+                    self.redraw_all()
+            return
+
         # ПЕРЕТАСКИВАНИЕ ЛИНИИ СВЯЗИ ФЛС ЦЕЛИКОМ
         if self._dragging_logic_route is not None:
             link, original, (start_wx, start_wy) = self._dragging_logic_route
@@ -8552,6 +8600,19 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             return
 
     def on_release(self, event):
+        # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ НОМЕРА/НАИМЕНОВАНИЯ СВЯЗИ ФЛС
+        if self._dragging_logic_mark is not None:
+            if self._point_drag_changed:
+                self.undo_manager.push_state(self._pre_change_state)
+                self._mark_modified()
+            self._dragging_logic_mark = None
+            self._point_drag_changed = False
+            self._pre_change_state = None
+            self.canvas.config(cursor="arrow" if self.current_tool == "select"
+                               else "crosshair")
+            self.redraw_all()
+            return
+
         # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ЛИНИИ СВЯЗИ ФЛС
         if self._dragging_logic_route is not None:
             if self._point_drag_changed:

@@ -342,10 +342,23 @@ class LogicEditorMixin:
         return best
 
     def _logic_label_at(self, sx, sy):
-        for link, box in self._logic_label_boxes:
+        for entry in self._logic_label_boxes:
+            link, _part, box = entry
             if box and box[0] - 2 <= sx <= box[2] + 2 \
                     and box[1] - 2 <= sy <= box[3] + 2:
                 return link
+        return None
+
+    def _logic_annotation_at(self, sx, sy):
+        """Номер или наименование связи под курсором: (связь, часть).
+
+        Часть — «start»/«end» для номера у конца линии, «label» для
+        наименования вдоль линии; служит для перетаскивания мышкой.
+        """
+        for link, part, box in self._logic_label_boxes:
+            if box and box[0] - 2 <= sx <= box[2] + 2 \
+                    and box[1] - 2 <= sy <= box[3] + 2:
+                return link, part
         return None
 
     def _logic_point_at(self, sx, sy):
@@ -484,7 +497,8 @@ class LogicEditorMixin:
             "number": ll.next_logic_number(self.logic_links),
             "ru": source.get("slot_name") or "",
             "iec": source.get("slot_iec") or "",
-            "arrow": True,
+            # Стрелка по умолчанию отключена: включается в свойствах связи.
+            "arrow": False,
         }
         self.logic_links.append(link)
         return link
@@ -654,21 +668,66 @@ class LogicEditorMixin:
                 return x, y, box
         return fallback
 
+    # ================= СМЕЩЕНИЯ АННОТАЦИЙ =================
+    @staticmethod
+    def _valid_offset(value):
+        """Смещение [dx, dy] из JSON или None."""
+        if isinstance(value, (list, tuple)) and len(value) == 2:
+            try:
+                return [float(value[0]), float(value[1])]
+            except (TypeError, ValueError):
+                return None
+        return None
+
+    def _mark_offsets(self, link):
+        """Смещения номеров связи: {"start": [dx, dy], "end": [dx, dy]}."""
+        offsets = (link or {}).get("mark_offsets")
+        return offsets if isinstance(offsets, dict) else {}
+
+    def _mark_offset(self, link, part):
+        """Смещение конкретного номера связи (или [0, 0])."""
+        return self._valid_offset(self._mark_offsets(link).get(part)) \
+            or [0.0, 0.0]
+
+    def _label_offset(self, link):
+        """Смещение наименования связи (или [0, 0])."""
+        return self._valid_offset((link or {}).get("label_offset")) \
+            or [0.0, 0.0]
+
+    @staticmethod
+    def _shifted_anchor(anchor, offset):
+        """Аннотация, сдвинутая на сохранённое смещение (мировые ед.)."""
+        if anchor is None:
+            return None
+        offset = LogicEditorMixin._valid_offset(offset)
+        if offset is None or (not offset[0] and not offset[1]):
+            return anchor
+        dx, dy = offset
+        x, y, box = anchor
+        return (x + dx, y + dy,
+                (box[0] + dx, box[1] + dy, box[2] + dx, box[3] + dy))
+
     def _logic_annotations(self, prepared):
         """Маркировки и подписи связей без наложений.
 
         Маркировка рисуется у обоих концов связи (structure2: «на концах и
-        на начале»), имя — вдоль линии.
+        на начале»), имя — вдоль линии. Сохранённые мышкой смещения
+        сдвигают аннотацию с автопозиции, поэтому после правки линии
+        подпись остаётся там, где её оставили.
         """
         numbers, labels, occupied = [], [], []
         for link, route in prepared:
             number = self._logic_link_number(link)
             start = self._logic_number_anchor(route, number, occupied) \
                 if number else None
+            start = self._shifted_anchor(
+                start, self._mark_offsets(link).get("start"))
             if start is not None:
                 occupied.append(start[2])
             end = self._logic_end_number_anchor(route, number, occupied) \
                 if number else None
+            end = self._shifted_anchor(
+                end, self._mark_offsets(link).get("end"))
             if end is not None:
                 occupied.append(end[2])
             numbers.append((link, start, end))
@@ -676,6 +735,7 @@ class LogicEditorMixin:
             text = self._logic_link_label_text(link)
             anchor = self._logic_label_anchor(route, text, occupied) \
                 if text else None
+            anchor = self._shifted_anchor(anchor, self._label_offset(link))
             if anchor is not None:
                 occupied.append(anchor[2])
             labels.append((link, anchor))
@@ -739,7 +799,7 @@ class LogicEditorMixin:
 
         font = ("Arial", max(1, int(6 * self.zoom)))
 
-        def draw_number(link, anchor):
+        def draw_number(link, anchor, part):
             if anchor is None:
                 return
             x, y, box = anchor
@@ -752,11 +812,12 @@ class LogicEditorMixin:
                 sx, sy, text=self._logic_link_number(link),
                 fill=ll.link_style(link.get("kind"))["color"],
                 font=font, anchor="center", tags="logic_label")
-            self._logic_label_boxes.append((link, self._logic_screen_box(box)))
+            self._logic_label_boxes.append(
+                (link, part, self._logic_screen_box(box)))
 
         for link, start, end in numbers:
-            draw_number(link, start)
-            draw_number(link, end)
+            draw_number(link, start, "start")
+            draw_number(link, end, "end")
         for link, anchor in labels:
             if anchor is None:
                 continue
@@ -771,7 +832,8 @@ class LogicEditorMixin:
                 fill=ll.link_style(link.get("kind"))["color"],
                 font=font, anchor="center", justify="center",
                 tags="logic_label")
-            self._logic_label_boxes.append((link, self._logic_screen_box(box)))
+            self._logic_label_boxes.append(
+                (link, "label", self._logic_screen_box(box)))
 
         if self._logic_start is not None:
             point = self._logic_ref_point(
@@ -930,6 +992,19 @@ class LogicEditorMixin:
                 record[field] = value.strip()
         if link.get("arrow") is False:
             record["arrow"] = False
+        # Смещения номера и наименования, заданные перетаскиванием.
+        label_offset = self._valid_offset(link.get("label_offset"))
+        if label_offset and (label_offset[0] or label_offset[1]):
+            record["label_offset"] = [round(label_offset[0], 1),
+                                      round(label_offset[1], 1)]
+        mark_offsets = {}
+        for part, value in self._mark_offsets(link).items():
+            offset = self._valid_offset(value)
+            if offset and (offset[0] or offset[1]):
+                mark_offsets[part] = [round(offset[0], 1),
+                                      round(offset[1], 1)]
+        if mark_offsets:
+            record["mark_offsets"] = mark_offsets
         points = self._clean_points(link.get("points"))
         if points:
             record["points"] = points
@@ -971,6 +1046,17 @@ class LogicEditorMixin:
                     entry[field] = value.strip()
             if link.get("arrow") is False:
                 entry["arrow"] = False
+            # Смещения номера и наименования из JSON.
+            label_offset = self._valid_offset(link.get("label_offset"))
+            if label_offset:
+                entry["label_offset"] = list(label_offset)
+            mark_offsets = {}
+            for part, value in self._mark_offsets(link).items():
+                offset = self._valid_offset(value)
+                if offset:
+                    mark_offsets[part] = list(offset)
+            if mark_offsets:
+                entry["mark_offsets"] = mark_offsets
             if id_mapping is not None or not entry.get("id"):
                 entry["id"] = ll.next_link_id(result)
             points = self._clean_points(link.get("points"))

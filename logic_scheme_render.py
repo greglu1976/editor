@@ -264,25 +264,55 @@ def label_anchor(route, text, occupied, offset=12.0):
     return fallback
 
 
+def valid_offset(value):
+    """Смещение [dx, dy] из JSON или None."""
+    if isinstance(value, (list, tuple)) and len(value) == 2:
+        try:
+            return [float(value[0]), float(value[1])]
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def shifted_anchor(anchor, offset):
+    """Аннотация, сдвинутая на сохранённое мышкой смещение."""
+    if anchor is None:
+        return None
+    offset = valid_offset(offset)
+    if offset is None or (not offset[0] and not offset[1]):
+        return anchor
+    dx, dy = offset
+    x, y, box = anchor
+    return (x + dx, y + dy,
+            (box[0] + dx, box[1] + dy, box[2] + dx, box[3] + dy))
+
+
 def annotations(elements, links, prepared):
     """Маркировки и подписи связей без наложений.
 
     Маркировка рисуется у обоих концов связи (structure2: «на концах и
-    на начале»), имя — вдоль линии.
+    на начале»), имя — вдоль линии. Смещения, заданные перетаскиванием
+    в редакторе (``mark_offsets``/``label_offset``), сдвигают аннотации
+    с автопозиции — экспорт совпадает с тем, что нарисовано на полотне.
     """
     numbers, labels, occupied = [], [], []
     for link, points in prepared:
         number = link_number(elements, links, link)
         start = number_anchor(points, number, occupied) if number else None
+        start = shifted_anchor(start, (link.get("mark_offsets")
+                                       or {}).get("start"))
         if start is not None:
             occupied.append(start[2])
         end = end_number_anchor(points, number, occupied) if number else None
+        end = shifted_anchor(end, (link.get("mark_offsets")
+                                   or {}).get("end"))
         if end is not None:
             occupied.append(end[2])
         numbers.append((link, start, end))
     for link, points in prepared:
         text = link_label_text(elements, link)
         anchor = label_anchor(points, text, occupied) if text else None
+        anchor = shifted_anchor(anchor, link.get("label_offset"))
         if anchor is not None:
             occupied.append(anchor[2])
         labels.append((link, anchor))
@@ -474,6 +504,19 @@ def build_logic_links(data, elements):
                 entry[field] = value.strip()
         if link.get("arrow") is False:
             entry["arrow"] = False
+        # Смещения номера и наименования из JSON редактора.
+        label_offset = valid_offset(link.get("label_offset"))
+        if label_offset:
+            entry["label_offset"] = list(label_offset)
+        mark_offsets = {}
+        raw_offsets = link.get("mark_offsets")
+        if isinstance(raw_offsets, dict):
+            for part, value in raw_offsets.items():
+                offset = valid_offset(value)
+                if offset:
+                    mark_offsets[part] = list(offset)
+        if mark_offsets:
+            entry["mark_offsets"] = mark_offsets
         points = clean_points(link.get("points"))
         if points:
             entry["points"] = points
