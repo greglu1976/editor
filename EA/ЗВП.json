@@ -4,11 +4,11 @@
             "id": "LOe4a3",
             "type": "logic_block",
             "name": "Б2",
-            "x": 720,
+            "x": 630,
             "y": 250,
             "label": [
-                1.4,
-                -7.0
+                17.2,
+                -1.2
             ],
             "logic": {
                 "title": "Защита от внутренних повреждений",
@@ -177,8 +177,12 @@
             "id": "LO51fe",
             "type": "logic_block",
             "name": "Б3",
-            "x": 720,
-            "y": 480,
+            "x": 640,
+            "y": 510,
+            "label": [
+                -0.4,
+                -5.0
+            ],
             "logic": {
                 "title": "Защита от перегрузки токами высших гармоник",
                 "designation": "ЗПВГ",
@@ -212,6 +216,27 @@
                             {
                                 "id": "out1",
                                 "name": "Срабатывание",
+                                "description": "",
+                                "iec_name": "",
+                                "type": "discrete_process_level"
+                            }
+                        ],
+                        "settings": [],
+                        "parameters": []
+                    },
+                    {
+                        "kind": "CUSTOM",
+                        "title": "Отключающая ступень",
+                        "name": "",
+                        "ru": "",
+                        "iec": "",
+                        "iec_name": "",
+                        "LNclass": "",
+                        "inputs": [],
+                        "outputs": [
+                            {
+                                "id": "out1",
+                                "name": "",
                                 "description": "",
                                 "iec_name": "",
                                 "type": "discrete_process_level"
@@ -261,6 +286,23 @@
                 "signal_iec": "",
                 "signal_no": ""
             }
+        },
+        {
+            "id": "LOa71a",
+            "type": "logic_led",
+            "name": "HL2",
+            "x": 1400,
+            "y": 240,
+            "label": [
+                -1.9,
+                6.9
+            ],
+            "logic": {
+                "title": "Светодиод",
+                "signal_ru": "",
+                "signal_iec": "",
+                "signal_no": ""
+            }
         }
     ],
     "connections": [],
@@ -272,7 +314,21 @@
             "id": "1",
             "number": "9115",
             "ru": "Токи Ia, Ib, Ic средней перемычки",
-            "arrow": false
+            "arrow": false,
+            "label_offset": [
+                -17.6,
+                2.9
+            ],
+            "mark_offsets": {
+                "end": [
+                    -72.3,
+                    1.4
+                ],
+                "start": [
+                    31.9,
+                    3.4
+                ]
+            }
         },
         {
             "from": "LOcb4a#left",
@@ -302,7 +358,21 @@
             "continuation": "1",
             "number": "9115",
             "ru": "Токи Ia, Ib, Ic средней перемычки",
-            "arrow": false
+            "arrow": false,
+            "label_offset": [
+                -4.9,
+                -18.3
+            ],
+            "mark_offsets": {
+                "end": [
+                    43.3,
+                    -15.3
+                ],
+                "start": [
+                    -51.5,
+                    -17.0
+                ]
+            }
         },
         {
             "from": "LOe4a3#fn1_in0",
@@ -312,7 +382,21 @@
             "continuation": "1",
             "number": "9115",
             "ru": "Токи Ia, Ib, Ic средней перемычки",
-            "arrow": false
+            "arrow": false,
+            "label_offset": [
+                -16.8,
+                4.2
+            ],
+            "mark_offsets": {
+                "end": [
+                    -71.7,
+                    -1.4
+                ],
+                "start": [
+                    23.5,
+                    0.5
+                ]
+            }
         },
         {
             "from": "LObadf#stub",
@@ -321,7 +405,21 @@
             "id": "6",
             "number": "9101",
             "ru": "Токи Ia, Ib, Ic ВН",
-            "arrow": false
+            "arrow": false,
+            "label_offset": [
+                -10.4,
+                -21.2
+            ],
+            "mark_offsets": {
+                "end": [
+                    45.5,
+                    -19.4
+                ],
+                "start": [
+                    -56.2,
+                    -17.5
+                ]
+            }
         },
         {
             "from": "LOb0f1#stub",
@@ -330,7 +428,21 @@
             "id": "7",
             "number": "9102",
             "ru": "Токи Ia, Ib, Ic ОВ",
-            "arrow": false
+            "arrow": false,
+            "label_offset": [
+                -7.1,
+                -22.7
+            ],
+            "mark_offsets": {
+                "end": [
+                    47.0,
+                    -18.1
+                ],
+                "start": [
+                    -56.5,
+                    -17.5
+                ]
+            }
         },
         {
             "from": "LO51fe#fn0_in0",
@@ -340,7 +452,21 @@
             "continuation": "6",
             "number": "9101",
             "ru": "Токи Ia, Ib, Ic ВН",
-            "arrow": false
+            "arrow": false,
+            "label_offset": [
+                -21.5,
+                3.1
+            ],
+            "mark_offsets": {
+                "end": [
+                    -72.4,
+                    0.4
+                ],
+                "start": [
+                    32.2,
+                    0.4
+                ]
+            }
         },
         {
             "from": "LO51fe#fn0_in1",
@@ -350,12 +476,45 @@
             "continuation": "7",
             "number": "9102",
             "ru": "Токи Ia, Ib, Ic ОВ",
+            "arrow": false,
+            "label_offset": [
+                -21.1,
+                3.1
+            ],
+            "mark_offsets": {
+                "end": [
+                    -72.4,
+                    1.5
+                ],
+                "start": [
+                    34.5,
+                    -0.4
+                ]
+            }
+        },
+        {
+            "from": "LO51fe#fn0_out0",
+            "to": "LO8220#p18",
+            "kind": "internal",
+            "id": "10",
+            "number": "1021",
+            "ru": "Срабатывание",
+            "arrow": false
+        },
+        {
+            "from": "LOa71a#left",
+            "to": "LO8220#p7",
+            "kind": "internal",
+            "id": "11",
+            "continuation": "10",
+            "number": "1021",
+            "ru": "Срабатывание",
             "arrow": false
         }
     ],
     "view": {
-        "zoom": 1.5492,
-        "offset_x": 631.94,
-        "offset_y": 24.5
+        "zoom": 1.4929,
+        "offset_x": 159.85,
+        "offset_y": 86.01
     }
 }
