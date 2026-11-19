@@ -823,6 +823,9 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self.selected_connection = None
         self._dragging_point = None
         self._point_drag_changed = False
+        # Перетаскивание линии связи ФЛС целиком: (связь, исходные
+        # изломы, точка старта в мировых координатах).
+        self._dragging_logic_route = None
         
         # --- ВЫДЕЛЕНИЕ И БУФЕР ОБМЕНА ---
         self.current_tool = "select"
@@ -994,6 +997,8 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                               "Средняя кнопка мыши — панорама.\n"
                               "Клик по связи — выбор, двойной клик —\n"
                               "излом, Delete — удалить.\n"
+                              "Излом тащится мышкой у любой связи,\n"
+                              "линия целиком — за саму линию.\n"
                               "Ctrl+F — поиск, R — вращение,\n"
                               "Esc — снять выделение и режим «Выбрать».",
                  bg=ui_theme.PALETTE, fg=ui_theme.TEXT_MUTED,
@@ -6472,6 +6477,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._logic_label_boxes = []
         self._dragging_point = None
         self._point_drag_changed = False
+        self._dragging_logic_route = None
         self._protection_start = None
         self._bind_start = None
         self._analog_start = None
@@ -7966,6 +7972,23 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                          or self._protection_point_at(event.x, event.y)
                          or self._container_point_at(event.x, event.y))
             if point_hit is not None:
+                kind, target, index = point_hit
+                if kind == "link":
+                    # Захват точки выбирает связь: её маркеры видны,
+                    # а излом можно тащить сразу, без выделения.
+                    if target in self.logic_links:
+                        self.selected_logic = target
+                        self.selected_elements = []
+                        self.selected_connection = None
+                        self.selected_analog = None
+                        self.selected_protection = None
+                        self.selected_container_link = None
+                    elif target in self.connections:
+                        self.selected_connection = target
+                        self.selected_logic = None
+                    elif target in self.analog_links:
+                        self.selected_analog = target
+                        self.selected_logic = None
                 self._dragging_point = tuple(point_hit)
                 self._point_drag_changed = False
                 self._pre_change_state = self._capture_state()
@@ -8062,6 +8085,16 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                     else:
                         self.selected_logic = logic_link
                         self.selected_elements = []
+                        # Перетаскивание линии: все изломы сдвигаются
+                        # целиком (концы остаются на своих выводах).
+                        self._dragging_logic_route = (
+                            logic_link,
+                            [list(point) for point
+                             in (logic_link.get("points") or [])],
+                            (wx, wy))
+                        self._pre_change_state = self._capture_state()
+                        self._point_drag_changed = False
+                        self.canvas.config(cursor="fleur")
                     self.redraw_all()
                     return
 
@@ -8413,6 +8446,24 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                     self._point_drag_changed = True
                     self.redraw_all()
             return
+        # ПЕРЕТАСКИВАНИЕ ЛИНИИ СВЯЗИ ФЛС ЦЕЛИКОМ
+        if self._dragging_logic_route is not None:
+            link, original, (start_wx, start_wy) = self._dragging_logic_route
+            if link not in self.logic_links or self.selected_logic is not link:
+                self._dragging_logic_route = None
+            else:
+                wx, wy = self.screen_to_world(event.x, event.y)
+                wx, wy = self.snap(wx, wy)
+                dx = round(wx - start_wx, 1)
+                dy = round(wy - start_wy, 1)
+                if dx or dy:
+                    link["points"] = [[round(point[0] + dx, 1),
+                                       round(point[1] + dy, 1)]
+                                      for point in original]
+                    self._point_drag_changed = True
+                    self.redraw_all()
+            return
+
         # ПЕРЕТАСКИВАНИЕ ЗАПИСКИ КОММЕНТАРИЯ
         if self._dragging_comment is not None:
             comment = self._comment_by_id(self._dragging_comment)
@@ -8501,6 +8552,19 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             return
 
     def on_release(self, event):
+        # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ЛИНИИ СВЯЗИ ФЛС
+        if self._dragging_logic_route is not None:
+            if self._point_drag_changed:
+                self.undo_manager.push_state(self._pre_change_state)
+                self._mark_modified()
+            self._dragging_logic_route = None
+            self._point_drag_changed = False
+            self._pre_change_state = None
+            self.canvas.config(cursor="arrow" if self.current_tool == "select"
+                               else "crosshair")
+            self.redraw_all()
+            return
+
         # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ОПОРНОЙ ТОЧКИ СВЯЗИ
         if self._dragging_point is not None:
             if self._point_drag_changed:

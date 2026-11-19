@@ -65,6 +65,29 @@ def _ri_logic_function(canvas):
     canvas.create_line(24, 16, 30, 16, width=1)
 
 
+def _ri_logic_port_in(canvas):
+    canvas.create_rectangle(3, 9, 19, 23, outline="black", width=1)
+    canvas.create_polygon(17, 12, 17, 20, 10, 16, fill="black")
+    canvas.create_line(19, 16, 26, 16, width=1)
+    canvas.create_polygon(30, 16, 24, 12, 24, 20, fill="black")
+
+
+def _ri_logic_port_out(canvas):
+    canvas.create_line(2, 16, 8, 16, width=1)
+    canvas.create_polygon(10, 16, 4, 12, 4, 20, fill="black")
+    canvas.create_rectangle(13, 9, 29, 23, outline="black", width=1)
+    canvas.create_polygon(24, 12, 24, 20, 17, 16, fill="black")
+
+
+def _ri_logic_refresh(canvas):
+    canvas.create_line(6, 8, 24, 8, width=2, fill="#1f4e79")
+    canvas.create_polygon(24, 8, 20, 5, 20, 11, fill="#1f4e79")
+    canvas.create_line(24, 24, 6, 24, width=2, fill="#1f4e79")
+    canvas.create_polygon(6, 24, 10, 21, 10, 27, fill="#1f4e79")
+    canvas.create_text(16, 16, text="=", font=("Arial", 8, "bold"),
+                       fill="#1f4e79")
+
+
 def _ri_logic_link(canvas):
     canvas.create_line(3, 24, 20, 8, width=2, fill="#2e7d32")
     canvas.create_line(20, 8, 29, 8, width=2, fill="#2e7d32")
@@ -122,7 +145,9 @@ class LogicEditorMixin:
                     ("Клавиша", "logic_key", _ri_logic_key),
                     ("Светодиод", "logic_led", _ri_logic_led),
                     ("Блок", "logic_block", _ri_logic_block),
-                    ("Функция", "logic_function", _ri_logic_function)):
+                    ("Функция", "logic_function", _ri_logic_function),
+                    ("Вход. порт", "logic_port_in", _ri_logic_port_in),
+                    ("Вых. порт", "logic_port_out", _ri_logic_port_out)):
                 self._register_tool(self._ribbon_button(
                     row, title, lambda t=etype: self.set_tool(t),
                     icon, 64), etype).pack(side=tk.LEFT)
@@ -178,6 +203,9 @@ class LogicEditorMixin:
             self._ribbon_button(row, "Перенумеровать",
                                 self.renumber_logic_links,
                                 _ri_logic_link, 104).pack(side=tk.LEFT),
+            self._ribbon_button(row, "Обновить связи",
+                                self.update_logic_links,
+                                _ri_logic_refresh, 104).pack(side=tk.LEFT),
         ])
         return page
 
@@ -321,15 +349,28 @@ class LogicEditorMixin:
         return None
 
     def _logic_point_at(self, sx, sy):
-        link = self.selected_logic
-        if link is None or link not in self.logic_links:
-            return None
+        """Маркер излома связи ФЛС под курсором.
+
+        Точки выделенной связи проверяются первыми; заодно находятся
+        точки любой другой связи — захват точки выбирает эту связь,
+        поэтому излом можно перетащить без предварительного выделения.
+        """
         radius = max(5.0, 6.0 * self.zoom)
-        for index, point in enumerate(link.get("points") or []):
-            px, py = self.world_to_screen(point[0], point[1])
-            if math.hypot(sx - px, sy - py) <= radius:
-                return ("link", link, index)
-        return None
+        best, best_distance = None, None
+        links = list(self.logic_links)
+        selected = self.selected_logic
+        if selected in links:
+            # Выделенная связь — первой: её точки приоритетны.
+            links.remove(selected)
+            links.insert(0, selected)
+        for link in links:
+            for index, point in enumerate(link.get("points") or []):
+                px, py = self.world_to_screen(point[0], point[1])
+                distance = math.hypot(sx - px, sy - py)
+                if distance <= radius and (best_distance is None
+                                           or distance < best_distance):
+                    best, best_distance = ("link", link, index), distance
+        return best
 
     def _logic_element_at(self, sx, sy):
         element_id = self._element_at(sx, sy)
@@ -484,7 +525,8 @@ class LogicEditorMixin:
             element = self.elements.get(element_id)
             if element is None:
                 continue
-            if element.type in ("logic_key", "logic_led", "logic_function"):
+            if element.type in ("logic_key", "logic_led", "logic_function",
+                                "logic_port_in", "logic_port_out"):
                 own_ru = (getattr(element, "signal_ru", "") or "").strip()
                 own_iec = (getattr(element, "signal_iec", "") or "").strip()
                 if own_ru and link_ru == own_ru \
@@ -785,18 +827,33 @@ class LogicEditorMixin:
             y += row_h
 
     def _draw_logic_points(self):
-        link = self.selected_logic
-        if link is None or link not in self.logic_links:
+        """Маркеры изломов связей ФЛС: у выделенной связи — крупнее.
+
+        Точки видны у всех связей: излом можно перетащить без
+        предварительного выделения, захват точки выбирает связь.
+        """
+        if not getattr(self, "show_logic", True):
             return
-        radius = max(3.0, 4.0 * self.zoom)
-        style = ll.link_style(link.get("kind"))
-        for point in link.get("points") or []:
-            px, py = self.world_to_screen(point[0], point[1])
-            self.canvas.create_rectangle(
-                px - radius, py - radius, px + radius, py + radius,
-                fill="white", outline=style["color"],
-                width=max(1, int(1.5 * self.zoom)),
-                tags="logic_point")
+        selected = self.selected_logic
+        for link in self.logic_links:
+            points = link.get("points") or []
+            if not points:
+                continue
+            style = ll.link_style(link.get("kind"))
+            if link is selected:
+                radius = max(3.5, 4.5 * self.zoom)
+                fill, outline = "white", style["color"]
+                width = max(1, int(1.5 * self.zoom))
+            else:
+                radius = max(2.0, 2.5 * self.zoom)
+                fill, outline = style["color"], style["color"]
+                width = 1
+            for point in points:
+                px, py = self.world_to_screen(point[0], point[1])
+                self.canvas.create_rectangle(
+                    px - radius, py - radius, px + radius, py + radius,
+                    fill=fill, outline=outline, width=width,
+                    tags="logic_point")
 
     def _draw_logic_scene(self, canvas):
         """Связи ФЛС для PDF/PNG: те же линии, стрелки и подписи."""
@@ -1146,6 +1203,116 @@ class LogicEditorMixin:
         self._mark_modified()
         self.redraw_all()
 
+    # ================= ОБНОВЛЕНИЕ СВЯЗЕЙ =================
+    @staticmethod
+    def _logic_mark_key(value):
+        """Ключ маркировки для сопоставления: без пробелов и регистра."""
+        return str(value or "").strip().casefold()
+
+    def _update_logic_groups(self):
+        """Привязка групп связей с одинаковым номером/маркировкой.
+
+        Возвращает (привязано связей, обновлено наименований, найдено
+        групп). Связи с одним номером — один сигнал, изображённый в
+        разных местах схемы: первая связь с наименованием становится
+        источником, остальные получают то же наименование и привязку
+        (продолжение) к ней. Если номер совпадает с маркировкой элемента
+        (порт, клавиша, светодиод), наименование берётся из элемента.
+        """
+        # Маркировка элемента — приоритетный источник наименования.
+        marks = {}
+        for element in self.elements.values():
+            key = self._logic_mark_key(getattr(element, "signal_no", ""))
+            if key:
+                marks[key] = element
+
+        groups = {}
+        order = []
+        for link in self.logic_links:
+            key = self._logic_mark_key(link.get("number"))
+            if not key:
+                continue
+            if key not in groups:
+                groups[key] = []
+                order.append(key)
+            groups[key].append(link)
+
+        bound, renamed, found = 0, 0, 0
+        for key in order:
+            group = groups[key]
+            # Источник наименования: элемент с такой маркировкой, иначе
+            # первая связь группы с непустым наименованием.
+            element = marks.get(key)
+            source = group[0]
+            if element is not None:
+                found += 1
+            else:
+                for link in group:
+                    if (str(link.get("ru") or "").strip()
+                            or str(link.get("iec") or "").strip()):
+                        source = link
+                        break
+            if element is not None:
+                ru = (getattr(element, "signal_ru", "") or "").strip()
+                iec = (getattr(element, "signal_iec", "") or "").strip()
+            else:
+                ru = str(source.get("ru") or "").strip()
+                iec = str(source.get("iec") or "").strip()
+            if element is None and (ru or iec):
+                # Связь-источник хранит исходное наименование группы.
+                found += 1
+            master_id = str(source.get("id") or "").strip()
+            if len(group) > 1 and not master_id:
+                master_id = ll.next_link_id(self.logic_links)
+                source["id"] = master_id
+            for link in group:
+                if link is source and element is None:
+                    continue
+                current_ru = str(link.get("ru") or "").strip()
+                current_iec = str(link.get("iec") or "").strip()
+                if ru and (current_ru != ru or (iec and current_iec != iec)):
+                    link["ru"] = ru
+                    link["iec"] = iec
+                    renamed += 1
+                elif not ru and iec and current_iec != iec:
+                    link["iec"] = iec
+                    renamed += 1
+                if len(group) > 1 and link is not source \
+                        and str(link.get("continuation") or "").strip() != master_id:
+                    link["continuation"] = master_id
+                    bound += 1
+        return bound, renamed, found
+
+    def update_logic_links(self):
+        """«Обновить связи»: привязка участков сигнала с общим номером.
+
+        Связи с одинаковым номером/маркировкой считаются одним сигналом:
+        наименования выравниваются по источнику (элемент с маркировкой
+        или связь с наименованием), остальные связи привязываются к
+        первой как продолжения.
+        """
+        if not self.logic_links:
+            messagebox.showinfo("Логика", "На схеме нет связей ФЛС.")
+            return
+        bound, renamed, found = self._update_logic_groups()
+        if not bound and not renamed:
+            messagebox.showinfo(
+                "Обновление связей",
+                "Связей с общим номером/маркировкой не найдено.\n\n"
+                "Задайте связям один номер («Номер / маркировка» в "
+                "свойствах связи) — они будут привязаны и получат общее "
+                "наименование.")
+            return
+        self._push_undo()
+        self._mark_modified()
+        self.redraw_all()
+        parts = ["привязано связей: {}".format(bound)] if bound else []
+        if renamed:
+            parts.append("обновлено наименований: {}".format(renamed))
+        parts.append("групп сигналов: {}".format(found))
+        messagebox.showinfo("Обновление связей",
+                            "Готово.\n\n" + ",\n".join(parts) + ".")
+
     # ================= СВОЙСТВА ЭЛЕМЕНТОВ =================
     def edit_selected_logic_block(self):
         selected = [self.elements[el_id] for el_id in self.selected_elements
@@ -1213,8 +1380,16 @@ class LogicEditorMixin:
             self.edit_logic_function_element(element)
         elif element.type == "logic_bus":
             self.edit_logic_bus(element)
+        elif element.type in ("logic_port_in", "logic_port_out"):
+            self.edit_logic_port(element)
         else:
             self.edit_logic_signal_element(element)
+
+    def edit_logic_port(self, element):
+        title = ("Входной порт — свойства"
+                 if element.type == "logic_port_in"
+                 else "Выходной порт — свойства")
+        self._logic_common_dialog(element, title)
 
     def _logic_common_dialog(self, element, title, extra_builder=None,
                              delete=True):

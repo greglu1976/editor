@@ -22,7 +22,11 @@
 13. вставка блока с палитры сразу открывает окно свойств;
 14. смену типа выбранной связи из ленты и отмену;
 15. легенду типов связей на полотне;
-16. сквозную нумерацию связей.
+16. сквозную нумерацию связей;
+20. входной и выходной порты: выводы, наименование сигнала, JSON;
+21. «Обновить связи»: общий номер — привязка продолжением и выравнивание
+    наименований (из элемента с маркировкой или из связи-источника);
+22. перенос точек: захват излома любой связи и перетаскивание линии целиком.
 """
 
 from __future__ import annotations
@@ -193,7 +197,8 @@ def test_elements(app):
     _reset(app)
     ids = {etype: _add(app, etype, 100 + index * 180, 300)
            for index, etype in enumerate(ll.LOGIC_COMPONENT_TYPES)}
-    check(len(app.elements) == 5, "созданы все пять элементов")
+    check(len(app.elements) == len(ll.LOGIC_COMPONENT_TYPES),
+          "созданы все %d элементов" % len(ll.LOGIC_COMPONENT_TYPES))
     for etype, element_id in ids.items():
         element = app.elements[element_id]
         check(element.type == etype and bool(element.ports),
@@ -210,6 +215,9 @@ def test_elements(app):
           "блок получает обозначение Б…")
     check(app.elements[ids["logic_function"]].name.startswith("ЛУ"),
           "узел получает обозначение ЛУ…")
+    check(app.elements[ids["logic_port_in"]].name.startswith("X")
+          and app.elements[ids["logic_port_out"]].name.startswith("X"),
+          "порты получают обозначения X…")
 
 
 def test_bus(app):
@@ -668,6 +676,175 @@ def test_block_grid(app):
           "порты остаются на сетке после роста")
 
 
+def test_ports(app):
+    print("20. входной и выходной порты")
+    _reset(app)
+    port_in = app.elements[_add(app, "logic_port_in", 200, 200)]
+    port_out = app.elements[_add(app, "logic_port_out", 600, 200)]
+    check(port_in.name.startswith("X") and port_out.name.startswith("X")
+          and port_in.name != port_out.name,
+          "порты получают обозначения X1, X2")
+    check(port_in.ports["stub"]["direction"] == "out"
+          and port_in.ports["stub"]["x"] > port_in.x,
+          "у входного порта вывод-выход справа")
+    check(port_out.ports["stub"]["direction"] == "in"
+          and port_out.ports["stub"]["x"] < port_out.x,
+          "у выходного порта вывод-вход слева")
+
+    port_in.signal_ru = "Отключение ОТТН"
+    port_in.signal_iec = "TRIP"
+    port_in.signal_no = "9005"
+    port_in.generate_ports()
+    check(port_in.ports["stub"]["slot_name"] == "Отключение ОТТН"
+          and port_in.ports["stub"]["slot_iec"] == "TRIP",
+          "наименование сигнала порта передаётся на вывод")
+
+    payload = ll.element_payload(port_in)
+    check(payload["signal_no"] == "9005" and payload["title"] == "Входной порт",
+          "поля порта попадают в JSON")
+    restored = ll.LogicPortIn("X9", 0, 0)
+    ll.restore_element(restored, payload)
+    check(restored.signal_ru == "Отключение ОТТН"
+          and restored.ports["stub"]["direction"] == "out",
+          "поля порта читаются обратно")
+
+    # Связь порт → функция: имя связи берётся с порта.
+    block = app.elements[_add(app, "logic_block", 600, 200)]
+    inputs = [name for name, port in block.ports.items()
+              if port.get("direction") == "in"]
+    link = app._add_logic_link((port_in.id, "stub"),
+                               (block.id, inputs[0]))
+    check(link is not None and link["ru"] == "Отключение ОТТН",
+          "имя связи по умолчанию — с порта")
+
+    app.redraw_all()
+    texts = [app.canvas.itemcget(item, "text")
+             for item in app.canvas.find_all()
+             if app.canvas.type(item) == "text"]
+    check(any("Входной порт" in text for text in texts)
+          or any(port_in.name in text for text in texts),
+          "подпись порта нарисована на полотне")
+
+
+def test_update_links(app):
+    print("21. обновление связей: общий номер — привязка и наименование")
+    _reset(app)
+    port_in = app.elements[_add(app, "logic_port_in", 100, 200)]
+    block = app.elements[_add(app, "logic_block", 600, 200)]
+    port_in.signal_ru = "Отключение ОТТН"
+    port_in.signal_iec = "TRIP"
+    port_in.signal_no = "9005"
+    port_in.generate_ports()
+    block.functions = [ll.normalize_function(
+        {"kind": "AND", "title": "Функция", "inputs": 2, "outputs": 1})]
+    block.generate_ports()
+    inputs = [name for name, port in block.ports.items()
+              if port.get("direction") == "in"]
+
+    app.logic_link_kind = "discrete"
+    first = app._add_logic_link((port_in.id, "stub"),
+                                (block.id, inputs[0]))
+    first["number"] = "9005"
+    key = app.elements[_add(app, "logic_key", 100, 500)]
+    second = app._add_logic_link((key.id, "right"),
+                                 (block.id, inputs[1]))
+    second["number"] = "9005"          # тот же сигнал, наименования нет
+
+    bound, renamed, found = app._update_logic_groups()
+    check((bound, renamed, found) == (1, 1, 1),
+          "группа найдена: %d/%d/%d" % (bound, renamed, found))
+    check(second["ru"] == "Отключение ОТТН" and second["iec"] == "TRIP",
+          "наименование выровнено по элементу с маркировкой")
+    check(str(second.get("continuation") or "") == str(first["id"]),
+          "вторая связь привязана к первой как продолжение")
+    check(not first.get("continuation"), "первая связь — источник")
+
+    # Группа без элемента: наименование берётся из связи с именем.
+    third = app._add_logic_link((block.id, "fn0_out0"), (key.id, "left"))
+    fourth = app._add_logic_link((key.id, "right"), (block.id, inputs[1]))
+    third["number"] = "9006"
+    fourth["number"] = "9006"
+    third["ru"] = "Пуск АВР"
+    bound, renamed, found = app._update_logic_groups()
+    check(fourth["ru"] == "Пуск АВР"
+          and str(fourth.get("continuation") or "") == str(third["id"]),
+          "наименование и привязка по связи-источнику")
+
+    # Связи без номера не трогаются.
+    unnumbered = app._add_logic_link((key.id, "right"), (block.id, inputs[0]))
+    app._update_logic_groups()
+    check(not unnumbered.get("continuation") and not unnumbered.get("ru"),
+          "связь без номера осталась без изменений")
+
+    # Пустой номер в другой группе не мешает нумерации
+    numbers = [link.get("number") for link in app.logic_links]
+    check(numbers.count("9005") == 2 and numbers.count("9006") == 2,
+          "номера групп сохранились")
+
+
+def test_point_drag(app):
+    print("22. перенос точек и линии связи ФЛС")
+    _reset(app)
+    port_in = app.elements[_add(app, "logic_port_in", 100, 200)]
+    block = app.elements[_add(app, "logic_block", 700, 200)]
+    block.functions = [ll.normalize_function(
+        {"kind": "AND", "title": "Функция", "inputs": 1, "outputs": 1})]
+    block.generate_ports()
+    app.logic_link_kind = "discrete"
+    link = app._add_logic_link((port_in.id, "stub"), (block.id, "fn0_in0"))
+    link["points"] = [[300.0, 260.0], [300.0, 340.0]]
+    app.current_tool = "select"
+    app.selected_logic = None
+    app.zoom = 1.0
+    app.offset_x = app.offset_y = 0.0
+
+    # Точка невыделенной связи находится и захват выбирает связь.
+    sx, sy = app.world_to_screen(300.0, 260.0)
+    hit = app._logic_point_at(sx, sy)
+    check(hit is not None and hit[1] is link,
+          "точка невыделенной связи обнаружена")
+    app.on_left_click(_event(sx, sy))
+    check(app.selected_logic is link
+          and app._dragging_point == ("link", link, 0),
+          "захват точки выбрал связь и начал перетаскивание")
+
+    # Тащим точку: линия перестраивается.
+    ex, ey = app.world_to_screen(340.0, 260.0)
+    app.on_drag(_event(ex, ey))
+    check(link["points"][0] == [340.0, 260.0],
+          "излом перетащен в новое место")
+    app.on_release(_event(ex, ey))
+    check(app._dragging_point is None, "перетаскивание точки завершено")
+
+    # Линия целиком: клик по свободному участку и сдвиг.
+    app.selected_logic = None
+    route = app._logic_route(link)
+    mx = (route[1][0] + route[2][0]) / 2.0
+    my = (route[1][1] + route[2][1]) / 2.0
+    sx, sy = app.world_to_screen(mx, my)
+    app.on_left_click(_event(sx, sy))
+    check(app._dragging_logic_route is not None
+          and app._dragging_logic_route[0] is link,
+          "клик по линии начал перетаскивание маршрута")
+    before = [list(point) for point in link["points"]]
+    ex, ey = app.world_to_screen(mx + 40.0, my)
+    app.on_drag(_event(ex, ey))
+    shifted = link["points"]
+    check(all(close(new[0], old[0] + 40.0) and close(new[1], old[1])
+              for new, old in zip(shifted, before)),
+          "все изломы сдвинуты вместе с линией")
+    app.on_release(_event(ex, ey))
+    check(app._dragging_logic_route is None
+          and app.selected_logic is link,
+          "перетаскивание линии завершено, связь осталась выбрана")
+
+    # Клик без движения не меняет маршрут.
+    before = [list(point) for point in link["points"]]
+    app.on_left_click(_event(sx, sy))
+    app.on_release(_event(sx, sy))
+    check(link["points"] == before, "клик без сдвига не меняет линию")
+
+
 def run_gui():
     import main
     main.messagebox.showinfo = lambda *args, **kwargs: None
@@ -698,6 +875,9 @@ def run_gui():
         test_renumber(app)
         test_block_preview(app, root)
         test_block_grid(app)
+        test_ports(app)
+        test_update_links(app)
+        test_point_drag(app)
     finally:
         root.destroy()
 

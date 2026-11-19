@@ -82,6 +82,7 @@ LOGIC_LINK_START = 9000
 
 LOGIC_COMPONENT_TYPES = (
     "logic_bus", "logic_key", "logic_led", "logic_block", "logic_function",
+    "logic_port_in", "logic_port_out",
 )
 
 PREFIX_BY_TYPE = {
@@ -90,6 +91,8 @@ PREFIX_BY_TYPE = {
     "logic_led": "HL",
     "logic_block": "Б",
     "logic_function": "ЛУ",
+    "logic_port_in": "X",
+    "logic_port_out": "X",
 }
 
 ELEMENT_TYPE_TITLES = {
@@ -98,6 +101,8 @@ ELEMENT_TYPE_TITLES = {
     "logic_led": "Светодиод",
     "logic_block": "Функциональный блок (логическое устройство)",
     "logic_function": "Логический узел",
+    "logic_port_in": "Входной порт",
+    "logic_port_out": "Выходной порт",
 }
 
 PALETTE_ITEMS = [
@@ -106,6 +111,8 @@ PALETTE_ITEMS = [
     ("Светодиод", "logic_led"),
     ("Функциональный блок", "logic_block"),
     ("Логический узел (И, ИЛИ, НЕ…)", "logic_function"),
+    ("Входной порт", "logic_port_in"),
+    ("Выходной порт", "logic_port_out"),
 ]
 
 #: Виды логических узлов: символ на схеме и русское название.
@@ -641,7 +648,137 @@ class LogicLed(LogicComponent):
 
 
 # ==========================================================================
-# 4. ЛОГИЧЕСКИЙ УЗЕЛ
+# 4. ПОРТЫ ЗАВЕДЕНИЯ И ВЫВОДА СИГНАЛА
+# ==========================================================================
+class LogicPort(LogicComponent):
+    """Порт связи с «внешним миром» схемы (structure2: внешний обмен).
+
+    Входной порт заводит сигнал в схему: у него один вывод справа, и это
+    выход — сигнал уходит из порта в схему. Выходной порт выводит сигнал
+    из схемы: его вывод слева — вход. Наименование сигнала и номер
+    маркировки служат источником для связей («Обновить связи»).
+    """
+
+    WIDTH = 120
+    HEIGHT = 40
+    STUB = 20          # длина вывода подключения — 1 клетка
+
+    #: Направление сигнала на выводе: "out" у входного порта, "in" —
+    #: у выходного.
+    PORT_DIRECTION = "out"
+    TITLE = "Порт"
+
+    def __init__(self, comp_id, x, y, grid_size=20):
+        super().__init__(comp_id, x, y, grid_size)
+        self.type = ("logic_port_in" if self.PORT_DIRECTION == "out"
+                     else "logic_port_out")
+        self.title = self.TITLE
+        self.generate_ports()
+
+    # ---------- геометрия ----------
+    def _rect(self):
+        half_w = self.WIDTH / 2.0
+        half_h = self.HEIGHT / 2.0
+        return (self.x - half_w, self.y - half_h,
+                self.x + half_w, self.y + half_h)
+
+    def _stub_line(self):
+        """Линия вывода: (начало, конец) в мировых координатах."""
+        x1, _y1, x2, _y2 = self._rect()
+        if self.PORT_DIRECTION == "out":
+            return (x2, self.y), (x2 + self.STUB, self.y)
+        return (x1, self.y), (x1 - self.STUB, self.y)
+
+    # ---------- порты ----------
+    def generate_ports(self):
+        (start_x, start_y), (end_x, end_y) = self._stub_line()
+        self.ports = {
+            "stub": {
+                "x": end_x, "y": end_y,
+                "node_id": "N_{}_stub".format(self.id),
+                "direction": self.PORT_DIRECTION,
+                "slot_type": DEFAULT_SLOT_TYPE,
+                # Имена сигнала — для подписи новой связи и «Обновить связи».
+                "slot_name": self.signal_ru,
+                "slot_iec": self.signal_iec,
+            },
+        }
+
+    # ---------- отрисовка ----------
+    def draw(self, canvas, zoom, offset_x, offset_y):
+        self._draw_ctx = (zoom, offset_x, offset_y)
+        x1, y1, x2, y2 = self._rect()
+        sx1, sy1 = self.world_to_screen(x1, y1)
+        sx2, sy2 = self.world_to_screen(x2, y2)
+        lw = max(1, int(2 * zoom))
+        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="white",
+                                outline="black", width=lw)
+        (start_x, start_y), (end_x, end_y) = self._stub_line()
+        canvas.create_line(*self.world_to_screen(start_x, start_y),
+                           *self.world_to_screen(end_x, end_y),
+                           width=lw, fill="black")
+        # Стрелка направления сигнала внутри рамки: вправо у входного
+        # порта, влево у выходного.
+        if self.PORT_DIRECTION == "out":
+            tip, base = x2 - 10, x2 - 30
+        else:
+            tip, base = x1 + 10, x1 + 30
+        tip_x, tip_y = self.world_to_screen(tip, self.y)
+        b1_x, b1_y = self.world_to_screen(base, self.y - 10)
+        b2_x, b2_y = self.world_to_screen(base, self.y + 10)
+        canvas.create_polygon(tip_x, tip_y, b1_x, b1_y, b2_x, b2_y,
+                              fill="black")
+
+        self._draw_title(canvas, zoom, offset_x, offset_y,
+                         self.x, y1 - 10, anchor="s")
+        self._draw_name(canvas, zoom, offset_x, offset_y, x1 + 4, y1 + 2)
+        # Наименование сигнала — с той стороны, где нет вывода.
+        if self.PORT_DIRECTION == "out":
+            self._draw_signal(canvas, zoom, offset_x, offset_y,
+                              x2 + 8, self.y, size=7)
+            number_x = x2 + 8 + max(70.0, _text_width(
+                signal_text(self.signal_ru, self.signal_iec), 7) + 16)
+            self._draw_number(canvas, zoom, offset_x, offset_y,
+                              number_x, self.y, size=7)
+        else:
+            text = signal_text(self.signal_ru, self.signal_iec)
+            if text:
+                tx, ty = self.world_to_screen(x2 + 8, self.y)
+                canvas.create_text(tx, ty, text=text, anchor="w",
+                                   font=("Arial", _font_size(zoom, 7)),
+                                   fill="#7b1fa2", justify="left")
+            number = (self.signal_no or "").strip()
+            if number:
+                number_x = x2 + 8 + max(70.0, _text_width(text, 7) + 16)
+                nx, ny = self.world_to_screen(number_x, self.y)
+                canvas.create_text(nx, ny, text=number, anchor="w",
+                                   font=("Arial", _font_size(zoom, 7)),
+                                   fill="#1f4e79")
+
+    def get_bounding_box(self):
+        x1, y1, x2, y2 = self._rect()
+        (_sx, _sy), (ex, _ey) = self._stub_line()
+        left, right = min(x1, ex), max(x2, ex)
+        # Название над рамкой и вывод — часть кликабельной области.
+        return (left, y1 - 18, right, y2)
+
+
+class LogicPortIn(LogicPort):
+    """Входной порт: заведение сигнала извне схемы (вывод — выход)."""
+
+    PORT_DIRECTION = "out"
+    TITLE = "Входной порт"
+
+
+class LogicPortOut(LogicPort):
+    """Выходной порт: вывод сигнала из схемы (вывод — вход)."""
+
+    PORT_DIRECTION = "in"
+    TITLE = "Выходной порт"
+
+
+# ==========================================================================
+# 5. ЛОГИЧЕСКИЙ УЗЕЛ
 # ==========================================================================
 class LogicFunction(LogicComponent):
     """Логический узел: прямоугольник со входами слева и выходами справа.
@@ -791,7 +928,7 @@ class LogicFunction(LogicComponent):
 
 
 # ==========================================================================
-# 5. ФУНКЦИОНАЛЬНЫЙ БЛОК
+# 6. ФУНКЦИОНАЛЬНЫЙ БЛОК
 # ==========================================================================
 class LogicBlock(LogicComponent):
     """Функциональный блок — контейнер для функций (structure2.xml).
@@ -1031,6 +1168,10 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
         return LogicBlock(comp_id, x, y, grid_size)
     if comp_type == "logic_function":
         return LogicFunction(comp_id, x, y, grid_size)
+    if comp_type == "logic_port_in":
+        return LogicPortIn(comp_id, x, y, grid_size)
+    if comp_type == "logic_port_out":
+        return LogicPortOut(comp_id, x, y, grid_size)
     raise ValueError("Неизвестный элемент ФЛС: {}".format(comp_type))
 
 
@@ -1046,6 +1187,8 @@ LOGIC_FIELDS = {
     "logic_function": ("kind", "title", "iec_name", "LNclass",
                        "signal_ru", "signal_iec", "signal_no", "input_count",
                        "inputs", "outputs", "settings", "parameters"),
+    "logic_port_in": ("title", "signal_ru", "signal_iec", "signal_no"),
+    "logic_port_out": ("title", "signal_ru", "signal_iec", "signal_no"),
 }
 
 
@@ -1119,6 +1262,10 @@ def restore_element(el, payload):
             el.color = "#00acc1"
         if not isinstance(getattr(el, "description", ""), str):
             el.description = ""
+    if str(getattr(el, "type", "")).startswith("logic_port"):
+        for field in ("title", "signal_ru", "signal_iec", "signal_no"):
+            if not isinstance(getattr(el, field, ""), str):
+                setattr(el, field, "")
     el.generate_ports()
 
 
@@ -1170,3 +1317,22 @@ def draw_palette_icon(canvas, comp_type, size=46):
         canvas.create_line(4 * s, 30 * s, 12 * s, 30 * s, width=1)
         canvas.create_line(size - 12 * s, center, size - 4 * s, center,
                            width=1)
+    elif comp_type in ("logic_port_in", "logic_port_out"):
+        out = comp_type == "logic_port_out"
+        canvas.create_rectangle(12 * s, 13 * s, size - 12 * s, 33 * s,
+                                outline="black", width=lw)
+        if out:
+            # Выходной порт: сигнал входит в порт (стрелка влево-внутрь).
+            canvas.create_line(2 * s, 23 * s, 16 * s, 23 * s, width=lw)
+            canvas.create_polygon(14 * s, 19 * s, 14 * s, 27 * s, 6 * s,
+                                  23 * s, fill="black")
+            canvas.create_polygon(center, 23 * s, center - 8 * s, 18 * s,
+                                  center - 8 * s, 28 * s, fill="#666666")
+        else:
+            # Входной порт: сигнал уходит из порта в схему.
+            canvas.create_line(size - 2 * s, 23 * s, size - 16 * s, 23 * s,
+                               width=lw)
+            canvas.create_polygon(size - 14 * s, 19 * s, size - 14 * s,
+                                  27 * s, size - 6 * s, 23 * s, fill="black")
+            canvas.create_polygon(center, 23 * s, center + 8 * s, 18 * s,
+                                  center + 8 * s, 28 * s, fill="#666666")
