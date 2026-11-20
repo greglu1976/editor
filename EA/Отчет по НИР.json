@@ -2006,7 +2006,11 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [
+                20,
+                40,
+                40
+              ]
             }
           ],
           "figures": []
@@ -2607,7 +2611,7 @@
               "number": "5.1",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 431.21-1",
               "reference": "Рисунок 5.1",
-              "scheme": ""
+              "scheme": "C:/WWWW/www_ai/schemes/220-12 СКРМ.json"
             },
             {
               "number": "5.2",
@@ -4216,7 +4220,7 @@
           "number": "А.1",
           "name": "Структурно-функциональная схема ИЭУ РЗ БСК 110–330 кВ",
           "reference": "Рисунок А.1",
-          "scheme": ""
+          "scheme": "ЗВП.json"
         },
         {
           "number": "А.2",
