@@ -17,6 +17,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 import logic_library as ll
+import mount_library as ml
 import ui_theme
 
 
@@ -77,6 +78,70 @@ def _ri_logic_port_out(canvas):
     canvas.create_polygon(10, 16, 4, 12, 4, 20, fill="black")
     canvas.create_rectangle(13, 9, 29, 23, outline="black", width=1)
     canvas.create_polygon(24, 12, 24, 20, 17, 16, fill="black")
+
+
+def _ri_mount_terminal(canvas):
+    canvas.create_rectangle(12, 5, 20, 27, outline="black", width=1)
+    canvas.create_rectangle(10, 3, 22, 8, fill="#e0e0e0", outline="black")
+    canvas.create_rectangle(10, 24, 22, 29, fill="#e0e0e0", outline="black")
+    canvas.create_oval(13, 14, 19, 20, outline="black", fill="white")
+    canvas.create_text(16, 17, text="I", font=("Arial", 7))
+
+
+def _ri_mount_disconnect(canvas):
+    """Клемма с размыкателем: перемычка с вынимающимся ножом."""
+    canvas.create_rectangle(12, 4, 20, 28, outline="black", width=1)
+    canvas.create_rectangle(10, 2, 22, 7, fill="#e0e0e0", outline="black")
+    canvas.create_rectangle(10, 25, 22, 30, fill="#e0e0e0", outline="black")
+    canvas.create_line(16, 7, 16, 12, width=1)
+    canvas.create_line(16, 21, 16, 25, width=1)
+    canvas.create_line(12, 12, 20, 12, width=1)
+    canvas.create_line(12, 21, 20, 21, width=1)
+    canvas.create_line(16, 12, 21, 20, width=1)
+
+
+def _ri_mount_switch(canvas):
+    """Переключатель: общий вывод и два-три неподвижных положения."""
+    canvas.create_line(16, 2, 16, 27, width=1)
+    canvas.create_line(16, 6, 7, 22, width=1)
+    canvas.create_line(16, 6, 25, 22, width=1)
+    canvas.create_line(7, 22, 7, 28, width=1)
+    canvas.create_line(25, 22, 25, 28, width=1)
+    canvas.create_text(7, 30, text="1", font=("Arial", 6))
+    canvas.create_text(25, 30, text="2", font=("Arial", 6))
+    canvas.create_text(16, 30, text="0", font=("Arial", 6))
+
+
+def _ri_mount_switch3(canvas):
+    """Переключатель на три положения."""
+    canvas.create_line(16, 2, 16, 27, width=1)
+    canvas.create_line(16, 6, 5, 20, width=1)
+    canvas.create_line(16, 6, 16, 22, width=1)
+    canvas.create_line(16, 6, 27, 20, width=1)
+    for x in (5, 16, 27):
+        canvas.create_line(x, 20, x, 26, width=1)
+    for index, x in enumerate((5, 16, 27)):
+        canvas.create_text(x, 29, text=str(index + 1),
+                           font=("Arial", 6))
+
+
+def _ri_mount_test_block(canvas):
+    canvas.create_rectangle(5, 4, 27, 28, outline="black", width=1)
+    canvas.create_line(5, 10, 27, 10, width=1)
+    for y in (14, 18, 22):
+        canvas.create_line(2, y, 9, y, width=1)
+    canvas.create_line(27, 16, 31, 16, width=1)
+    canvas.create_text(16, 7, text="БИ", font=("Arial", 7, "bold"))
+
+
+def _ri_mount_ied(canvas):
+    canvas.create_rectangle(3, 4, 29, 28, fill="#f2f6fb",
+                            outline="#1f4e79", width=1)
+    canvas.create_line(3, 12, 29, 12, fill="#1f4e79", width=1)
+    canvas.create_line(18, 12, 18, 28, fill="#b0bec5", width=1)
+    for y in (17, 22, 27):
+        canvas.create_line(1, y, 6, y, width=1)
+        canvas.create_line(18, y, 29, y, width=1, fill="#9e9e9e")
 
 
 def _ri_logic_refresh(canvas):
@@ -154,6 +219,22 @@ class LogicEditorMixin:
 
         self._ribbon_group(page, "Элементы ФЛС", build_elements)
 
+        def build_mount(row):
+            for title, etype, icon in (
+                    ("Клемма", "mount_terminal:measure", _ri_mount_terminal),
+                    ("Клемма разм.", "mount_terminal:disconnect",
+                     _ri_mount_disconnect),
+                    ("БИ 4+1", "mount_test_block:4+1", _ri_mount_test_block),
+                    ("БИ 6+1", "mount_test_block:6+1", _ri_mount_test_block),
+                    ("Перекл. 2", "mount_switch:2", _ri_mount_switch),
+                    ("Перекл. 3", "mount_switch:3", _ri_mount_switch3),
+                    ("ИЭУ", "mount_ied", _ri_mount_ied)):
+                self._register_tool(self._ribbon_button(
+                    row, title, lambda t=etype: self.set_tool(t),
+                    icon, 64), etype).pack(side=tk.LEFT)
+
+        self._ribbon_group(page, "Монтаж шкафа", build_mount)
+
         def build_links(row):
             for kind in ll.LOGIC_LINK_ORDER:
                 style = ll.link_style(kind)
@@ -217,8 +298,14 @@ class LogicEditorMixin:
         self._paint_logic_kind_cells()
         self.redraw_all()
 
-    def set_logic_link_kind(self, kind):
-        """Тип новой связи; у выбранной связи тип меняется сразу же."""
+    def set_logic_link_kind(self, kind, switch_tool=True):
+        """Тип новой связи; у выбранной связи тип меняется сразу же.
+
+        ``switch_tool=False`` — запомнить тип связи, не переключая
+        инструмент: выбор монтажного элемента включает монтажную цепь
+        по умолчанию, но инструментом остаётся сам элемент, иначе клик
+        по полотну начинал бы связь вместо размещения элемента.
+        """
         if kind not in ll.LOGIC_LINK_KINDS:
             kind = "discrete"
         self.logic_link_kind = kind
@@ -231,7 +318,8 @@ class LogicEditorMixin:
             self._paint_logic_kind_cells()
             self.redraw_all()
             return
-        self.set_tool("logic_link")
+        if switch_tool:
+            self.set_tool("logic_link")
         self._paint_logic_kind_cells()
 
     def _paint_logic_kind_cells(self):
@@ -1553,6 +1641,8 @@ class LogicEditorMixin:
             self.edit_logic_bus(element)
         elif element.type in ("logic_port_in", "logic_port_out"):
             self.edit_logic_port(element)
+        elif ll.is_mount_type(element.type):
+            self.edit_mount_element(element)
         else:
             self.edit_logic_signal_element(element)
 
@@ -1561,6 +1651,447 @@ class LogicEditorMixin:
                  if element.type == "logic_port_in"
                  else "Выходной порт — свойства")
         self._logic_common_dialog(element, title)
+
+    # ---------- монтажные элементы шкафа ----------
+    def edit_mount_element(self, element):
+        if element is None:
+            return
+        if element.type == "mount_terminal":
+            self.edit_mount_terminal(element)
+        elif element.type == "mount_test_block":
+            self.edit_mount_test_block(element)
+        elif element.type == "mount_switch":
+            self.edit_mount_switch(element)
+        elif element.type == "mount_ied":
+            self.edit_mount_ied(element)
+
+    def _direction_title(self, direction):
+        return "выход" if direction == "out" else "вход"
+
+    def edit_mount_terminal(self, element):
+        values = self._ask_fields(
+            self.root, "Клемма — свойства",
+            (("number", "Номер / обозначение", 32),
+             ("designation", "Обозначение", 32),
+             ("variant", "Тип клеммы", 32),
+             ("description", "Описание", 46),
+             ("purpose", "Назначение", 46),
+             ("connection", "Подключение", 46),
+             ("note", "Примечание", 46)),
+            {"number": getattr(element, "number", ""),
+             "designation": getattr(element, "designation", ""),
+             "variant": ml.TERMINAL_VARIANTS.get(
+                 getattr(element, "variant", "feed"), "Проходная"),
+             "description": getattr(element, "description", ""),
+             "purpose": getattr(element, "purpose", ""),
+             "connection": getattr(element, "connection", ""),
+             "note": getattr(element, "note", "")},
+            choices={"variant": list(ml.TERMINAL_VARIANTS.values())})
+        if values is None:
+            return
+        self._push_undo()
+        element.variant = ml.TERMINAL_VARIANT_BY_TITLE.get(
+            values["variant"], getattr(element, "variant", "feed"))
+        element.number = values["number"]
+        element.designation = values["designation"]
+        element.description = values["description"]
+        element.purpose = values["purpose"]
+        element.connection = values["connection"]
+        element.note = values["note"]
+        element.name = values["number"] or values["designation"] or element.name
+        element.generate_ports()
+        self._mark_modified()
+        self.redraw_all()
+
+    def edit_mount_test_block(self, element):
+        values = self._ask_fields(
+            self.root, "Испытательный блок — свойства",
+            (("designation", "Обозначение", 34),
+             ("variant", "Исполнение", 34),
+             ("description", "Описание", 46),
+             ("purpose", "Назначение", 46),
+             ("note", "Примечание", 46)),
+            {"designation": getattr(element, "designation", ""),
+             "variant": getattr(element, "variant", "4+1"),
+             "description": getattr(element, "description", ""),
+             "purpose": getattr(element, "purpose", ""),
+             "note": getattr(element, "note", "")},
+            choices={"variant": list(ml.TEST_BLOCK_VARIANTS)})
+        if values is None:
+            return
+        self._push_undo()
+        element.designation = values["designation"]
+        element.variant = (values["variant"] if values["variant"]
+                           in ml.TEST_BLOCK_VARIANTS else "4+1")
+        element.description = values["description"]
+        element.purpose = values["purpose"]
+        element.note = values["note"]
+        element.name = values["designation"] or element.name
+        element.generate_ports()
+        self._prune_logic_links()
+        self._mark_modified()
+        self.redraw_all()
+
+    def edit_mount_switch(self, element):
+        values = self._ask_fields(
+            self.root, "Переключатель — свойства",
+            (("designation", "Обозначение", 34),
+             ("variant", "Число положений", 34),
+             ("description", "Описание", 46),
+             ("purpose", "Назначение", 46),
+             ("note", "Примечание", 46)),
+            {"designation": getattr(element, "designation", ""),
+             "variant": ml.SWITCH_VARIANTS.get(
+                 getattr(element, "variant", "2"), "Два положения"),
+             "description": getattr(element, "description", ""),
+             "purpose": getattr(element, "purpose", ""),
+             "note": getattr(element, "note", "")},
+            choices={"variant": list(ml.SWITCH_VARIANTS.values())})
+        if values is None:
+            return
+        self._push_undo()
+        variant = ml.SWITCH_VARIANT_BY_TITLE.get(
+            values["variant"], getattr(element, "variant", "2"))
+        element.variant = variant if variant in ml.SWITCH_VARIANTS else "2"
+        element.designation = values["designation"]
+        element.description = values["description"]
+        element.purpose = values["purpose"]
+        element.note = values["note"]
+        element.name = values["designation"] or element.name
+        element.generate_ports()
+        self._prune_logic_links()
+        self._mark_modified()
+        self.redraw_all()
+
+    def _standard_function_entries(self):
+        """Каталог FunctionalBlocks текущего стандарта (если доступен)."""
+        try:
+            import ea_standard as es
+            return es.all_functional_blocks(es.load())
+        except Exception as exc:
+            messagebox.showwarning(
+                "Функции из стандарта",
+                "Не удалось открыть каталог функциональных блоков: %s" % exc,
+                parent=self.root)
+            return []
+
+    def _choose_standard_functions(self, parent):
+        entries = self._standard_function_entries()
+        if not entries:
+            return []
+        dialog = tk.Toplevel(parent)
+        dialog.title("Функции из стандарта")
+        dialog.transient(parent)
+        dialog.resizable(True, True)
+        dialog.minsize(720, 460)
+        tree = ttk.Treeview(
+            dialog,
+            columns=("block", "cabinet", "kit", "ied", "functions"),
+            show="headings", selectmode="extended", height=14)
+        for key, heading, width in (
+                ("block", "Функциональный блок", 240),
+                ("cabinet", "Шкаф", 180),
+                ("kit", "Комплект", 80),
+                ("ied", "ИЭУ", 70),
+                ("functions", "Функций", 80)):
+            tree.heading(key, text=heading)
+            tree.column(key, width=width, anchor="w")
+        scroll = ttk.Scrollbar(dialog, orient="vertical",
+                               command=tree.yview)
+        tree.configure(yscrollcommand=scroll.set)
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(8, 0), pady=8)
+        scroll.pack(side=tk.LEFT, fill=tk.Y, pady=8)
+        index = {}
+        for number, entry in enumerate(entries):
+            iid = tree.insert("", "end", values=(
+                entry.get("name") or entry.get("russian_path") or "",
+                entry.get("cabinet") or "", entry.get("kit") or "",
+                entry.get("ied") or "",
+                len(entry.get("functions") or [])))
+            index[iid] = entry
+        result = {"functions": []}
+
+        def accept():
+            functions = []
+            for iid in tree.selection():
+                functions.extend(ml.functions_from_entry(index[iid]))
+            result["functions"] = functions
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=8, pady=(0, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=dialog.destroy).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Добавить", width=12,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        tree.bind("<Double-1>", lambda event: accept())
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+        return result["functions"]
+
+    def edit_mount_ied(self, element):
+        """ИЭУ на монтажной схеме: поля, порты и функции внутри."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("ИЭУ — свойства монтажного элемента")
+        dialog.transient(self.root)
+        dialog.resizable(True, True)
+        dialog.minsize(780, 580)
+
+        outer = tk.Frame(dialog, padx=10, pady=8)
+        outer.pack(fill=tk.BOTH, expand=True)
+        outer.columnconfigure(1, weight=1)
+        outer.columnconfigure(3, weight=1)
+        variables = {
+            "designation": tk.StringVar(
+                value=getattr(element, "designation", "")),
+            "description": tk.StringVar(
+                value=getattr(element, "description", "")),
+            "type": tk.StringVar(value=getattr(element, "ied_type", "")),
+            "cabinet": tk.StringVar(value=getattr(element, "cabinet", "")),
+            "kit": tk.StringVar(value=getattr(element, "kit", "")),
+            "ied": tk.StringVar(value=getattr(element, "ied", "")),
+        }
+
+        def add_entry(row, column, caption, key, width=30):
+            tk.Label(outer, text=caption, anchor="w").grid(
+                row=row, column=column, sticky="w", pady=(4, 0))
+            tk.Entry(outer, textvariable=variables[key], width=width).grid(
+                row=row, column=column + 1, sticky="we",
+                padx=(6, 12), pady=(4, 0))
+
+        add_entry(0, 0, "Обозначение:", "designation")
+        add_entry(0, 2, "Описание:", "description")
+        add_entry(1, 0, "Тип:", "type")
+        add_entry(1, 2, "Шкаф (из СТО):", "cabinet")
+        add_entry(2, 0, "Комплект:", "kit")
+        add_entry(2, 2, "ИЭУ:", "ied")
+
+        notebook = ttk.Notebook(outer)
+        notebook.grid(row=3, column=0, columnspan=4, sticky="nsew",
+                      pady=(10, 0))
+        outer.rowconfigure(3, weight=1)
+
+        def make_table(parent, columns, headings, widths, height=8):
+            frame = tk.Frame(parent, padx=6, pady=6)
+            frame.columnconfigure(0, weight=1)
+            frame.rowconfigure(0, weight=1)
+            tree = ttk.Treeview(frame, columns=columns, show="headings",
+                                selectmode="browse", height=height)
+            for name, heading, width in zip(columns, headings, widths):
+                tree.heading(name, text=heading)
+                tree.column(name, width=width, anchor="w")
+            scroll = ttk.Scrollbar(frame, orient="vertical",
+                                   command=tree.yview)
+            tree.configure(yscrollcommand=scroll.set)
+            tree.grid(row=0, column=0, sticky="nsew")
+            scroll.grid(row=0, column=1, sticky="ns")
+            buttons = tk.Frame(frame)
+            buttons.grid(row=1, column=0, columnspan=2, sticky="w",
+                         pady=(6, 0))
+            return frame, tree, buttons
+
+        def add_button(parent, text, command, width=14):
+            tk.Button(parent, text=text, width=width,
+                      command=command).pack(side=tk.LEFT, padx=(0, 4))
+
+        # --- порты ---
+        ports_tab, ports_tree, ports_buttons = make_table(
+            notebook, ("name", "description", "iec", "direction",
+                       "terminal", "function"),
+            ("Порт", "Описание", "МЭК", "Направление", "Клемма", "Функция"),
+            (130, 190, 150, 90, 100, 150))
+        notebook.add(ports_tab, text="Порты")
+        port_store = {}
+
+        def fill_ports():
+            ports_tree.delete(*ports_tree.get_children())
+            port_store.clear()
+            for port in getattr(element, "port_items", []):
+                iid = ports_tree.insert("", "end", values=(
+                    port.get("name", ""), port.get("description", ""),
+                    port.get("iec", ""),
+                    self._direction_title(port.get("direction", "in")),
+                    port.get("terminal", ""), port.get("function", "")))
+                port_store[iid] = dict(port)
+
+        def selected_iid(tree):
+            selection = tree.selection()
+            return selection[0] if selection else None
+
+        def ask_port(port=None):
+            return self._ask_fields(
+                dialog, "Порт ИЭУ",
+                (("name", "Порт", 30),
+                 ("description", "Описание", 36),
+                 ("iec", "МЭК", 30),
+                 ("direction", "Направление", 30),
+                 ("terminal", "Клемма", 30),
+                 ("function", "Функция", 30)),
+                port or {"direction": "вход"},
+                choices={"direction": ("вход", "выход")})
+
+        def add_port():
+            values = ask_port()
+            if values is None:
+                return
+            port = ml.new_port(
+                name=values["name"], description=values["description"],
+                iec=values["iec"],
+                direction="out" if values["direction"] == "выход" else "in",
+                terminal=values["terminal"], function=values["function"])
+            iid = ports_tree.insert("", "end", values=(
+                port["name"], port["description"], port["iec"],
+                self._direction_title(port["direction"]),
+                port["terminal"], port["function"]))
+            port_store[iid] = port
+
+        def edit_port():
+            iid = selected_iid(ports_tree)
+            if iid is None:
+                return
+            port = port_store[iid]
+            values = ask_port({
+                "name": port.get("name", ""),
+                "description": port.get("description", ""),
+                "iec": port.get("iec", ""),
+                "direction": self._direction_title(
+                    port.get("direction", "in")),
+                "terminal": port.get("terminal", ""),
+                "function": port.get("function", ""),
+            })
+            if values is None:
+                return
+            port.update(ml.new_port(
+                name=values["name"], description=values["description"],
+                iec=values["iec"],
+                direction="out" if values["direction"] == "выход" else "in",
+                terminal=values["terminal"], function=values["function"]))
+            ports_tree.item(iid, values=(
+                port["name"], port["description"], port["iec"],
+                self._direction_title(port["direction"]),
+                port["terminal"], port["function"]))
+
+        def remove_port():
+            iid = selected_iid(ports_tree)
+            if iid is not None:
+                ports_tree.delete(iid)
+                port_store.pop(iid, None)
+
+        add_button(ports_buttons, "Добавить…", add_port)
+        add_button(ports_buttons, "Изменить…", edit_port)
+        add_button(ports_buttons, "Удалить", remove_port, 10)
+        ports_tree.bind("<Double-1>", lambda event: edit_port())
+        fill_ports()
+
+        # --- функции ---
+        funcs_tab, funcs_tree, funcs_buttons = make_table(
+            notebook, ("name", "iec", "ln", "block", "source"),
+            ("Функция", "МЭК 61850", "LNclass", "Блок", "Источник"),
+            (220, 180, 90, 150, 180))
+        notebook.add(funcs_tab, text="Функции")
+        func_store = {}
+
+        def fill_functions():
+            funcs_tree.delete(*funcs_tree.get_children())
+            func_store.clear()
+            for function in getattr(element, "function_items", []):
+                iid = funcs_tree.insert("", "end", values=(
+                    ml.function_label(function),
+                    function.get("iec_name", ""),
+                    function.get("LNclass", ""),
+                    function.get("block", ""),
+                    function.get("source", "")))
+                func_store[iid] = dict(function)
+
+        def append_functions(functions):
+            for function in functions:
+                iid = funcs_tree.insert("", "end", values=(
+                    ml.function_label(function),
+                    function.get("iec_name", ""),
+                    function.get("LNclass", ""),
+                    function.get("block", ""),
+                    function.get("source", "")))
+                func_store[iid] = function
+
+        def add_from_standard():
+            append_functions(self._choose_standard_functions(dialog))
+
+        def add_manual_function():
+            data = self._edit_logic_function_data({}, dialog)
+            if data is None:
+                return
+            function = ml.normalize_function(
+                ll.standard_block_functions([data])[0])
+            function["source"] = "вручную"
+            append_functions([function])
+
+        def edit_function():
+            iid = selected_iid(funcs_tree)
+            if iid is None:
+                return
+            source = func_store[iid]
+            data = self._edit_logic_function_data(source, dialog)
+            if data is None:
+                return
+            function = ml.normalize_function(
+                ll.standard_block_functions([data])[0])
+            for key in ("block", "cabinet", "kit", "ied", "source"):
+                if source.get(key):
+                    function[key] = source[key]
+            func_store[iid] = function
+            funcs_tree.item(iid, values=(
+                ml.function_label(function),
+                function.get("iec_name", ""),
+                function.get("LNclass", ""),
+                function.get("block", ""),
+                function.get("source", "")))
+
+        def remove_function():
+            iid = selected_iid(funcs_tree)
+            if iid is not None:
+                funcs_tree.delete(iid)
+                func_store.pop(iid, None)
+
+        add_button(funcs_buttons, "Из стандарта…", add_from_standard, 18)
+        add_button(funcs_buttons, "Вручную…", add_manual_function, 16)
+        add_button(funcs_buttons, "Изменить…", edit_function)
+        add_button(funcs_buttons, "Удалить", remove_function, 10)
+        funcs_tree.bind("<Double-1>", lambda event: edit_function())
+        fill_functions()
+
+        result = {"ok": False}
+
+        def accept():
+            result["ok"] = True
+            dialog.destroy()
+
+        buttons = tk.Frame(dialog)
+        buttons.pack(fill=tk.X, padx=10, pady=(6, 8))
+        tk.Button(buttons, text="Отмена", width=10,
+                  command=dialog.destroy).pack(side=tk.RIGHT)
+        tk.Button(buttons, text="Сохранить", width=12,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        dialog.bind("<Escape>", lambda event: dialog.destroy())
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+        if not result["ok"]:
+            return
+        self._push_undo()
+        element.designation = variables["designation"].get().strip()
+        element.description = variables["description"].get().strip()
+        element.ied_type = variables["type"].get().strip()
+        element.cabinet = variables["cabinet"].get().strip()
+        element.kit = variables["kit"].get().strip()
+        element.ied = variables["ied"].get().strip()
+        element.name = element.designation or element.description or element.name
+        element.port_items = [ml.normalize_port(port)
+                              for port in port_store.values()]
+        element.function_items = [ml.normalize_function(function)
+                                  for function in func_store.values()]
+        element.generate_ports()
+        self._prune_logic_links()
+        self._mark_modified()
+        self.redraw_all()
 
     def _logic_common_dialog(self, element, title, extra_builder=None,
                              delete=True):
@@ -2136,9 +2667,13 @@ class LogicEditorMixin:
                     - layout["y1"] * scale)
         block.draw(canvas, scale, offset_x, offset_y)
 
-    def _ask_fields(self, parent, title, fields, values=None):
-        """Небольшой модальный диалог: список полей → словарь значений."""
+    def _ask_fields(self, parent, title, fields, values=None, choices=None):
+        """Небольшой модальный диалог: список полей → словарь значений.
+
+        ``choices`` — словарь ``поле → список значений`` для выпадающих списков.
+        """
         values = dict(values or {})
+        choices = choices or {}
         dialog = tk.Toplevel(parent)
         dialog.title(title)
         dialog.transient(parent)
@@ -2153,7 +2688,19 @@ class LogicEditorMixin:
                 row=row, column=0, sticky="w", pady=(4, 0))
             variable = tk.StringVar(value=str(values.get(key, "") or ""))
             variables[key] = variable
-            if key == "type":
+            if key in choices:
+                options = list(choices[key])
+                combo = ttk.Combobox(form, state="readonly", width=width,
+                                     values=options)
+                current = variables[key].get()
+                if current in options:
+                    combo.current(options.index(current))
+                combo.grid(row=row, column=1, sticky="we", pady=(4, 0))
+                combo.bind(
+                    "<<ComboboxSelected>>",
+                    lambda event, c=combo, v=variable, os=options:
+                    v.set(os[c.current()]))
+            elif key == "type":
                 keys = list(ll.SLOT_TYPE_ORDER)
                 combo = ttk.Combobox(
                     form, state="readonly", width=width,

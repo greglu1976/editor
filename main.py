@@ -145,6 +145,8 @@ SEARCH_LAYOUT = {
 SEARCH_LAYOUT_TABLE = str.maketrans(SEARCH_LAYOUT)
 
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
+PALETTE_MODES = ("Первичная схема", "Логическая схема", "Монтажная схема")
+
 PALETTE_ITEMS = [
     ("Выключатель", "breaker"),
     ("Разъединитель", "disconnector"),
@@ -974,26 +976,41 @@ class CircuitEditor(report_selection.SelectionReportMixin,
 
         tk.Label(palette, text="Элементы схемы", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(pady=5)
 
-        # Иконки элементов: 3 колонки, подсказка при наведении
-        self._tool_icons = {}
-        icons_frame = tk.Frame(palette, bg="#f0f0f0")
-        icons_frame.pack(fill=tk.X, padx=2, pady=2)
-        for index, (label, etype) in enumerate(PALETTE_ITEMS):
-            icon = self._make_tool_icon(icons_frame, etype, label)
-            icon.grid(row=index // 3, column=index % 3, padx=2, pady=2)
-            self._tool_icons[etype] = icon
+        # Переключаемая панель: первичная / логическая / монтажная схема.
+        # Группы переключаются вкладками (как в ленте), а не списком.
+        mode_frame = tk.Frame(palette, bg="#f0f0f0")
+        mode_frame.pack(fill=tk.X, padx=4, pady=(0, 4))
+        self._palette_mode = tk.StringVar(value=PALETTE_MODES[0])
+        self._palette_tab_buttons = {}
+        # Вкладки в один столбик: ширина палитры всего 200 px.
+        for mode in PALETTE_MODES:
+            button = tk.Button(
+                mode_frame, text=mode, relief=tk.FLAT, bd=0, anchor="w",
+                padx=10, pady=4, font=ui_theme.font(9),
+                bg=ui_theme.PALETTE, fg=ui_theme.TEXT_SOFT,
+                activebackground=ui_theme.HOVER,
+                activeforeground=ui_theme.ACCENT,
+                command=lambda m=mode: self._set_palette_mode(m))
+            button.pack(fill=tk.X, pady=(1, 0))
+            self._palette_tab_buttons[mode] = button
 
-        # Функционально-логические схемы: отдельная группа палитры
-        tk.Frame(palette, height=2, bg="gray").pack(fill=tk.X, pady=6)
-        tk.Label(palette, text="Функциональная логика (ФЛС)",
-                 font=("Arial", 10, "bold"), bg="#f0f0f0",
-                 wraplength=168).pack(pady=2)
-        logic_frame = tk.Frame(palette, bg="#f0f0f0")
-        logic_frame.pack(fill=tk.X, padx=2, pady=2)
-        for index, (label, etype) in enumerate(logic_library.PALETTE_ITEMS):
-            icon = self._make_tool_icon(logic_frame, etype, label)
-            icon.grid(row=index // 3, column=index % 3, padx=2, pady=2)
-            self._tool_icons[etype] = icon
+        # Иконки элементов: 3 колонки, подсказка при наведении.
+        self._tool_icons = {}
+        self._palette_frames = {}
+
+        def build_palette_group(key, items):
+            frame = tk.Frame(palette, bg="#f0f0f0")
+            for index, (label, etype) in enumerate(items):
+                icon = self._make_tool_icon(frame, etype, label)
+                icon.grid(row=index // 3, column=index % 3, padx=2, pady=2)
+                self._tool_icons[etype] = icon
+            self._palette_frames[key] = frame
+            return frame
+
+        build_palette_group(PALETTE_MODES[0], PALETTE_ITEMS)
+        build_palette_group(PALETTE_MODES[1], logic_library.PALETTE_ITEMS)
+        build_palette_group(PALETTE_MODES[2], logic_library.MOUNT_PALETTE_ITEMS)
+        self._set_palette_mode()
 
         tk.Frame(palette, height=2, bg="gray").pack(fill=tk.X, pady=6)
         tk.Label(palette, text="Связать, удалить и повернуть —\n"
@@ -6370,6 +6387,28 @@ class CircuitEditor(report_selection.SelectionReportMixin,
     def _scroll_palette(self, event):
         self.palette_canvas.yview_scroll(int(-event.delta / 120), "units")
 
+    def _set_palette_mode(self, mode=None):
+        """Показать только выбранную группу элементов палитры."""
+        if isinstance(mode, str):
+            self._palette_mode.set(mode)
+        mode = self._palette_mode.get()
+        if mode not in self._palette_frames:
+            mode = PALETTE_MODES[0]
+            self._palette_mode.set(mode)
+        for key, frame in getattr(self, "_palette_frames", {}).items():
+            if key == mode:
+                frame.pack(fill=tk.X, padx=2, pady=2)
+            else:
+                frame.pack_forget()
+        # Активная вкладка выделяется цветом темы, неактивные — бледные.
+        for key, button in getattr(self, "_palette_tab_buttons", {}).items():
+            active = (key == mode)
+            button.config(
+                bg=ui_theme.TOOL_ACTIVE if active else ui_theme.PALETTE,
+                fg=ui_theme.ACCENT if active else ui_theme.TEXT_SOFT)
+        self.palette_canvas.update_idletasks()
+        self.palette_canvas.configure(scrollregion=self.palette_canvas.bbox("all"))
+
     def _bind_palette_wheel(self, widget):
         """Колесо мыши прокручивает палитру, не задевая зум схемы."""
         for child in widget.winfo_children():
@@ -7585,6 +7624,12 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._analog_start = None
         self._logic_start = None
         self.current_tool = tool
+        # Монтажные элементы по умолчанию связываются монтажной цепью,
+        # но инструмент остаётся самим элементом: иначе клик по полотну
+        # начинал бы связь вместо размещения элемента.
+        if (logic_library.is_mount_type(tool)
+                and hasattr(self, "set_logic_link_kind")):
+            self.set_logic_link_kind("mount", switch_tool=False)
         self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
         self._mark_active_tool()
         if had_protection_start:
@@ -8338,6 +8383,9 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             # иначе на полотно попадает блок с умолчаниями без настройки.
             if tool == "logic_block" and created is not None:
                 self.edit_logic_block(created)
+            elif (str(tool).startswith("mount_ied")
+                  and created is not None):
+                self.edit_mount_ied(created)
 
     def get_next_name(self, prefix, el_type=None):
         """Следующий свободный номер по префиксу.
@@ -8866,7 +8914,9 @@ class CircuitEditor(report_selection.SelectionReportMixin,
 
         # Декоративный узел без обозначения: подписи у него нет по замыслу
         if etype != "comment_node":
-            el.name = self.get_next_name(PREFIX_BY_TYPE.get(etype, "EL"), etype)
+            base_type = str(etype).split(":", 1)[0]
+            el.name = self.get_next_name(
+                PREFIX_BY_TYPE.get(base_type, "EL"), base_type)
 
         self.elements[el_id] = el
         self.redraw_all()
