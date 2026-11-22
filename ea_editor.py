@@ -168,7 +168,8 @@ _KIT_FIELDS = (
 _DATE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
 
 #: Узлы дерева, для которых панель строится целиком по схеме structure2.
-_GENERIC_KINDS = ("block", "function", "slot", "setting", "parameter")
+_GENERIC_KINDS = ("block", "function", "slot", "setting", "parameter",
+                 "fb_entry")
 
 #: Вид узла → ключ коллекции и класс схемы для добавления потомка.
 _GENERIC_CHILD = {
@@ -356,6 +357,29 @@ class StandardEditorWindow(tk.Toplevel):
                                    kit_node)
                     self._add_function_tree(ied_node, ied)
 
+        # Плоский каталог функциональных блоков — отдельный модуль стандарта,
+        # откуда блоки берутся прямо на схему (вместе с принадлежностью).
+        fbs = self.tree.insert(root, tk.END, text="Функциональные блоки",
+                               open=True)
+        # Каталог может ещё не существовать в JSON: материализуем его в
+        # памяти один раз, чтобы записи были доступны для правки. Пустой
+        # список, оставленный пользователем, не восстанавливаем заново.
+        if "functional_blocks" not in self.data:
+            es.rebuild_functional_blocks(self.data)
+        fb_list = self.data.setdefault("functional_blocks", [])
+        self._register_node(fbs, ("root", "fb"), fb_list, None, None)
+        for entry in fb_list:
+            if not isinstance(entry, dict):
+                continue
+            label = "%s  [%s / ИЭУ %s]" % (
+                es.functional_block_label(entry),
+                entry.get("cabinet") or "—", entry.get("ied") or "—")
+            fb_node = self.tree.insert(fbs, tk.END, text=label, open=False)
+            self._register_node(fb_node, ("fb_entry", entry), fb_list,
+                                entry, fbs)
+            self._add_function_nodes(
+                fb_node, entry, entry.get("functions") or [])
+
         self._current_node = meta
         self.tree.selection_set(meta)
         self.tree.focus(meta)
@@ -375,30 +399,33 @@ class StandardEditorWindow(tk.Toplevel):
             self._register_node(bnode, ("block", block), blocks, block,
                                 ied_node)
             functions = block.setdefault("functions", [])
-            for function in functions:
-                if not isinstance(function, dict):
-                    continue
-                flabel = "Функция — %s" % (function.get("name") or "без имени")
-                fnode = self.tree.insert(bnode, tk.END, text=flabel)
-                self._register_node(fnode, ("function", function, block),
-                                    functions, function, bnode)
-                for key, kind, word in (
-                        ("inputs", "slot", "Вход"),
-                        ("outputs", "slot", "Выход"),
-                        ("settings", "setting", "Уставка"),
-                        ("parameters", "parameter", "Параметр")):
-                    entries = function.setdefault(key, [])
-                    for entry in entries:
-                        if not isinstance(entry, dict):
-                            continue
-                        elabel = "%s — %s" % (word, entry.get("name")
-                                              or "без имени")
-                        enode = self.tree.insert(fnode, tk.END, text=elabel)
-                        node = ((kind, entry, "in" if key == "inputs"
-                                 else "out") if kind == "slot"
-                                else (kind, entry))
-                        self._register_node(enode, node, entries, entry,
-                                            fnode)
+            self._add_function_nodes(bnode, block, functions)
+
+    def _add_function_nodes(self, parent, owner, functions):
+        """Показать функции и их сигналы/уставки/параметры под узлом."""
+        for function in functions or []:
+            if not isinstance(function, dict):
+                continue
+            flabel = "Функция — %s" % (function.get("name") or "без имени")
+            fnode = self.tree.insert(parent, tk.END, text=flabel)
+            self._register_node(fnode, ("function", function, owner),
+                                functions, function, parent)
+            for key, kind, word in (
+                    ("inputs", "slot", "Вход"),
+                    ("outputs", "slot", "Выход"),
+                    ("settings", "setting", "Уставка"),
+                    ("parameters", "parameter", "Параметр")):
+                entries = function.setdefault(key, [])
+                for entry in entries:
+                    if not isinstance(entry, dict):
+                        continue
+                    elabel = "%s — %s" % (word, entry.get("name")
+                                          or "без имени")
+                    enode = self.tree.insert(fnode, tk.END, text=elabel)
+                    node = ((kind, entry, "in" if key == "inputs"
+                             else "out") if kind == "slot"
+                            else (kind, entry))
+                    self._register_node(enode, node, entries, entry, fnode)
 
     def _add_tables(self, parent, container):
         tables = container.setdefault("tables", [])
@@ -496,7 +523,8 @@ class StandardEditorWindow(tk.Toplevel):
         if kind == "meta":
             self._render_meta()
         elif kind == "root":
-            title = "Документ" if node[1] == "doc" else "Шкафы"
+            title = {"doc": "Документ", "cabs": "Шкафы",
+                     "fb": "Функциональные блоки"}.get(node[1], "")
             self.caption.config(text=title)
             tk.Label(self.body, text="Правый клик по дереву — добавить узел.",
                      font=ui_theme.font(9), fg=ui_theme.TEXT_MUTED,
@@ -1514,6 +1542,8 @@ class StandardEditorWindow(tk.Toplevel):
                                    item.get("name") or "без имени")
         elif kind == "setting":
             caption = "Уставка — %s" % (item.get("name") or "без имени")
+        elif kind == "fb_entry":
+            caption = "Функциональный блок — %s" % es.functional_block_label(item)
         else:
             caption = "Параметр — %s" % (item.get("name") or "без имени")
         self.caption.config(text=caption)
@@ -2020,6 +2050,97 @@ class StandardEditorWindow(tk.Toplevel):
 
         self._mutate(action)
 
+    # ----------------------------------------------- каталог функциональных блоков
+    def _add_fb_entry(self, parent_iid):
+        """Добавить пустую запись в каталог функциональных блоков."""
+        container = self._child_container(parent_iid, "fb_entry")
+        if not self._apply_pending():
+            return
+        name = self._ask("Наименование функционального блока",
+                         "Новый функциональный блок")
+        if name is None:
+            return
+
+        def action():
+            entry = st.new_functional_block_entry(self.data)
+            entry["name"] = name.strip()
+            st.add(container, entry)
+            return entry
+
+        self._mutate(action)
+
+    def _ied_source(self, iid):
+        """Найти шкаф и комплект для узла ИЭУ по дереву редактора."""
+        kit_iid = self._owners[iid][2] if iid in self._owners else None
+        kit = self._owners[kit_iid][1] if kit_iid in self._owners else None
+        cab_iid = self._owners[kit_iid][2] if kit_iid in self._owners else None
+        cabinet = self._owners[cab_iid][1] if cab_iid in self._owners else None
+        return cabinet, kit
+
+    def _fb_from_ied(self, iid):
+        """Скопировать блоки функций ИЭУ в каталог стандарта."""
+        owner = self._owners.get(iid)
+        ied = owner[1] if owner else None
+        if not isinstance(ied, dict):
+            return
+        cabinet, kit = self._ied_source(iid)
+        blocks = ied.get("function_blocks")
+        if not isinstance(blocks, list):
+            blocks = ied.get("functions") or []
+        if not blocks:
+            messagebox.showinfo("Каталог ФБ", "У ИЭУ нет блоков функций.",
+                                parent=self)
+            return
+        if not messagebox.askyesno(
+                "Каталог ФБ",
+                "Скопировать блоков в каталог: %d?\n"
+                "Блоки из шкафа останутся на месте." % len(blocks),
+                parent=self):
+            return
+        container = self.data.setdefault("functional_blocks", [])
+        cabinet_code = str((cabinet or {}).get("cypher") or "")
+        kit_number = str((kit or {}).get("number") or "")
+        ied_number = str(ied.get("number") or "")
+
+        def key_of(entry):
+            return (str(entry.get("cabinet") or ""),
+                    str(entry.get("kit") or ""),
+                    str(entry.get("ied") or ""),
+                    str(entry.get("name") or ""),
+                    str(entry.get("iec_name") or ""))
+
+        known = {key_of(entry) for entry in container
+                 if isinstance(entry, dict)}
+        created = []
+        for raw in blocks:
+            entry = st.new_functional_block_entry(
+                self.data, raw, cabinet_code, kit_number, ied_number)
+            if key_of(entry) in known:
+                continue
+            known.add(key_of(entry))
+            st.add(container, entry)
+            created.append(entry)
+        self._mutate(lambda: created)
+        self.status.config(text="В каталог ФБ добавлено блоков: %d"
+                                % len(created))
+
+    def _rebuild_fb(self):
+        """Пересобрать каталог блоков по текущим шкафам стандарта."""
+        count = len(es.all_functional_blocks(self.data))
+        if not messagebox.askyesno(
+                "Каталог ФБ",
+                "Пересобрать каталог (%d записей) из шкафов стандарта?\n"
+                "Ручные правки записей будут заменены." % count,
+                parent=self):
+            return
+
+        def action():
+            total = es.rebuild_functional_blocks(self.data)
+            self.status.config(text="Каталог ФБ пересобран: %d записей" % total)
+            return es.all_functional_blocks(self.data)
+
+        self._mutate(action)
+
     def _container_targets(self):
         """Контейнеры документа, куда можно положить таблицу или рисунок."""
         entries = []
@@ -2374,6 +2495,7 @@ class StandardEditorWindow(tk.Toplevel):
                  "figure": "рисунок", "cabinet": "шкаф",
                  "kit": "комплект", "ied": "ИЭУ",
                  "block": "блок функций", "function": "функцию",
+                  "fb_entry": "функциональный блок",
                  "slot": "вход/выход", "setting": "уставку",
                  "parameter": "параметр"}.get(kind, "узел")
         count = st.descendant_count(item) if isinstance(item, dict) else 0
@@ -2426,6 +2548,13 @@ class StandardEditorWindow(tk.Toplevel):
         if kind == "root":
             if node[1] == "doc":
                 return [("Добавить раздел…", lambda: self._add_section(iid))]
+            if node[1] == "fb":
+                return [
+                    ("Добавить функциональный блок…",
+                     lambda: self._add_fb_entry(iid)),
+                    ("Пересобрать каталог из шкафов…",
+                     lambda: self._rebuild_fb()),
+                ]
             return [
                 ("Добавить шкафы из всех стандартов…",
                  lambda: self._add_cabinets(iid)),
@@ -2489,7 +2618,16 @@ class StandardEditorWindow(tk.Toplevel):
             return [
                 ("Добавить блок функций…",
                  lambda: self._add_generic_child(iid, "block")),
+                ("Скопировать блоки в каталог ФБ…",
+                 lambda: self._fb_from_ied(iid)),
                 None, ("Удалить ИЭУ", lambda: self._delete_node(iid)),
+            ]
+        if kind == "fb_entry":
+            return [
+                ("Добавить функцию…",
+                 lambda: self._add_generic_child(iid, "function")),
+                None, ("Удалить функциональный блок",
+                       lambda: self._delete_node(iid)),
             ]
         if kind == "block":
             return [

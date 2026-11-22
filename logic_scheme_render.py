@@ -21,6 +21,7 @@ from __future__ import annotations
 import copy
 import math
 
+import ea_standard as es
 import library
 import logic_library as ll
 import pdfexport
@@ -374,7 +375,7 @@ def draw_logic_links(canvas, elements, links):
         canvas.create_rectangle(box[0], box[1], box[2], box[3],
                                 fill="white", outline="")
         canvas.create_text(x, y, text=link_number(elements, links, link),
-                           fill=ll.link_style(link.get("kind"))["color"],
+                           fill=ll.link_color(elements, link, split_ref),
                            font=("Arial", 6), anchor="center")
 
     for link, start, end in numbers:
@@ -387,7 +388,7 @@ def draw_logic_links(canvas, elements, links):
         canvas.create_rectangle(box[0], box[1], box[2], box[3],
                                 fill="white", outline="")
         canvas.create_text(x, y, text=link_label_text(elements, link),
-                           fill=ll.link_style(link.get("kind"))["color"],
+                           fill=ll.link_color(elements, link, split_ref),
                            font=("Arial", 6), anchor="center",
                            justify="center")
 
@@ -560,7 +561,13 @@ def render_scene(canvas, data):
         coords = []
         for x, y in points:
             coords.extend((x, y))
-        canvas.create_line(*coords, fill="black", width=2)
+        bus_style = ll.bus_connection_style(elements, connection)
+        if bus_style:
+            color, bus_width = bus_style
+            canvas.create_line(*coords, fill=color,
+                               width=max(2, int(bus_width)))
+        else:
+            canvas.create_line(*coords, fill="black", width=2)
 
     # 2. Символы элементов
     for element in elements.values():
@@ -638,7 +645,11 @@ def scheme_from_ied(ied):
     входами и выходами. Связи не строятся: их рисует пользователь.
     """
     elements = []
-    for index, block in enumerate(ied.get("function_blocks") or []):
+    for index, raw_block in enumerate(ied.get("function_blocks") or []):
+        block = copy.deepcopy(raw_block)
+        # Полные русские и МЭК-обозначения функций и сигналов лежат в
+        # информационных сигналах отчетов и исходящих сообщений ИЭУ.
+        es.enrich_function_block(block, ied)
         functions = [_logic_function(fn)
                      for fn in (block.get("functions") or [])]
         if not functions:
@@ -647,7 +658,8 @@ def scheme_from_ied(ied):
                  "inputs": 1, "outputs": 1})]
         payload = {
             "title": block.get("name") or "Функциональный блок",
-            "designation": block.get("corp_prof_name") or "",
+            "designation": (block.get("name") or block.get("corp_prof_name")
+                            or ""),
             "functions": functions,
             "isMainFunction": bool(block.get("isMainFunction")),
             "isInITS": bool(block.get("isInITS")),

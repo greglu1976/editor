@@ -836,7 +836,7 @@ class LogicEditorMixin:
                 fill="white", outline="", tags="logic_label")
             self.canvas.create_text(
                 sx, sy, text=self._logic_link_number(link),
-                fill=ll.link_style(link.get("kind"))["color"],
+                fill=ll.link_color(self.elements, link, self._logic_split_ref),
                 font=font, anchor="center", tags="logic_label")
             self._logic_label_boxes.append(
                 (link, part, self._logic_screen_box(box)))
@@ -855,7 +855,7 @@ class LogicEditorMixin:
                 fill="white", outline="", tags="logic_label")
             self.canvas.create_text(
                 sx, sy, text=self._logic_link_label_text(link),
-                fill=ll.link_style(link.get("kind"))["color"],
+                fill=ll.link_color(self.elements, link, self._logic_split_ref),
                 font=font, anchor="center", justify="center",
                 tags="logic_label")
             self._logic_label_boxes.append(
@@ -995,7 +995,7 @@ class LogicEditorMixin:
             canvas.create_rectangle(box[0], box[1], box[2], box[3],
                                     fill="white", outline="")
             canvas.create_text(x, y, text=self._logic_link_number(link),
-                               fill=ll.link_style(link.get("kind"))["color"],
+                               fill=ll.link_color(self.elements, link, self._logic_split_ref),
                                font=("Arial", 6), anchor="center")
 
         for link, start, end in numbers:
@@ -1008,7 +1008,7 @@ class LogicEditorMixin:
             canvas.create_rectangle(box[0], box[1], box[2], box[3],
                                     fill="white", outline="")
             canvas.create_text(x, y, text=self._logic_link_label_text(link),
-                               fill=ll.link_style(link.get("kind"))["color"],
+                               fill=ll.link_color(self.elements, link, self._logic_split_ref),
                                font=("Arial", 6), anchor="center",
                                justify="center")
 
@@ -1328,6 +1328,19 @@ class LogicEditorMixin:
         """Ключ маркировки для сопоставления: без пробелов и регистра."""
         return str(value or "").strip().casefold()
 
+    def _logic_full_mark(self, link):
+        """Полная маркировка связи «ФБ / Функция: Сигнал».
+
+        Пусто, если подпись совпадает с коротким сигналом: значит связь
+        не выходит из функции функционального блока и полного обозначения
+        у неё нет.
+        """
+        label, signal = ll.link_full_label(
+            self.elements, link, self._logic_split_ref)
+        if label and label != signal:
+            return label
+        return ""
+
     def _update_logic_groups(self):
         """Привязка групп связей с одинаковым номером/маркировкой.
 
@@ -1337,6 +1350,9 @@ class LogicEditorMixin:
         источником, остальные получают то же наименование и привязку
         (продолжение) к ней. Если номер совпадает с маркировкой элемента
         (порт, клавиша, светодиод), наименование берётся из элемента.
+        Если связь выходит из функции блока, источником служит полная
+        маркировка «ФБ / Функция: Сигнал» — она прописывается и в связи-
+        продолжении, у которых собственного имени может не быть.
         """
         # Маркировка элемента — приоритетный источник наименования.
         marks = {}
@@ -1345,10 +1361,28 @@ class LogicEditorMixin:
             if key:
                 marks[key] = element
 
+        by_id = {str(link.get("id") or "").strip(): link
+                 for link in self.logic_links}
+
+        def group_key(link, seen=None):
+            """Своя маркировка или маркировка связи, продолжением которой она есть."""
+            key = self._logic_mark_key(link.get("number"))
+            if key:
+                return key
+            seen = seen or set()
+            reference = str(link.get("continuation") or "").strip()
+            if not reference or reference in seen:
+                return ""
+            seen.add(reference)
+            master = by_id.get(reference)
+            if master is None or master is link:
+                return ""
+            return group_key(master, seen)
+
         groups = {}
         order = []
         for link in self.logic_links:
-            key = self._logic_mark_key(link.get("number"))
+            key = group_key(link)
             if not key:
                 continue
             if key not in groups:
@@ -1359,33 +1393,45 @@ class LogicEditorMixin:
         bound, renamed, found = 0, 0, 0
         for key in order:
             group = groups[key]
-            # Источник наименования: элемент с такой маркировкой, иначе
-            # первая связь группы с непустым наименованием.
+            # Источник наименования: элемент с такой маркировкой, затем
+            # полная маркировка выхода функции, затем первая связь с
+            # непустым коротким наименованием.
             element = marks.get(key)
             source = group[0]
-            if element is not None:
-                found += 1
-            else:
+            full_mark = ""
+            if element is None:
                 for link in group:
-                    if (str(link.get("ru") or "").strip()
-                            or str(link.get("iec") or "").strip()):
+                    full_mark = self._logic_full_mark(link)
+                    if full_mark:
                         source = link
                         break
+                if not full_mark:
+                    for link in group:
+                        if (str(link.get("ru") or "").strip()
+                                or str(link.get("iec") or "").strip()):
+                            source = link
+                            break
             if element is not None:
+                found += 1
                 ru = (getattr(element, "signal_ru", "") or "").strip()
                 iec = (getattr(element, "signal_iec", "") or "").strip()
+            elif full_mark:
+                found += 1
+                ru, iec = full_mark, ""
             else:
                 ru = str(source.get("ru") or "").strip()
                 iec = str(source.get("iec") or "").strip()
-            if element is None and (ru or iec):
-                # Связь-источник хранит исходное наименование группы.
-                found += 1
+                if ru or iec:
+                    # Связь-источник хранит исходное наименование группы.
+                    found += 1
             master_id = str(source.get("id") or "").strip()
             if len(group) > 1 and not master_id:
                 master_id = ll.next_link_id(self.logic_links)
                 source["id"] = master_id
             for link in group:
-                if link is source and element is None:
+                if link is source and (element is None or full_mark):
+                    # Источник уже несёт полную подпись: перезапись её
+                    # коротким сигналом потеряла бы «ФБ / Функция: Сигнал».
                     continue
                 current_ru = str(link.get("ru") or "").strip()
                 current_iec = str(link.get("iec") or "").strip()
@@ -1406,9 +1452,9 @@ class LogicEditorMixin:
         """«Обновить связи»: привязка участков сигнала с общим номером.
 
         Связи с одинаковым номером/маркировкой считаются одним сигналом:
-        наименования выравниваются по источнику (элемент с маркировкой
-        или связь с наименованием), остальные связи привязываются к
-        первой как продолжения.
+        наименования выравниваются по источнику (элемент с маркировкой,
+        полная маркировка выхода функции или связь с наименованием),
+        остальные связи привязываются к первой как продолжения.
         """
         if not self.logic_links:
             messagebox.showinfo("Логика", "На схеме нет связей ФЛС.")
@@ -1420,7 +1466,7 @@ class LogicEditorMixin:
                 "Связей с общим номером/маркировкой не найдено.\n\n"
                 "Задайте связям один номер («Номер / маркировка» в "
                 "свойствах связи) — они будут привязаны и получат общее "
-                "наименование.")
+                "наименование, например «ЗП / 1 ступень: Срабатывание».")
             return
         self._push_undo()
         self._mark_modified()
@@ -1429,8 +1475,10 @@ class LogicEditorMixin:
         if renamed:
             parts.append("обновлено наименований: {}".format(renamed))
         parts.append("групп сигналов: {}".format(found))
-        messagebox.showinfo("Обновление связей",
-                            "Готово.\n\n" + ",\n".join(parts) + ".")
+        messagebox.showinfo(
+            "Обновление связей",
+            "Готово.\n\n" + ",\n".join(parts)
+            + ".\n\nПродолжения получили полную маркировку сигнала.")
 
     # ================= СВОЙСТВА ЭЛЕМЕНТОВ =================
     def edit_selected_logic_block(self):
@@ -1464,6 +1512,7 @@ class LogicEditorMixin:
             "name": getattr(element, "name", ""),
             "iec_name": getattr(element, "iec_name", ""),
             "LNclass": getattr(element, "LNclass", ""),
+            **{part: getattr(element, part, "") for part in ll.IEC_PARTS},
             "ru": getattr(element, "signal_ru", ""),
             "iec": getattr(element, "signal_iec", ""),
             "inputs": element._input_slots(),
@@ -1479,6 +1528,8 @@ class LogicEditorMixin:
         element.name = data["name"]
         element.iec_name = data["iec_name"]
         element.LNclass = data["LNclass"]
+        for part in ll.IEC_PARTS:
+            setattr(element, part, data.get(part, ""))
         element.signal_ru = data["ru"]
         element.signal_iec = data["iec"]
         element.inputs = list(data["inputs"])
@@ -1719,8 +1770,15 @@ class LogicEditorMixin:
         its_var = tk.BooleanVar(
             value=bool(getattr(element, "isInITS", False)))
         iec_var = tk.StringVar(value=getattr(element, "iec_name", ""))
+        iec_part_vars = {
+            part: tk.StringVar(value=getattr(element, part, ""))
+            for part in ll.IEC_PARTS}
         path_var = tk.StringVar(value=getattr(element, "russian_path", ""))
         corp_var = tk.StringVar(value=getattr(element, "corp_prof_name", ""))
+        # Принадлежность блока стандарту (шкаф / комплект / ИЭУ).
+        cabinet_var = tk.StringVar(value=getattr(element, "cabinet", ""))
+        kit_var = tk.StringVar(value=getattr(element, "kit", ""))
+        ied_var = tk.StringVar(value=getattr(element, "ied", ""))
 
         outer = tk.Frame(dialog, padx=10, pady=8)
         outer.pack(fill=tk.BOTH, expand=True)
@@ -1766,6 +1824,26 @@ class LogicEditorMixin:
                        variable=main_var).pack(side=tk.LEFT)
         tk.Checkbutton(flags, text="В ИТС",
                        variable=its_var).pack(side=tk.LEFT, padx=(10, 0))
+        tk.Label(header, text="Принадлежность:", anchor="w").grid(
+            row=4, column=0, sticky="w", pady=(4, 0))
+        source = tk.Frame(header)
+        source.grid(row=4, column=1, columnspan=3, sticky="we", pady=(4, 0))
+        for label, variable, width in (
+                ("Шкаф", cabinet_var, 22),
+                ("Комплект", kit_var, 12),
+                ("ИЭУ", ied_var, 12)):
+            tk.Label(source, text=label, anchor="w").pack(side=tk.LEFT)
+            tk.Entry(source, textvariable=variable, width=width).pack(
+                side=tk.LEFT, padx=(4, 10))
+        iec_parts_frame = tk.Frame(header)
+        iec_parts_frame.grid(row=5, column=1, columnspan=3, sticky="we",
+                             pady=(4, 0))
+        tk.Label(header, text="МЭК по частям:", anchor="w").grid(
+            row=5, column=0, sticky="w", pady=(4, 0))
+        for part in ll.IEC_PARTS:
+            tk.Label(iec_parts_frame, text=part, anchor="w").pack(side=tk.LEFT)
+            tk.Entry(iec_parts_frame, textvariable=iec_part_vars[part],
+                     width=10).pack(side=tk.LEFT, padx=(4, 10))
 
         # ---- предпросмотр блока ----
         preview = tk.Canvas(outer, height=170, bg=ui_theme.CANVAS,
@@ -1960,8 +2038,13 @@ class LogicEditorMixin:
             result["isMainFunction"] = bool(main_var.get())
             result["isInITS"] = bool(its_var.get())
             result["iec_name"] = iec_var.get().strip()
+            result.update({part: iec_part_vars[part].get().strip()
+                           for part in ll.IEC_PARTS})
             result["russian_path"] = path_var.get().strip()
             result["corp_prof_name"] = corp_var.get().strip()
+            result["cabinet"] = cabinet_var.get().strip()
+            result["kit"] = kit_var.get().strip()
+            result["ied"] = ied_var.get().strip()
             result["ok"] = True
             dialog.destroy()
 
@@ -2001,8 +2084,13 @@ class LogicEditorMixin:
         element.isMainFunction = result["isMainFunction"]
         element.isInITS = result["isInITS"]
         element.iec_name = result["iec_name"]
+        for part in ll.IEC_PARTS:
+            setattr(element, part, result[part])
         element.russian_path = result["russian_path"]
         element.corp_prof_name = result["corp_prof_name"]
+        element.cabinet = result["cabinet"]
+        element.kit = result["kit"]
+        element.ied = result["ied"]
         try:
             element.width = max(ll.LogicBlock.MIN_WIDTH,
                                 float(result["width"] or 0))
@@ -2127,6 +2215,9 @@ class LogicEditorMixin:
         name_var = tk.StringVar(value=data.get("name") or "")
         iec_name_var = tk.StringVar(value=data.get("iec_name") or "")
         lnclass_var = tk.StringVar(value=data.get("LNclass") or "")
+        iec_part_vars = {
+            part: tk.StringVar(value=data.get(part) or "")
+            for part in ll.IEC_PARTS}
         ru_var = tk.StringVar(value=data.get("ru") or "")
         iec_var = tk.StringVar(value=data.get("iec") or "")
 
@@ -2162,11 +2253,13 @@ class LogicEditorMixin:
         add_entry(2, 2, "LNclass:", lnclass_var)
         add_entry(3, 0, "Сигнал (рус.):", ru_var)
         add_entry(3, 2, "Сигнал (МЭК):", iec_var)
+        for index, part in enumerate(ll.IEC_PARTS):
+            add_entry(4, (index // 2) * 2, part + ":", iec_part_vars[part], 20)
 
         notebook = ttk.Notebook(outer)
-        notebook.grid(row=4, column=0, columnspan=4, sticky="nsew",
+        notebook.grid(row=5, column=0, columnspan=4, sticky="nsew",
                       pady=(8, 0))
-        outer.rowconfigure(4, weight=1)
+        outer.rowconfigure(5, weight=1)
 
         def make_table(parent, columns, headings, widths):
             frame = tk.Frame(parent, padx=6, pady=6)
@@ -2214,13 +2307,16 @@ class LogicEditorMixin:
             (150, 180, 110, 260))
         notebook.add(parameters_tab, text="Параметры")
 
+        slot_store = {}   # iid -> исходный слот (сохраняет LD/LN/DO/DA)
+
         def fill_slots(tree, slots):
             tree.delete(*tree.get_children())
             for slot in slots:
-                tree.insert("", "end", values=(
+                iid = tree.insert("", "end", values=(
                     slot.get("name", ""), slot.get("description", ""),
                     slot.get("iec_name", ""),
                     ll.slot_type_title(slot.get("type", ""))))
+                slot_store[iid] = dict(slot)
 
         def fill_settings(tree, settings):
             tree.delete(*tree.get_children())
@@ -2268,9 +2364,10 @@ class LogicEditorMixin:
             slot = ll.new_slot(direction, values["name"],
                                values["description"], values["iec_name"],
                                values["type"])
-            tree.insert("", "end", values=(
+            iid = tree.insert("", "end", values=(
                 slot["name"], slot["description"], slot["iec_name"],
                 ll.slot_type_title(slot["type"])))
+            slot_store[iid] = slot
 
         def edit_slot(tree, direction):
             current = selected_values(tree)
@@ -2287,9 +2384,17 @@ class LogicEditorMixin:
                  "iec_name": current[2], "type": slot_type_key(current[3])})
             if values is None:
                 return
-            tree.item(tree.selection()[0], values=(
+            iid = tree.selection()[0]
+            tree.item(iid, values=(
                 values["name"], values["description"], values["iec_name"],
                 ll.slot_type_title(values["type"])))
+            if iid in slot_store:
+                slot_store[iid].update({
+                    "name": values["name"],
+                    "description": values["description"],
+                    "iec_name": values["iec_name"],
+                    "type": values["type"],
+                })
 
         def add_setting():
             values = self._ask_fields(
@@ -2419,9 +2524,12 @@ class LogicEditorMixin:
             for item in tree.get_children():
                 values = list(tree.item(item, "values"))
                 values += [""] * (4 - len(values))
-                slots.append(ll.new_slot(
-                    direction, values[0], values[1], values[2],
-                    slot_type_key(values[3])))
+                slot = dict(slot_store.get(item) or {})
+                slot.update({
+                    "name": values[0], "description": values[1],
+                    "iec_name": values[2], "type": slot_type_key(values[3]),
+                })
+                slots.append(ll.normalize_slot(slot, direction))
             return slots
 
         def collect_settings():
@@ -2455,6 +2563,8 @@ class LogicEditorMixin:
                 "name": name_var.get().strip(),
                 "iec_name": iec_name_var.get().strip(),
                 "LNclass": lnclass_var.get().strip(),
+                **{part: iec_part_vars[part].get().strip()
+                   for part in ll.IEC_PARTS},
                 "ru": ru_var.get().strip(),
                 "iec": iec_var.get().strip(),
                 "inputs": collect_slots(inputs_tree, "in"),

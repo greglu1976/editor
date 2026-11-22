@@ -29,6 +29,9 @@ import re
 import ea_model
 from library import CELL, Component
 
+#: Части МЭК 61850-пути, общие с моделью стандарта.
+IEC_PARTS = ea_model.IEC_PARTS
+
 # ==========================================================================
 # Связи ФЛС
 # ==========================================================================
@@ -224,6 +227,8 @@ def normalize_function(function):
         "iec": str(function.get("iec") or ""),
         "iec_name": str(function.get("iec_name") or ""),
         "LNclass": str(function.get("LNclass") or ""),
+        **{part: str(function.get(part) or "")
+           for part in ea_model.IEC_PARTS},
         "inputs": slots_in,
         "outputs": slots_out,
         "settings": settings,
@@ -350,6 +355,11 @@ def link_full_label(elements, link, split_ref=None):
             continue
         slot = outputs[slot_index]
         signal_name = str(slot.get("name") or "").strip() or signal
+        # В каталоге ФБ полная маркировка «ФБ / Функция: Сигнал» приходит
+        # из таблиц информационных сигналов и хранится в описании выхода.
+        full = str(slot.get("description") or "").strip()
+        if " / " in full:
+            return full, signal_name
         parts = []
         designation = str(getattr(element, "designation", "") or "").strip()
         function_name = str(function.get("name")
@@ -366,11 +376,12 @@ def link_full_label(elements, link, split_ref=None):
     return signal, signal
 
 
-def bus_link_style(elements, link, split_ref=None):
-    """Стиль связи между двумя шинами: цвет и толщина самой шины.
+def bus_link_color(elements, link, split_ref=None):
+    """Цвет связи шина—шина — цвет подключённых шин.
 
-    Для остальных связей возвращается None — у них цвет и толщина задаются
-    типом связи.
+    Возвращается None, если хотя бы один конец связи не шина: такие связи
+    окрашиваются по своему типу. Пустой цвет шины заменяется тем же
+    значением, которым шина рисуется в :meth:`LogicBus.draw`.
     """
     split_ref = split_ref or _default_split_ref
     buses = []
@@ -380,8 +391,46 @@ def bus_link_style(elements, link, split_ref=None):
         if element is None or getattr(element, "type", "") != "logic_bus":
             return None
         buses.append(element)
-    color = (getattr(buses[0], "color", "") or "").strip() \
-        or (getattr(buses[1], "color", "") or "").strip() or "#00acc1"
+    for bus in buses:
+        color = str(getattr(bus, "color", "") or "").strip()
+        if color:
+            return color
+    return "#00acc1"
+
+
+def bus_link_style(elements, link, split_ref=None):
+    """Стиль связи между двумя шинами: цвет и толщина самой шины.
+
+    Для остальных связей возвращается None — у них цвет и толщина задаются
+    типом связи.
+    """
+    color = bus_link_color(elements, link, split_ref)
+    if color is None:
+        return None
+    return color, float(LogicBus.WIDTH)
+
+
+def link_color(elements, link, split_ref=None):
+    """Цвет линии и подписей связи.
+
+    У связи шина—шина весь цвет берётся от шины, у остальных — из стиля
+    типа связи. Используется и редактором, и экспортом сцены, чтобы линия,
+    номер и наименование всегда выглядели одинаково.
+    """
+    return bus_link_color(elements, link, split_ref) \
+        or link_style(link.get("kind"))["color"]
+
+
+def bus_connection_style(elements, connection):
+    """Стиль провода между двумя логическими шинами: цвет и толщина шины.
+
+    Обычные провода рисуются чёрными, но соединять две шины нужно цветом
+    и толщиной самой шины — как на чертеже. Возвращает None для всех
+    остальных проводов.
+    """
+    color = bus_link_color(elements, connection)
+    if color is None:
+        return None
     return color, float(LogicBus.WIDTH)
 
 
@@ -898,6 +947,7 @@ class LogicFunction(LogicComponent):
         self.title = ""
         self.iec_name = ""
         self.LNclass = ""
+        self.LD = self.LN = self.DO = self.DA = ""
         self.signal_ru = ""
         self.signal_iec = ""
         self.input_count = 2
@@ -1071,8 +1121,14 @@ class LogicBlock(LogicComponent):
         self.isMainFunction = False
         self.isInITS = False
         self.iec_name = ""
+        self.LD = self.LN = self.DO = self.DA = ""
         self.russian_path = ""
         self.corp_prof_name = ""
+        # Принадлежность каталогу стандарта: откуда пришёл блок.
+        # Заполняется при размещении FunctionalBlockEntry на схему.
+        self.cabinet = ""
+        self.kit = ""
+        self.ied = ""
         self.generate_ports()
 
     # ---------- геометрия ----------
@@ -1289,6 +1345,65 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
     raise ValueError("Неизвестный элемент ФЛС: {}".format(comp_type))
 
 
+def standard_block_functions(functions):
+    """Функции structure2 → функции ФЛС редактора.
+
+    Сохраняются русское имя и обозначение по МЭК, входы/выходы (сигналы),
+    уставки и параметры — всё, что приходит из каталога функциональных
+    блоков стандарта.
+    """
+    result = []
+    for function in functions or []:
+        if not isinstance(function, dict):
+            continue
+        result.append(normalize_function({
+            "kind": "CUSTOM",
+            "title": str(function.get("name") or ""),
+            "name": str(function.get("name") or ""),
+            "ru": str(function.get("name") or ""),
+            "iec": str(function.get("iec_name") or ""),
+            "iec_name": str(function.get("iec_name") or ""),
+            "LNclass": str(function.get("LNclass") or ""),
+            **{part: function.get(part, "") for part in ea_model.IEC_PARTS},
+            "inputs": function.get("inputs") or [],
+            "outputs": function.get("outputs") or [],
+            "settings": function.get("settings") or [],
+            "parameters": function.get("parameters") or [],
+        }))
+    return result
+
+
+def block_from_standard(entry, comp_id, x, y, grid_size=20):
+    """FunctionalBlockEntry стандарта → готовый блок на схеме ФЛС.
+
+    Блок несёт принадлежность к шкафу/комплекту/ИЭУ и полный набор
+    функций с сигналами, уставками и параметрами, поэтому его можно сразу
+    помещать на чертеж из окна стандарта.
+    """
+    entry = entry if isinstance(entry, dict) else {}
+    block = create_component("logic_block", comp_id, x, y, grid_size)
+    name = str(entry.get("name") or "").strip()
+    path = str(entry.get("russian_path") or "").strip()
+    iec = str(entry.get("iec_name") or "").strip()
+    block.title = name or path or "Функциональный блок"
+    # «Обозначение» — русский префикс полной маркировки «ФБ / Функция:
+    # Сигнал»; МЭК-обозначение хранится отдельным полем блока.
+    block.designation = name or path or iec
+    block.iec_name = iec
+    for part in ea_model.IEC_PARTS:
+        setattr(block, part, str(entry.get(part) or ""))
+    block.russian_path = path or name
+    block.corp_prof_name = str(entry.get("corp_prof_name") or "").strip()
+    block.isMainFunction = bool(entry.get("isMainFunction"))
+    block.isInITS = bool(entry.get("isInITS"))
+    block.cabinet = str(entry.get("cabinet") or "")
+    block.kit = str(entry.get("kit") or "")
+    block.ied = str(entry.get("ied") or "")
+    block.functions = standard_block_functions(entry.get("functions"))
+    block.generate_ports()
+    return block
+
+
 #: Поля, которые сохраняются в JSON для каждого типа ФЛС.
 LOGIC_FIELDS = {
     "logic_bus": ("length", "title", "description", "signal_ru", "signal_iec",
@@ -1297,8 +1412,11 @@ LOGIC_FIELDS = {
     "logic_led": ("title", "signal_ru", "signal_iec", "signal_no"),
     "logic_block": ("title", "designation", "width", "functions",
                     "isMainFunction", "isInITS", "iec_name",
-                    "russian_path", "corp_prof_name"),
+                    "LD", "LN", "DO", "DA",
+                    "russian_path", "corp_prof_name",
+                    "cabinet", "kit", "ied"),
     "logic_function": ("kind", "title", "name", "iec_name", "LNclass",
+                       "LD", "LN", "DO", "DA",
                        "signal_ru", "signal_iec", "signal_no", "input_count",
                        "inputs", "outputs", "settings", "parameters"),
     "logic_port_in": ("title", "signal_ru", "signal_iec", "signal_no"),
@@ -1342,7 +1460,8 @@ def restore_element(el, payload):
                 el.functions.append(normalize_function(function))
         for field in ("isMainFunction", "isInITS"):
             setattr(el, field, bool(getattr(el, field, False)))
-        for field in ("iec_name", "russian_path", "corp_prof_name"):
+        for field in ("iec_name", "russian_path", "corp_prof_name",
+                      "cabinet", "kit", "ied") + ea_model.IEC_PARTS:
             if not isinstance(getattr(el, field, ""), str):
                 setattr(el, field, "")
         try:
@@ -1360,7 +1479,7 @@ def restore_element(el, payload):
         el.outputs = normalize_slots(getattr(el, "outputs", None), "out")
         if not el.outputs:
             el.outputs = [new_slot("out")]
-        for field in ("iec_name", "LNclass"):
+        for field in ("iec_name", "LNclass") + ea_model.IEC_PARTS:
             if not isinstance(getattr(el, field, ""), str):
                 setattr(el, field, "")
         el.settings = [ea_model.normalize_setting(item)

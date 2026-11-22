@@ -131,6 +131,8 @@ def child_list(data, node, kind):
         return data.setdefault("sections", [])
     if kind == "cabinet":
         return data.setdefault("cabinets", [])
+    if kind == "fb_entry":
+        return data.setdefault("functional_blocks", [])
     key = _CHILD_KEY.get(kind)
     if not key or not isinstance(node, dict):
         raise StructureError("неизвестный вид узла: %s" % kind)
@@ -278,6 +280,21 @@ def new_ied(data, kit, number=None):
         "scheme": "",
         **{key: [] for key in _IED_LISTS},
     }
+
+
+def new_functional_block_entry(data, block=None, cabinet="", kit="", ied=""):
+    """Новая запись плоского каталога ФБ стандарта.
+
+    ``block`` — исходный FunctionBlock (копируется и нормализуется по
+    структуре2); если ``None`` — создаётся пустой блок. Поля ``cabinet``,
+    ``kit``, ``ied`` указывают источник (шкаф / комплект / ИЭУ).
+    """
+    import ea_model
+    entry = ea_model.normalize_function_block(block)
+    entry["cabinet"] = str(cabinet or "")
+    entry["kit"] = str(kit or "")
+    entry["ied"] = str(ied or "")
+    return entry
 
 
 def new_table(data, spec, number=None):

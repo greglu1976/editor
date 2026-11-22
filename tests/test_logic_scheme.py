@@ -25,7 +25,8 @@
 16. сквозную нумерацию связей;
 20. входной и выходной порты: выводы, наименование сигнала, JSON;
 21. «Обновить связи»: общий номер — привязка продолжением и выравнивание
-    наименований (из элемента с маркировкой или из связи-источника);
+    наименований (элемент с маркировкой, полная маркировка ФБ / Функция:
+    Сигнал, связь-источник), в том числе у связей без номера;
 22. перенос точек: захват излома любой связи и перетаскивание линии целиком;
 23. перетаскивание номера и наименования связи мышкой со сохранением
     смещений в JSON и в экспорте; у новых связей стрелка отключена;
@@ -358,6 +359,7 @@ def test_bus_links(app):
           and app._logic_ref_valid(link["from"])
           and app._logic_ref_valid(link["to"]),
           "связь между отводами двух шин создана")
+    link["ru"] = "Связь шин"
     app.redraw_all()
     lines = [item for item in app.canvas.find_withtag("logic_link")
              if app.canvas.type(item) == "line"]
@@ -366,6 +368,11 @@ def test_bus_links(app):
     check(lines and app.canvas.itemcget(lines[0], "fill") == first.color
           and float(app.canvas.itemcget(lines[0], "width")) == expected_width,
           "линия связи имеет цвет и толщину шины")
+    labels = [item for item in app.canvas.find_withtag("logic_label")
+              if app.canvas.type(item) == "text"]
+    check(labels and all(app.canvas.itemcget(item, "fill") == first.color
+                         for item in labels),
+          "номер и наименование связи имеют цвет шины")
     check(ll.bus_link_style({first.id: first}, link,
                             app._logic_split_ref) is None,
           "обычная связь сохраняет стиль своего типа")
@@ -380,6 +387,33 @@ def test_bus_links(app):
                    and call[2].get("width") == max(2, int(ll.LogicBus.WIDTH))
                    and len(call[1]) >= 8]
     check(bool(scene_lines), "стиль шины сохранён в экспорте")
+    scene_texts = [call for call in recorder.calls
+                   if call[0] == "create_text"
+                   and call[2].get("fill") == first.color]
+    check(bool(scene_texts), "подписи связи окрашены цветом шины в экспорте")
+
+    # Обычный провод между двумя шинами (не связь ФЛС) также должен быть
+    # цвета и толщины шины — и в редакторе, и в экспорте.
+    connection = app.create_connection(first.id, second.id,
+                                       "bottom", "bottom")
+    app.redraw_all()
+    wire_id = connection.get("canvas_id")
+    check(wire_id is not None
+          and app.canvas.itemcget(wire_id, "fill") == first.color
+          and float(app.canvas.itemcget(wire_id, "width")) == expected_width,
+          "провод шина—шина окрашен цветом шины и имеет её толщину")
+    check(ll.bus_connection_style({first.id: first, second.id: second},
+                                  connection)
+          == (first.color, ll.LogicBus.WIDTH),
+          "стиль провода между шинами берётся от шины")
+    recorder = __import__("pdfexport").SceneRecorder()
+    app._draw_scene(recorder)
+    wire_calls = [call for call in recorder.calls
+                  if call[0] == "create_line"
+                  and call[2].get("fill") == first.color
+                  and call[2].get("width") == max(2, int(ll.LogicBus.WIDTH))
+                  and len(call[1]) == 4]
+    check(bool(wire_calls), "стиль провода сохранён в экспорте сцены")
 
     first.title = "Шина-источник"
     first.name = "Ш1"
@@ -424,6 +458,12 @@ def test_links(app):
     check(app.canvas.itemcget(lines[0], "fill")
           == ll.link_style("discrete")["color"],
           "цвет линии соответствует типу")
+    labels = [item for item in app.canvas.find_withtag("logic_label")
+              if app.canvas.type(item) == "text"]
+    check(labels and all(app.canvas.itemcget(item, "fill")
+                         == ll.link_style("discrete")["color"]
+                         for item in labels),
+          "подписи обычной связи сохраняют цвет типа")
     polygons = [item for item in app.canvas.find_withtag("logic_link")
                 if app.canvas.type(item) == "polygon"]
     check(not polygons, "у новой связи стрелки нет (по умолчанию)")
@@ -937,9 +977,32 @@ def test_update_links(app):
     fourth["number"] = "9006"
     third["ru"] = "Пуск АВР"
     bound, renamed, found = app._update_logic_groups()
-    check(fourth["ru"] == "Пуск АВР"
+    check(fourth["ru"] == "Функция: Пуск АВР"
           and str(fourth.get("continuation") or "") == str(third["id"]),
-          "наименование и привязка по связи-источнику")
+          "продолжение получает полную маркировку выхода функции")
+
+    # Полная маркировка «ФБ / Функция: Сигнал» доходит до связей-
+    # продолжений, в том числе когда у continuation нет своего номера.
+    led = app.elements[_add(app, "logic_led", 300, 500)]
+    block.designation = "ЗП"
+    block.functions = [ll.normalize_function({
+        "kind": "CUSTOM", "title": "1 ступень", "name": "1 ступень",
+        "outputs": [{"name": "Срабатывание", "iec_name": "Op"}]})]
+    block.generate_ports()
+    fifth = app._add_logic_link((block.id, "fn0_out0"), (key.id, "left"))
+    fifth["number"] = "9007"
+    sixth = app._add_logic_link((key.id, "right"), (led.id, "left"))
+    sixth["number"] = "9007"
+    app._update_logic_groups()
+    check(sixth["ru"] == "ЗП / 1 ступень: Срабатывание"
+          and str(sixth.get("continuation") or "") == str(fifth["id"]),
+          "связь с той же маркировкой получила полное обозначение")
+    seventh = app._add_logic_link((key.id, "right"), (led.id, "left"))
+    seventh["number"] = ""
+    seventh["continuation"] = fifth["id"]
+    app._update_logic_groups()
+    check(seventh["ru"] == "ЗП / 1 ступень: Срабатывание",
+          "связь-продолжение без номера обновлена полной маркировкой")
 
     # Связи без номера не трогаются.
     unnumbered = app._add_logic_link((key.id, "right"), (block.id, inputs[0]))

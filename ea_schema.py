@@ -34,6 +34,10 @@ CLASSES = {
             ("sections", "Section"),
             ("cabinets", "Cabinet"),
             ("containers", "Container"),
+            # Плоский каталог функциональных блоков всех ИЭУ стандарта.
+            # Элементы — FunctionalBlockEntry; собирается автоматически
+            # из cabinets, но может редактироваться пользователем.
+            ("functional_blocks", "FunctionalBlockEntry"),
         ],
     },
     "Section": {
@@ -187,6 +191,11 @@ CLASSES = {
             ("isMainFunction", "b", False),
             ("isInITS", "b", False),
             ("iec_name", "s", ""),
+            # МЭК 61850 по частям: LD / LN / DO / DA (для отчётов).
+            ("LD", "s", ""),
+            ("LN", "s", ""),
+            ("DO", "s", ""),
+            ("DA", "s", ""),
             ("russian_path", "s", ""),
             ("corp_prof_name", "s", ""),
         ],
@@ -197,6 +206,10 @@ CLASSES = {
             ("name", "s", ""),
             ("iec_name", "s", ""),
             ("LNclass", "s", ""),
+            ("LD", "s", ""),
+            ("LN", "s", ""),
+            ("DO", "s", ""),
+            ("DA", "s", ""),
         ],
         "children": [
             ("inputs", "Input"),
@@ -210,6 +223,10 @@ CLASSES = {
             ("name", "s", ""),
             ("description", "s", ""),
             ("iec_name", "s", ""),
+            ("LD", "s", ""),
+            ("LN", "s", ""),
+            ("DO", "s", ""),
+            ("DA", "s", ""),
             ("type", "s", ""),
             ("id", "s", ""),
         ],
@@ -220,6 +237,10 @@ CLASSES = {
             ("name", "s", ""),
             ("description", "s", ""),
             ("iec_name", "s", ""),
+            ("LD", "s", ""),
+            ("LN", "s", ""),
+            ("DO", "s", ""),
+            ("DA", "s", ""),
             ("type", "s", ""),
             ("id", "s", ""),
         ],
@@ -283,6 +304,8 @@ CLASSES = {
             ("cus", "s", ""),
             ("rdu", "s", ""),
             ("RAS", "s", ""),
+            ("LD", "s", ""),
+            ("LN", "s", ""),
             ("DO", "s", ""),
             ("DA", "s", ""),
         ],
@@ -354,6 +377,31 @@ CLASSES = {
         ],
         "children": [],
     },
+    # ---------------------------------------------------------------------------
+    # Плоский каталог функциональных блоков стандарта (на уровне Standard).
+    # Содержит ссылку на источник (шкаф / комплект / ИЭУ) и полную копию
+    # данных FunctionBlock — для размещения на чертеже без открытия ИЭУ.
+    # ---------------------------------------------------------------------------
+    "FunctionalBlockEntry": {
+        "fields": [
+            # Принадлежность: шкаф, комплект, ИЭУ
+            ("cabinet", "s", ""),    # шифр шкафа-источника
+            ("kit", "s", ""),        # номер комплекта
+            ("ied", "s", ""),        # номер ИЭУ
+            # Данные блока функций (аналог FunctionBlock)
+            ("name", "s", ""),
+            ("isMainFunction", "b", False),
+            ("isInITS", "b", False),
+            ("iec_name", "s", ""),
+            ("LD", "s", ""),
+            ("LN", "s", ""),
+            ("DO", "s", ""),
+            ("DA", "s", ""),
+            ("russian_path", "s", ""),
+            ("corp_prof_name", "s", ""),
+        ],
+        "children": [("functions", "Function")],
+    },
     "Bus": {
         "fields": [("id", "s", ""), ("description", "s", "")],
         "children": [("connections", "Connection")],
@@ -398,6 +446,7 @@ KIND_CLASS = {
     "osc_signal": "OscAnalogSignal",
     "port": "Port",
     "container": "Container",
+    "fb_entry": "FunctionalBlockEntry",
 }
 
 #: Подписи полей в интерфейсе. Для отсутствующих используется сам ключ.
@@ -427,10 +476,13 @@ LABELS = {
     "tag": "Тег",
     "group": "Группа",
     "containers": "Контейнеры",
+    "functional_blocks": "Функциональные блоки",
     "quantity": "Количество",
     "max_prot_cabs_slots": "Слотов защитных шкафов",
     "ieds": "ИЭУ",
+    "ied": "ИЭУ",
     "kits": "Комплекты",
+    "kit": "Комплект",
     "components": "Компоненты",
     "power_supplies": "Вводы питания",
     "purpose": "Назначение",
@@ -448,6 +500,10 @@ LABELS = {
     "isMainFunction": "Основная функция",
     "isInITS": "В ИТС",
     "iec_name": "МЭК 61850",
+    "LD": "LD",
+    "LN": "LN",
+    "DO": "DO",
+    "DA": "DA",
     "russian_path": "Путь (рус.)",
     "corp_prof_name": "Корпоративный профиль",
     "LNclass": "Класс LN",
@@ -504,7 +560,16 @@ LABELS = {
 
 #: Поля редактора, которых нет в UML. Не добавляются при миграции, но
 #: остаются доступны в редакторе и создаются у новых узлов.
-EXTRA_FIELDS = {("Table", "cabinet"), ("Cabinet", "containers")}
+EXTRA_FIELDS = {("Table", "cabinet"), ("Cabinet", "containers"),
+                ("Standard", "functional_blocks")}
+# LD/LN/DO/DA — дополнение редактора к UML: при миграции не добавляются,
+# но создаются у новых узлов и доступны в редакторе и отчётах.
+EXTRA_FIELDS.update(
+    (cls, part)
+    for cls in ("FunctionBlock", "Function", "Input", "Output",
+                "FunctionalBlockEntry", "Signal")
+    for part in ("LD", "LN", "DO", "DA")
+)
 
 #: Старые имена полей, встречавшиеся в предыдущих версиях JSON.
 ALIASES = {

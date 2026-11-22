@@ -25,6 +25,7 @@ import argparse
 import glob
 import json
 import os
+import re
 import sys
 
 import apppaths
@@ -136,6 +137,215 @@ def cabinet(data, code):
     return None
 
 
+# ---------------------------------------------------------------------------
+# Плоский каталог функциональных блоков стандарта
+# ---------------------------------------------------------------------------
+
+def all_functional_blocks(data):
+    """Каталог FunctionalBlockEntry стандарта.
+
+    Если сохранённого каталога ещё нет (или он пуст), записи собираются
+    из шкафов на лету: функциональные блоки доступны сразу после открытия
+    стандарта и их можно ставить на схему без предварительной пересборки.
+    Явная пересборка (:func:`rebuild_functional_blocks`) записывает каталог
+    в JSON и позволяет редактировать записи вручную.
+    """
+    stored = (data or {}).get("functional_blocks")
+    if isinstance(stored, list) and stored:
+        return stored
+    return collect_functional_blocks(data)
+
+
+def collect_functional_blocks(data):
+    """Собрать FunctionalBlockEntry из всех ИЭУ всех шкафов стандарта.
+
+    Каждая запись — полная копия FunctionBlock по схеме structure2
+    (``name``, ``iec_name``, ``russian_path``, ``corp_prof_name``,
+    ``isMainFunction``, ``isInITS``, ``functions`` со входами, выходами,
+    уставками и параметрами) плюс поля принадлежности: шифр шкафа, номер
+    комплекта и номер ИЭУ.
+
+    Возвращает список записей, не меняя ``data``.
+    """
+    entries = []
+    for cab in cabinets(data):
+        cypher = cab.get("cypher") or ""
+        for kit in cab.get("kits") or []:
+            kit_num = str(kit.get("number") or "")
+            for ied in kit.get("ieds") or []:
+                ied_num = str(ied.get("number") or "")
+                for raw in function_blocks(ied):
+                    block = ea_model.normalize_function_block(raw)
+                    enrich_function_block(block, ied)
+                    block["cabinet"] = cypher
+                    block["kit"] = kit_num
+                    block["ied"] = ied_num
+                    entries.append(block)
+    return entries
+
+
+def rebuild_functional_blocks(data):
+    """Пересобрать ``Standard.functional_blocks`` из текущих шкафов.
+
+    Перезаписывает коллекцию и возвращает число созданных записей.
+    Вызывать после изменений в cabinets (добавление ИЭУ, блоков функций).
+    """
+    entries = collect_functional_blocks(data)
+    data["functional_blocks"] = entries
+    return len(entries)
+
+
+def parse_signal_name(name):
+    """Разобрать «ФБ / Функция: Сигнал» на три русских наименования."""
+    text = str(name or "").strip()
+    block = function = ""
+    signal = text
+    if "/" in text:
+        block, rest = text.split("/", 1)
+        rest = rest.strip()
+        if ":" in rest:
+            function, signal = rest.split(":", 1)
+        else:
+            signal = rest
+    elif ":" in text:
+        function, signal = text.split(":", 1)
+    return (block.strip(), function.strip(), signal.strip())
+
+
+def parse_signal_iec(signal):
+    """Разобрать МЭК 61850-путь на LD / LN / DO / DA.
+
+    Источник — поля ``DO``/``DA`` таблицы информационных сигналов; если
+    ``DO`` пусто, используется ``info_model`` вида ``LD/LN.DO.DA``.
+    Полная строка сохраняется в ``iec`` для обратной совместимости.
+    """
+    signal = signal or {}
+    do = str(signal.get("DO") or "").strip()
+    da = str(signal.get("DA") or "").strip()
+    info = str(signal.get("info_model") or "").strip()
+    source = do or info
+    ld = ""
+    if "/" in source:
+        ld, rest = source.split("/", 1)
+    else:
+        rest = source
+    parts = [part.strip() for part in rest.split(".") if part.strip()]
+    ln = parts[0] if parts else ""
+    do_value = parts[1] if len(parts) > 1 else ""
+    if not da and "/" in info:
+        tail = [part.strip() for part in info.split("/", 1)[1].split(".")]
+        if len(tail) > 2:
+            da = ".".join(part for part in tail[2:] if part)
+    return {
+        "LD": ld.strip(), "LN": ln, "DO": do_value, "DA": da,
+        # Старые ключи, используемые внутри модуля.
+        "prefix": ld.strip(), "ln": ln,
+        "iec": info or ".".join(part for part in (do, da) if part),
+    }
+
+
+def _signal_marks(ied):
+    """Информационные сигналы ИЭУ: отчеты и исходящие сообщения.
+
+    Именно здесь в стандарте лежит привязка русского и МЭК-наименования
+    функционального блока, функции и сигнала (таблицы «Информационные
+    сигналы в составе …»).
+    """
+    marks = []
+    for dataset in (ied or {}).get("datasets") or []:
+        for signal in dataset.get("signals") or []:
+            if not isinstance(signal, dict):
+                continue
+            block, function, name = parse_signal_name(signal.get("name"))
+            attributes = parse_signal_iec(signal)
+            marks.append({
+                "name": str(signal.get("name") or "").strip(),
+                "block": block, "function": function, "signal": name,
+                "prefix": attributes["LD"], "ln": attributes["LN"],
+                "iec": attributes["iec"],
+                **{key: attributes[key] for key in ("LD", "LN", "DO", "DA")},
+            })
+    return marks
+
+
+def enrich_function_block(block, ied):
+    """Дополнить FunctionBlock сигналами из отчетов и сообщений ИЭУ.
+
+    У блоков функций в стандарте поля МЭК и выходы обычно пусты: полные
+    русские и МЭК-обозначения хранятся в информационных сигналах. Здесь
+    они превращаются в выходы функций, готовые для подписи связи.
+    """
+    marks = _signal_marks(ied)
+    if not marks or not isinstance(block, dict):
+        return block
+    block_name = str(block.get("name")
+                     or block.get("russian_path") or "").strip()
+    for function in block.get("functions") or []:
+        if not isinstance(function, dict):
+            continue
+        fn_name = str(function.get("name") or "").strip()
+        matched = [mark for mark in marks
+                   if mark["function"]
+                   and mark["function"].casefold() == fn_name.casefold()
+                   and (not mark["block"] or not block_name
+                        or mark["block"].casefold() == block_name.casefold())]
+        if not matched:
+            continue
+        if not function.get("iec_name") and matched[0]["ln"]:
+            function["iec_name"] = matched[0]["ln"]
+        for part in ea_model.IEC_PARTS:
+            if not function.get(part) and matched[0].get(part):
+                function[part] = matched[0][part]
+        if not function.get("LNclass") and matched[0]["ln"]:
+            function["LNclass"] = re.sub(r"\d+$", "", matched[0]["ln"])
+        outputs = function.setdefault("outputs", [])
+        known = {(str(item.get("name") or "").strip(),
+                  str(item.get("description") or "").strip())
+                 for item in outputs if isinstance(item, dict)}
+        for mark in matched:
+            key = (mark["signal"], mark["name"])
+            if key in known:
+                continue
+            known.add(key)
+            output = {
+                "name": mark["signal"],
+                "description": mark["name"],
+                "iec_name": mark["iec"],
+                "id": mark["ln"],
+                "type": "",
+            }
+            output.update({part: mark.get(part, "") for part in ea_model.IEC_PARTS})
+            outputs.append(output)
+    if block_name:
+        for mark in marks:
+            if mark["block"].casefold() != block_name.casefold():
+                continue
+            if not block.get("iec_name"):
+                block["iec_name"] = mark["prefix"]
+            # У блока уровень LD; LN/DO/DA относятся к функции и сигналам.
+            if not block.get("LD") and mark.get("LD"):
+                block["LD"] = mark["LD"]
+            break
+    return block
+
+
+def functional_block_label(entry):
+    """Подпись записи каталога: русское имя и МЭК 61850."""
+    entry = entry or {}
+    name = (str(entry.get("name") or "").strip()
+            or str(entry.get("russian_path") or "").strip())
+    iec = str(entry.get("iec_name") or "").strip()
+    if name and iec and iec != name:
+        return "%s (%s)" % (name, iec)
+    return name or iec or "Функциональный блок"
+
+
+def functional_blocks_by_cabinet(data, code):
+    """Записи каталога, относящиеся к шкафу ``code``."""
+    return [entry for entry in all_functional_blocks(data)
+            if str(entry.get("cabinet") or "") == str(code or "")]
+
+
 def iter_clauses(data):
     """Все пункты документа (в разделах и подразделах)."""
     for section in sections(data):
@@ -213,6 +423,7 @@ def stats(data):
         "таблицы_документа": len(tables) - len(forms),
         "шкафы": len(cabinets(data)),
         "строк_в_шкафах": sum(_cabinet_row_count(c) for c in cabinets(data)),
+        "функциональные_блоки": len(all_functional_blocks(data)),
     }
 
 
@@ -878,6 +1089,8 @@ def main(argv=None):
     parser.add_argument("--check", action="store_true", help="проверить структуру")
     parser.add_argument("--table", help="показать таблицу по номеру")
     parser.add_argument("--cabinet", help="показать карточку шкафа")
+    parser.add_argument("--fb", action="store_true",
+                        help="каталог функциональных блоков")
     parser.add_argument("--limit", type=int, default=0, help="строк в таблице (0 — все)")
     args = parser.parse_args(argv)
 
@@ -911,6 +1124,19 @@ def main(argv=None):
             print("шкаф не найден: %s" % args.cabinet, file=sys.stderr)
             return 2
         _print_table(["Параметр", "Значение"], cabinet_card(item))
+        return 0
+
+    if args.fb:
+        entries = all_functional_blocks(data)
+        rows = [[functional_block_label(entry),
+                 str(entry.get("cabinet") or ""),
+                 str(entry.get("kit") or ""),
+                 str(entry.get("ied") or ""),
+                 str(len(entry.get("functions") or []))]
+                for entry in entries]
+        _print_table(["Функциональный блок", "Шкаф", "Комплект", "ИЭУ",
+                      "Функций"], rows, args.limit)
+        print("блоков: %d" % len(rows))
         return 0
 
     if args.table:

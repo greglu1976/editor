@@ -151,6 +151,15 @@ class EAStandardWindow(tk.Toplevel):
                                  command=self.add_kit,
                                  font=ui_theme.font(9), state=tk.DISABLED)
         self.btn_kit.pack(side=tk.LEFT, padx=(4, 0))
+        self.btn_fb = tk.Button(actions, text="ФБ → на схему",
+                                command=self.place_functional_block,
+                                font=ui_theme.font(9), state=tk.DISABLED)
+        self.btn_fb.pack(side=tk.LEFT, padx=(4, 0))
+        self.btn_rebuild_fb = tk.Button(
+            actions, text="Пересобрать ФБ",
+            command=self.rebuild_functional_blocks,
+            font=ui_theme.font(9))
+        self.btn_rebuild_fb.pack(side=tk.LEFT, padx=(4, 0))
         self.btn_sync = tk.Button(
             actions, text="Обновить шкафы и комплекты по данному стандарту",
             command=self.update_cabinets_and_kits,
@@ -266,6 +275,23 @@ class EAStandardWindow(tk.Toplevel):
                              % (ied.get("number", ""),
                                 es.function_count(ied)))
                     self._nodes[ied_node] = ("ied", item, kit, ied)
+        # --- Функциональные блоки ---
+        fb_entries = es.all_functional_blocks(self._data)
+        fb_root = self.tree.insert(
+            "", tk.END,
+            text="Функциональные блоки (%d)" % len(fb_entries),
+            open=bool(fb_entries))
+        self._nodes[fb_root] = ("fb_root",)
+        for entry in fb_entries:
+            cabinet_code = entry.get("cabinet") or "—"
+            ied_num = entry.get("ied") or ""
+            label = es.functional_block_label(entry)
+            source = cabinet_code
+            if ied_num:
+                source += " / ИЭУ %s" % ied_num
+            label += "  [%s]" % source
+            fb_node = self.tree.insert(fb_root, tk.END, text=label)
+            self._nodes[fb_node] = ("fb_entry", entry)
         self._update_actions(None)
 
     def _add_tables(self, parent, container):
@@ -301,6 +327,10 @@ class EAStandardWindow(tk.Toplevel):
             self._show_kit(node[1], node[2])
         elif kind == "ied":
             self._show_ied(node[2], node[3])
+        elif kind == "fb_entry":
+            self._show_fb_entry(node[1])
+        elif kind in ("fb_root",):
+            self._show_text("Функциональные блоки", "")
         else:
             self._show_text(node[1], node[2])
 
@@ -310,6 +340,8 @@ class EAStandardWindow(tk.Toplevel):
             state=tk.NORMAL if kind == "cabinet" else tk.DISABLED)
         self.btn_kit.config(
             state=tk.NORMAL if kind == "kit" else tk.DISABLED)
+        self.btn_fb.config(
+            state=tk.NORMAL if kind == "fb_entry" else tk.DISABLED)
 
     def _clear_right(self):
         for column in self.table["columns"]:
@@ -430,6 +462,49 @@ class EAStandardWindow(tk.Toplevel):
         self.status.config(text="Блоков: %d · функций: %d"
                                 % (len(blocks), len(functions)))
 
+    def _show_fb_entry(self, entry):
+        """Показать карточку функционального блока."""
+        name = es.functional_block_label(entry)
+        caption = "ФБ: %s" % name
+        functions = entry.get("functions") or []
+        rows = [
+            ["Шкаф", entry.get("cabinet") or "—"],
+            ["Комплект", entry.get("kit") or "—"],
+            ["ИЭУ", entry.get("ied") or "—"],
+            ["Наименование", name],
+            ["МЭК 61850", entry.get("iec_name") or "—"],
+            ["LD / LN / DO / DA", " / ".join(
+                str(entry.get(part) or "") for part in ("LD", "LN", "DO", "DA"))],
+            ["Путь (рус.)", entry.get("russian_path") or "—"],
+            ["Корп. профиль", entry.get("corp_prof_name") or "—"],
+            ["Основная функция", "да" if entry.get("isMainFunction") else ""],
+            ["В ИТС", "да" if entry.get("isInITS") else ""],
+            ["Функций", str(len(functions))],
+        ]
+        # Развернём функции с уставками/сигналами
+        for fn in functions:
+            fn_name = fn.get("name") or fn.get("iec_name") or ""
+            fn_iec = fn.get("iec_name") or ""
+            fn_label = ("%s (%s)" % (fn_name, fn_iec)
+                        if fn_iec and fn_iec != fn_name else fn_name)
+            rows.append(["  Функция", fn_label])
+            for inp in fn.get("inputs") or []:
+                rows.append(["    Вход", "%s  %s" % (
+                    inp.get("name") or "", inp.get("iec_name") or "")])
+            for out in fn.get("outputs") or []:
+                rows.append(["    Выход", "%s  %s" % (
+                    out.get("name") or "", out.get("iec_name") or "")])
+            for st in fn.get("settings") or []:
+                rows.append(["    Уставка", "%s  [%s %s]" % (
+                    st.get("name") or "",
+                    st.get("default_value") or "",
+                    st.get("unit") or "")])
+            for par in fn.get("parameters") or []:
+                rows.append(["    Параметр", "%s = %s" % (
+                    par.get("name") or "", par.get("value") or "")])
+        self._show_card(caption, ["Параметр", "Значение"], rows)
+        self.status.config(text="ФБ: %s — функций %d" % (name, len(functions)))
+
     def _show_text(self, title, content):
         self._clear_right()
         self.caption.config(text=title)
@@ -478,6 +553,51 @@ class EAStandardWindow(tk.Toplevel):
                                 "добавлять некуда.", parent=self)
             return
         add(ea_catalog.kit_entry(self._data, node[1], node[2]))
+
+    def place_functional_block(self):
+        """Поставить выбранный функциональный блок на схему редактора."""
+        node = self._selected()
+        if not node or node[0] != "fb_entry" or not self._data:
+            return
+        entry = node[1]
+        place = getattr(self.app, "_place_functional_block", None)
+        if place is None:
+            messagebox.showinfo(
+                "ФБ на схему",
+                "Окно открыто без редактора схем: размещать некуда.",
+                parent=self)
+            return
+        try:
+            place(entry)
+        except Exception as exc:                      # noqa: BLE001
+            messagebox.showerror("ФБ на схему",
+                                 "Не удалось разместить ФБ:\n%s" % exc,
+                                 parent=self)
+            return
+        self.status.config(text="ФБ «%s» размещён на схеме"
+                                % es.functional_block_label(entry))
+
+    def rebuild_functional_blocks(self):
+        """Пересобрать каталог ФБ из текущих шкафов и сохранить стандарт."""
+        if not self._data or not self._path:
+            messagebox.showinfo("Функциональные блоки",
+                                "Стандарт не выбран.", parent=self)
+            return
+        count = es.rebuild_functional_blocks(self._data)
+        try:
+            es.save(self._data, self._path)
+        except OSError as exc:
+            messagebox.showerror("Функциональные блоки",
+                                 "Не удалось сохранить:\n%s" % exc,
+                                 parent=self)
+            return
+        self._fill_tree()
+        self.status.config(
+            text="Каталог ФБ пересобран: %d записей" % count)
+        messagebox.showinfo(
+            "Функциональные блоки",
+            "Каталог пересобран: %d записей (Стандарт сохранён)." % count,
+            parent=self)
 
     def update_cabinets_and_kits(self):
         """Обновить шкафы и комплекты каталога по текущему стандарту."""

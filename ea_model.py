@@ -58,6 +58,16 @@ def _text(value):
     return str(value)
 
 
+#: Составные части МЭК 61850-пути: LD / LN / DO / DA.
+IEC_PARTS = ("LD", "LN", "DO", "DA")
+
+
+def iec_parts(source):
+    """Структурные поля LD/LN/DO/DA из словаря (или пустые строки)."""
+    source = source if isinstance(source, dict) else {}
+    return {key: _text(source.get(key)).strip() for key in IEC_PARTS}
+
+
 def slot_type_title(slot_type):
     return SLOT_TYPES.get(slot_type, "")
 
@@ -71,17 +81,23 @@ def slot_type_for_link(kind):
 
 
 def new_slot(direction="in", name="", description="", iec_name="",
-             slot_type="", slot_id=""):
-    """Новый вход/выход функции (классы Input и Output structure2)."""
+             slot_type="", slot_id="", **iec):
+    """Новый вход/выход функции (классы Input и Output structure2).
+
+    Дополнительные ``LD``/``LN``/``DO``/``DA`` сохраняются рядом с полной
+    строкой ``iec_name`` — они нужны отчётам, которым нужны части пути.
+    """
     if slot_type not in SLOT_TYPES:
         slot_type = DEFAULT_SLOT_TYPE
-    return {
+    result = {
         "id": _text(slot_id),
         "name": _text(name),
         "description": _text(description),
         "iec_name": _text(iec_name),
         "type": slot_type,
     }
+    result.update(iec_parts(iec))
+    return result
 
 
 def normalize_slot(slot, direction="in"):
@@ -93,13 +109,15 @@ def normalize_slot(slot, direction="in"):
     slot_type = _text(slot.get("type") or slot.get("slot_type")).strip()
     if slot_type not in SLOT_TYPES:
         slot_type = DEFAULT_SLOT_TYPE
-    return {
+    result = {
         "id": _text(slot.get("id")),
         "name": _text(slot.get("name")),
         "description": _text(slot.get("description")),
         "iec_name": _text(slot.get("iec_name")),
         "type": slot_type,
     }
+    result.update(iec_parts(slot))
+    return result
 
 
 def normalize_slots(values, direction="in"):
@@ -148,7 +166,7 @@ def normalize_setting(setting):
 def normalize_function(function):
     """Функция по полям structure2: name, iec_name, LNclass и вложенные данные."""
     function = function if isinstance(function, dict) else {}
-    return {
+    result = {
         "name": _text(function.get("name")),
         "iec_name": _text(function.get("iec_name")),
         "LNclass": _text(function.get("LNclass")),
@@ -159,6 +177,8 @@ def normalize_function(function):
         "parameters": [normalize_parameter(item)
                        for item in function.get("parameters") or []],
     }
+    result.update(iec_parts(function))
+    return result
 
 
 def normalize_function_block(block):
@@ -166,7 +186,7 @@ def normalize_function_block(block):
     block = block if isinstance(block, dict) else {}
     name = _text(block.get("name")).strip()
     path = _text(block.get("russian_path")).strip()
-    return {
+    result = {
         "name": name or path,
         "isMainFunction": bool(block.get("isMainFunction")),
         "isInITS": bool(block.get("isInITS")),
@@ -177,6 +197,8 @@ def normalize_function_block(block):
                       for item in block.get("functions") or []
                       if isinstance(item, dict)],
     }
+    result.update(iec_parts(block))
+    return result
 
 
 def _blocks_from_legacy(items):
@@ -199,6 +221,7 @@ def _blocks_from_legacy(items):
                 "corp_prof_name": _text(item.get("corp_prof_name")),
                 "functions": [],
             }
+            block.update(iec_parts(item))
             index[key] = block
             blocks.append(block)
         else:
@@ -210,7 +233,7 @@ def _blocks_from_legacy(items):
                 block["iec_name"] = _text(item.get("iec_name"))
             if not block["corp_prof_name"] and item.get("corp_prof_name"):
                 block["corp_prof_name"] = _text(item.get("corp_prof_name"))
-        block["functions"].append({
+        function = {
             "name": name,
             "iec_name": _text(item.get("iec_name")),
             "LNclass": _text(item.get("LNclass")),
@@ -220,7 +243,9 @@ def _blocks_from_legacy(items):
                          for value in item.get("settings") or []],
             "parameters": [normalize_parameter(value)
                            for value in item.get("parameters") or []],
-        })
+        }
+        function.update(iec_parts(item))
+        block["functions"].append(function)
     return blocks
 
 

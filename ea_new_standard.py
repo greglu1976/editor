@@ -229,6 +229,13 @@ def keep_only(data, keep):
 
     data["cabinets"] = [item for item in items
                         if item.get("cypher") in keep_codes]
+    # Каталог функциональных блоков — отдельный модуль стандарта: из нового
+    # стандарта не должны попасть блоки снятых шкафов.
+    if isinstance(data.get("functional_blocks"), list):
+        data["functional_blocks"] = [
+            entry for entry in data["functional_blocks"]
+            if isinstance(entry, dict)
+            and str(entry.get("cabinet") or "") in keep_codes]
 
     # Подразделы шкафов запоминаем до отбора: после него у снятых шкафов
     # не останется ни одной таблицы, и подраздел уйдёт целиком.

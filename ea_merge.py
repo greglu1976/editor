@@ -297,6 +297,10 @@ def merge_cabinets(target, additions, starts=None):
         added.append(cypher)
 
     if added:
+        # Если каталог ФБ уже материализован в стандарте — обновим его
+        # по объединённым шкафам; иначе он собирается из шкафов на лету.
+        if isinstance(data.get("functional_blocks"), list):
+            es.rebuild_functional_blocks(data)
         ns.renumber_standard(data, starts=final_starts)
         problems = validate_merged(data)
         if problems:

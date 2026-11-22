@@ -490,10 +490,14 @@ def test_gui(data):
         def __init__(self, root):
             self.root = root
             self.placed = []
+            self.blocks = []
             self.kits = []
 
         def _place_cabinet(self, record):
             self.placed.append(record)
+
+        def _place_functional_block(self, entry):
+            self.blocks.append(entry)
 
         def add_komplekt_to_cabinet(self, entry):
             self.kits.append(entry)
@@ -523,6 +527,20 @@ def test_gui(data):
         check(len(app.placed) == 1
               and app.placed[0].get("code") == "ШЭТ 431.11-1",
               "шкаф размещён на схеме")
+
+        fbs = [iid for iid, node in window._nodes.items()
+               if node[0] == "fb_entry"]
+        check(len(fbs) > 0, "записей ФБ в окне стандарта: %d" % len(fbs))
+        if fbs:
+            window.tree.selection_set(fbs[0])
+            window._show()
+            root.update()
+            check(str(window.btn_fb["state"]) == "normal",
+                  "«ФБ → на схему» доступна для записи каталога")
+            window.place_functional_block()
+            check(len(app.blocks) == 1
+                  and app.blocks[0].get("cabinet"),
+                  "функциональный блок размещён на схеме")
 
         window.tree.selection_set(kits[0])
         window._show()
@@ -1404,6 +1422,127 @@ def test_typical_transfer():
           "в новый стандарт попали только выбранные шкафы")
 
 
+def test_functional_blocks(data):
+    """Отдельный каталог ФБ: принадлежность, signals/уставки, размещение."""
+    print("14a. каталог функциональных блоков")
+    import ea_schema as sc
+    import ea_structure as st
+    import logic_library as ll
+
+    entries = es.collect_functional_blocks(data)
+    check(len(entries) > 0, "собрано функциональных блоков: %d" % len(entries))
+    check(all({"cabinet", "kit", "ied", "name", "functions"} <= set(entry)
+              for entry in entries),
+          "у каждой записи есть принадлежность и функции")
+    function = next((fn for entry in entries for fn in entry["functions"]), {})
+    check(all(key in function for key in (
+            "name", "iec_name", "inputs", "outputs", "settings",
+            "parameters")),
+          "функция несёт МЭК, сигналы, уставки и параметры")
+
+    clone = copy.deepcopy(data)
+    clone.pop("functional_blocks", None)
+    check(len(es.all_functional_blocks(clone)) == len(entries),
+          "каталог собирается на лету, если его нет в JSON")
+    count = es.rebuild_functional_blocks(clone)
+    check(count == len(entries)
+          and len(clone["functional_blocks"]) == count,
+          "пересборка записывает каталог в стандарт")
+
+    check(sc.child_class("Standard", "functional_blocks")
+          == "FunctionalBlockEntry",
+          "схема: FunctionalBlocks — отдельный модуль Standard")
+    fields = {key for key, _kind, _default
+              in sc.fields("FunctionalBlockEntry")}
+    check({"cabinet", "kit", "ied", "name", "iec_name", "russian_path"}
+          <= fields, "в схеме есть принадлежность и имена по МЭК")
+
+    entry = st.new_functional_block_entry(
+        clone,
+        {"name": "Тест", "functions": [
+            {"name": "Ф", "iec_name": "Ph", "settings": [
+                {"name": "U", "default_value": "0,2"}]}]},
+        "Шкаф 1", 2, 3)
+    check(entry["cabinet"] == "Шкаф 1" and entry["kit"] == "2"
+          and entry["ied"] == "3",
+          "фабрика записи сохраняет шкаф/комплект/ИЭУ")
+    check(entry["functions"][0]["settings"][0]["name"] == "U",
+          "фабрика копирует уставки функции")
+
+    block = ll.block_from_standard(entry, "Btest", 0, 0)
+    check(block.type == "logic_block" and block.cabinet == "Шкаф 1"
+          and block.ied == "3" and len(block.functions) == 1,
+          "блок стандарта превращается в элемент схемы ФЛС")
+    check(block.functions[0]["title"] == "Ф"
+          and block.functions[0]["iec"] == "Ph"
+          and len(block.functions[0]["settings"]) == 1,
+          "на схеме сохранены русское имя, МЭК и уставка")
+    payload = ll.element_payload(block)
+    check(payload["cabinet"] == "Шкаф 1"
+          and payload["functions"][0]["settings"][0]["name"] == "U",
+          "принадлежность и уставки попадают в JSON схемы")
+    restored = ll.block_from_standard({}, "B2", 0, 0)
+    ll.restore_element(restored, payload)
+    check(restored.cabinet == "Шкаф 1"
+          and restored.functions[0]["settings"][0]["name"] == "U",
+          "принадлежность и уставки восстанавливаются из JSON")
+
+    mark_entry = st.new_functional_block_entry(
+        clone, {"name": "ЗП", "functions": [
+            {"name": "1 ступень",
+             "outputs": [{"name": "Срабатывание"}]}]})
+    mark_block = ll.block_from_standard(mark_entry, "Bmark", 0, 0)
+    label, _signal = ll.link_full_label(
+        {mark_block.id: mark_block},
+        {"from": "Bmark#fn0_out0", "to": "K1#left"},
+        ll._default_split_ref)
+    check(label == "ЗП / 1 ступень: Срабатывание",
+          "полная маркировка связи из каталога ФБ: %s" % label)
+
+    # Данные берутся из таблиц «Информационные сигналы в составе
+    # отчетов/исходящих сообщений»: там есть и русская, и МЭК-привязка.
+    real_entry = next((entry for entry in es.all_functional_blocks(data)
+                       if entry.get("cabinet") == "ШЭТ 431.14-1"
+                       and entry.get("name") == "ЗП"), None)
+    check(real_entry is not None, "блок ЗП найден в каталоге шкафа 431.14-1")
+    if real_entry is not None:
+        outputs = [out for fn in real_entry["functions"]
+                   for out in fn.get("outputs") or []]
+        check(any(out.get("description") == "ЗП / ЗП: Срабатывание"
+                  and out.get("iec_name") == "CMROVCTOC/PTOC1.Op.general"
+                  for out in outputs),
+              "выход функции дополнен из информационных сигналов")
+        first_fn = real_entry["functions"][0]
+        first_out = first_fn["outputs"][0]
+        check(real_entry.get("LD") == "CMROVCTOC"
+              and first_fn.get("LN") == "PTOC1"
+              and first_out.get("DO") == "Op"
+              and first_out.get("DA") == "general",
+              "МЭК-путь разделён на LD/LN/DO/DA")
+        schema_fields = {
+            cls: {key for key, _kind, _default in sc.fields(cls)}
+            for cls in ("FunctionalBlockEntry", "Function", "Output")}
+        check(all(part in schema_fields["FunctionalBlockEntry"]
+                  and part in schema_fields["Function"]
+                  and part in schema_fields["Output"]
+                  for part in ("LD", "LN", "DO", "DA")),
+              "схема structure2 содержит поля LD/LN/DO/DA")
+        real_block = ll.block_from_standard(real_entry, "Breal", 0, 0)
+        check(real_block.LD == "CMROVCTOC"
+              and real_block.functions[0]["outputs"][0]["DA"] == "general",
+              "структурные поля доходят до блока на схеме")
+        real_label, _signal = ll.link_full_label(
+            {"Breal": real_block},
+            {"from": "Breal#fn0_out0", "to": "K1#left"},
+            ll._default_split_ref)
+        check(real_label == "ЗП / ЗП: Срабатывание",
+              "полная маркировка из таблицы информационных сигналов: %s"
+              % real_label)
+    import main
+    check(hasattr(main.CircuitEditor, "_place_functional_block"),
+          "в редакторе есть размещение ФБ на схеме")
+
+
 def test_structure2_schema():
     """Схема structure2 и миграция JSON: поля есть, перезапись идемпотентна."""
     print("14. схема structure2")
@@ -1710,6 +1849,7 @@ def main(argv=None):
     test_structure_ops(data)
     test_merge_all_cabinets()
     test_typical_transfer()
+    test_functional_blocks(data)
     test_structure2_schema()
     test_ied_scheme(data)
     if not args.no_gui:

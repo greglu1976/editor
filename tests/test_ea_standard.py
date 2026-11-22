@@ -182,8 +182,17 @@ def test_gui():
     try:
         window = ea_ui.show(App(root), REFERENCE)
         root.update()
-        check(len(window.tree.get_children()) == 2,
-              "в дереве разделы и шкафы")
+        check(len(window.tree.get_children()) == 3,
+              "в дереве разделы, шкафы и функциональные блоки")
+        fbs = [iid for iid, node in window._nodes.items()
+               if node[0] == "fb_entry"]
+        check(len(fbs) > 0, "записей функциональных блоков: %d" % len(fbs))
+        if fbs:
+            window.tree.selection_set(fbs[0])
+            window._show()
+            root.update()
+            check(len(window.table.get_children()) > 0,
+                  "карточка функционального блока заполнена")
         tables = [iid for iid, node in window._nodes.items()
                   if node[0] == "table"]
         check(len(tables) == 65, "узлов-таблиц: %d" % len(tables))

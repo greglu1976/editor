@@ -4888,6 +4888,38 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         if bound and target_container is not None:
             self.selected_elements = [target_container.id]
 
+    def _place_functional_block(self, entry):
+        """Поставить FunctionalBlockEntry стандарта на схему ФЛС.
+
+        Блок создаётся как обычный ``logic_block``: он несёт русское имя и
+        МЭК-обозначение, принадлежность к шкафу/комплекту/ИЭУ и все
+        функции со сигналами, уставками и параметрами. Далее с ним можно
+        работать штатными средствами редактора ФЛС.
+        """
+        if not isinstance(entry, dict):
+            return None
+        width = self.canvas.winfo_width()
+        height = self.canvas.winfo_height()
+        if width < 50:
+            width = 800
+        if height < 50:
+            height = 700
+        wx, wy = self.screen_to_world(width / 2, height / 2)
+        wx, wy = self.snap(wx, wy)
+
+        self._push_undo()
+        block = logic_library.block_from_standard(
+            entry, "B" + uuid.uuid4().hex[:4], wx, wy, self.grid_size)
+        block.name = self.get_next_name(
+            PREFIX_BY_TYPE.get(block.type, "B"), block.type)
+        self.elements[block.id] = block
+        self.selected_elements = [block.id]
+        self.current_tool = "select"
+        self.canvas.config(cursor="arrow")
+        self._mark_active_tool()
+        self.redraw_all()
+        return block
+
     def show_signals_window(self, cabinet, parent=None):
         """Окно «Сигналы и испытательные блоки» по данным из СТО.
 
@@ -7217,10 +7249,20 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                 for x, y in points:
                     coords.extend(self.world_to_screen(x, y))
                 selected = c is self.selected_connection
+                color = "#1565c0" if selected else "black"
+                width = (2.5 if selected else 2) * self.zoom
+                bus_style = logic_library.bus_connection_style(
+                    self.elements, c)
+                if bus_style:
+                    bus_color, bus_width = bus_style
+                    # Невыделенный провод между шинами — как сама шина.
+                    if not selected:
+                        color = bus_color
+                    width = max(2, int(bus_width * self.zoom))
                 c["canvas_id"] = self.canvas.create_line(
                     *coords,
-                    width=max(1, int((2.5 if selected else 2) * self.zoom)),
-                    fill="#1565c0" if selected else "black",
+                    width=max(1, int(width)),
+                    fill=color,
                     joinstyle=tk.MITER, capstyle=tk.ROUND)
         self.connections = valid_connections
         if self.selected_connection is not None \
@@ -9794,7 +9836,14 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             coords = []
             for x, y in points:
                 coords.extend((x, y))
-            canvas.create_line(*coords, fill="black", width=2)
+            bus_style = logic_library.bus_connection_style(
+                self.elements, connection)
+            if bus_style:
+                color, bus_width = bus_style
+                canvas.create_line(*coords, fill=color,
+                                   width=max(2, int(bus_width)))
+            else:
+                canvas.create_line(*coords, fill="black", width=2)
 
         visible = [element for element in self.elements.values()
                    if not (element.type == "cabinet"
