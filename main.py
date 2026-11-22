@@ -855,6 +855,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._pre_change_state = None
         self._drag_changed = False
         self._resize_changed = False
+        self._resize_old_ports = None
 
         # Перетаскивание подписи элемента
         self._dragging_label = None
@@ -878,6 +879,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         # Изменение размера шины
         self.resizing_element = None
         self.resize_handle = None
+        self._resize_old_ports = None
         
         # Менеджер отмены/повтора: любая запись состояния — это изменение схемы
         self.undo_manager = UndoManager()
@@ -6465,6 +6467,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._drag_route_points = {}
         self.resizing_element = None
         self.resize_handle = None
+        self._resize_old_ports = None
         self.selection_start = None
         self.selection_start_screen = None
         self._pre_change_state = None
@@ -7251,7 +7254,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         for el_id in self.selected_elements:
             if el_id in self.elements:
                 el = self.elements[el_id]
-                if el.type == "bus":
+                if el.type in ("bus", "logic_bus"):
                     self.draw_handles(el)
                     
         # 4. Все узлы (с цветовой индикацией занятости)
@@ -7386,18 +7389,43 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._draw_crosshair()
 
     def draw_handles(self, el):
-        lx, ly = self.world_to_screen(el.x - el.length, el.y)
         r = 5 * self.zoom
+        if el.type == "logic_bus":
+            half = el.length / 2.0
+            if el._vertical():
+                ends = ((el.x, el.y - half), (el.x, el.y + half))
+            else:
+                ends = ((el.x - half, el.y), (el.x + half, el.y))
+            for wx, wy in ends:
+                px, py = self.world_to_screen(wx, wy)
+                self.canvas.create_rectangle(
+                    px-r, py-r, px+r, py+r, fill="#80deea", outline="blue",
+                    tags="handle")
+            return
+        lx, ly = self.world_to_screen(el.x - el.length, el.y)
         self.canvas.create_rectangle(lx-r, ly-r, lx+r, ly+r, fill="cyan", outline="blue", tags="handle")
         rx, ry = self.world_to_screen(el.x + el.length, el.y)
         self.canvas.create_rectangle(rx-r, ry-r, rx+r, ry+r, fill="cyan", outline="blue", tags="handle")
 
     def find_resize_handle(self, el_id, sx, sy):
         el = self.elements[el_id]
+        handle_r = 10 * self.zoom
+        if el.type == "logic_bus":
+            half = el.length / 2.0
+            if el._vertical():
+                ends = (("top", el.x, el.y - half),
+                        ("bottom", el.x, el.y + half))
+            else:
+                ends = (("left", el.x - half, el.y),
+                        ("right", el.x + half, el.y))
+            for name, wx, wy in ends:
+                px, py = self.world_to_screen(wx, wy)
+                if math.hypot(sx - px, sy - py) < handle_r:
+                    return name
+            return None
         if el.type != "bus": return None
         lx, ly = self.world_to_screen(el.x - el.length, el.y)
         rx, ry = self.world_to_screen(el.x + el.length, el.y)
-        handle_r = 10 * self.zoom
         if math.hypot(sx - lx, sy - ly) < handle_r: return "left"
         if math.hypot(sx - rx, sy - ry) < handle_r: return "right"
         return None
@@ -7437,10 +7465,15 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         if self.current_tool == "select":
             cursor = "arrow"
             for el_id in self.selected_elements:
-                if el_id in self.elements and self.elements[el_id].type == "bus":
-                    if self.find_resize_handle(el_id, event.x, event.y):
-                        cursor = "sb_h_double_arrow"
-                        break
+                el = self.elements.get(el_id)
+                if el is None or el.type not in ("bus", "logic_bus"):
+                    continue
+                handle = self.find_resize_handle(el_id, event.x, event.y)
+                if handle:
+                    cursor = ("sb_v_double_arrow"
+                              if handle in ("top", "bottom")
+                              else "sb_h_double_arrow")
+                    break
             self.canvas.config(cursor=cursor)
             return
 
@@ -8049,14 +8082,20 @@ class CircuitEditor(report_selection.SelectionReportMixin,
 
             # А2) ПРОВЕРКА МАРКЕРОВ ИЗМЕНЕНИЯ РАЗМЕРА ШИНЫ
             for el_id in list(self.selected_elements):
-                if el_id in self.elements and self.elements[el_id].type == "bus":
-                    handle = self.find_resize_handle(el_id, event.x, event.y)
-                    if handle:
-                        self.resizing_element = el_id
-                        self.resize_handle = handle
-                        self._pre_change_state = self._capture_state()
-                        self._resize_changed = False
-                        return
+                el = self.elements.get(el_id)
+                if el is None or el.type not in ("bus", "logic_bus"):
+                    continue
+                handle = self.find_resize_handle(el_id, event.x, event.y)
+                if handle:
+                    self.resizing_element = el_id
+                    self.resize_handle = handle
+                    self._pre_change_state = self._capture_state()
+                    self._resize_changed = False
+                    self._resize_old_ports = (
+                        {name: (port["x"], port["y"])
+                         for name, port in el.ports.items()}
+                        if el.type == "logic_bus" else None)
+                    return
 
             # Б) ПОДПИСЬ ЭЛЕМЕНТА — перетаскивается мышкой отдельно от символа
             label_el = self._label_at(event.x, event.y)
@@ -8578,7 +8617,44 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             el = self.elements[self.resizing_element]
             wx, wy = self.screen_to_world(event.x, event.y)
             wx, wy = self.snap(wx, wy)
-            
+
+            if el.type == "logic_bus":
+                # Верхний/нижний маркер меняют длину шины, не сдвигая
+                # противоположный конец. Отводы перепривязываются к тем
+                # же точкам, поэтому подключённые связи остаются на месте.
+                half = el.length / 2.0
+                vertical = el._vertical()
+                handle = self.resize_handle
+                if vertical:
+                    growing = handle != "top"
+                    fixed = el.y - half if growing else el.y + half
+                    point = wy
+                else:
+                    growing = handle != "left"
+                    fixed = el.x - half if growing else el.x + half
+                    point = wx
+                new_length = max(40.0, point - fixed if growing
+                                 else fixed - point)
+                if self.snap_to_grid:
+                    new_length = max(
+                        float(self.grid_size),
+                        round(new_length / self.grid_size) * self.grid_size)
+                if abs(new_length - el.length) > 0.01:
+                    self._resize_changed = True
+                el.length = float(new_length)
+                center = fixed + (new_length / 2.0 if growing
+                                  else -new_length / 2.0)
+                if vertical:
+                    el.y = center
+                else:
+                    el.x = center
+                el.generate_ports()
+                if self._resize_old_ports:
+                    self._rebind_logic_bus_links(el, self._resize_old_ports)
+                    self._prune_logic_links()
+                self.redraw_all()
+                return
+
             if self.resize_handle == "right":
                 fixed_edge = el.x - el.length
                 new_length = wx - fixed_edge
@@ -8710,6 +8786,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self.resizing_element = None
             self.resize_handle = None
             self._resize_changed = False
+            self._resize_old_ports = None
             self._pre_change_state = None
             self.redraw_all()
 

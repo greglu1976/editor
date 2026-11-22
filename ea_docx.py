@@ -26,7 +26,9 @@
 from __future__ import annotations
 
 import argparse
+from copy import deepcopy
 import os
+import re
 import sys
 import tempfile
 
@@ -34,12 +36,13 @@ import ea_standard as es
 
 try:
     from docx import Document
-    from docx.enum.section import WD_ORIENT
+    from docx.enum.section import WD_ORIENT, WD_SECTION
     from docx.enum.table import WD_TABLE_ALIGNMENT
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
-    from docx.shared import Cm, Pt, RGBColor
+    from docx.shared import Cm, Emu, Mm, Pt, RGBColor
+    from docx.text.paragraph import Paragraph
 except ImportError:                                   # pragma: no cover
     Document = None
 
@@ -103,7 +106,59 @@ def _widths(headers, rows, available=USABLE_CM):
     return [width * scale for width in widths]
 
 
-def _table(doc, headers, rows, size=8, max_rows=0):
+def _available_cm(doc):
+    """Ширина текста текущей секции: страница минус левое/правое поля."""
+    section = doc.sections[-1]
+    try:
+        width = Emu(section.page_width - section.left_margin
+                    - section.right_margin).cm
+    except (TypeError, AttributeError):              # pragma: no cover
+        return USABLE_CM
+    return width if width > 1.0 else USABLE_CM
+
+
+def _fixed_widths(headers, values, available=USABLE_CM):
+    """Ширины из поля ``colums_width`` (мм) или None, если их нет.
+
+    Пустой список означает «не задано» — тогда таблица ширится по
+    содержимому. Число значений не обязательно равно числу колонок:
+    лишние отбрасываются, недостающие дополняются расчётными.
+    """
+    widths = []
+    for value in values or []:
+        try:
+            width = float(value)
+        except (TypeError, ValueError):
+            continue
+        if width > 0:
+            widths.append(width)
+    if not widths:
+        return None
+    widths = widths[:len(headers)]
+    if len(widths) < len(headers):
+        rest = max(1.0, available - sum(widths))
+        widths.extend(_widths(headers, [], rest)[len(widths):])
+    return widths
+
+
+def _hard_width(table, widths):
+    """Зафиксировать общую ширину таблицы и тип разметки в XML."""
+    tbl_pr = table._tbl.tblPr
+    total_twips = int(round(sum(widths) * 1440.0 / 25.4))
+    total = tbl_pr.find(qn("w:tblW"))
+    if total is None:
+        total = OxmlElement("w:tblW")
+        tbl_pr.insert(0, total)
+    total.set(qn("w:w"), str(total_twips))
+    total.set(qn("w:type"), "dxa")
+    layout = tbl_pr.find(qn("w:tblLayout"))
+    if layout is None:
+        layout = OxmlElement("w:tblLayout")
+        total.addnext(layout)
+    layout.set(qn("w:type"), "fixed")
+
+
+def _table(doc, headers, rows, size=8, max_rows=0, widths_mm=None):
     """Таблица с шапкой; возвращает число выведенных строк данных."""
     if not headers:
         return 0
@@ -112,7 +167,11 @@ def _table(doc, headers, rows, size=8, max_rows=0):
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.autofit = False
-    widths = _widths(headers, shown)
+    available = _available_cm(doc)
+    widths = _fixed_widths(headers, widths_mm, available)
+    fixed = widths is not None
+    if not fixed:
+        widths = _widths(headers, shown, available)
     for index, header in enumerate(headers):
         cell = table.rows[0].cells[index]
         _cell(cell, header, size, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
@@ -123,17 +182,29 @@ def _table(doc, headers, rows, size=8, max_rows=0):
             _cell(row.cells[index],
                   values[index] if index < len(values) else "", size)
     for index, width in enumerate(widths):
-        table.columns[index].width = Cm(width)
+        value = Mm(width) if fixed else Cm(width)
+        table.columns[index].width = value
+        # Колонки Liberty/Word всё равно пересчитывают ширину ячеек,
+        # поэтому жёсткую ширину проставляем и на каждой ячейке.
+        for row in table.rows:
+            row.cells[index].width = value
+    if fixed:
+        _hard_width(table, widths)
     return len(shown)
 
 
-def _caption(doc, text):
+def _caption(doc, text, bookmark=None, bookmark_id=0,
+             bold=True, italic=False):
     paragraph = doc.add_paragraph()
     paragraph.paragraph_format.space_before = Pt(6)
     paragraph.paragraph_format.space_after = Pt(2)
     paragraph.paragraph_format.keep_with_next = True
+    finish = (_bookmark(paragraph, bookmark, bookmark_id)
+              if bookmark else None)
     run = paragraph.add_run(text)
-    _font(run, 9, bold=True)
+    _font(run, 9, bold=bold, italic=italic)
+    if finish is not None:
+        finish()
 
 
 def _body(doc, text):
@@ -191,7 +262,7 @@ def _heading(doc, text, level, numbered=True):
     return heading
 
 
-def _field(paragraph, instruction):
+def _field(paragraph, instruction, result="Обновите поле (F9)"):
     run = paragraph.add_run()
     begin = OxmlElement("w:fldChar")
     begin.set(qn("w:fldCharType"), "begin")
@@ -201,11 +272,13 @@ def _field(paragraph, instruction):
     separate = OxmlElement("w:fldChar")
     separate.set(qn("w:fldCharType"), "separate")
     text = OxmlElement("w:t")
-    text.text = "Обновите поле (F9)"
+    text.set(qn("xml:space"), "preserve")
+    text.text = result
     end = OxmlElement("w:fldChar")
     end.set(qn("w:fldCharType"), "end")
     for element in (begin, instr, separate, text, end):
         run._r.append(element)
+    return run
 
 
 def _toc(doc):
@@ -218,6 +291,111 @@ def _page_number(section):
     paragraph = section.footer.paragraphs[0]
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
     _field(paragraph, "PAGE")
+
+
+# ---------------------------------------------------------------------------
+# Перекрестные ссылки на таблицы и рисунки
+# ---------------------------------------------------------------------------
+#: «Таблица 5.2», «табл. 5.2», «Рисунок 4.1», «рис. 4.1» и т. п.
+_REFERENCE_RE = re.compile(
+    r"(таблиц\w*|табл\.?|рисунк\w*|рис\.?)\s+(\d+(?:\.\d+)*)", re.I)
+
+
+def _reference_key(text):
+    """Нормализованная ссылка: (T|F, номер) или None."""
+    match = _REFERENCE_RE.search(str(text or ""))
+    if match is None:
+        return None
+    kind = "T" if match.group(1).lower().startswith("табл") else "F"
+    return kind, match.group(2)
+
+
+def _register_reference(references, reference):
+    """Зарегистрировать подпись и вернуть (закладка, новая ли она)."""
+    key = _reference_key(reference)
+    if key is None:
+        return None, False
+    if key in references:
+        return references[key], False
+    base = "Ref%s_%s" % (key[0], key[1].replace(".", "_"))
+    name = base
+    index = 2
+    while name in references.values():
+        name = "%s_%d" % (base, index)
+        index += 1
+    references[key] = name
+    return name, True
+
+
+def _bookmark(paragraph, name, ident):
+    """Закладка вокруг только что добавленного фрагмента абзаца."""
+    start = OxmlElement("w:bookmarkStart")
+    start.set(qn("w:id"), str(ident))
+    start.set(qn("w:name"), name)
+    paragraph._p.append(start)
+
+    def finish():
+        end = OxmlElement("w:bookmarkEnd")
+        end.set(qn("w:id"), str(ident))
+        paragraph._p.append(end)
+
+    return finish
+
+
+def _copy_run_props(source, target):
+    if source is None:
+        return
+    props = source._r.find(qn("w:rPr"))
+    if props is not None:
+        target._r.insert(0, deepcopy(props))
+
+
+def _text_run(paragraph, text, template=None):
+    run = paragraph.add_run(text)
+    _copy_run_props(template, run)
+    return run
+
+
+def _link_references(doc, references):
+    """Заменить упоминания таблиц и рисунков на поля REF.
+
+    Обрабатываются все абзацы тела документа, включая ячейки таблиц.
+    Подписи с закладками пропускаются, чтобы ссылка не указывала сама
+    на себя. Текст сохраняется как кэш поля — документ читаем и без
+    обновления полей в Word.
+    """
+    if not references:
+        return
+    used_names = set(references.values())
+    for element in doc.element.body.iter(qn("w:p")):
+        markers = [item.get(qn("w:name"))
+                   for item in element.findall(qn("w:bookmarkStart"))]
+        if any(name in used_names for name in markers):
+            continue
+        paragraph = Paragraph(element, doc._body)
+        text = paragraph.text
+        if not text:
+            continue
+        matches = list(_REFERENCE_RE.finditer(text))
+        if not matches:
+            continue
+        source_run = paragraph.runs[0] if paragraph.runs else None
+        for run in list(paragraph.runs):
+            run._element.getparent().remove(run._element)
+        cursor = 0
+        for match in matches:
+            if match.start() > cursor:
+                _text_run(paragraph, text[cursor:match.start()], source_run)
+            name = references.get(_reference_key(match.group(0)))
+            if name:
+                field = _field(paragraph, " REF %s \\h " % name,
+                               result=match.group(0))
+                _copy_run_props(source_run, field)
+            else:
+                _text_run(paragraph, match.group(0), source_run)
+            cursor = match.end()
+        if cursor < len(text):
+            _text_run(paragraph, text[cursor:], source_run)
 
 
 def _setup(doc, layout=True):
@@ -275,15 +453,18 @@ def _title_page(doc, data, stats):
     doc.add_page_break()
 
 
-def _render_table(doc, data, table, max_rows, counters):
+def _render_table(doc, data, table, max_rows, counters, references):
     headers, rows = es.table_view(data, table)
     reference = table.get("reference") or ""
     name = table.get("name") or ""
     if not headers:
         return
-    _caption(doc, ("%s — %s" % (reference, name)).strip(" —"))
+    bookmark, is_new = _register_reference(references, reference)
+    _caption(doc, ("%s — %s" % (reference, name)).strip(" —"),
+             bookmark if is_new else None, 1000 + len(references))
     counters["таблицы"] += 1
-    counters["строки"] += _table(doc, headers, rows, max_rows=max_rows)
+    counters["строки"] += _table(doc, headers, rows, max_rows=max_rows,
+                                 widths_mm=table.get("colums_width") or [])
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +472,89 @@ def _render_table(doc, data, table, max_rows, counters):
 # ---------------------------------------------------------------------------
 #: Максимальная ширина картинки схемы в документе, см (лист А4 альбомный).
 SCHEME_WIDTH_CM = 24.0
+#: Форматы страницы, которые можно задать в поле «Формат» рисунка.
+PAGE_FORMATS_CM = {"A5": (14.8, 21.0), "A4": (21.0, 29.7),
+                   "A3": (29.7, 42.0)}
+_LANDSCAPE_WORDS = {"альбомная", "альбом", "горизонтальная", "landscape", "l"}
+_PORTRAIT_WORDS = {"книжная", "вертикальная", "portrait", "p"}
+
+
+def _figure_page(figure):
+    """Формат и ориентация рисунка из полей структуры или None."""
+    page_format = str(figure.get("format") or "").strip().upper()
+    orientation = str(figure.get("orientation") or "").strip().lower()
+    if page_format not in PAGE_FORMATS_CM:
+        page_format = ""
+    if orientation in _LANDSCAPE_WORDS:
+        landscape = True
+    elif orientation in _PORTRAIT_WORDS:
+        landscape = False
+    else:
+        landscape = None
+    if not page_format and landscape is None:
+        return None
+    return page_format, landscape
+
+
+def _apply_page(section, page_format, landscape):
+    """Применить формат и ориентацию к секции документа."""
+    width, height = PAGE_FORMATS_CM.get(page_format, (21.0, 29.7))
+    if landscape is None:
+        landscape = section.orientation == WD_ORIENT.LANDSCAPE
+    section.orientation = (WD_ORIENT.LANDSCAPE if landscape
+                           else WD_ORIENT.PORTRAIT)
+    section.page_width = Cm(height if landscape else width)
+    section.page_height = Cm(width if landscape else height)
+
+
+def _page_snapshot(section):
+    """Скопировать параметры страницы до вставки секции рисунка.
+
+    ``Document.add_section()`` переиспользует последний ``sectPr``, поэтому
+    ссылку на секцию сохранять нельзя — нужны именно атрибуты XML.
+    """
+    props = section._sectPr
+
+    def attributes(element):
+        return dict(element.attrib) if element is not None else None
+
+    return attributes(props.pgSz), attributes(props.pgMar)
+
+
+def _restore_page_setup(target, snapshot):
+    """Восстановить параметры страницы из снимка."""
+    size_attrs, margin_attrs = snapshot
+
+    def apply(element, values):
+        if values is None:
+            return
+        for name in list(element.attrib):
+            if name not in values:
+                del element.attrib[name]
+        for name, value in values.items():
+            element.set(name, value)
+
+    apply(target._sectPr.get_or_add_pgSz(), size_attrs)
+    if margin_attrs is not None:
+        apply(target._sectPr.get_or_add_pgMar(), margin_attrs)
+
+
+def _fit_picture(shape, section):
+    """Вписать картинку в доступную область страницы."""
+    target_width = min(int(Cm(SCHEME_WIDTH_CM)),
+                       section.page_width - section.left_margin
+                       - section.right_margin)
+    available_height = (section.page_height - section.top_margin
+                        - section.bottom_margin - int(Cm(1.5)))
+    if available_height <= 0:
+        available_height = shape.height
+    if shape.width <= 0 or shape.height <= 0 or target_width <= 0:
+        return
+    scale = min(target_width / float(shape.width),
+                available_height / float(shape.height))
+    if scale > 0:
+        shape.width = int(shape.width * scale)
+        shape.height = int(shape.height * scale)
 
 
 def _scheme_image(doc, figure):
@@ -320,7 +584,8 @@ def _scheme_image(doc, figure):
         paragraph = doc.add_paragraph()
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = paragraph.add_run()
-        run.add_picture(image_path, width=Cm(SCHEME_WIDTH_CM))
+        shape = run.add_picture(image_path)
+        _fit_picture(shape, doc.sections[-1])
     except Exception:
         return False
     finally:
@@ -331,18 +596,34 @@ def _scheme_image(doc, figure):
     return True
 
 
-def _render_container(doc, data, container, level, max_rows, counters):
+def _render_figure_block(doc, figure, references):
+    """Картинка схемы и подпись, при необходимости на своей странице."""
+    page = _figure_page(figure)
+    original = _page_snapshot(doc.sections[-1]) if page else None
+    if page:
+        section = doc.add_section(WD_SECTION.NEW_PAGE)
+        _apply_page(section, *page)
+    # Сначала картинка схемы (если файл задан и читается), затем подпись.
+    _scheme_image(doc, figure)
+    reference = figure.get("reference") or "Рисунок"
+    bookmark, is_new = _register_reference(references, reference)
+    _caption(doc, "%s — %s" % (reference, figure.get("name") or ""),
+             bookmark if is_new else None, 1000 + len(references),
+             bold=False, italic=True)
+    paragraph = doc.paragraphs[-1]
+    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    if original is not None:
+        doc.add_section(WD_SECTION.NEW_PAGE)
+        _restore_page_setup(doc.sections[-1], original)
+
+
+def _render_container(doc, data, container, level, max_rows, counters,
+                      references):
     _text_block(doc, container.get("content"))
     for table in container.get("tables") or []:
-        _render_table(doc, data, table, max_rows, counters)
+        _render_table(doc, data, table, max_rows, counters, references)
     for figure in container.get("figures") or []:
-        # Сначала картинка схемы (если файл задан и читается), затем подпись.
-        _scheme_image(doc, figure)
-        paragraph = doc.add_paragraph()
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        _font(paragraph.add_run(
-            "%s — %s" % (figure.get("reference") or "Рисунок",
-                         figure.get("name") or "")), 9, italic=True)
+        _render_figure_block(doc, figure, references)
     for clause in container.get("clauses") or []:
         number = clause.get("number") or ""
         lines = _clause_lines(clause.get("content"))
@@ -353,10 +634,10 @@ def _render_container(doc, data, container, level, max_rows, counters):
         for line in lines:
             _body(doc, line)
         for table in clause.get("tables") or []:
-            _render_table(doc, data, table, max_rows, counters)
+            _render_table(doc, data, table, max_rows, counters, references)
 
 
-def _render_sections(doc, data, max_rows, counters):
+def _render_sections(doc, data, max_rows, counters, references):
     """Разделы и подразделы: в тексте заголовка только название.
 
     Номер раздела и подраздела не выводится — его автоматически проставляет
@@ -370,7 +651,8 @@ def _render_sections(doc, data, max_rows, counters):
         _heading(doc, header or number, 1,
                  numbered=bool(number) and bool(header))
         counters["разделы"] += 1
-        _render_container(doc, data, section, 2, max_rows, counters)
+        _render_container(doc, data, section, 2, max_rows, counters,
+                          references)
         for sub in section.get("subsections") or []:
             sub_number = str(sub.get("number") or "").strip()
             title = str(sub.get("header") or "").strip()
@@ -378,7 +660,8 @@ def _render_sections(doc, data, max_rows, counters):
                 continue
             _heading(doc, title or sub_number, 2,
                      numbered=bool(sub_number) and bool(title))
-            _render_container(doc, data, sub, 3, max_rows, counters)
+            _render_container(doc, data, sub, 3, max_rows, counters,
+                              references)
 
 
 def template_path(folder=None):
@@ -420,11 +703,13 @@ def build(data, path, toc=True, max_rows=0):
         _setup(doc)
     stats = es.stats(data)
     counters = {"разделы": 0, "таблицы": 0, "строки": 0}
+    references = {}
     _title_page(doc, data, stats)
     if toc:
         _toc(doc)
         doc.add_page_break()
-    _render_sections(doc, data, max_rows, counters)
+    _render_sections(doc, data, max_rows, counters, references)
+    _link_references(doc, references)
     doc.save(path)
     counters["размер"] = os.path.getsize(path)
     return counters

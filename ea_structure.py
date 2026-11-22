@@ -222,6 +222,8 @@ def new_figure(data, container, number=None, name=None, base=None):
         "name": name or "Новый рисунок",
         "reference": "Рисунок %s" % value,
         "scheme": "",
+        "format": "",
+        "orientation": "",
     }
 
 

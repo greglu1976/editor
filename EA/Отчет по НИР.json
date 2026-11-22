@@ -1679,25 +1679,33 @@
               "number": "4.1",
               "name": "Общий вид обзорной двери шкафа",
               "reference": "Рисунок 4.1",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "4.2",
               "name": "Общий вид вариантов исполнения задней двери шкафа РЗА",
               "reference": "Рисунок 4.2",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "4.3",
               "name": "Внешний вид шкафа с зонами расположения аппаратуры на монтажных панелях",
               "reference": "Рисунок 4.3",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "4.4",
               "name": "Эскизный чертеж специализированной таблички (шильдика) типового шкафа",
               "reference": "Рисунок 4.4",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -2611,13 +2619,17 @@
               "number": "5.1",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 431.21-1",
               "reference": "Рисунок 5.1",
-              "scheme": "C:/WWWW/www_ai/schemes/220-12 СКРМ.json"
+              "scheme": "C:/WWWW/www_ai/schemes/220-12 СКРМ.json",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.2",
               "name": "Эскиз общего вида ШЭТ 431.21-1",
               "reference": "Рисунок 5.2",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ],
           "content": ""
@@ -3139,13 +3151,17 @@
               "number": "5.3",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 431.22-1",
               "reference": "Рисунок 5.3",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.4",
               "name": "Эскиз общего вида ШЭТ 431.22-1",
               "reference": "Рисунок 5.4",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -3666,13 +3682,17 @@
               "number": "5.5",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 431.23-1",
               "reference": "Рисунок 5.5",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.6",
               "name": "Эскиз общего вида ШЭТ 431.23-1",
               "reference": "Рисунок 5.6",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -4193,13 +4213,17 @@
               "number": "5.7",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 431.14-1",
               "reference": "Рисунок 5.7",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.8",
               "name": "Эскиз общего вида ШЭТ 431.14-1",
               "reference": "Рисунок 5.8",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         }
@@ -4220,25 +4244,33 @@
           "number": "А.1",
           "name": "Структурно-функциональная схема ИЭУ РЗ БСК 110–330 кВ",
           "reference": "Рисунок А.1",
-          "scheme": "ЗВП.json"
+          "scheme": "ЗВП.json",
+          "format": "",
+          "orientation": ""
         },
         {
           "number": "А.2",
           "name": "Структурно-функциональная схема ИЭУ РЗ ШР 330–750 кВ",
           "reference": "Рисунок А.2",
-          "scheme": ""
+          "scheme": "",
+          "format": "",
+          "orientation": ""
         },
         {
           "number": "А.3",
           "name": "Структурно-функциональная схема ИЭУ РЗ ШР 110–220 кВ",
           "reference": "Рисунок А.3",
-          "scheme": ""
+          "scheme": "",
+          "format": "",
+          "orientation": ""
         },
         {
           "number": "А.4",
           "name": "Структурно-функциональная схема ИЭУ РЗ КР",
           "reference": "Рисунок А.4",
-          "scheme": ""
+          "scheme": "",
+          "format": "",
+          "orientation": ""
         }
       ],
       "clauses": []

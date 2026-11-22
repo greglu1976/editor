@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import os
 import sys
 import tempfile
@@ -251,6 +252,8 @@ def test_docx(data):
     check(counters["таблицы"] == 65, "таблиц: %d" % counters["таблицы"])
 
     doc = Document(path)
+    check(len(doc.sections) == 1,
+          "рисунки без формата не меняют параметры страницы")
     headings = [paragraph.text for paragraph in doc.paragraphs
                 if paragraph.style.name.startswith("Heading")]
     check(any(text.startswith("Шкаф защит батареи") for text in headings),
@@ -259,6 +262,21 @@ def test_docx(data):
           "номера разделов и подразделов не вписаны в заголовки")
     check(not any(text.startswith("Приложение. Шкафы") for text in headings),
           "приложения со шкафами нет")
+
+    # Перекрестные ссылки: подписи — закладки, упоминания в тексте — REF.
+    body_xml = doc.element.body.xml
+    check(body_xml.count("<w:bookmarkStart") > 10
+          and "REF Ref" in body_xml,
+          "подписи таблиц и рисунков получили закладки и поля REF")
+    table_caption = next(paragraph for paragraph in doc.paragraphs
+                         if paragraph.text.startswith("Таблица 5.2 —"))
+    check("bookmarkStart" in table_caption._p.xml
+          and "RefT_5_2" in table_caption._p.xml,
+          "закладка таблицы 5.2 находится в подписи")
+    mention = next(paragraph for paragraph in doc.paragraphs
+                   if "В таблице Таблица 5.1" in paragraph.text)
+    check("REF RefT_5_1" in mention._p.xml,
+          "упоминание таблицы 5.1 превращено в поле REF")
 
     headers, rows = es.table_view(data, es.table_by_number(data, "5.2"))
     match = None
@@ -290,6 +308,69 @@ def test_docx(data):
     check(not any("ТЕКСТ ШАБЛОНА" in paragraph.text
                   for paragraph in with_template.paragraphs),
           "содержимое шаблона заменено")
+
+    # Автоматическая ширина не должна выходить за поля страницы.
+    from docx.oxml.ns import qn
+    from docx.shared import Emu
+    for label, report in (("основной", doc), ("с шаблоном", with_template)):
+        section = report.sections[-1]
+        usable = Emu(section.page_width - section.left_margin
+                     - section.right_margin).cm
+        check(all(sum(column.width.cm for column in table.columns
+                      if column.width) <= usable + 0.05
+                  for table in report.tables),
+              "таблицы (%s) вписаны в ширину текста %.1f см"
+              % (label, usable))
+
+    # Поле «Ширина колонок» задаёт жёсткую ширину в миллиметрах.
+    fixed_data = copy.deepcopy(data)
+    fixed_table = es.table_by_number(fixed_data, "5.2")
+    fixed_headers = es.table_view(fixed_data, fixed_table)[0]
+    fixed_table["colums_width"] = [25] * len(fixed_headers)
+    fixed_path = os.path.join(tempfile.mkdtemp(), "fixed.docx")
+    ea_docx.build(fixed_data, fixed_path, max_rows=1, toc=False)
+    fixed_doc = Document(fixed_path)
+    widths_table = next((item for item in fixed_doc.tables
+                         if [cell.text for cell in item.rows[0].cells]
+                         == fixed_headers), None)
+    check(widths_table is not None
+          and all(abs(column.width.cm - 2.5) < 0.01
+                  for column in widths_table.columns)
+          and all(abs(cell.width.cm - 2.5) < 0.01
+                  for cell in widths_table.rows[0].cells),
+          "заданные ширины колонок применены к колонкам и ячейкам")
+    if widths_table is not None:
+        props = widths_table._tbl.tblPr
+        total = props.find(qn("w:tblW"))
+        layout = props.find(qn("w:tblLayout"))
+        expected = round(25 * len(fixed_headers) * 1440.0 / 25.4)
+        check(total is not None and total.get(qn("w:type")) == "dxa"
+              and abs(int(total.get(qn("w:w"))) - expected) <= 1
+              and layout is not None
+              and layout.get(qn("w:type")) == "fixed",
+              "общая ширина таблицы зафиксирована в XML")
+
+    # Формат и ориентация рисунка создают отдельную секцию и восстанавливают
+    # параметры страницы после подписи.
+    from docx.enum.section import WD_ORIENT
+    page_data = copy.deepcopy(data)
+    figure = next(es.iter_figures(page_data))
+    figure["format"] = "A3"
+    figure["orientation"] = "альбомная"
+    page_path = os.path.join(tempfile.mkdtemp(), "page.docx")
+    ea_docx.build(page_data, page_path, max_rows=1, toc=False)
+    page_doc = Document(page_path)
+    check(len(page_doc.sections) >= 3, "рисунок с форматом получил секцию")
+    if len(page_doc.sections) >= 3:
+        middle = page_doc.sections[1]
+        last = page_doc.sections[-1]
+        check(abs(middle.page_width.cm - 42.0) < 0.1
+              and abs(middle.page_height.cm - 29.7) < 0.1
+              and middle.orientation == WD_ORIENT.LANDSCAPE,
+              "секция рисунка: A3 альбомная")
+        check(last.orientation != WD_ORIENT.LANDSCAPE
+              and last.page_width.cm < middle.page_width.cm,
+              "после рисунка параметры страницы восстановлены")
 
 
 # ---------------------------------------------------------------------------

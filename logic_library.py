@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import copy
 import math
+import re
 
 import ea_model
 from library import CELL, Component
@@ -290,6 +291,100 @@ def signal_text(ru, iec, fallback=""):
     return ru or iec or fallback
 
 
+def _default_split_ref(ref):
+    element_id, sep, port = str(ref or "").partition("#")
+    return element_id, (port if sep else "")
+
+
+def link_signal_text(elements, link, split_ref=None):
+    """Короткое наименование сигнала связи: из полей связи или выхода."""
+    split_ref = split_ref or _default_split_ref
+    text = signal_text(link.get("ru"), link.get("iec"))
+    if text:
+        return text
+    for ref in (link.get("from"), link.get("to")):
+        element_id, port_name = split_ref(ref)
+        element = elements.get(element_id)
+        if element is None:
+            continue
+        port = element.ports.get(port_name) or {}
+        if port.get("direction") == "out":
+            text = port_signal_text(port)
+            if text:
+                break
+    return text
+
+
+_FUNCTION_OUTPUT_RE = re.compile(r"^fn(\d+)_out(\d+)$")
+
+
+def link_full_label(elements, link, split_ref=None):
+    """Подпись связи ФЛС и короткий сигнал для проверки дублей.
+
+    Для связи от выхода функции внутри функционального блока выводится
+    полное обозначение «ФБ / Функция: Сигнал»: «Обозначение» блока, «Имя
+    функции» и «Наименование» её выхода. Если какого-то поля нет, оно
+    пропускается; если полное обозначение собрать нельзя, остаётся
+    обычная подпись сигнала.
+    """
+    split_ref = split_ref or _default_split_ref
+    signal = link_signal_text(elements, link, split_ref)
+    for ref in (link.get("from"), link.get("to")):
+        element_id, port_name = split_ref(ref)
+        element = elements.get(element_id)
+        if element is None or getattr(element, "type", "") != "logic_block":
+            continue
+        port = element.ports.get(port_name) or {}
+        if port.get("direction") != "out":
+            continue
+        match = _FUNCTION_OUTPUT_RE.match(port_name)
+        if match is None:
+            continue
+        functions = getattr(element, "functions", None) or []
+        fn_index, slot_index = (int(match.group(1)), int(match.group(2)))
+        if fn_index >= len(functions):
+            continue
+        function = normalize_function(functions[fn_index])
+        outputs = function.get("outputs") or []
+        if slot_index >= len(outputs):
+            continue
+        slot = outputs[slot_index]
+        signal_name = str(slot.get("name") or "").strip() or signal
+        parts = []
+        designation = str(getattr(element, "designation", "") or "").strip()
+        function_name = str(function.get("name")
+                            or function.get("title") or "").strip()
+        if designation:
+            parts.append(designation)
+        if function_name:
+            parts.append(function_name)
+        label = " / ".join(parts)
+        if signal_name:
+            label = (label + ": " if label else "") + signal_name
+        if label:
+            return label, signal_name
+    return signal, signal
+
+
+def bus_link_style(elements, link, split_ref=None):
+    """Стиль связи между двумя шинами: цвет и толщина самой шины.
+
+    Для остальных связей возвращается None — у них цвет и толщина задаются
+    типом связи.
+    """
+    split_ref = split_ref or _default_split_ref
+    buses = []
+    for ref in (link.get("from"), link.get("to")):
+        element_id, _port = split_ref(ref)
+        element = elements.get(element_id)
+        if element is None or getattr(element, "type", "") != "logic_bus":
+            return None
+        buses.append(element)
+    color = (getattr(buses[0], "color", "") or "").strip() \
+        or (getattr(buses[1], "color", "") or "").strip() or "#00acc1"
+    return color, float(LogicBus.WIDTH)
+
+
 def _text_width(text, size=8):
     """Приблизительная ширина строки в мировых единицах."""
     text = str(text or "")
@@ -435,6 +530,9 @@ class LogicBus(LogicComponent):
         self.title = "Шина"
         self.description = ""
         self.color = "#00acc1"
+        # Поля шины (название, сигнал, номер) по умолчанию не выводятся:
+        # они дублируют подписи подключённых связей.
+        self.show_fields = False
         self.generate_ports()
 
     def _vertical(self):
@@ -491,27 +589,29 @@ class LogicBus(LogicComponent):
             x1, y1 = self.world_to_screen(self.x, self.y - half)
             x2, y2 = self.world_to_screen(self.x, self.y + half)
             canvas.create_line(x1, y1, x2, y2, width=lw, fill=color)
-            self._draw_title(canvas, zoom, offset_x, offset_y,
-                             self.x, self.y - half - 14, anchor="s")
-            self._draw_name(canvas, zoom, offset_x, offset_y,
-                            self.x + 8, self.y - half)
-            self._draw_signal(canvas, zoom, offset_x, offset_y,
-                              self.x + 10, self.y, size=7, color=color)
-            self._draw_number(canvas, zoom, offset_x, offset_y,
-                              self.x + 10, self.y + 14, size=7)
+            if getattr(self, "show_fields", False):
+                self._draw_title(canvas, zoom, offset_x, offset_y,
+                                 self.x, self.y - half - 14, anchor="s")
+                self._draw_name(canvas, zoom, offset_x, offset_y,
+                                self.x + 8, self.y - half)
+                self._draw_signal(canvas, zoom, offset_x, offset_y,
+                                  self.x + 10, self.y, size=7, color=color)
+                self._draw_number(canvas, zoom, offset_x, offset_y,
+                                  self.x + 10, self.y + 14, size=7)
         else:
             x1, y1 = self.world_to_screen(self.x - half, self.y)
             x2, y2 = self.world_to_screen(self.x + half, self.y)
             canvas.create_line(x1, y1, x2, y2, width=lw, fill=color)
-            self._draw_title(canvas, zoom, offset_x, offset_y,
-                             self.x, self.y - 14, anchor="s")
-            self._draw_name(canvas, zoom, offset_x, offset_y,
-                            self.x - half, self.y + 6)
-            self._draw_signal(canvas, zoom, offset_x, offset_y,
-                              self.x - half + 10, self.y - 12,
-                              size=7, color=color)
-            self._draw_number(canvas, zoom, offset_x, offset_y,
-                              self.x - half + 10, self.y + 2, size=7)
+            if getattr(self, "show_fields", False):
+                self._draw_title(canvas, zoom, offset_x, offset_y,
+                                 self.x, self.y - 14, anchor="s")
+                self._draw_name(canvas, zoom, offset_x, offset_y,
+                                self.x - half, self.y + 6)
+                self._draw_signal(canvas, zoom, offset_x, offset_y,
+                                  self.x - half + 10, self.y - 12,
+                                  size=7, color=color)
+                self._draw_number(canvas, zoom, offset_x, offset_y,
+                                  self.x - half + 10, self.y + 2, size=7)
 
     def get_bounding_box(self):
         half = self.length / 2.0
@@ -1192,13 +1292,13 @@ def create_component(comp_type, comp_id, x, y, grid_size=20):
 #: Поля, которые сохраняются в JSON для каждого типа ФЛС.
 LOGIC_FIELDS = {
     "logic_bus": ("length", "title", "description", "signal_ru", "signal_iec",
-                  "signal_no", "color", "rotation"),
+                  "signal_no", "color", "rotation", "show_fields"),
     "logic_key": ("title", "signal_ru", "signal_iec", "signal_no", "show_led"),
     "logic_led": ("title", "signal_ru", "signal_iec", "signal_no"),
     "logic_block": ("title", "designation", "width", "functions",
                     "isMainFunction", "isInITS", "iec_name",
                     "russian_path", "corp_prof_name"),
-    "logic_function": ("kind", "title", "iec_name", "LNclass",
+    "logic_function": ("kind", "title", "name", "iec_name", "LNclass",
                        "signal_ru", "signal_iec", "signal_no", "input_count",
                        "inputs", "outputs", "settings", "parameters"),
     "logic_port_in": ("title", "signal_ru", "signal_iec", "signal_no"),
@@ -1276,6 +1376,7 @@ def restore_element(el, payload):
             el.color = "#00acc1"
         if not isinstance(getattr(el, "description", ""), str):
             el.description = ""
+        el.show_fields = bool(getattr(el, "show_fields", False))
     if str(getattr(el, "type", "")).startswith("logic_port"):
         for field in ("title", "signal_ru", "signal_iec", "signal_no"):
             if not isinstance(getattr(el, field, ""), str):

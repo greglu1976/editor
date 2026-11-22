@@ -1772,25 +1772,33 @@
               "number": "4.1",
               "name": "Общий вид обзорной двери шкафа",
               "reference": "Рисунок 4.1",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "4.2",
               "name": "Общий вид вариантов исполнения задней двери шкафа РЗА",
               "reference": "Рисунок 4.2",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "4.3",
               "name": "Внешний вид шкафа с зонами расположения аппаратуры на монтажных панелях",
               "reference": "Рисунок 4.3",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "4.4",
               "name": "Эскизный чертеж специализированной таблички (шильдика) типового шкафа",
               "reference": "Рисунок 4.4",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -2976,19 +2984,25 @@
               "number": "5.1",
               "name": "Поясняющие схемы подключения ИЭУ1 шкафа ШЭТ 211.11-1",
               "reference": "Рисунок 5.1",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.2",
               "name": "Поясняющие схемы подключения ИЭУ2 шкафа ШЭТ 211.11-1",
               "reference": "Рисунок 5.2",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.3",
               "name": "Эскиз общего вида ШЭТ 211.11-1",
               "reference": "Рисунок 5.3",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -3509,13 +3523,17 @@
               "number": "5.4",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 211.12-1",
               "reference": "Рисунок 5.4",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.5",
               "name": "Эскиз общего вида ШЭТ 211.12-1",
               "reference": "Рисунок 5.5",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -4028,13 +4046,17 @@
               "number": "5.6",
               "name": "Поясняющая схема подключения ИЭУ шкафа ШЭТ 210.13-1",
               "reference": "Рисунок 5.6",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.7",
               "name": "Эскиз общего вида ШЭТ 210.13-1",
               "reference": "Рисунок 5.7",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -4773,19 +4795,25 @@
               "number": "5.8",
               "name": "Поясняющие схемы подключения ИЭУ1 шкафа ШЭТ 211.14-1",
               "reference": "Рисунок 5.8",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.9",
               "name": "Поясняющие схемы подключения ИЭУ2 шкафа ШЭТ 211.14-1",
               "reference": "Рисунок 5.9",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.10",
               "name": "Эскиз общего вида ШЭТ 211.14-1",
               "reference": "Рисунок 5.10",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -5306,13 +5334,17 @@
               "number": "5.11",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 211.15-1",
               "reference": "Рисунок 5.11",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.12",
               "name": "Эскиз общего вида ШЭТ 211.15-1",
               "reference": "Рисунок 5.12",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -6051,19 +6083,25 @@
               "number": "5.13",
               "name": "Поясняющая схема подключения ИЭУ1 шкафа ШЭТ 311.11-1",
               "reference": "Рисунок 5.13",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.14",
               "name": "Поясняющая схема подключения ИЭУ2 шкафа ШЭТ 311.11-1",
               "reference": "Рисунок 5.14",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.15",
               "name": "Эскиз общего вида ШЭТ 311.11-1",
               "reference": "Рисунок 5.15",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -6584,13 +6622,17 @@
               "number": "5.16",
               "name": "Поясняющая схема подключения ИЭУ шкафа ШЭТ 311.12-1",
               "reference": "Рисунок 5.16",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.17",
               "name": "Эскиз общего вида ШЭТ 311.12-1",
               "reference": "Рисунок 5.17",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         },
@@ -7137,19 +7179,25 @@
               "number": "5.18",
               "name": "Поясняющие схемы подключения ИЭУ1 шкафа ШЭТ 410.11-1",
               "reference": "Рисунок 5.18",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.19",
               "name": "Поясняющие схемы подключения ИЭУ2 шкафа ШЭТ 410.11-1",
               "reference": "Рисунок 5.19",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             },
             {
               "number": "5.20",
               "name": "Эскиз общего вида ШЭТ 410.11-1",
               "reference": "Рисунок 5.20",
-              "scheme": ""
+              "scheme": "",
+              "format": "",
+              "orientation": ""
             }
           ]
         }
@@ -7169,37 +7217,49 @@
           "number": "А.1",
           "name": "Структурно-функциональная схема ИЭУ ДЗТ Т 110–220 кВ",
           "reference": "Рисунок А.1",
-          "scheme": ""
+          "scheme": "",
+          "format": "",
+          "orientation": ""
         },
         {
           "number": "А.2",
           "name": "Структурно-функциональная схема ИЭУ ДЗО НН",
           "reference": "Рисунок А.2",
-          "scheme": ""
+          "scheme": "",
+          "format": "",
+          "orientation": ""
         },
         {
           "number": "А.3",
           "name": "Структурно-функциональная схема ИЭУ МТЗ Т 110–220 кВ",
           "reference": "Рисунок А.3",
-          "scheme": ""
+          "scheme": "",
+          "format": "",
+          "orientation": ""
         },
         {
           "number": "А.4",
           "name": "Структурно-функциональная схема ИЭУ ДЗТ АТ 220 кВ",
           "reference": "Рисунок А.4",
-          "scheme": ""
+          "scheme": "",
+          "format": "",
+          "orientation": ""
         },
         {
           "number": "А.5",
           "name": "Структурно-функциональная схема ИЭУ ДЗТ АТ 330 кВ и выше",
           "reference": "Рисунок А.5",
-          "scheme": ""
+          "scheme": "",
+          "format": "",
+          "orientation": ""
         },
         {
           "number": "А.6",
           "name": "Структурно-функциональная схема ИЭУ КСЗ АТ",
           "reference": "Рисунок А.6",
-          "scheme": ""
+          "scheme": "",
+          "format": "",
+          "orientation": ""
         }
       ]
     },

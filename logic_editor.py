@@ -453,7 +453,7 @@ class LogicEditorMixin:
                         "Логика",
                         "Связь ФЛС подключается к выводу элемента: "
                         "краю клавиши/светодиода, входу или выходу блока, "
-                        "логического узла или отводу шины.")
+                        "логического узла, отводу шины или другой шине.")
             self.redraw_all()
             return
 
@@ -547,19 +547,8 @@ class LogicEditorMixin:
 
     def _logic_link_label_text(self, link):
         """Подпись сигнала на линии; не дублирует подпись клавиши/светодиода."""
-        text = ll.signal_text(link.get("ru"), link.get("iec"))
-        if not text:
-            # Имя связи по умолчанию — от имени выхода функции.
-            for ref in (link.get("from"), link.get("to")):
-                element_id, port_name = self._logic_split_ref(ref)
-                element = self.elements.get(element_id)
-                if element is None:
-                    continue
-                port = element.ports.get(port_name) or {}
-                if port.get("direction") == "out":
-                    text = ll.port_signal_text(port)
-                    if text:
-                        break
+        text, signal = ll.link_full_label(
+            self.elements, link, self._logic_split_ref)
         if not text:
             return ""
         link_ru = (link.get("ru") or "").strip()
@@ -570,14 +559,15 @@ class LogicEditorMixin:
             if element is None:
                 continue
             if element.type in ("logic_key", "logic_led", "logic_function",
-                                "logic_port_in", "logic_port_out"):
+                                "logic_port_in", "logic_port_out",
+                                "logic_bus"):
                 own_ru = (getattr(element, "signal_ru", "") or "").strip()
                 own_iec = (getattr(element, "signal_iec", "") or "").strip()
                 if own_ru and link_ru == own_ru \
                         and (not link_iec or link_iec == own_iec):
                     return ""
                 own = ll.signal_text(own_ru, own_iec)
-                if own and own == text:
+                if own and own == signal:
                     return ""
         return text
 
@@ -793,6 +783,12 @@ class LogicEditorMixin:
             style = ll.link_style(link.get("kind"))
             color = style["color"]
             width = max(1, int(style["width"] * self.zoom))
+            bus_style = ll.bus_link_style(
+                self.elements, link, self._logic_split_ref)
+            if bus_style:
+                color, bus_width = bus_style
+                width = max(2, int(bus_width * self.zoom))
+                style = dict(style, dash=None)
             selected = link is self.selected_logic
             if selected:
                 width += max(1, int(1.0 * self.zoom))
@@ -961,6 +957,13 @@ class LogicEditorMixin:
         for link, route in prepared:
             style = ll.link_style(link.get("kind"))
             color = style["color"]
+            line_width = 1
+            bus_style = ll.bus_link_style(
+                self.elements, link, self._logic_split_ref)
+            if bus_style:
+                color, width = bus_style
+                line_width = max(2, int(width))
+                style = dict(style, dash=None)
             arrow = bool(link.get("arrow", True))
             if arrow:
                 last_x, last_y = route[-1]
@@ -974,7 +977,7 @@ class LogicEditorMixin:
                 for x, y in route[:-1]:
                     coords.extend((x, y))
                 coords.extend((last_x - ux * 5.4, last_y - uy * 5.4))
-                canvas.create_line(*coords, fill=color, width=1,
+                canvas.create_line(*coords, fill=color, width=line_width,
                                    dash=style["dash"])
                 self._export_arrowhead(canvas, prev_x, prev_y,
                                        last_x, last_y, fill=color)
@@ -982,7 +985,7 @@ class LogicEditorMixin:
                 coords = []
                 for x, y in route:
                     coords.extend((x, y))
-                canvas.create_line(*coords, fill=color, width=1,
+                canvas.create_line(*coords, fill=color, width=line_width,
                                    dash=style["dash"])
 
         def draw_number(link, anchor):
@@ -1473,6 +1476,7 @@ class LogicEditorMixin:
         self._push_undo()
         element.kind = data["kind"]
         element.title = data["title"]
+        element.name = data["name"]
         element.iec_name = data["iec_name"]
         element.LNclass = data["LNclass"]
         element.signal_ru = data["ru"]
@@ -1602,11 +1606,14 @@ class LogicEditorMixin:
         color_var = tk.StringVar(value=getattr(element, "color", "#00acc1"))
         description_var = tk.StringVar(
             value=getattr(element, "description", ""))
+        fields_var = tk.BooleanVar(
+            value=bool(getattr(element, "show_fields", False)))
 
         def extra(form, row, variables):
             variables["length"] = length_var
             variables["color"] = color_var
             variables["description"] = description_var
+            variables["show_fields"] = fields_var
             tk.Label(form, text="Длина шины:", anchor="w").grid(
                 row=row, column=0, sticky="w", pady=(6, 0))
             tk.Entry(form, textvariable=length_var, width=12).grid(
@@ -1619,7 +1626,10 @@ class LogicEditorMixin:
                 row=row + 2, column=0, sticky="w", pady=(6, 0))
             tk.Entry(form, textvariable=description_var, width=42).grid(
                 row=row + 2, column=1, sticky="we", pady=(6, 0))
-            return row + 3
+            tk.Checkbutton(form, text="Выводить поля шины",
+                           variable=fields_var, anchor="w").grid(
+                row=row + 3, column=0, columnspan=2, sticky="w", pady=(6, 0))
+            return row + 4
 
         self._logic_common_dialog(element, "Шина ФЛС — свойства", extra)
 
@@ -1674,6 +1684,8 @@ class LogicEditorMixin:
                 pass
         if "description" in variables and hasattr(element, "description"):
             element.description = variables["description"].get().strip()
+        if "show_fields" in variables and hasattr(element, "show_fields"):
+            element.show_fields = bool(variables["show_fields"].get())
 
     # ---------- функциональный блок ----------
     def edit_logic_block(self, element):

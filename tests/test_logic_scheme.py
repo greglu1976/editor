@@ -29,7 +29,10 @@
 22. перенос точек: захват излома любой связи и перетаскивание линии целиком;
 23. перетаскивание номера и наименования связи мышкой со сохранением
     смещений в JSON и в экспорте; у новых связей стрелка отключена;
-24. перепривязку связей к другим отводам при изменении длины шины.
+24. перепривязку связей к другим отводам при изменении длины шины;
+25. полное обозначение сигнала на связи ФБ / Функция: Сигнал;
+26. изменение длины шины маркерами вверх/вниз, связь шины с шиной и
+    отключение вывода полей шины.
 """
 
 from __future__ import annotations
@@ -149,9 +152,42 @@ def test_payload():
 
     bus = ll.LogicBus("S1", 0, 0)
     bus.length = 300
+    bus.show_fields = True
     ll.restore_element(bus, ll.element_payload(bus))
     check(close(bus.length, 300) and "p1" in bus.ports,
           "длина шины и отводы восстановлены")
+    check(bus.show_fields is True,
+          "признак вывода полей шины сохраняется в JSON")
+
+
+def test_full_signal_label():
+    print("2а. полное обозначение сигнала на связи")
+    block = ll.LogicBlock("B1", 0, 0)
+    block.designation = "ДЗШ"
+    block.functions = [{
+        "name": "ПО", "title": "Пуск",
+        "outputs": [{"name": "Пуск", "iec_name": "Start"}],
+    }]
+    block.generate_ports()
+    elements = {"B1": block}
+    link = {"from": "B1#fn0_out0", "to": "K1#left",
+            "ru": "Пуск", "iec": "Start", "number": "9000"}
+    label, signal = ll.link_full_label(elements, link, lsr.split_ref)
+    check(label == "ДЗШ / ПО: Пуск" and signal == "Пуск",
+          "подпись собрана из обозначения блока, имени функции и выхода")
+    check(lsr.link_label_text(elements, link) == "ДЗШ / ПО: Пуск",
+          "экспорт схемы использует полное обозначение")
+
+    key = ll.LogicKey("K1", 0, 0)
+    key.signal_ru = "Пуск"
+    check(lsr.link_label_text(dict(elements, K1=key), link) == "",
+          "полная подпись не дублирует подпись клавиши")
+
+    block.designation = ""
+    check(ll.link_full_label(elements, link, lsr.split_ref)[0] == "ПО: Пуск",
+          "без обозначения блока остаются функция и сигнал")
+    check(ll.link_full_label({}, link, lsr.split_ref)[0] == "Пуск (Start)",
+          "без блока остаётся обычная подпись сигнала")
 
 
 # ==========================================================================
@@ -279,6 +315,91 @@ def test_bus(app):
           "связь с исчезнувшего отвода сохранена")
     check(app._logic_ref_point(link2["from"]) is not None,
           "связь перепривязана к оставшемуся отводу")
+
+    # Маркеры вверх/вниз меняют длину шины мышью, не сдвигая связи.
+    _reset(app)
+    bus = app.elements[_add(app, "logic_bus", 100, 300)]
+    key = app.elements[_add(app, "logic_key", 350, 300)]
+    app.logic_link_kind = "discrete"
+    link = app._add_logic_link((bus.id, "p2"), (key.id, "left"))
+    old_y = app._logic_ref_point(link["from"])[1]
+    old_bottom = bus.ports["bottom"]["y"]
+    app.current_tool = "select"
+    app.selected_elements = [bus.id]
+    app.redraw_all()
+    sx, sy = app.world_to_screen(bus.x, bus.y + bus.length / 2.0)
+    check(app.find_resize_handle(bus.id, sx, sy) == "bottom",
+          "нижний маркер шины находится по координатам")
+    app.on_left_click(_event(sx, sy))
+    check(app.resizing_element == bus.id
+          and app.resize_handle == "bottom"
+          and bool(app._resize_old_ports),
+          "нажатие на маркер начинает изменение длины вниз")
+    nx, ny = app.world_to_screen(bus.x, bus.y + bus.length / 2.0 + 40)
+    app.on_drag(_event(nx, ny))
+    check(close(bus.length, 520)
+          and close(bus.ports["bottom"]["y"], old_bottom + 40),
+          "нижний край шины сдвинулся вниз на 40")
+    check(close(app._logic_ref_point(link["from"])[1], old_y),
+          "подключённая связь осталась на прежней высоте")
+    app.on_release(_event(nx, ny))
+    check(app.resizing_element is None,
+          "изменение шины завершено")
+
+
+def test_bus_links(app):
+    print("4а. связь шины с шиной и поля шины")
+    _reset(app)
+    first = app.elements[_add(app, "logic_bus", 100, 300)]
+    second = app.elements[_add(app, "logic_bus", 300, 300)]
+    app.logic_link_kind = "control"
+    link = app._add_logic_link((first.id, "p2"), (second.id, "p3"))
+    check(link is not None
+          and app._logic_ref_valid(link["from"])
+          and app._logic_ref_valid(link["to"]),
+          "связь между отводами двух шин создана")
+    app.redraw_all()
+    lines = [item for item in app.canvas.find_withtag("logic_link")
+             if app.canvas.type(item) == "line"]
+    check(bool(lines), "связь шина—шина нарисована")
+    expected_width = max(2, int(ll.LogicBus.WIDTH * app.zoom))
+    check(lines and app.canvas.itemcget(lines[0], "fill") == first.color
+          and float(app.canvas.itemcget(lines[0], "width")) == expected_width,
+          "линия связи имеет цвет и толщину шины")
+    check(ll.bus_link_style({first.id: first}, link,
+                            app._logic_split_ref) is None,
+          "обычная связь сохраняет стиль своего типа")
+
+    # Тот же стиль попадает в экспорт сцены PDF/PNG.
+    link["points"] = [[200.0, 300.0], [250.0, 300.0]]
+    recorder = __import__("pdfexport").SceneRecorder()
+    app._draw_scene(recorder)
+    scene_lines = [call for call in recorder.calls
+                   if call[0] == "create_line"
+                   and call[2].get("fill") == first.color
+                   and call[2].get("width") == max(2, int(ll.LogicBus.WIDTH))
+                   and len(call[1]) >= 8]
+    check(bool(scene_lines), "стиль шины сохранён в экспорте")
+
+    first.title = "Шина-источник"
+    first.name = "Ш1"
+    first.signal_ru = "Сигнал шины"
+    first.signal_no = "9700"
+    first.show_fields = False
+    app.redraw_all()
+    texts = [app.canvas.itemcget(item, "text")
+             for item in app.canvas.find_all()
+             if app.canvas.type(item) == "text"]
+    check("Сигнал шины" not in texts and "9700" not in texts
+          and "Ш1" not in texts,
+          "поля шины по умолчанию не выводятся")
+    first.show_fields = True
+    app.redraw_all()
+    texts = [app.canvas.itemcget(item, "text")
+             for item in app.canvas.find_all()
+             if app.canvas.type(item) == "text"]
+    check("Сигнал шины" in texts and "9700" in texts,
+          "включённые поля шины выводятся")
 
 
 def test_links(app):
@@ -1014,6 +1135,7 @@ def run_gui():
         app.offset_x = app.offset_y = 0.0
         test_elements(app)
         test_bus(app)
+        test_bus_links(app)
         test_links(app)
         test_link_geometry(app)
         test_block(app)
@@ -1046,6 +1168,7 @@ def main(argv=None):
 
     test_numbering()
     test_payload()
+    test_full_signal_label()
     test_structure2_model()
     if args.no_gui:
         print("\nGUI-проверки пропущены (--no-gui)")

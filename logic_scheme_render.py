@@ -106,19 +106,7 @@ def continuation(links, link):
 # ==========================================================================
 def link_label_text(elements, link):
     """Подпись сигнала на линии; не дублирует подпись клавиши/светодиода."""
-    text = ll.signal_text(link.get("ru"), link.get("iec"))
-    if not text:
-        # Имя связи по умолчанию — от имени выхода функции.
-        for ref in (link.get("from"), link.get("to")):
-            element_id, port_name = split_ref(ref)
-            element = elements.get(element_id)
-            if element is None:
-                continue
-            port = element.ports.get(port_name) or {}
-            if port.get("direction") == "out":
-                text = ll.port_signal_text(port)
-                if text:
-                    break
+    text, signal = ll.link_full_label(elements, link, split_ref)
     if not text:
         return ""
     link_ru = (link.get("ru") or "").strip()
@@ -128,14 +116,15 @@ def link_label_text(elements, link):
         element = elements.get(element_id)
         if element is None:
             continue
-        if element.type in ("logic_key", "logic_led", "logic_function"):
+        if element.type in ("logic_key", "logic_led", "logic_function",
+                            "logic_bus"):
             own_ru = (getattr(element, "signal_ru", "") or "").strip()
             own_iec = (getattr(element, "signal_iec", "") or "").strip()
             if own_ru and link_ru == own_ru \
                     and (not link_iec or link_iec == own_iec):
                 return ""
             own = ll.signal_text(own_ru, own_iec)
-            if own and own == text:
+            if own and own == signal:
                 return ""
     return text
 
@@ -349,6 +338,12 @@ def draw_logic_links(canvas, elements, links):
     for link, points in prepared:
         style = ll.link_style(link.get("kind"))
         color = style["color"]
+        line_width = 1
+        bus_style = ll.bus_link_style(elements, link, split_ref)
+        if bus_style:
+            color, width = bus_style
+            line_width = max(2, int(width))
+            style = dict(style, dash=None)
         arrow = bool(link.get("arrow", True))
         if arrow:
             last_x, last_y = points[-1]
@@ -362,14 +357,14 @@ def draw_logic_links(canvas, elements, links):
             for x, y in points[:-1]:
                 coords.extend((x, y))
             coords.extend((last_x - ux * 5.4, last_y - uy * 5.4))
-            canvas.create_line(*coords, fill=color, width=1,
+            canvas.create_line(*coords, fill=color, width=line_width,
                                dash=style["dash"])
             arrowhead(canvas, prev_x, prev_y, last_x, last_y, fill=color)
         else:
             coords = []
             for x, y in points:
                 coords.extend((x, y))
-            canvas.create_line(*coords, fill=color, width=1,
+            canvas.create_line(*coords, fill=color, width=line_width,
                                dash=style["dash"])
 
     def draw_number(link, anchor):

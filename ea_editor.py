@@ -1016,6 +1016,23 @@ class StandardEditorWindow(tk.Toplevel):
         scheme_entry.bind("<Return>", lambda event: self._apply_pending())
         scheme_entry.bind("<KP_Enter>", lambda event: self._apply_pending())
         _button(scheme_frame, "Выбрать…", self._pick_figure_scheme, width=10)
+
+        # Формат и ориентация страницы рисунка в документе. Пустые значения
+        # означают «как в остальном документе».
+        for offset, (key, label, values) in enumerate((
+                ("format", "Формат:", ["", "A5", "A4", "A3"]),
+                ("orientation", "Ориентация:",
+                 ["", "книжная", "альбомная"])), start=1):
+            combo_row = row + offset
+            tk.Label(form, text=label, font=ui_theme.font(9),
+                     anchor="w").grid(row=combo_row, column=0, sticky="w",
+                                      pady=2)
+            combo_var = tk.StringVar(
+                value=str(figure.get(key) or ""))
+            combo = ttk.Combobox(form, textvariable=combo_var,
+                                 values=values, width=16)
+            combo.grid(row=combo_row, column=1, sticky="w", pady=2)
+            self.vars[key] = combo_var
         tk.Label(self.body, font=ui_theme.font(8),
                  fg=ui_theme.TEXT_MUTED, anchor="w", justify="left",
                  text="Если файл схемы задан, рисунок вставляется в документ "
@@ -1032,6 +1049,8 @@ class StandardEditorWindow(tk.Toplevel):
         self._snapshot = {key: str(figure.get(key) or "")
                           for key, _l, _w in fields}
         self._snapshot["scheme"] = str(figure.get("scheme") or "")
+        for key in ("format", "orientation"):
+            self._snapshot[key] = str(figure.get(key) or "")
         self._pending = self._apply_figure
 
     def _figure_scheme_path(self):
