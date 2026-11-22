@@ -2619,15 +2619,15 @@
               "number": "5.1",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 431.21-1",
               "reference": "Рисунок 5.1",
-              "scheme": "C:/WWWW/www_ai/schemes/220-12 СКРМ.json",
-              "format": "",
-              "orientation": ""
+              "scheme": "G:/editor/schemes/220-13Н.json",
+              "format": "A3",
+              "orientation": "альбомная"
             },
             {
               "number": "5.2",
               "name": "Эскиз общего вида ШЭТ 431.21-1",
               "reference": "Рисунок 5.2",
-              "scheme": "",
+              "scheme": "G:/editor/logic_scheme.png",
               "format": "",
               "orientation": ""
             }

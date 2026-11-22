@@ -1035,9 +1035,9 @@ class StandardEditorWindow(tk.Toplevel):
             self.vars[key] = combo_var
         tk.Label(self.body, font=ui_theme.font(8),
                  fg=ui_theme.TEXT_MUTED, anchor="w", justify="left",
-                 text="Если файл схемы задан, рисунок вставляется в документ "
-                      "картинкой (экспорт схемы редактора); иначе выводится "
-                      "только подпись."
+                 text="Можно указать JSON схемы ФЛС или готовую картинку "
+                      "PNG/JPEG: файл вставляется в документ изображением; "
+                      "иначе выводится только подпись."
                  ).pack(fill=tk.X, padx=4, pady=(2, 4))
         self._figure_scheme_preview = tk.Canvas(
             self.body, height=self.IED_SCHEME_PREVIEW_H,
@@ -1071,7 +1071,10 @@ class StandardEditorWindow(tk.Toplevel):
         path = filedialog.askopenfilename(
             parent=self, title="Файл схемы для рисунка",
             initialdir=self._ied_scheme_dir(),
-            filetypes=[("Схемы редактора", "*.json"), ("Все файлы", "*.*")])
+            filetypes=[("Схемы и изображения", "*.json;*.png;*.jpg;*.jpeg"),
+                       ("Схемы редактора", "*.json"),
+                       ("Изображения", "*.png;*.jpg;*.jpeg"),
+                       ("Все файлы", "*.*")])
         if not path:
             return
         reference = path
@@ -1234,7 +1237,10 @@ class StandardEditorWindow(tk.Toplevel):
         path = filedialog.askopenfilename(
             parent=self, title="Файл схемы ФЛС",
             initialdir=self._ied_scheme_dir(),
-            filetypes=[("Схемы редактора", "*.json"), ("Все файлы", "*.*")])
+            filetypes=[("Схемы и изображения", "*.json;*.png;*.jpg;*.jpeg"),
+                       ("Схемы редактора", "*.json"),
+                       ("Изображения", "*.png;*.jpg;*.jpeg"),
+                       ("Все файлы", "*.*")])
         if not path:
             return
         reference = path
@@ -1294,6 +1300,13 @@ class StandardEditorWindow(tk.Toplevel):
         """Открыть файл схемы ИЭУ в редакторе схем (новое окно)."""
         ied = self._panel_item
         path = self._ied_scheme_path(ied)
+        if path and os.path.splitext(path)[1].lower() in (
+                ".png", ".jpg", ".jpeg", ".bmp", ".gif"):
+            messagebox.showinfo(
+                "Схема ФЛС",
+                "Это готовое изображение — оно вставляется в документ "
+                "как есть и не открывается в редакторе схем.", parent=self)
+            return
         if not path:
             messagebox.showinfo(
                 "Схема ФЛС",
@@ -1315,6 +1328,29 @@ class StandardEditorWindow(tk.Toplevel):
                                  "Не удалось открыть редактор:\n%s" % exc,
                                  parent=self)
 
+    def _show_image_preview(self, canvas, path):
+        """Показать готовое изображение (PNG/JPEG) в предпросмотре."""
+        try:
+            from PIL import Image, ImageTk
+            image = Image.open(path)
+            width = canvas.winfo_width() or 400
+            scale = min(width / max(1, image.width),
+                        self.IED_SCHEME_PREVIEW_H / max(1, image.height))
+            image = image.resize((max(1, int(image.width * scale)),
+                                  max(1, int(image.height * scale))))
+            photo = ImageTk.PhotoImage(image)
+        except Exception:
+            canvas.create_text(
+                canvas.winfo_width() or 400,
+                self.IED_SCHEME_PREVIEW_H / 2.0,
+                text="Не удалось прочитать изображение", anchor="center",
+                font=ui_theme.font(9), fill=ui_theme.TEXT_MUTED)
+            return
+        canvas.create_image(canvas.winfo_width() or 400,
+                            self.IED_SCHEME_PREVIEW_H / 2.0,
+                            image=photo, anchor="center")
+        canvas._scheme_photo = photo   # держать ссылку, иначе картинка исчезнет
+
     def _refresh_ied_scheme_preview(self):
         """Перерисовать предпросмотр схемы ФЛС в панели ИЭУ."""
         canvas = getattr(self, "_scheme_preview", None)
@@ -1322,6 +1358,10 @@ class StandardEditorWindow(tk.Toplevel):
             return
         canvas.delete("all")
         path = getattr(self, "_ied_scheme_file", None)
+        if path and os.path.splitext(path)[1].lower() in (
+                ".png", ".jpg", ".jpeg", ".bmp", ".gif"):
+            self._show_image_preview(canvas, path)
+            return
         if not path:
             canvas.create_text(
                 canvas.winfo_width() or 400,

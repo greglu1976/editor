@@ -557,46 +557,82 @@ def _fit_picture(shape, section):
         shape.height = int(shape.height * scale)
 
 
-def _scheme_image(doc, figure):
-    """Вставить картинку схемы ФЛС по полю ``figure["scheme"]``.
+#: Готовые изображения вставляются в DOCX без рендера схемы.
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".bmp", ".gif"}
 
-    Схема — JSON редактора рядом с файлом стандарта (или абсолютный путь).
-    Рендер — :mod:`logic_scheme_render` (тот же вид, что в редакторе);
-    при любой ошибке картинка пропускается и остаётся подпись рисунка.
-    Возвращает True, если картинка вставлена.
+
+def _resolve_figure_file(reference):
+    """Путь к файлу рисунка: относительный — от папки стандартов."""
+    reference = str(reference or "").strip()
+    if not reference:
+        return ""
+    if os.path.isabs(reference):
+        return reference if os.path.isfile(reference) else ""
+    path = os.path.join(es.folder(), reference)
+    return path if os.path.isfile(path) else ""
+
+
+def _scheme_image(doc, figure, errors=None):
+    """Вставить картинку рисунка по полю ``figure["scheme"]``.
+
+    Значение может быть готовым изображением (PNG/JPEG/BMP/GIF) или JSON-файлом
+    схемы ФЛС: такой файл рендерится в PNG тем же кодом, что и экспорт
+    редактора. Причины неудачи записываются в ``errors`` — раньше ошибки
+    рендера молча терялись, и казалось, что JSON-схема «не вставляется».
     """
+    label = str(figure.get("number") or figure.get("reference")
+                or "без номера")
+
+    def fail(reason):
+        if errors is not None:
+            errors.append("Рисунок %s: %s" % (label, reason))
+        return False
+
     reference = str(figure.get("scheme") or "").strip()
     if not reference:
-        return False
+        return fail("поле «Файл схемы» пустое")
+    path = _resolve_figure_file(reference)
+    if not path:
+        return fail("файл не найден: %s" % reference)
+    direct = os.path.splitext(path)[1].lower() in IMAGE_SUFFIXES
+    image_path, temporary = path, None
+    if not direct:
+        try:
+            import logic_scheme_render as lsr
+        except Exception as exc:
+            return fail("не загружен рендер ФЛС: %s: %s"
+                        % (type(exc).__name__, exc))
+        handle, temporary = tempfile.mkstemp(suffix=".png")
+        os.close(handle)
+        image_path = temporary
     try:
-        import logic_scheme_render as lsr
-    except Exception:                                # pragma: no cover
-        return False
-    path = reference
-    if not os.path.isabs(path):
-        path = os.path.join(es.folder(), reference)
-    if not os.path.isfile(path):
-        return False
-    handle, image_path = tempfile.mkstemp(suffix=".png")
-    os.close(handle)
-    try:
-        lsr.export_png_file(path, image_path)
+        if not direct:
+            try:
+                lsr.export_png_file(path, image_path)
+            except Exception as exc:
+                return fail("рендер JSON-схемы (%s): %s: %s"
+                            % (os.path.basename(path), type(exc).__name__,
+                               exc))
         paragraph = doc.add_paragraph()
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = paragraph.add_run()
-        shape = run.add_picture(image_path)
-        _fit_picture(shape, doc.sections[-1])
-    except Exception:
-        return False
-    finally:
         try:
-            os.remove(image_path)
-        except OSError:
-            pass
+            shape = run.add_picture(image_path)
+            _fit_picture(shape, doc.sections[-1])
+        except Exception as exc:
+            paragraph._element.getparent().remove(paragraph._element)
+            return fail("вставка изображения: %s: %s"
+                        % (type(exc).__name__, exc))
+    finally:
+        if temporary:
+            try:
+                os.remove(temporary)
+            except OSError:
+                pass
     return True
 
 
-def _render_figure_block(doc, figure, references):
+def _render_figure_block(doc, figure, references, counters, errors):
     """Картинка схемы и подпись, при необходимости на своей странице."""
     page = _figure_page(figure)
     original = _page_snapshot(doc.sections[-1]) if page else None
@@ -604,7 +640,8 @@ def _render_figure_block(doc, figure, references):
         section = doc.add_section(WD_SECTION.NEW_PAGE)
         _apply_page(section, *page)
     # Сначала картинка схемы (если файл задан и читается), затем подпись.
-    _scheme_image(doc, figure)
+    if _scheme_image(doc, figure, errors):
+        counters["рисунки"] += 1
     reference = figure.get("reference") or "Рисунок"
     bookmark, is_new = _register_reference(references, reference)
     _caption(doc, "%s — %s" % (reference, figure.get("name") or ""),
@@ -618,12 +655,12 @@ def _render_figure_block(doc, figure, references):
 
 
 def _render_container(doc, data, container, level, max_rows, counters,
-                      references):
+                      references, errors):
     _text_block(doc, container.get("content"))
     for table in container.get("tables") or []:
         _render_table(doc, data, table, max_rows, counters, references)
     for figure in container.get("figures") or []:
-        _render_figure_block(doc, figure, references)
+        _render_figure_block(doc, figure, references, counters, errors)
     for clause in container.get("clauses") or []:
         number = clause.get("number") or ""
         lines = _clause_lines(clause.get("content"))
@@ -637,7 +674,7 @@ def _render_container(doc, data, container, level, max_rows, counters,
             _render_table(doc, data, table, max_rows, counters, references)
 
 
-def _render_sections(doc, data, max_rows, counters, references):
+def _render_sections(doc, data, max_rows, counters, references, errors):
     """Разделы и подразделы: в тексте заголовка только название.
 
     Номер раздела и подраздела не выводится — его автоматически проставляет
@@ -652,7 +689,7 @@ def _render_sections(doc, data, max_rows, counters, references):
                  numbered=bool(number) and bool(header))
         counters["разделы"] += 1
         _render_container(doc, data, section, 2, max_rows, counters,
-                          references)
+                          references, errors)
         for sub in section.get("subsections") or []:
             sub_number = str(sub.get("number") or "").strip()
             title = str(sub.get("header") or "").strip()
@@ -661,7 +698,7 @@ def _render_sections(doc, data, max_rows, counters, references):
             _heading(doc, title or sub_number, 2,
                      numbered=bool(sub_number) and bool(title))
             _render_container(doc, data, sub, 3, max_rows, counters,
-                              references)
+                              references, errors)
 
 
 def template_path(folder=None):
@@ -702,13 +739,15 @@ def build(data, path, toc=True, max_rows=0):
         doc = Document()
         _setup(doc)
     stats = es.stats(data)
-    counters = {"разделы": 0, "таблицы": 0, "строки": 0}
+    counters = {"разделы": 0, "таблицы": 0, "строки": 0,
+                "рисунки": 0, "ошибки_рисунков": []}
     references = {}
+    figure_errors = counters["ошибки_рисунков"]
     _title_page(doc, data, stats)
     if toc:
         _toc(doc)
         doc.add_page_break()
-    _render_sections(doc, data, max_rows, counters, references)
+    _render_sections(doc, data, max_rows, counters, references, figure_errors)
     _link_references(doc, references)
     doc.save(path)
     counters["размер"] = os.path.getsize(path)
@@ -742,8 +781,11 @@ def main(argv=None):
         return 1
     print("Стандарт: %s" % path)
     print("Файл: %s (%.1f КБ)" % (args.out, counters["размер"] / 1024.0))
-    print("Разделов: %d, таблиц: %d, строк: %d"
-          % (counters["разделы"], counters["таблицы"], counters["строки"]))
+    print("Разделов: %d, таблиц: %d, строк: %d, рисунков: %d"
+          % (counters["разделы"], counters["таблицы"], counters["строки"],
+             counters["рисунки"]))
+    for problem in counters.get("ошибки_рисунков") or []:
+        print("Не вставлен: %s" % problem)
     return 0
 
 

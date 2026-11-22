@@ -1,7 +1,10 @@
 # library.py
 
 import math
-import tkinter as tk
+try:
+    import tkinter as tk
+except ImportError:                 # headless PNG/PDF export (no GUI needed)
+    tk = None
 
 import komplekts
 
@@ -9,6 +12,7 @@ import komplekts
 # Не зависит от шага сетки: изменение шага меняет только привязку и вид сетки,
 # но не размеры и пропорции элементов схемы.
 CELL = 20
+ARC_STYLE = getattr(tk, "ARC", "arc")
 
 
 def draw_earth(canvas, gx, gy, zoom, direction="down"):
@@ -765,7 +769,7 @@ class Reactor(Component):
         r = c * zoom
         canvas.create_arc(cx - r, cy - r, cx + r, cy + r,
                           start=90 - rotation, extent=270,
-                          style=tk.ARC, outline="black", width=lw)
+                          style=ARC_STYLE, outline="black", width=lw)
 
         # Символ реактора: две короткие линии от центра
         for dx1, dy1, dx2, dy2 in ((0, 0, c, 0), (0, 0, 0, c)):
@@ -1921,7 +1925,7 @@ class DoubleReactor(Component):
         canvas.create_arc(cx - r, cy - r, cx + r, cy + r,
                           start=self.ARC_START - rotation,
                           extent=self.ARC_EXTENT,
-                          style=tk.ARC, outline="black", width=lw)
+                          style=ARC_STYLE, outline="black", width=lw)
 
         if rotation % 360 == 0:
             self._draw_name_at(canvas, zoom, offset_x, offset_y,

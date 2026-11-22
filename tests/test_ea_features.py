@@ -372,6 +372,38 @@ def test_docx(data):
               and last.page_width.cm < middle.page_width.cm,
               "после рисунка параметры страницы восстановлены")
 
+    # Готовый PNG вставляется без рендера схемы.
+    try:
+        from PIL import Image
+    except ImportError:
+        Image = None
+    if Image is not None:
+        image_data = copy.deepcopy(data)
+        for figure in es.iter_figures(image_data):
+            figure["scheme"] = ""
+        png_dir = tempfile.mkdtemp()
+        png_path = os.path.join(png_dir, "figure.png")
+        Image.new("RGB", (120, 60), "white").save(png_path)
+        next(es.iter_figures(image_data))["scheme"] = png_path
+        image_path = os.path.join(png_dir, "image.docx")
+        ea_docx.build(image_data, image_path, toc=False, max_rows=1)
+        image_doc = Document(image_path)
+        check(len(image_doc.inline_shapes) == 1,
+              "рисунок PNG вставлен в документ")
+
+    # Причины неудачи больше не пропадают молча.
+    bad_data = copy.deepcopy(data)
+    for figure in es.iter_figures(bad_data):
+        figure["scheme"] = ""
+    bad_figure = next(es.iter_figures(bad_data))
+    bad_figure["scheme"] = "нет-такого-файла.json"
+    bad_path = os.path.join(tempfile.mkdtemp(), "bad.docx")
+    bad_counters = ea_docx.build(bad_data, bad_path, toc=False, max_rows=1)
+    check(bad_counters["рисунки"] == 0
+          and any("файл не найден" in item
+                  for item in bad_counters["ошибки_рисунков"]),
+          "ошибка вставки рисунка сообщается вызывающей стороне")
+
 
 # ---------------------------------------------------------------------------
 # 4. Архив

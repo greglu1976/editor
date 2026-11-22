@@ -623,10 +623,17 @@ class EAStandardWindow(tk.Toplevel):
                                  parent=self)
             return
         counters = outcome.get("counters") or {}
-        messagebox.showinfo(
-            "DOCX", "Документ сохранён:\n%s\n\nТаблиц: %s, строк: %s"
-            % (path, counters.get("таблицы", "—"),
-               counters.get("строки", "—")), parent=self)
+        message = ("Документ сохранён:\n%s\n\nТаблиц: %s, строк: %s, "
+                   "рисунков: %s"
+                   % (path, counters.get("таблицы", "—"),
+                      counters.get("строки", "—"),
+                      counters.get("рисунки", "—")))
+        problems = counters.get("ошибки_рисунков") or []
+        if problems:
+            message += "\n\nНе вставлены рисунки:\n" + "\n".join(problems[:10])
+            messagebox.showwarning("DOCX", message, parent=self)
+        else:
+            messagebox.showinfo("DOCX", message, parent=self)
         self.status.config(text="DOCX: %s" % path)
 
     def check(self):
