@@ -17,6 +17,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 import logic_library as ll
+import schematic_library as sl
 import ui_theme
 
 
@@ -1736,6 +1737,24 @@ class LogicEditorMixin:
                 tree.delete(iid)
                 rows.pop(iid, None)
 
+        def save_to_library():
+            positions = {row["name"]: [row["x"], row["y"]]
+                         for row in rows.values()}
+            try:
+                path = sl.save_symbol_fields(element.type, positions)
+            except (OSError, ValueError) as error:
+                messagebox.showerror(
+                    "Библиотека",
+                    "Не удалось сохранить поля в библиотеку:\n%s" % error,
+                    parent=dialog)
+                return
+            messagebox.showinfo(
+                "Библиотека",
+                "Поля элемента «%s» сохранены в библиотеку.\n"
+                "Новые элементы будут создаваться с этими полями.\n\n%s"
+                % (sl.TYPE_TITLES.get(element.type, element.type), path),
+                parent=dialog)
+
         buttons = tk.Frame(outer)
         buttons.grid(row=5, column=0, columnspan=4, sticky="w", pady=(6, 0))
         for text, command, width in (("Добавить…", add_field, 14),
@@ -1756,6 +1775,8 @@ class LogicEditorMixin:
 
         footer = tk.Frame(dialog)
         footer.pack(fill=tk.X, padx=10, pady=(6, 8))
+        tk.Button(footer, text="Сохранить в библиотеку", width=22,
+                  command=save_to_library).pack(side=tk.LEFT)
         tk.Button(footer, text="Отмена", width=10,
                   command=cancel).pack(side=tk.RIGHT)
         tk.Button(footer, text="Сохранить", width=12,

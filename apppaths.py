@@ -11,6 +11,7 @@
         cabs_analog.json     аналоговые измерения из СТО
         containers.json      контейнеры КЭТ
         komplekts.json       комплекты (появляется после первой правки)
+        schematic_symbols.json  правки полей элементов принципиальной схемы
         structure.json       структура v3
         standards_base/      стандарты СТО в JSON
         EA/                  стандарты СТО в структуре EA

@@ -38,6 +38,8 @@
     отключение вывода полей шины;
 27. поля-атрибуты элемента принципиальной схемы: правка в свойствах,
     перетаскивание подписей и сохранение в JSON.
+28. сохранение координат полей в библиотеку символов (``db``) и получение
+    их новыми элементами.
 """
 
 from __future__ import annotations
@@ -1417,6 +1419,45 @@ def test_schematic_field_editing(app, root):
           "значения и координаты полей сохраняются в JSON")
 
 
+def test_schematic_library_save(app, root):
+    print("28б. сохранение координат полей в библиотеку символов")
+    import schematic_library as sl
+    _reset(app)
+    original = copy.deepcopy(sl.SYMBOLS["sc_test_block"]["fields"])
+    folder = tempfile.mkdtemp(prefix="editor_db_")
+    previous = os.environ.get("EDITOR_DB")
+    os.environ["EDITOR_DB"] = folder
+    try:
+        block = app.elements[_add(app, "sc_test_block", 600, 300)]
+        block.field_positions["ОУ"] = [7.0, 8.0]
+        block.field_values["ОУ"] = "ОУ-9"
+
+        def save_to_library(dialog):
+            check(_click(dialog, "Сохранить в библиотеку"),
+                  "в окне свойств есть кнопка «Сохранить в библиотеку»")
+            _click(dialog, "Отмена")
+
+        _dialog_action(root, save_to_library)
+        app.edit_schematic_element(block)
+
+        path = os.path.join(folder, "schematic_symbols.json")
+        check(os.path.exists(path),
+              "координаты полей записываются в папку данных")
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+        check(data["sc_test_block"]["fields"]["ОУ"] == [7.0, 8.0],
+              "в библиотеку попала координата поля ОУ")
+        fresh = sl.create_component("sc_test_block", "T8", 0, 0)
+        check(fresh.field_positions.get("ОУ") == [7.0, 8.0],
+              "новый элемент создаётся с координатами из библиотеки")
+    finally:
+        sl.SYMBOLS["sc_test_block"]["fields"] = original
+        if previous is None:
+            os.environ.pop("EDITOR_DB", None)
+        else:
+            os.environ["EDITOR_DB"] = previous
+
+
 def run_gui():
     import main
     main.messagebox.showinfo = lambda *args, **kwargs: None
@@ -1455,6 +1496,7 @@ def run_gui():
         test_mark_drag(app)
         test_schematic_elements(app)
         test_schematic_field_editing(app, root)
+        test_schematic_library_save(app, root)
     finally:
         root.destroy()
 

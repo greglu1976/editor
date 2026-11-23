@@ -10,10 +10,18 @@
 from __future__ import annotations
 
 import copy
+import json
 import math
+import os
 
+import apppaths
 from library import Component, rotate_point
 from schematic_symbols import SYMBOLS
+
+#: Правки библиотеки, сделанные пользователем: координаты полей символов.
+#: Файл лежит в папке данных (``db``), поэтому переживает перезапуск и
+#: не теряется при обновлении ``schematic_symbols.py``.
+OVERRIDES_FILE = "schematic_symbols.json"
 
 COMPONENT_TYPES = tuple(SYMBOLS)
 PREFIX_BY_TYPE = {key: spec["prefix"] for key, spec in SYMBOLS.items()}
@@ -226,6 +234,71 @@ def _point(value):
         return None
 
 
+def read_overrides():
+    """Правки библиотеки из папки данных (пустой словарь, если файла нет)."""
+    path = apppaths.data_path(OVERRIDES_FILE)
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def apply_overrides(symbols, overrides):
+    """Наложить правки пользователя на таблицу символов.
+
+    Сейчас правятся только поля: их имена и координаты вывода. Геометрия
+    символа остаётся из ``schematic_symbols.py``.
+    """
+    for comp_type, data in overrides.items():
+        spec = symbols.get(comp_type)
+        if spec is None or not isinstance(data, dict):
+            continue
+        fields = data.get("fields")
+        if not isinstance(fields, dict):
+            continue
+        clean = {}
+        for name, value in fields.items():
+            point = _point(value)
+            if point is not None:
+                clean[str(name)] = {"x": point[0], "y": point[1]}
+        spec["fields"] = clean
+
+
+def save_symbol_fields(comp_type, positions):
+    """Сохранить поля символа в библиотеку и вернуть путь к файлу правок.
+
+    ``positions`` — отображение «имя поля → [X, Y]» в локальной системе
+    элемента. Новые элементы этого типа сразу получают сохранённые поля;
+    уже нарисованные элементы не меняются.
+    """
+    if comp_type not in SYMBOLS:
+        raise ValueError("Неизвестный элемент: %s" % comp_type)
+    fields = {}
+    for name, value in positions.items():
+        name = str(name).strip()
+        point = _point(value)
+        if name and point is not None:
+            fields[name] = [point[0], point[1]]
+
+    overrides = read_overrides()
+    overrides[comp_type] = {"fields": fields}
+    path = apppaths.data_path(OVERRIDES_FILE)
+    folder = os.path.dirname(path)
+    if folder:
+        os.makedirs(folder, exist_ok=True)
+    temporary = path + ".tmp"
+    with open(temporary, "w", encoding="utf-8") as handle:
+        json.dump(overrides, handle, ensure_ascii=False, indent=2)
+    os.replace(temporary, path)
+
+    SYMBOLS[comp_type]["fields"] = {
+        name: {"x": point[0], "y": point[1]}
+        for name, point in fields.items()}
+    return path
+
+
 def copy_element_fields(source, target):
     for field in FIELDS:
         attribute = "element_type" if field == "type" else field
@@ -284,3 +357,7 @@ def draw_palette_icon(canvas, comp_type, size=46):
             continue
         canvas.create_line(*[value for p in points for value in p],
                            fill="black", width=1)
+
+
+# Правки, сохранённые из окна свойств, действуют и после перезапуска.
+apply_overrides(SYMBOLS, read_overrides())
