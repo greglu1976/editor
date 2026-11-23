@@ -840,6 +840,21 @@ def test_editor():
               and window._owners[section_iid][1] is section,
               "у нового раздела есть ссылка на контейнер")
 
+        # Пункт 15: рисунок добавляется из контекстного меню раздела.
+        original_ask = ea_editor.simpledialog.askstring
+        ea_editor.simpledialog.askstring = lambda *a, **k: "Рисунок из редактора"
+        try:
+            window._add_figure(section_iid)
+        finally:
+            ea_editor.simpledialog.askstring = original_ask
+        root.update()
+        check(len(section["figures"]) == 1
+              and section["figures"][-1]["name"] == "Рисунок из редактора",
+              "рисунок добавлен в раздел")
+        check(window._find_iid(section["figures"][-1]) is not None,
+              "новый рисунок отображается в дереве")
+        section_iid = window._find_iid(section)
+
         def add_table():
             item = st.new_table(window.data, {"name": "Новая таблица",
                                               "headers": ["П", "З"]})
@@ -1670,6 +1685,25 @@ def test_editor_fields():
         window._delete_field()
         root.update()
         check("custom_field" not in item, "поле удалено")
+
+        # Пункт 12: уставка и параметр добавляются в функцию, а не в ключ None.
+        before = len(item.get("settings") or [])
+        ea_editor.simpledialog.askstring = lambda *a, **k: "Новая уставка"
+        window._add_generic_child(window._find_iid(item), "setting")
+        root.update()
+        check(len(item["settings"]) == before + 1
+              and item["settings"][-1]["name"] == "Новая уставка",
+              "уставка добавлена в функцию")
+        check(None not in item, "уставка не попала в ключ None")
+
+        before = len(item.get("parameters") or [])
+        ea_editor.simpledialog.askstring = lambda *a, **k: "Новый параметр"
+        window._add_generic_child(window._find_iid(item), "parameter")
+        root.update()
+        check(len(item["parameters"]) == before + 1
+              and item["parameters"][-1]["name"] == "Новый параметр",
+              "параметр добавлен в функцию")
+        check(None not in item, "параметр не попал в ключ None")
 
         block_iid = next(iid for iid, node in window._nodes.items()
                          if node[0] == "block")

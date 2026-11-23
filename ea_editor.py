@@ -174,10 +174,10 @@ _GENERIC_KINDS = ("block", "function", "slot", "setting", "parameter",
 #: Вид узла → ключ коллекции и класс схемы для добавления потомка.
 _GENERIC_CHILD = {
     "block": ("function_blocks", "FunctionBlock", "блок"),
-    "function": (None, "Function", "функцию"),
+    "function": ("functions", "Function", "функцию"),
     "slot": (None, "Input", "вход"),
-    "setting": (None, "Setting", "уставку"),
-    "parameter": (None, "Parameter", "параметр"),
+    "setting": ("settings", "Setting", "уставку"),
+    "parameter": ("parameters", "Parameter", "параметр"),
 }
 
 
@@ -1790,7 +1790,9 @@ class StandardEditorWindow(tk.Toplevel):
             return
         try:
             created = action()
-        except st.StructureError as exc:
+        except (st.StructureError, AttributeError, KeyError, TypeError,
+                ValueError) as exc:
+            # Ошибки добавления показываем окном, а не traceback в консоли.
             messagebox.showerror("Редактор стандарта", str(exc), parent=self)
             return
         self._changed = True
@@ -1872,13 +1874,17 @@ class StandardEditorWindow(tk.Toplevel):
         self._mutate(action)
 
     def _add_figure(self, parent_iid):
+        # new_figure ждёт владельца (dict со списком figures), а не сам
+        # список: раньше сюда попадал список и добавление падало с
+        # AttributeError.
+        owner = self._owners[parent_iid][1]
         container = self._child_container(parent_iid, "figure")
         name = self._ask("Наименование рисунка", "Новый рисунок")
         if name is None:
             return
 
         def action():
-            item = st.new_figure(self.data, container, name=name.strip(),
+            item = st.new_figure(self.data, owner, name=name.strip(),
                                  base=self._figure_base(parent_iid))
             st.add(container, item)
             return item
