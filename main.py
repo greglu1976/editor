@@ -8215,7 +8215,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                     self._dragging_field = field_hit
                     self._field_drag_start = (event.x, event.y)
                     self._field_drag_offset = list(
-                        element.field_offsets.get(name) or [0.0, 0.0])
+                        element.field_positions.get(name) or [0.0, 0.0])
                     self._field_drag_changed = False
                     self._pre_change_state = self._capture_state()
                     self.canvas.config(cursor="fleur")
@@ -8697,7 +8697,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             if el is not None:
                 dx = (event.x - self._field_drag_start[0]) / self.zoom
                 dy = (event.y - self._field_drag_start[1]) / self.zoom
-                el.field_offsets[name] = [
+                el.field_positions[name] = [
                     round(self._field_drag_offset[0] + dx, 1),
                     round(self._field_drag_offset[1] + dy, 1)]
                 self._field_drag_changed = True

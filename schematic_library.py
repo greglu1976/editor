@@ -22,7 +22,7 @@ PALETTE_ITEMS = [(spec["title"], key) for key, spec in SYMBOLS.items()]
 
 #: Поля элемента принципиальной схемы.
 FIELDS = ("type", "designation", "description", "note",
-          "field_values", "field_offsets")
+          "field_values", "field_positions")
 
 
 def is_schematic_type(comp_type):
@@ -44,11 +44,12 @@ class SchematicElement(Component):
         self.description = ""
         self.note = ""
         # Подписи-атрибуты символа (как атрибуты блока в AutoCAD):
-        # значение и смещение каждой подписи хранятся в самом элементе.
-        self.field_values = {name: name
-                             for name in (self.spec.get("fields") or {})}
-        self.field_offsets = {name: [0.0, 0.0]
-                              for name in (self.spec.get("fields") or {})}
+        # значение и локальная позиция каждой подписи хранятся в элементе.
+        spec_fields = self.spec.get("fields") or {}
+        self.field_values = {name: name for name in spec_fields}
+        self.field_positions = {
+            name: [float(field.get("x", 0.0)), float(field.get("y", 0.0))]
+            for name, field in spec_fields.items()}
         self._field_bboxes = {}
         self.generate_ports()
 
@@ -135,15 +136,16 @@ class SchematicElement(Component):
             coords = [value for point in screen for value in point]
             canvas.create_line(*coords, fill="black", width=width)
 
-        # Атрибуты символа: значение можно править в свойствах, а подпись —
-        # перетаскивать мышкой (смещение хранится в field_offsets).
-        for name, field in (self.spec.get("fields") or {}).items():
-            text = str(self.field_values.get(name, name) or "").strip()
+        # Атрибуты символа: рисуем только те поля, которые есть в свойствах
+        # элемента; значение и позицию можно править и перетаскивать мышкой.
+        for name, value in self.field_values.items():
+            text = str(value or "").strip()
             if not text:
                 continue
-            offset = self.field_offsets.get(name) or [0.0, 0.0]
-            world = self._world_point(field["x"] + offset[0],
-                                      field["y"] + offset[1])
+            position = self.field_positions.get(name)
+            if position is None:
+                continue
+            world = self._world_point(position[0], position[1])
             sx, sy = self._to_screen(world, zoom, offset_x, offset_y)
             item = canvas.create_text(
                 sx, sy, text=text, anchor="center",
@@ -191,23 +193,37 @@ def restore_element(el, payload):
         if not isinstance(getattr(el, field, ""), str):
             setattr(el, field, str(getattr(el, field, "")))
     el.spec = SYMBOLS[el.type]
-    fields = el.spec.get("fields") or {}
-    values = getattr(el, "field_values", {}) or {}
-    if not isinstance(values, dict):
-        values = {}
-    el.field_values = {name: str(values.get(name, name) or "")
-                       for name in fields}
-    offsets = getattr(el, "field_offsets", {}) or {}
-    if not isinstance(offsets, dict):
-        offsets = {}
-    el.field_offsets = {}
-    for name in fields:
-        raw = offsets.get(name)
-        try:
-            el.field_offsets[name] = [float(raw[0]), float(raw[1])]
-        except (TypeError, ValueError, IndexError):
-            el.field_offsets[name] = [0.0, 0.0]
+    spec_fields = el.spec.get("fields") or {}
+    raw_values = payload.get("field_values")
+    if isinstance(raw_values, dict):
+        values = {str(name): str(value or "")
+                  for name, value in raw_values.items()}
+    else:
+        values = {name: name for name in spec_fields}
+    raw_positions = payload.get("field_positions")
+    positions = raw_positions if isinstance(raw_positions, dict) else {}
+    # Старые схемы хранили смещение от позиции в описании символа.
+    raw_offsets = payload.get("field_offsets")
+    offsets = raw_offsets if isinstance(raw_offsets, dict) else {}
+    el.field_values = values
+    el.field_positions = {}
+    for name in values:
+        point = _point(positions.get(name))
+        if point is None:
+            base = spec_fields.get(name) or {}
+            offset = _point(offsets.get(name)) or [0.0, 0.0]
+            point = [float(base.get("x", 0.0)) + offset[0],
+                     float(base.get("y", 0.0)) + offset[1]]
+        el.field_positions[name] = point
     el.generate_ports()
+
+
+def _point(value):
+    """[x, y] из JSON или None, если значение не похоже на точку."""
+    try:
+        return [float(value[0]), float(value[1])]
+    except (TypeError, ValueError, IndexError):
+        return None
 
 
 def copy_element_fields(source, target):
@@ -217,12 +233,12 @@ def copy_element_fields(source, target):
             setattr(target, attribute, copy.deepcopy(getattr(source, attribute)))
     target.spec = SYMBOLS[target.type]
     values = getattr(source, "field_values", {}) or {}
-    offsets = getattr(source, "field_offsets", {}) or {}
-    target.field_values = {name: str(values.get(name, name) or "")
-                           for name in (target.spec.get("fields") or {})}
-    target.field_offsets = {
-        name: list(offsets.get(name) or [0.0, 0.0])
-        for name in (target.spec.get("fields") or {})}
+    positions = getattr(source, "field_positions", {}) or {}
+    target.field_values = {str(name): str(value or "")
+                           for name, value in values.items()}
+    target.field_positions = {
+        name: _point(positions.get(name)) or [0.0, 0.0]
+        for name in target.field_values}
     target.generate_ports()
 
 

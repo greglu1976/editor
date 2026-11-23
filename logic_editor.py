@@ -20,6 +20,24 @@ import logic_library as ll
 import ui_theme
 
 
+def _format_coord(value):
+    """Координата поля для таблицы: без лишних нулей."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return "0"
+    text = ("%.1f" % number).rstrip("0").rstrip(".")
+    return text or "0"
+
+
+def _parse_coord(value):
+    """Ввод координаты: запятая как десятичный разделитель."""
+    try:
+        return float(str(value).strip().replace(",", "."))
+    except (TypeError, ValueError):
+        return 0.0
+
+
 # ==========================================================================
 # Иконки ленты (запасной вариант без Pillow)
 # ==========================================================================
@@ -1567,38 +1585,194 @@ class LogicEditorMixin:
 
     # ---------- элементы принципиальной схемы шкафа ----------
     def edit_schematic_element(self, element):
+        """Свойства элемента и его текстовых полей.
+
+        Поля блока — атрибуты символа: имя, значение и координаты вывода
+        в локальной системе элемента. На чертеже видны только строки этой
+        таблицы; лишние поля можно удалить, нужные — добавить.
+        """
         if element is None:
             return
-        spec_fields = list((getattr(element, "spec", {}) or {}).get("fields")
-                           or {})
-        definitions = [
-            ("element_type", "Тип", 32),
-            ("designation", "Обозначение", 32),
-            ("description", "Описание", 46),
-            ("note", "Примечание", 46),
-        ]
-        values = {
-            "element_type": getattr(element, "element_type", ""),
-            "designation": getattr(element, "designation", ""),
-            "description": getattr(element, "description", ""),
-            "note": getattr(element, "note", ""),
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Элемент принципиальной схемы — свойства")
+        dialog.transient(self.root)
+        dialog.resizable(True, True)
+        dialog.minsize(720, 520)
+
+        outer = tk.Frame(dialog, padx=10, pady=8)
+        outer.pack(fill=tk.BOTH, expand=True)
+        outer.columnconfigure(1, weight=1)
+        outer.columnconfigure(3, weight=1)
+
+        base_vars = {
+            "element_type": tk.StringVar(
+                value=getattr(element, "element_type", "")),
+            "designation": tk.StringVar(
+                value=getattr(element, "designation", "")),
+            "description": tk.StringVar(
+                value=getattr(element, "description", "")),
+            "note": tk.StringVar(value=getattr(element, "note", "")),
         }
-        current = getattr(element, "field_values", {}) or {}
-        for name in spec_fields:
-            definitions.append((name, "Поле «%s»" % name, 40))
-            values[name] = current.get(name, name)
-        values = self._ask_fields(
-            self.root, "Элемент принципиальной схемы — свойства",
-            tuple(definitions), values)
-        if values is None:
+
+        def add_entry(row, column, caption, variable, width=28):
+            tk.Label(outer, text=caption, anchor="w").grid(
+                row=row, column=column, sticky="w", pady=(4, 0))
+            tk.Entry(outer, textvariable=variable, width=width).grid(
+                row=row, column=column + 1, sticky="we",
+                padx=(6, 12), pady=(4, 0))
+
+        add_entry(0, 0, "Тип:", base_vars["element_type"])
+        add_entry(0, 2, "Обозначение:", base_vars["designation"])
+        add_entry(1, 0, "Описание:", base_vars["description"])
+        add_entry(1, 2, "Примечание:", base_vars["note"])
+
+        tk.Label(
+            outer, anchor="w",
+            text="Поля блока (X/Y — в локальной системе элемента, 0,0 — центр):"
+        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        table_frame = tk.Frame(outer, padx=2, pady=2)
+        table_frame.grid(row=3, column=0, columnspan=4, sticky="nsew",
+                         pady=(4, 0))
+        outer.rowconfigure(3, weight=1)
+        table_frame.columnconfigure(0, weight=1)
+        table_frame.rowconfigure(0, weight=1)
+        tree = ttk.Treeview(
+            table_frame, columns=("name", "value", "x", "y"),
+            show="headings", selectmode="browse", height=8)
+        for key, heading, width in (
+                ("name", "Поле", 140), ("value", "Значение", 260),
+                ("x", "X", 90), ("y", "Y", 90)):
+            tree.heading(key, text=heading)
+            tree.column(key, width=width, anchor="w")
+        scroll = ttk.Scrollbar(table_frame, orient="vertical",
+                               command=tree.yview)
+        tree.configure(yscrollcommand=scroll.set)
+        tree.grid(row=0, column=0, sticky="nsew")
+        scroll.grid(row=0, column=1, sticky="ns")
+
+        rows = {}   # iid -> {"name":..., "value":..., "x":..., "y":...}
+
+        def add_row(data):
+            iid = tree.insert("", "end", values=(
+                data["name"], data["value"],
+                _format_coord(data["x"]), _format_coord(data["y"])))
+            rows[iid] = data
+
+        values = getattr(element, "field_values", {}) or {}
+        positions = getattr(element, "field_positions", {}) or {}
+        for name, value in values.items():
+            point = positions.get(name) or [0.0, 0.0]
+            add_row({"name": name, "value": value,
+                     "x": point[0], "y": point[1]})
+
+        def selected():
+            selection = tree.selection()
+            return selection[0] if selection else None
+
+        def ask_field(current=None):
+            data = current or {"name": "", "value": "",
+                               "x": 0.0, "y": 0.0}
+            return self._ask_fields(
+                dialog, "Поле блока",
+                (("name", "Имя поля", 28),
+                 ("value", "Значение", 34),
+                 ("x", "X (от центра)", 18),
+                 ("y", "Y (от центра)", 18)),
+                {"name": data["name"], "value": data["value"],
+                 "x": _format_coord(data["x"]),
+                 "y": _format_coord(data["y"])})
+
+        def name_used(name, skip=None):
+            return any(iid != skip and row["name"] == name
+                       for iid, row in rows.items())
+
+        def add_field():
+            data = ask_field()
+            if data is None:
+                return
+            name = data["name"].strip()
+            if not name:
+                messagebox.showinfo("Поля блока", "Имя поля не задано.",
+                                    parent=dialog)
+                return
+            if name_used(name):
+                messagebox.showinfo("Поля блока",
+                                    "Поле «%s» уже есть." % name,
+                                    parent=dialog)
+                return
+            add_row({"name": name, "value": data["value"],
+                     "x": _parse_coord(data["x"]),
+                     "y": _parse_coord(data["y"])})
+
+        def edit_field():
+            iid = selected()
+            if iid is None:
+                return
+            row = rows[iid]
+            data = ask_field(row)
+            if data is None:
+                return
+            name = data["name"].strip()
+            if not name:
+                messagebox.showinfo("Поля блока", "Имя поля не задано.",
+                                    parent=dialog)
+                return
+            if name_used(name, skip=iid):
+                messagebox.showinfo("Поля блока",
+                                    "Поле «%s» уже есть." % name,
+                                    parent=dialog)
+                return
+            row.update({"name": name, "value": data["value"],
+                        "x": _parse_coord(data["x"]),
+                        "y": _parse_coord(data["y"])})
+            tree.item(iid, values=(row["name"], row["value"],
+                                   _format_coord(row["x"]),
+                                   _format_coord(row["y"])))
+
+        def remove_field():
+            for iid in tree.selection():
+                tree.delete(iid)
+                rows.pop(iid, None)
+
+        buttons = tk.Frame(outer)
+        buttons.grid(row=4, column=0, columnspan=4, sticky="w", pady=(6, 0))
+        for text, command, width in (("Добавить…", add_field, 14),
+                                     ("Изменить…", edit_field, 14),
+                                     ("Удалить", remove_field, 10)):
+            tk.Button(buttons, text=text, width=width,
+                      command=command).pack(side=tk.LEFT, padx=(0, 4))
+        tree.bind("<Double-1>", lambda event: edit_field())
+
+        result = {"ok": False}
+
+        def accept(event=None):
+            result["ok"] = True
+            dialog.destroy()
+
+        def cancel(event=None):
+            dialog.destroy()
+
+        footer = tk.Frame(dialog)
+        footer.pack(fill=tk.X, padx=10, pady=(6, 8))
+        tk.Button(footer, text="Отмена", width=10,
+                  command=cancel).pack(side=tk.RIGHT)
+        tk.Button(footer, text="Сохранить", width=12,
+                  command=accept).pack(side=tk.RIGHT, padx=(0, 6))
+        dialog.bind("<Escape>", cancel)
+        self._center_dialog(dialog)
+        dialog.wait_window(dialog)
+        if not result["ok"]:
             return
+
         self._push_undo()
-        element.element_type = values.get("element_type", "")
-        element.designation = values.get("designation", "")
-        element.description = values.get("description", "")
-        element.note = values.get("note", "")
-        element.field_values = {name: values.get(name, "")
-                                for name in spec_fields}
+        element.element_type = base_vars["element_type"].get().strip()
+        element.designation = base_vars["designation"].get().strip()
+        element.description = base_vars["description"].get().strip()
+        element.note = base_vars["note"].get().strip()
+        element.field_values = {row["name"]: row["value"]
+                                for row in rows.values()}
+        element.field_positions = {row["name"]: [row["x"], row["y"]]
+                                   for row in rows.values()}
         self._mark_modified()
         self.redraw_all()
 

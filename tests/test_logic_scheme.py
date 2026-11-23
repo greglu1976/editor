@@ -1328,7 +1328,7 @@ def test_schematic_elements(app):
 
 
 def test_schematic_field_editing(app, root):
-    print("28а. поля элемента: свойства и перетаскивание")
+    print("28а. поля элемента: свойства, координаты и перетаскивание")
     import schematic_library as sl
     _reset(app)
     block = app.elements[_add(app, "sc_test_block", 400, 300)]
@@ -1337,6 +1337,7 @@ def test_schematic_field_editing(app, root):
     check(set(block.field_values) == {"ОУ", "В1", "В2"},
           "у элемента есть поля из описания")
 
+    original = list(block.field_positions["В1"])
     box = block._field_bboxes.get("В1")
     check(bool(box), "подпись поля В1 нарисована")
     if not box:
@@ -1348,32 +1349,65 @@ def test_schematic_field_editing(app, root):
           "подпись поля В1 захвачена мышкой")
     app.on_drag(_event(sx + 30, sy + 20))
     app.on_release(_event(sx + 30, sy + 20))
-    check(block.field_offsets["В1"] != [0.0, 0.0],
-          "смещение подписи поля сохранено")
+    check(block.field_positions["В1"] != original,
+          "координаты подписи поля сохранены после перетаскивания")
 
-    def fill(dialog):
-        entries = _find(dialog, "Entry")
-        if len(entries) > 4:
-            entries[4].delete(0, tk.END)
-            entries[4].insert(0, "ОУ-7")
-        _click(dialog, "ОК")
+    def edit_field(dialog):
+        tree = _find(dialog, "Treeview")[0]
+        for iid in tree.get_children():
+            if tree.item(iid, "values")[0] == "ОУ":
+                tree.selection_set(iid)
+                break
 
-    _dialog_action(root, fill)
+        def fill_nested():
+            nested = [w for w in dialog.winfo_children()
+                      if isinstance(w, tk.Toplevel)]
+            if not nested:
+                return
+            entries = _find(nested[-1].winfo_children()[0], "Entry")
+            entries[1].delete(0, tk.END)
+            entries[1].insert(0, "ОУ-7")
+            entries[2].delete(0, tk.END)
+            entries[2].insert(0, "12,5")
+            _click(nested[-1], "ОК")
+
+        root.after(150, fill_nested)
+        _click(dialog, "Изменить…")
+        root.after(150, lambda: _click(dialog, "Сохранить"))
+
+    _dialog_action(root, edit_field)
     app.edit_schematic_element(block)
-    check(block.field_values["ОУ"] == "ОУ-7",
-          "значение поля ОУ правится в свойствах")
+    check(block.field_values["ОУ"] == "ОУ-7"
+          and abs(block.field_positions["ОУ"][0] - 12.5) < 0.01,
+          "значение и координата поля ОУ правятся в свойствах")
+
+    def remove_field(dialog):
+        tree = _find(dialog, "Treeview")[0]
+        for iid in tree.get_children():
+            if tree.item(iid, "values")[0] == "В2":
+                tree.selection_set(iid)
+                break
+        _click(dialog, "Удалить")
+        _click(dialog, "Сохранить")
+
+    _dialog_action(root, remove_field)
+    app.edit_schematic_element(block)
+    check("В2" not in block.field_values,
+          "удалённое поле не остаётся в свойствах")
     app.redraw_all()
     texts = {app.canvas.itemcget(item, "text")
              for item in app.canvas.find_all()
              if app.canvas.type(item) == "text"}
-    check("ОУ-7" in texts, "новое значение поля видно на чертеже")
+    check("ОУ-7" in texts and "В2" not in texts,
+          "на чертеже видны только поля из свойств")
 
     payload = sl.element_payload(block)
     restored = sl.create_component("sc_test_block", "T2", 0, 0)
     sl.restore_element(restored, payload)
-    check(restored.field_values["ОУ"] == "ОУ-7"
-          and restored.field_offsets["В1"] != [0.0, 0.0],
-          "значения и смещения полей сохраняются в JSON")
+    check(restored.field_values.get("ОУ") == "ОУ-7"
+          and "В2" not in restored.field_values
+          and restored.field_positions["В1"] != original,
+          "значения и координаты полей сохраняются в JSON")
 
 
 def run_gui():
