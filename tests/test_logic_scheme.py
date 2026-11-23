@@ -1257,6 +1257,23 @@ def test_schematic_elements(app):
     check(("Тестовый блок", "sc_test_block") in sl.PALETTE_ITEMS
           and icon is not None and len(icon.find_all()) > 5,
           "тестовый блок добавлен в палитру принципиальных схем")
+    # Пункт 7: клемма с размыкателем и переключатель 3-позиционный.
+    switch3 = app.elements[_add(app, "sc_switch_3pos", 900, 200)]
+    terminal = app.elements[_add(app, "sc_disconnect_terminal", 1100, 200)]
+    check(switch3.type == "sc_switch_3pos" and switch3.name.startswith("SA")
+          and set(switch3.ports) == {"left", "right"},
+          "переключатель 3-позиционный ставится на чертёж")
+    check(terminal.type == "sc_disconnect_terminal"
+          and terminal.name.startswith("X"),
+          "клемма с размыкателем ставится на чертёж")
+    check(("Переключатель 3-позиционный", "sc_switch_3pos") in sl.PALETTE_ITEMS
+          and ("Клемма с размыкателем", "sc_disconnect_terminal")
+          in sl.PALETTE_ITEMS,
+          "переключатель 3-позиционный и клемма с размыкателем есть в палитре")
+    palette_order = [key for _title, key in sl.PALETTE_ITEMS]
+    check(palette_order.index("sc_switch_3pos")
+          == palette_order.index("sc_switch_off") + 1,
+          "переключатель 3-позиционный стоит рядом с 2-позиционными")
     app.redraw_all()
     texts = {app.canvas.itemcget(item, "text")
              for item in app.canvas.find_all()
@@ -1304,13 +1321,21 @@ def test_schematic_elements(app):
     check(not combos, "выпадающего списка в палитре больше нет")
     check(set(tabs) == set(main.PALETTE_MODES) and len(tabs) == 3,
           "вкладки панелей: %s" % ", ".join(main.PALETTE_MODES))
-    check(tabs["Принципиальная схема"].cget("bg") == ui_theme.TOOL_ACTIVE
-          and tabs["Первичная схема"].cget("bg") == ui_theme.PALETTE,
+    check(tabs["Принципиальная схема"].cget("bg") == ui_theme.TAB_ACTIVE
+          and tabs["Первичная схема"].cget("bg") == ui_theme.TABBAR,
           "активная вкладка палитры выделена цветом темы")
+    # Вкладки стоят горизонтальной полосой (как в браузере): одна строка.
+    rows = {(button.winfo_y(), button.winfo_height())
+            for button in tabs.values()}
+    check(len(rows) == 1 and all(button.winfo_y() == 0 for button in tabs.values()),
+          "вкладки палитры стоят в один ряд")
+    check(all(button.cget("text") == main.PALETTE_TAB_TITLES[mode]
+              for mode, button in tabs.items()),
+          "подписи вкладок короткие, полное имя — в подсказке")
     app._set_palette_mode("Первичная схема")
     app.root.update()
     check(app._palette_mode.get() == "Первичная схема"
-          and tabs["Первичная схема"].cget("bg") == ui_theme.TOOL_ACTIVE,
+          and tabs["Первичная схема"].cget("bg") == ui_theme.TAB_ACTIVE,
           "вкладки палитры переключаются кликом")
 
     # Регрессия: элементы принципиальной схемы не выделялись кликом из-за

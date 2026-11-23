@@ -28,6 +28,15 @@ PREFIX_BY_TYPE = {key: spec["prefix"] for key, spec in SYMBOLS.items()}
 TYPE_TITLES = {key: spec["title"] for key, spec in SYMBOLS.items()}
 PALETTE_ITEMS = [(spec["title"], key) for key, spec in SYMBOLS.items()]
 
+# Переключатель 3-позиционный задан вручную (его нет на чертеже DXF) и
+# попадает в конец таблицы. В палитре ставим его рядом с 2-позиционными.
+_THREE_POS = ("Переключатель 3-позиционный", "sc_switch_3pos")
+if _THREE_POS in PALETTE_ITEMS:
+    PALETTE_ITEMS.remove(_THREE_POS)
+    _index = PALETTE_ITEMS.index(("Переключатель 2-позиционный (откл.)",
+                                  "sc_switch_off"))
+    PALETTE_ITEMS.insert(_index + 1, _THREE_POS)
+
 #: Поля элемента принципиальной схемы.
 FIELDS = ("type", "designation", "description", "note",
           "field_values", "field_positions")

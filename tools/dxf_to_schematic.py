@@ -98,6 +98,33 @@ EXTRA_SYMBOLS = [
          description=os.path.join("mount_elements", "test_block.yaml")),
 ]
 
+#: Символы, которых нет на чертеже DXF: геометрия задана вручную в той же
+#: системе координат, что и у извлечённых (CELL = 20). Добавление сюда —
+#: единственный способ сохранить их при повторной генерации файла.
+MANUAL_SYMBOLS = [
+    {
+        "type": "sc_switch_3pos",
+        "title": "Переключатель 3-позиционный",
+        "prefix": "SA",
+        "source": "Переключатель 3-позиционный",
+        "bbox": (-27, -12, 27, 12),
+        "primitives": [
+            ("circle", 0, 0, 3),
+            ("line", -27, 0, -18, 0),
+            ("line", 18, 0, 27, 0),
+            ("line", -18, -12, -18, 12),
+            ("line", -6, -12, -6, 12),
+            ("line", 0, -12, 0, 12),
+            ("line", 6, -12, 6, 12),
+            ("line", 18, -12, 18, 12),
+        ],
+        "ports": {
+            "left": {"x": -27, "y": 0, "direction": "in"},
+            "right": {"x": 27, "y": 0, "direction": "out"},
+        },
+    },
+]
+
 GEO = ("LINE", "LWPOLYLINE", "CIRCLE", "ARC")
 
 
@@ -500,6 +527,7 @@ def main():
         return 1
     symbols = build()
     symbols.extend(_extra_symbol(spec) for spec in EXTRA_SYMBOLS)
+    symbols.extend(MANUAL_SYMBOLS)
     write(symbols)
     return 0
 

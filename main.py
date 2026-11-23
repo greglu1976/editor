@@ -150,6 +150,15 @@ SEARCH_LAYOUT_TABLE = str.maketrans(SEARCH_LAYOUT)
 PALETTE_MODES = ("Первичная схема", "Принципиальная схема",
                  "Логическая схема")
 
+#: Подписи на вкладках палитры: полные названия не помещаются в полосу
+#: шириной ~250 px, поэтому на вкладке — одно слово, полное имя — в
+#: всплывающей подсказке.
+PALETTE_TAB_TITLES = {
+    "Первичная схема": "Первичная",
+    "Принципиальная схема": "Принципиальная",
+    "Логическая схема": "Логическая",
+}
+
 PALETTE_ITEMS = [
     ("Выключатель", "breaker"),
     ("Разъединитель", "disconnector"),
@@ -180,7 +189,12 @@ PALETTE_ITEMS = [
 
 
 class ToolTip:
-    """Всплывающая подсказка для кнопок-иконок."""
+    """Всплывающая подсказка для кнопок-иконок.
+
+    Подсказка выводится под иконкой по центру: сверху она закрывала бы
+    подпись панели и соседние элементы. Если снизу не хватает места
+    (иконка у нижнего края экрана), подсказка показывается над иконкой.
+    """
 
     def __init__(self, widget, text, delay=450):
         self.widget = widget
@@ -200,16 +214,26 @@ class ToolTip:
         self._after_id = None
         if self.tip is not None:
             return
-        x = self.widget.winfo_rootx() + self.widget.winfo_width() + 8
-        y = self.widget.winfo_rooty() + 4
         # Владелец — корневое окно: вложенный Toplevel внутри canvas не отображается
         self.tip = tk.Toplevel(self.widget.winfo_toplevel())
         self.tip.wm_overrideredirect(True)
         self.tip.wm_attributes("-topmost", True)
-        self.tip.wm_geometry(f"+{x}+{y}")
         tk.Label(self.tip, text=self.text, bg="#ffffe0", fg="black",
                  relief="solid", bd=1, padx=6, pady=2,
                  font=("Arial", 9)).pack()
+        self.tip.update_idletasks()
+        tip_w = self.tip.winfo_reqwidth()
+        tip_h = self.tip.winfo_reqheight()
+        widget_x = self.widget.winfo_rootx()
+        widget_y = self.widget.winfo_rooty()
+        x = widget_x + (self.widget.winfo_width() - tip_w) // 2
+        y = widget_y + self.widget.winfo_height() + 4
+        screen_w = self.widget.winfo_screenwidth()
+        screen_h = self.widget.winfo_screenheight()
+        x = max(0, min(x, screen_w - tip_w))
+        if y + tip_h > screen_h:
+            y = max(0, widget_y - tip_h - 4)
+        self.tip.wm_geometry("+%d+%d" % (x, y))
 
     def _hide(self, event=None):
         self._cancel()
@@ -963,12 +987,12 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._build_ribbon()
 
         # === ЛЕВАЯ ПАЛИТРА (прокручиваемая: элементов стало больше) ===
-        palette_wrap = tk.Frame(self.root, width=200, bg="#f0f0f0")
+        palette_wrap = tk.Frame(self.root, width=272, bg="#f0f0f0")
         palette_wrap.pack(side=tk.LEFT, fill=tk.Y, padx=5, pady=5)
         palette_wrap.pack_propagate(False)
         self._palette_wrap = palette_wrap
 
-        self.palette_canvas = tk.Canvas(palette_wrap, width=188, bg="#f0f0f0",
+        self.palette_canvas = tk.Canvas(palette_wrap, width=260, bg="#f0f0f0",
                                         highlightthickness=0, takefocus=False)
         palette_scroll = ttk.Scrollbar(palette_wrap, orient="vertical",
                                        command=self.palette_canvas.yview)
@@ -977,7 +1001,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self.palette_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         palette = tk.Frame(self.palette_canvas, bg="#f0f0f0")
-        self.palette_canvas.create_window((0, 0), window=palette, anchor="nw", width=180)
+        self.palette_canvas.create_window((0, 0), window=palette, anchor="nw", width=252)
         palette.bind("<Configure>",
                      lambda e: self.palette_canvas.configure(scrollregion=self.palette_canvas.bbox("all")))
         self.palette_canvas.bind("<MouseWheel>", self._scroll_palette)
@@ -985,29 +1009,43 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         tk.Label(palette, text="Элементы схемы", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(pady=5)
 
         # Переключаемая панель: первичная / принципиальная / логическая
-        # схема. Группы — вкладками (как в ленте), не списком.
-        mode_frame = tk.Frame(palette, bg="#f0f0f0")
-        mode_frame.pack(fill=tk.X, padx=4, pady=(0, 4))
+        # схема. Вкладки — горизонтальной полосой, как в браузере: активная
+        # светлая, неактивные лежат на полосе вкладок.
+        mode_frame = tk.Frame(palette, bg=ui_theme.TABBAR)
+        mode_frame.pack(fill=tk.X)
         self._palette_mode = tk.StringVar(value=PALETTE_MODES[0])
         self._palette_tab_buttons = {}
-        # Вкладки в один столбик: ширина палитры всего 200 px.
         for mode in PALETTE_MODES:
             button = tk.Button(
-                mode_frame, text=mode, relief=tk.FLAT, bd=0, anchor="w",
-                padx=10, pady=4, font=ui_theme.font(9),
-                bg=ui_theme.PALETTE, fg=ui_theme.TEXT_SOFT,
+                mode_frame, text=PALETTE_TAB_TITLES[mode], relief=tk.FLAT,
+                bd=0, highlightthickness=0, padx=3, pady=5,
+                font=ui_theme.font(8),
+                bg=ui_theme.TABBAR, fg=ui_theme.TEXT_SOFT,
                 activebackground=ui_theme.HOVER,
                 activeforeground=ui_theme.ACCENT,
                 command=lambda m=mode: self._set_palette_mode(m))
-            button.pack(fill=tk.X, pady=(1, 0))
+            button.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            ToolTip(button, mode)
             self._palette_tab_buttons[mode] = button
+        # Тонкая граница отделяет полосу вкладок от области элементов.
+        tk.Frame(palette, height=1, bg=ui_theme.BORDER).pack(fill=tk.X)
+
+        # Область элементов: группы вкладок живут в отдельном контейнере.
+        # Без него повторная упаковка группы при переключении вкладки
+        # переносила её в конец панели — ниже блока подсказок.
+        groups = tk.Frame(palette, bg="#f0f0f0")
+        groups.pack(fill=tk.X, padx=2, pady=2)
 
         # Иконки элементов: 3 колонки, подсказка при наведении.
         self._tool_icons = {}
         self._palette_frames = {}
 
         def build_palette_group(key, items):
-            frame = tk.Frame(palette, bg="#f0f0f0")
+            frame = tk.Frame(groups, bg="#f0f0f0")
+            # Колонки одинаковой ширины: иконки стоят по центру панели,
+            # а не прижимаются к левому краю.
+            for column in range(3):
+                frame.grid_columnconfigure(column, weight=1)
             for index, (label, etype) in enumerate(items):
                 icon = self._make_tool_icon(frame, etype, label)
                 icon.grid(row=index // 3, column=index % 3, padx=2, pady=2)
@@ -1035,7 +1073,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                               "Esc — снять выделение и режим «Выбрать».",
                  bg=ui_theme.PALETTE, fg=ui_theme.TEXT_MUTED,
                  font=ui_theme.font(8), justify="left",
-                 wraplength=168).pack(anchor="w", padx=4, pady=(10, 0))
+                 wraplength=236).pack(anchor="w", padx=4, pady=(10, 0))
 
         self.canvas = tk.Canvas(self.root, bg="white", width=800, height=700,
                                 takefocus=True, highlightthickness=0)
@@ -6406,14 +6444,15 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self._palette_mode.set(mode)
         for key, frame in getattr(self, "_palette_frames", {}).items():
             if key == mode:
-                frame.pack(fill=tk.X, padx=2, pady=2)
+                frame.pack(fill=tk.X)
             else:
                 frame.pack_forget()
-        # Активная вкладка выделяется цветом темы, неактивные — бледные.
+        # Активная вкладка светлая, неактивные остаются на полосе
+        # вкладок — как в браузере.
         for key, button in getattr(self, "_palette_tab_buttons", {}).items():
             active = (key == mode)
             button.config(
-                bg=ui_theme.TOOL_ACTIVE if active else ui_theme.PALETTE,
+                bg=ui_theme.TAB_ACTIVE if active else ui_theme.TABBAR,
                 fg=ui_theme.ACCENT if active else ui_theme.TEXT_SOFT)
         self.palette_canvas.update_idletasks()
         self.palette_canvas.configure(scrollregion=self.palette_canvas.bbox("all"))
