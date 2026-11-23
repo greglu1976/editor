@@ -223,7 +223,7 @@ class NirReportMixin:
                 "rows": self._nir_kit_rows(cabinet),
                 "widths": [1500, 2900, 5238],
                 "aligns": ["left", "left", "left"],
-                "font_size": 8,
+                "font_size": 10,
             })
 
         if container is not None:
@@ -265,7 +265,7 @@ class NirReportMixin:
                 "rows": specification_rows,
                 "widths": [3100, 1700, 4838],
                 "aligns": ["left", "left", "left"],
-                "font_size": 8,
+                "font_size": 10,
             })
 
         return {
@@ -302,7 +302,7 @@ class NirReportMixin:
             "rows": rows,
             "widths": [2600, 7038],
             "aligns": ["left", "left"],
-            "font_size": 8,
+            "font_size": 10,
         }
 
     def _nir_bound_cabinets(self, container):
@@ -485,7 +485,7 @@ class NirReportMixin:
                         "rows": rows,
                         "widths": [600, 4000, 4000, 1038],
                         "aligns": ["center", "left", "left", "center"],
-                        "font_size": 8,
+                        "font_size": 10,
                     })
                 else:
                     rows = [[str(item.get("num") or position),
@@ -499,7 +499,7 @@ class NirReportMixin:
                         "rows": rows,
                         "widths": [600, 3400, 1900, 3738],
                         "aligns": ["center", "left", "left", "left"],
-                        "font_size": 8,
+                        "font_size": 10,
                     })
 
         for index, container in enumerate(containers, start=1):

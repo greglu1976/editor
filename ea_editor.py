@@ -434,6 +434,15 @@ class StandardEditorWindow(tk.Toplevel):
                                table.get("name") or "")
             node = self.tree.insert(parent, tk.END, text=label.strip())
             self._register_node(node, ("table", table), tables, table, parent)
+            self._add_table_columns(node, table)
+
+    def _add_table_columns(self, node, table):
+        """Колонки таблицы — дочерними узлами: состав виден прямо в дереве."""
+        for index, header in enumerate(es.table_headers(self.data, table)):
+            title = str(header or "").strip() or "колонка %d" % (index + 1)
+            column = self.tree.insert(node, tk.END, text="• %s" % title)
+            self._register_node(column, ("table_column", table, index),
+                                None, table, node)
 
     def _add_figures(self, parent, container, number):
         figures = container.setdefault("figures", [])
@@ -534,6 +543,8 @@ class StandardEditorWindow(tk.Toplevel):
             self._render_text(node[1], node[2])
         elif kind == "table":
             self._render_table(node[1])
+        elif kind == "table_column":
+            self._render_table(node[1], column=node[2])
         elif kind == "figure":
             self._render_figure(node[1])
         elif kind == "cabinet":
@@ -646,9 +657,17 @@ class StandardEditorWindow(tk.Toplevel):
         return True
 
     # ------------------------------------------------------------- таблица
-    def _render_table(self, table):
+    def _render_table(self, table, column=None):
         caption = "%s %s" % (table.get("reference") or "Таблица",
                              table.get("name") or "")
+        # Выбрана колонка таблицы: показываем ту же сетку, но подписываем,
+        # какая колонка открыта.
+        if column is not None:
+            headers = es.table_headers(self.data, table)
+            title = (str(headers[column]).strip()
+                     if 0 <= column < len(headers) else "")
+            if title:
+                caption = "%s — колонка «%s»" % (caption.strip(), title)
         self.caption.config(text=caption.strip())
         self._panel_item = table
         form = tk.Frame(self.body)
@@ -1510,6 +1529,8 @@ class StandardEditorWindow(tk.Toplevel):
         if kind == "text":
             return {"section": "Section", "subsection": "Subsection",
                     "clause": "Clause"}.get(node[1], "Section")
+        if kind == "table_column":
+            return "Table"
         if kind == "slot":
             return "Output" if (len(node) > 2 and node[2] == "out") else "Input"
         return sc.KIND_CLASS.get(kind)
@@ -1696,6 +1717,10 @@ class StandardEditorWindow(tk.Toplevel):
         """Обновить подпись текущего узла дерева после правки полей."""
         iid = self._current_node
         node = self._nodes.get(iid) if iid else None
+        # У выбранной колонки подпись менять нельзя: правится-то таблица.
+        if node and node[0] == "table_column":
+            iid = self._find_iid(self._panel_item)
+            node = self._nodes.get(iid) if iid else None
         if (node and self._panel_item is not None
                 and node[-1] is self._panel_item and self.tree.exists(iid)):
             self.tree.item(iid, text=text)
@@ -2655,6 +2680,9 @@ class StandardEditorWindow(tk.Toplevel):
             return [("Удалить уставку", lambda: self._delete_node(iid))]
         if kind == "parameter":
             return [("Удалить параметр", lambda: self._delete_node(iid))]
+        if kind == "table_column":
+            # Колонка — не отдельный узел модели: действия у самой таблицы.
+            return []
         return [("Удалить ИЭУ", lambda: self._delete_node(iid))]
 
     def _on_right_click(self, event):

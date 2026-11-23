@@ -143,7 +143,7 @@ class DocxBuilder:
         return self
 
     # ------------------------------------------------------------ таблица
-    def table(self, header, rows, widths=None, font_size=9,
+    def table(self, header, rows, widths=None, font_size=10,
               aligns=None, header_fill="DCE6F1", empty_text="—"):
         """Таблица с рамками; первая строка — заголовок (повторяется)."""
         columns = len(header)
@@ -467,7 +467,7 @@ def build_scheme_report(path, report):
                           rows=rows,
                           widths=section.get("widths"),
                           aligns=section.get("aligns"),
-                          font_size=section.get("font_size", 9))
+                          font_size=section.get("font_size", 10))
         else:
             builder.paragraph("Нет данных.", size=10, color="808080")
     for line in report.get("footer") or []:
@@ -521,14 +521,14 @@ def build_selection_report(path, report):
             builder.table(header=header, rows=rows,
                           widths=section.get("widths"),
                           aligns=section.get("aligns"),
-                          font_size=section.get("font_size", 9))
+                          font_size=section.get("font_size", 10))
         elif rows:
             builder.table(header=section.get("header") or ["Показатель",
                                                            "Значение"],
                           rows=rows,
                           widths=section.get("widths") or [3200, 6438],
                           aligns=section.get("aligns") or ["left", "left"],
-                          font_size=section.get("font_size", 9))
+                          font_size=section.get("font_size", 10))
 
         for block in blocks:
             head = block.get("head")
@@ -540,7 +540,7 @@ def build_selection_report(path, report):
             if block_rows:
                 builder.table(header=["Параметр", "Значение"],
                               rows=block_rows, widths=[3200, 6438],
-                              aligns=["left", "left"], font_size=9)
+                              aligns=["left", "left"], font_size=10)
 
         if not (header or rows or blocks):
             builder.paragraph("Нет данных.", size=10, color="808080")
@@ -565,7 +565,7 @@ def build_nir_report(path, report):
             {"kind": "paragraph", "text": "…"},
             {"kind": "caption", "text": "Таблица 1 – Перечень шкафов"},
             {"kind": "table", "header": [...], "rows": [[...]],
-             "widths": [...], "aligns": [...], "font_size": 8,
+             "widths": [...], "aligns": [...], "font_size": 10,
              "empty_text": ""},
         ],
     }
@@ -589,7 +589,7 @@ def build_nir_report(path, report):
                           rows=block.get("rows") or [],
                           widths=block.get("widths"),
                           aligns=block.get("aligns"),
-                          font_size=block.get("font_size", 9),
+                          font_size=block.get("font_size", 10),
                           empty_text=block.get("empty_text", "—"))
         else:
             builder.paragraph(block.get("text") or "",

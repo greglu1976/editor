@@ -616,7 +616,7 @@ class SelectionReportMixin:
                 "widths": [500, 1200, 1600, 1900, 1000, 1938, 1500],
                 "aligns": ["center", "left", "left", "left", "center",
                            "left", "left"],
-                "font_size": 8,
+                "font_size": 10,
             })
         else:
             sections.append(empty_section(
@@ -637,7 +637,7 @@ class SelectionReportMixin:
                 "rows": element_rows,
                 "widths": [500, 1500, 3000, 3438, 1200],
                 "aligns": ["center", "left", "left", "left", "center"],
-                "font_size": 8,
+                "font_size": 10,
             })
         else:
             sections.append(empty_section(
@@ -664,7 +664,7 @@ class SelectionReportMixin:
             ],
             "widths": [4000, 5638],
             "aligns": ["left", "left"],
-            "font_size": 8,
+            "font_size": 10,
         })
 
         return {

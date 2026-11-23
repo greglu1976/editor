@@ -9894,7 +9894,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                     "widths": [420, 900, 1200, 900, 1700, 1500, 1300, 1718],
                     "aligns": ["center", "center", "left", "center", "left",
                                "left", "left", "left"],
-                    "font_size": 8,
+                    "font_size": 10,
                 },
                 {
                     "title": "4. Ведомость контейнеров КЭТ",

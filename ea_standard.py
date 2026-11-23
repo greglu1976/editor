@@ -759,6 +759,19 @@ def table_view(data, table):
     return headers, _cabinet_rows_for(kind, cabinet_item)
 
 
+def table_headers(data, table):
+    """Только подписи колонок таблицы — без сборки строк.
+
+    Дерево редактора показывает колонки дочерними узлами у каждой таблицы;
+    строить для этого все строки (а у таблицы шкафа — обходить весь шкаф)
+    слишком дорого, а шапка известна сразу: у таблицы документа — первая
+    строка, у таблицы шкафа — форма из документа.
+    """
+    if table.get("cabinet"):
+        return _form_headers(table)
+    return _stored_view(table)[0]
+
+
 def table_by_number(data, number):
     """Таблица по номеру (``5.7``) или None."""
     for table in iter_tables(data):

@@ -69,7 +69,7 @@ def _font(run, size=None, bold=None, italic=None):
         run.italic = True
 
 
-def _cell(cell, text, size=8, bold=False, align=None):
+def _cell(cell, text, size=10, bold=False, align=None):
     paragraph = cell.paragraphs[0]
     if align is not None:
         paragraph.alignment = align
@@ -158,7 +158,7 @@ def _hard_width(table, widths):
     layout.set(qn("w:type"), "fixed")
 
 
-def _table(doc, headers, rows, size=8, max_rows=0, widths_mm=None):
+def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None):
     """Таблица с шапкой; возвращает число выведенных строк данных."""
     if not headers:
         return 0

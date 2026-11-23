@@ -292,6 +292,12 @@ def test_docx(data):
         first = [cell.text for cell in match.rows[1].cells]
         check(first == [str(value) for value in rows[0]],
               "строки взяты из шкафа")
+        # Пункт 8: таблицы набраны кеглем 10, как основной текст.
+        sizes = {run.font.size.pt for row in match.rows
+                 for cell in row.cells for paragraph in cell.paragraphs
+                 for run in paragraph.runs if run.font.size}
+        check(doc.styles["Normal"].font.size.pt == 10 and sizes <= {10},
+              "таблицы отчёта набраны кеглем 10 (%s)" % (sizes or "стиль"))
 
     # шаблон: колонтитул и параметры страницы сохраняются, тело заменяется
     template_dir = tempfile.mkdtemp()
@@ -744,6 +750,30 @@ def test_editor():
             except Exception:                      # noqa: BLE001
                 errors += 1
         check(errors == 0, "все узлы дерева открываются без ошибок")
+
+        # Пункт 9: у таблиц в дереве видны их колонки.
+        table_node = next(key for key, node in window._nodes.items()
+                          if node[0] == "table"
+                          and window.tree.get_children(key))
+        columns = window.tree.get_children(table_node)
+        check(all(window._nodes[column][0] == "table_column"
+                  for column in columns),
+              "у таблицы в дереве показаны колонки (%d)" % len(columns))
+        table_item = window._nodes[table_node][1]
+        headers = es.table_headers(window.data, table_item)
+        expected = ["• %s" % (str(header or "").strip()
+                              or "колонка %d" % (index + 1))
+                    for index, header in enumerate(headers)]
+        check([window.tree.item(column, "text") for column in columns]
+              == expected,
+              "подписи колонок совпадают с шапкой таблицы")
+        window.tree.selection_set(columns[0])
+        root.update()
+        check("колонка" in window.caption.cget("text").lower()
+              and len(window._grid_rows) > 0,
+              "выбор колонки открывает сетку таблицы")
+        window.tree.selection_set(table_node)
+        root.update()
 
         table = next(item for item in es.iter_tables(window.data)
                      if es.table_kind(item.get("name")) == "analog_inputs")
@@ -1832,6 +1862,16 @@ def _first_figure(data):
     return None
 
 
+def test_report_tables_font():
+    print("3a. шрифт таблиц отчётов")
+    import docxreport
+    builder = docxreport.DocxBuilder()
+    builder.table(header=["Показатель", "Значение"], rows=[["А", "1"]])
+    xml = "".join(builder.body)
+    check('<w:sz w:val="20"/>' in xml,
+          "таблицы отчёта по НИР набраны кеглем 10")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
@@ -1842,6 +1882,7 @@ def main(argv=None):
     test_catalog_sync(data)
     test_new_standard(data)
     test_docx(data)
+    test_report_tables_font()
     test_archive()
     test_rebuild_from_standards()
     test_main_method_exists()
