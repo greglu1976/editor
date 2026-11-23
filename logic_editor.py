@@ -1612,6 +1612,7 @@ class LogicEditorMixin:
             "description": tk.StringVar(
                 value=getattr(element, "description", "")),
             "note": tk.StringVar(value=getattr(element, "note", "")),
+            "name": tk.StringVar(value=getattr(element, "name", "")),
         }
 
         def add_entry(row, column, caption, variable, width=28):
@@ -1625,15 +1626,16 @@ class LogicEditorMixin:
         add_entry(0, 2, "Обозначение:", base_vars["designation"])
         add_entry(1, 0, "Описание:", base_vars["description"])
         add_entry(1, 2, "Примечание:", base_vars["note"])
+        add_entry(2, 0, "Имя (пусто — не показывать):", base_vars["name"])
 
         tk.Label(
             outer, anchor="w",
             text="Поля блока (X/Y — в локальной системе элемента, 0,0 — центр):"
-        ).grid(row=2, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        ).grid(row=3, column=0, columnspan=4, sticky="w", pady=(8, 0))
         table_frame = tk.Frame(outer, padx=2, pady=2)
-        table_frame.grid(row=3, column=0, columnspan=4, sticky="nsew",
+        table_frame.grid(row=4, column=0, columnspan=4, sticky="nsew",
                          pady=(4, 0))
-        outer.rowconfigure(3, weight=1)
+        outer.rowconfigure(4, weight=1)
         table_frame.columnconfigure(0, weight=1)
         table_frame.rowconfigure(0, weight=1)
         tree = ttk.Treeview(
@@ -1735,7 +1737,7 @@ class LogicEditorMixin:
                 rows.pop(iid, None)
 
         buttons = tk.Frame(outer)
-        buttons.grid(row=4, column=0, columnspan=4, sticky="w", pady=(6, 0))
+        buttons.grid(row=5, column=0, columnspan=4, sticky="w", pady=(6, 0))
         for text, command, width in (("Добавить…", add_field, 14),
                                      ("Изменить…", edit_field, 14),
                                      ("Удалить", remove_field, 10)):
@@ -1769,6 +1771,7 @@ class LogicEditorMixin:
         element.designation = base_vars["designation"].get().strip()
         element.description = base_vars["description"].get().strip()
         element.note = base_vars["note"].get().strip()
+        element.name = base_vars["name"].get().strip()
         element.field_values = {row["name"]: row["value"]
                                 for row in rows.values()}
         element.field_positions = {row["name"]: [row["x"], row["y"]]

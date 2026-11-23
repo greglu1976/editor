@@ -1353,6 +1353,9 @@ def test_schematic_field_editing(app, root):
           "координаты подписи поля сохранены после перетаскивания")
 
     def edit_field(dialog):
+        entries = _find(dialog, "Entry")
+        entries[4].delete(0, tk.END)
+        entries[4].insert(0, "Блок-7")
         tree = _find(dialog, "Treeview")[0]
         for iid in tree.get_children():
             if tree.item(iid, "values")[0] == "ОУ":
@@ -1380,8 +1383,11 @@ def test_schematic_field_editing(app, root):
     check(block.field_values["ОУ"] == "ОУ-7"
           and abs(block.field_positions["ОУ"][0] - 12.5) < 0.01,
           "значение и координата поля ОУ правятся в свойствах")
+    check(block.name == "Блок-7", "имя блока правится в свойствах")
 
     def remove_field(dialog):
+        entries = _find(dialog, "Entry")
+        entries[4].delete(0, tk.END)
         tree = _find(dialog, "Treeview")[0]
         for iid in tree.get_children():
             if tree.item(iid, "values")[0] == "В2":
@@ -1394,11 +1400,12 @@ def test_schematic_field_editing(app, root):
     app.edit_schematic_element(block)
     check("В2" not in block.field_values,
           "удалённое поле не остаётся в свойствах")
+    check(block.name == "", "пустое имя убирает подпись блока")
     app.redraw_all()
     texts = {app.canvas.itemcget(item, "text")
              for item in app.canvas.find_all()
              if app.canvas.type(item) == "text"}
-    check("ОУ-7" in texts and "В2" not in texts,
+    check("ОУ-7" in texts and "В2" not in texts and "Блок-7" not in texts,
           "на чертеже видны только поля из свойств")
 
     payload = sl.element_payload(block)
