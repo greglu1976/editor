@@ -409,6 +409,30 @@ def move_node(node, source, target):
     return node
 
 
+def place_node(node, source, target, anchor=None, after=False):
+    """Поставить узел в список ``target`` перед/после ``anchor``.
+
+    В отличие от :func:`move_node`, работает и внутри одного списка, поэтому
+    используется для перетаскивания мышью. Номер и ссылка не меняются.
+    ``anchor=None`` означает конец списка. Если якорь находился в том же
+    списке после узла, позиция ищется уже после удаления — индекс
+    пересчитывается автоматически.
+    """
+    if node not in source:
+        raise StructureError("узел не найден в контейнере")
+    remove(source, node)
+    index = None
+    if anchor is not None:
+        try:
+            index = target.index(anchor)
+        except ValueError:
+            index = None
+        if index is not None and after:
+            index += 1
+    add(target, node, index)
+    return node
+
+
 def copy_figure(figure, container, number=None, base=""):
     """Скопировать рисунок в другой контейнер с новым номером."""
     clone = copy.deepcopy(figure)

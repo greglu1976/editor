@@ -266,6 +266,10 @@ class StandardEditorWindow(tk.Toplevel):
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
         self.tree.bind("<Button-3>", self._on_right_click)
         self.tree.bind("<Delete>", lambda event: self._delete_selection())
+        # Перетаскивание мышью: разделы, подразделы, таблицы и рисунки.
+        self.tree.bind("<ButtonPress-1>", self._on_drag_start, add="+")
+        self.tree.bind("<B1-Motion>", self._on_drag_motion, add="+")
+        self.tree.bind("<ButtonRelease-1>", self._on_drag_end, add="+")
         panes.add(left, weight=1)
 
         right = tk.Frame(panes)
@@ -483,6 +487,149 @@ class StandardEditorWindow(tk.Toplevel):
         if not node:
             return None
         return node[1] if node[0] == "text" else node[0]
+
+    # ------------------------------------------------------- мышь: перенос
+    _DRAG_KINDS = {"section", "subsection", "table", "figure"}
+    _DRAG_WORDS = {"section": "раздел", "subsection": "подраздел",
+                   "table": "таблица", "figure": "рисунок"}
+
+    def _drag_kind(self, iid):
+        kind = self._node_kind(iid)
+        return kind if kind in self._DRAG_KINDS else None
+
+    def _is_descendant(self, iid, ancestor):
+        parent = self.tree.parent(iid)
+        while parent:
+            if parent == ancestor:
+                return True
+            parent = self.tree.parent(parent)
+        return False
+
+    @staticmethod
+    def _drop_position(iid, y, box):
+        """Перед/после/внутрь строки — по положению курсора в строке."""
+        _x, top, _w, height = box
+        if y < top + height / 3.0:
+            return "before"
+        if y > top + 2.0 * height / 3.0:
+            return "after"
+        return "into"
+
+    def _container_for_iid(self, iid):
+        """Словарь-владелец для текстового узла или таблицы/рисунка."""
+        node = self._nodes.get(iid)
+        if not node:
+            return None
+        if node[0] == "text":
+            return node[2]
+        if node[0] in ("table", "figure"):
+            owner = self._owners.get(iid)
+            return self._container_for_iid(owner[2]) if owner else None
+        return None
+
+    def _drag_destination(self, source, target, where):
+        """План переноса: список, якорь и признак «после якоря»."""
+        kind = self._drag_kind(source)
+        owner = self._owners.get(source)
+        if not kind or not owner or owner[1] is None:
+            return None
+        if target == source or self._is_descendant(target, source):
+            return None
+        tnode = self._nodes.get(target)
+        if not tnode:
+            return None
+        tkind = self._node_kind(target)
+        towner = self._owners.get(target)
+
+        if kind == "section":
+            if tkind != "section" or not towner:
+                return None
+            dest, anchor = owner[0], towner[1]
+            after = where != "before"
+        elif kind == "subsection":
+            if tkind == "subsection" and towner:
+                dest, anchor = towner[0], towner[1]
+                after = where != "before"
+            elif tkind == "section":
+                dest = tnode[2].setdefault("subsections", [])
+                anchor, after = None, False
+            else:
+                return None
+        else:
+            key = "tables" if kind == "table" else "figures"
+            if tkind in ("table", "figure") and towner:
+                container = self._container_for_iid(towner[2])
+                if container is None:
+                    return None
+                dest = container.setdefault(key, [])
+                anchor = towner[1] if tkind == kind else None
+                after = where == "after" or (anchor is None
+                                             and where == "into")
+            elif tkind in ("section", "subsection", "clause"):
+                container = self._container_for_iid(target)
+                if container is None:
+                    return None
+                dest = container.setdefault(key, [])
+                anchor, after = None, False
+            else:
+                return None
+        return {"dest": dest, "anchor": anchor, "after": after,
+                "word": self._DRAG_WORDS[kind]}
+
+    def _on_drag_start(self, event):
+        x, y = int(event.x), int(event.y)
+        iid = self.tree.identify_row(y)
+        if not self._drag_kind(iid):
+            self._drag = None
+            return
+        self._drag = {"iid": iid, "x": x, "y": y,
+                      "active": False, "plan": None}
+
+    def _on_drag_motion(self, event):
+        drag = getattr(self, "_drag", None)
+        if not drag:
+            return
+        x, y = int(event.x), int(event.y)
+        if not drag["active"] and abs(x - drag["x"]) \
+                + abs(y - drag["y"]) < 6:
+            return
+        drag["active"] = True
+        target = self.tree.identify_row(y)
+        drag["plan"] = None
+        if target:
+            box = self.tree.bbox(target)
+            if box:
+                where = self._drop_position(target, y, box)
+                drag["plan"] = self._drag_destination(drag["iid"],
+                                                      target, where)
+        if drag["plan"]:
+            word = drag["plan"]["word"]
+            self.status.config(text="Отпустите, чтобы переместить %s сюда"
+                                    % word)
+        else:
+            self.status.config(text="Сюда перемещать нельзя")
+
+    def _on_drag_end(self, event):
+        drag = getattr(self, "_drag", None)
+        self._drag = None
+        if not drag or not drag.get("active"):
+            return
+        plan = drag.get("plan")
+        if not plan:
+            self.status.config(text="Перемещение отменено")
+            return
+        owner = self._owners.get(drag["iid"])
+        if not owner or owner[1] is None:
+            return
+        label = self.tree.item(drag["iid"], "text")
+
+        def action():
+            return st.place_node(owner[1], owner[0], plan["dest"],
+                                 plan["anchor"], plan["after"])
+
+        self._mutate(action, select_item=owner[1])
+        self.status.config(text="%s «%s» перемещён мышью"
+                                % (plan["word"].capitalize(), label))
 
     def _on_select(self, event=None):
         if self._switching:

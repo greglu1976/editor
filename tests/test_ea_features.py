@@ -1258,6 +1258,102 @@ def test_editor():
         root.destroy()
 
 
+def test_editor_drag_reorder():
+    """Перетаскивание мышью меняет порядок разделов, таблиц и рисунков."""
+    print("10б. перенос узлов мышью в редакторе стандарта")
+    if tk is None:
+        print("  --   tkinter нет: редактор не проверяется")
+        return
+    try:
+        from types import SimpleNamespace
+        import ea_editor
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "редактор стандарта: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    window = None
+    try:
+        window = ea_editor.show(path, root)
+        # Bbox узлов дерева доступен только для реально видимых строк.
+        root.deiconify()
+        root.geometry("1600x1200")
+        window.geometry("1500x1100")
+        root.update()
+
+        def expand_all(parent=""):
+            for iid in window.tree.get_children(parent):
+                window.tree.item(iid, open=True)
+                expand_all(iid)
+
+        def by_kind(kind):
+            return [iid for iid, node in window._nodes.items()
+                    if window._node_kind(iid) == kind]
+
+        def children_of_kind(iid, kind):
+            return [child for child in window.tree.get_children(iid)
+                    if window._node_kind(child) == kind]
+
+        def drag(source, target, where="before"):
+            expand_all()
+            window.tree.see(source)
+            window.tree.see(target)
+            root.update()
+            sbox = window.tree.bbox(source)
+            box = window.tree.bbox(target)
+            if not sbox or not box:
+                raise ValueError("узел не виден для перетаскивания")
+            start = SimpleNamespace(x=sbox[0] + sbox[2] / 2.0,
+                                    y=sbox[1] + sbox[3] / 2.0)
+            part = 0.2 if where == "before" else 0.8
+            event = SimpleNamespace(x=box[0] + box[2] / 2.0,
+                                    y=box[1] + box[3] * part)
+            window._on_drag_start(start)
+            window._on_drag_motion(event)
+            window._on_drag_end(event)
+            root.update()
+            expand_all()
+
+        sections = by_kind("section")
+        check(len(sections) > 1, "в стандарте несколько разделов для переноса")
+        before = list(window.data["sections"])
+        drag(sections[1], sections[0])
+        after = window.data["sections"]
+        check(after[0] is before[1] and after[1] is before[0],
+              "раздел передвинут мышью перед другим разделом")
+
+        sec_iid = next(iid for iid in by_kind("section")
+                       if len(children_of_kind(iid, "subsection")) > 1)
+        subs = children_of_kind(sec_iid, "subsection")
+        container = window._nodes[sec_iid][2]
+        before = list(container["subsections"])
+        drag(subs[1], subs[0])
+        after = container["subsections"]
+        check(after[0] is before[1] and after[1] is before[0],
+              "подраздел передвинут мышью внутри раздела")
+
+        for kind, key, word in (("table", "tables", "таблица"),
+                                ("figure", "figures", "рисунок")):
+            parent = next(iid for iid in list(window._nodes)
+                          if len(children_of_kind(iid, kind)) > 1)
+            items = children_of_kind(parent, kind)
+            container = window._container_for_iid(items[0])
+            before = list(container[key])
+            drag(items[1], items[0])
+            after = container[key]
+            check(after[0] is before[1] and after[1] is before[0],
+                  "%s передвинут мышью внутри контейнера" % word)
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "перетаскивание мышью: %s" % exc)
+    finally:
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
 def test_structure_ops(data):
     """Добавление/удаление узлов без GUI (ea_structure)."""
     print("11. структурные операции (ea_structure)")
@@ -2004,6 +2100,7 @@ def main(argv=None):
         test_gui(data)
         test_fields()
         test_editor()
+        test_editor_drag_reorder()
         test_editor_fields()
     print("")
     if FAILURES:
