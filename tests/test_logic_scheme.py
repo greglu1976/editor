@@ -35,7 +35,9 @@
 24. перепривязку связей к другим отводам при изменении длины шины;
 25. полное обозначение сигнала на связи ФБ / Функция: Сигнал;
 26. изменение длины шины маркерами вверх/вниз, связь шины с шиной и
-    отключение вывода полей шины.
+    отключение вывода полей шины;
+27. поля-атрибуты элемента принципиальной схемы: правка в свойствах,
+    перетаскивание подписей и сохранение в JSON.
 """
 
 from __future__ import annotations
@@ -1325,6 +1327,55 @@ def test_schematic_elements(app):
           "элемент принципиальной схемы выделяется кликом по нему")
 
 
+def test_schematic_field_editing(app, root):
+    print("28а. поля элемента: свойства и перетаскивание")
+    import schematic_library as sl
+    _reset(app)
+    block = app.elements[_add(app, "sc_test_block", 400, 300)]
+    app.set_tool("select")
+    app.redraw_all()
+    check(set(block.field_values) == {"ОУ", "В1", "В2"},
+          "у элемента есть поля из описания")
+
+    box = block._field_bboxes.get("В1")
+    check(bool(box), "подпись поля В1 нарисована")
+    if not box:
+        return
+    sx = (box[0] + box[2]) / 2.0
+    sy = (box[1] + box[3]) / 2.0
+    app.on_left_click(_event(sx, sy))
+    check(app._dragging_field == (block.id, "В1"),
+          "подпись поля В1 захвачена мышкой")
+    app.on_drag(_event(sx + 30, sy + 20))
+    app.on_release(_event(sx + 30, sy + 20))
+    check(block.field_offsets["В1"] != [0.0, 0.0],
+          "смещение подписи поля сохранено")
+
+    def fill(dialog):
+        entries = _find(dialog, "Entry")
+        if len(entries) > 4:
+            entries[4].delete(0, tk.END)
+            entries[4].insert(0, "ОУ-7")
+        _click(dialog, "ОК")
+
+    _dialog_action(root, fill)
+    app.edit_schematic_element(block)
+    check(block.field_values["ОУ"] == "ОУ-7",
+          "значение поля ОУ правится в свойствах")
+    app.redraw_all()
+    texts = {app.canvas.itemcget(item, "text")
+             for item in app.canvas.find_all()
+             if app.canvas.type(item) == "text"}
+    check("ОУ-7" in texts, "новое значение поля видно на чертеже")
+
+    payload = sl.element_payload(block)
+    restored = sl.create_component("sc_test_block", "T2", 0, 0)
+    sl.restore_element(restored, payload)
+    check(restored.field_values["ОУ"] == "ОУ-7"
+          and restored.field_offsets["В1"] != [0.0, 0.0],
+          "значения и смещения полей сохраняются в JSON")
+
+
 def run_gui():
     import main
     main.messagebox.showinfo = lambda *args, **kwargs: None
@@ -1362,6 +1413,7 @@ def run_gui():
         test_point_drag(app)
         test_mark_drag(app)
         test_schematic_elements(app)
+        test_schematic_field_editing(app, root)
     finally:
         root.destroy()
 

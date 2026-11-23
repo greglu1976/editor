@@ -1569,16 +1569,27 @@ class LogicEditorMixin:
     def edit_schematic_element(self, element):
         if element is None:
             return
+        spec_fields = list((getattr(element, "spec", {}) or {}).get("fields")
+                           or {})
+        definitions = [
+            ("element_type", "Тип", 32),
+            ("designation", "Обозначение", 32),
+            ("description", "Описание", 46),
+            ("note", "Примечание", 46),
+        ]
+        values = {
+            "element_type": getattr(element, "element_type", ""),
+            "designation": getattr(element, "designation", ""),
+            "description": getattr(element, "description", ""),
+            "note": getattr(element, "note", ""),
+        }
+        current = getattr(element, "field_values", {}) or {}
+        for name in spec_fields:
+            definitions.append((name, "Поле «%s»" % name, 40))
+            values[name] = current.get(name, name)
         values = self._ask_fields(
             self.root, "Элемент принципиальной схемы — свойства",
-            (("element_type", "Тип", 32),
-             ("designation", "Обозначение", 32),
-             ("description", "Описание", 46),
-             ("note", "Примечание", 46)),
-            {"element_type": getattr(element, "element_type", ""),
-             "designation": getattr(element, "designation", ""),
-             "description": getattr(element, "description", ""),
-             "note": getattr(element, "note", "")})
+            tuple(definitions), values)
         if values is None:
             return
         self._push_undo()
@@ -1586,6 +1597,9 @@ class LogicEditorMixin:
         element.designation = values.get("designation", "")
         element.description = values.get("description", "")
         element.note = values.get("note", "")
+        element.field_values = {name: values.get(name, "")
+                                for name in spec_fields}
+        self._mark_modified()
         self.redraw_all()
 
     def edit_logic_port(self, element):

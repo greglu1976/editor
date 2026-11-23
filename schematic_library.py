@@ -21,7 +21,8 @@ TYPE_TITLES = {key: spec["title"] for key, spec in SYMBOLS.items()}
 PALETTE_ITEMS = [(spec["title"], key) for key, spec in SYMBOLS.items()]
 
 #: Поля элемента принципиальной схемы.
-FIELDS = ("type", "designation", "description", "note")
+FIELDS = ("type", "designation", "description", "note",
+          "field_values", "field_offsets")
 
 
 def is_schematic_type(comp_type):
@@ -42,6 +43,13 @@ class SchematicElement(Component):
         self.designation = ""
         self.description = ""
         self.note = ""
+        # Подписи-атрибуты символа (как атрибуты блока в AutoCAD):
+        # значение и смещение каждой подписи хранятся в самом элементе.
+        self.field_values = {name: name
+                             for name in (self.spec.get("fields") or {})}
+        self.field_offsets = {name: [0.0, 0.0]
+                              for name in (self.spec.get("fields") or {})}
+        self._field_bboxes = {}
         self.generate_ports()
 
     @property
@@ -91,6 +99,7 @@ class SchematicElement(Component):
 
     def draw(self, canvas, zoom, offset_x, offset_y):
         width = max(1, int(1.4 * zoom))
+        self._field_bboxes = {}
         for prim in self.spec["primitives"]:
             kind = prim[0]
             if kind == "line":
@@ -125,6 +134,25 @@ class SchematicElement(Component):
                       for p in points]
             coords = [value for point in screen for value in point]
             canvas.create_line(*coords, fill="black", width=width)
+
+        # Атрибуты символа: значение можно править в свойствах, а подпись —
+        # перетаскивать мышкой (смещение хранится в field_offsets).
+        for name, field in (self.spec.get("fields") or {}).items():
+            text = str(self.field_values.get(name, name) or "").strip()
+            if not text:
+                continue
+            offset = self.field_offsets.get(name) or [0.0, 0.0]
+            world = self._world_point(field["x"] + offset[0],
+                                      field["y"] + offset[1])
+            sx, sy = self._to_screen(world, zoom, offset_x, offset_y)
+            item = canvas.create_text(
+                sx, sy, text=text, anchor="center",
+                font=("Arial", max(1, int(9 * zoom))), fill="black",
+                tags="element_label")
+            try:
+                self._field_bboxes[name] = canvas.bbox(item)
+            except Exception:
+                pass
 
         text = str(getattr(self, "designation", "") or "").strip()
         if text:
@@ -163,6 +191,22 @@ def restore_element(el, payload):
         if not isinstance(getattr(el, field, ""), str):
             setattr(el, field, str(getattr(el, field, "")))
     el.spec = SYMBOLS[el.type]
+    fields = el.spec.get("fields") or {}
+    values = getattr(el, "field_values", {}) or {}
+    if not isinstance(values, dict):
+        values = {}
+    el.field_values = {name: str(values.get(name, name) or "")
+                       for name in fields}
+    offsets = getattr(el, "field_offsets", {}) or {}
+    if not isinstance(offsets, dict):
+        offsets = {}
+    el.field_offsets = {}
+    for name in fields:
+        raw = offsets.get(name)
+        try:
+            el.field_offsets[name] = [float(raw[0]), float(raw[1])]
+        except (TypeError, ValueError, IndexError):
+            el.field_offsets[name] = [0.0, 0.0]
     el.generate_ports()
 
 
@@ -172,6 +216,13 @@ def copy_element_fields(source, target):
         if hasattr(source, attribute):
             setattr(target, attribute, copy.deepcopy(getattr(source, attribute)))
     target.spec = SYMBOLS[target.type]
+    values = getattr(source, "field_values", {}) or {}
+    offsets = getattr(source, "field_offsets", {}) or {}
+    target.field_values = {name: str(values.get(name, name) or "")
+                           for name in (target.spec.get("fields") or {})}
+    target.field_offsets = {
+        name: list(offsets.get(name) or [0.0, 0.0])
+        for name in (target.spec.get("fields") or {})}
     target.generate_ports()
 
 

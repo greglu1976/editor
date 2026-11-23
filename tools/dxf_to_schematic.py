@@ -374,12 +374,15 @@ def _extra_symbol(spec):
 
     field_names, port_specs = _read_description(
         os.path.join(ROOT, spec["description"]))
+    fields = {}
+    field_primitives = []
     for name in field_names:
         point = labels.get(name.strip().lower())
         if point is None:
             raise ValueError("Подпись %r не найдена в %s" % (name, path))
         lx, ly = _local(point, cx, cy)
-        primitives.append(("text", name, lx, ly))
+        fields[name] = {"x": lx, "y": ly}
+        field_primitives.append(("text", name, lx, ly))
 
     lines = [prim for prim in raw if prim[0] == "line"]
     ports = {}
@@ -392,7 +395,7 @@ def _extra_symbol(spec):
                 "direction": "in" if anchor == "Начало" else "out",
             }
 
-    bx1, by1, bx2, by2 = _bounds(primitives)
+    bx1, by1, bx2, by2 = _bounds(primitives + field_primitives)
     return {
         "type": spec["type"],
         "title": spec["title"],
@@ -400,6 +403,7 @@ def _extra_symbol(spec):
         "source": spec["title"],
         "primitives": primitives,
         "ports": ports,
+        "fields": fields,
         "bbox": (round(bx1, 3), round(by1, 3),
                  round(bx2, 3), round(by2, 3)),
     }
@@ -476,6 +480,13 @@ def write(symbols):
                          % (name, _render_number(port["x"]),
                             _render_number(port["y"]), port["direction"]))
         lines.append("        },")
+        if item.get("fields"):
+            lines.append("        'fields': {")
+            for name, field in item["fields"].items():
+                lines.append("            %r: {'x': %s, 'y': %s},"
+                             % (name, _render_number(field["x"]),
+                                _render_number(field["y"])))
+            lines.append("        },")
         lines.append("    },")
     lines += ["}", ""]
     with open(OUTPUT, "w", encoding="utf-8") as handle:

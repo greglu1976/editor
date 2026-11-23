@@ -867,6 +867,11 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._label_drag_start = (0, 0)
         self._label_drag_offset = [0.0, 0.0]
         self._label_drag_changed = False
+        # Перетаскивание подписи-атрибута (поля) элемента
+        self._dragging_field = None       # (id элемента, имя поля)
+        self._field_drag_start = (0, 0)
+        self._field_drag_offset = [0.0, 0.0]
+        self._field_drag_changed = False
 
         # Комментарии к чертежу: плашки с текстом в мировых координатах.
         # Хранятся в файле схемы вместе с элементами.
@@ -6550,6 +6555,8 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._resize_changed = False
         self._dragging_label = None
         self._label_drag_changed = False
+        self._dragging_field = None
+        self._field_drag_changed = False
         self.selected_connection = None
         self.selected_analog = None
         self.selected_logic = None
@@ -7722,6 +7729,17 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                     return el.id
         return None
 
+    def _field_label_at(self, sx, sy):
+        """(id элемента, имя поля) под курсором или None."""
+        for el in reversed(list(self.elements.values())):
+            boxes = getattr(el, "_field_bboxes", None)
+            if not boxes:
+                continue
+            for name, box in boxes.items():
+                if box and box[0] <= sx <= box[2] and box[1] <= sy <= box[3]:
+                    return el.id, name
+        return None
+
     def _label_at(self, sx, sy):
         """id элемента, чья подпись под курсором (bbox обновляется при отрисовке)."""
         for el in reversed(list(self.elements.values())):
@@ -8186,6 +8204,21 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                         {name: (port["x"], port["y"])
                          for name, port in el.ports.items()}
                         if el.type == "logic_bus" else None)
+                    return
+
+            # Б1) ПОДПИСЬ-АТРИБУТ (поле) — тащится отдельно от символа
+            field_hit = self._field_label_at(event.x, event.y)
+            if field_hit is not None:
+                el_id, name = field_hit
+                element = self.elements.get(el_id)
+                if element is not None:
+                    self._dragging_field = field_hit
+                    self._field_drag_start = (event.x, event.y)
+                    self._field_drag_offset = list(
+                        element.field_offsets.get(name) or [0.0, 0.0])
+                    self._field_drag_changed = False
+                    self._pre_change_state = self._capture_state()
+                    self.canvas.config(cursor="fleur")
                     return
 
             # Б) ПОДПИСЬ ЭЛЕМЕНТА — перетаскивается мышкой отдельно от символа
@@ -8657,6 +8690,20 @@ class CircuitEditor(report_selection.SelectionReportMixin,
                     self.draw_comments()
             return
 
+        # ПЕРЕТАСКИВАНИЕ ПОДПИСИ-АТРИБУТА
+        if self._dragging_field is not None:
+            el_id, name = self._dragging_field
+            el = self.elements.get(el_id)
+            if el is not None:
+                dx = (event.x - self._field_drag_start[0]) / self.zoom
+                dy = (event.y - self._field_drag_start[1]) / self.zoom
+                el.field_offsets[name] = [
+                    round(self._field_drag_offset[0] + dx, 1),
+                    round(self._field_drag_offset[1] + dy, 1)]
+                self._field_drag_changed = True
+                self.redraw_all()
+            return
+
         # ПЕРЕТАСКИВАНИЕ ПОДПИСИ
         if self._dragging_label is not None:
             el = self.elements.get(self._dragging_label)
@@ -8817,6 +8864,18 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self.canvas.config(cursor="arrow" if self.current_tool == "select"
                                else "crosshair")
             self.redraw_all()
+            return
+
+        # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ПОДПИСИ-АТРИБУТА
+        if self._dragging_field is not None:
+            if self._field_drag_changed:
+                self.undo_manager.push_state(self._pre_change_state)
+                self._mark_modified()
+            self._dragging_field = None
+            self._field_drag_changed = False
+            self._pre_change_state = None
+            self.canvas.config(cursor="arrow" if self.current_tool == "select"
+                               else "crosshair")
             return
 
         # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ПОДПИСИ
