@@ -573,6 +573,7 @@ class StandardEditorWindow(tk.Toplevel):
             ("name", "Наименование", 64),
             ("property", "Принадлежность", 44),
             ("date", "Дата введения", 16),
+            ("title_page", "Титульный лист (DOCX)", 44),
         )
         row = 0
         for key, label, width in fields:
@@ -582,11 +583,19 @@ class StandardEditorWindow(tk.Toplevel):
             tk.Entry(form, textvariable=var, font=ui_theme.font(9),
                      width=width).grid(row=row, column=1, sticky="we", pady=3)
             self.vars[key] = var
+            if key == "title_page":
+                ttk.Button(form, text="Выбрать…",
+                           command=self._pick_title_page).grid(
+                               row=row, column=2, sticky="w", pady=3,
+                               padx=(4, 0))
             row += 1
-        tk.Label(form, text="Дата — ДД.ММ.ГГГГ; можно оставить пустой.",
+        tk.Label(form, text="Дата — ДД.ММ.ГГГГ; можно оставить пустой.\n"
+                            "Титульный лист: DOCX открывает отчёт, дальше "
+                            "идёт сгенерированный документ.",
                  font=ui_theme.font(8), fg=ui_theme.TEXT_MUTED,
-                 anchor="w").grid(row=row, column=0, columnspan=2,
-                                  sticky="w", pady=(2, 6))
+                 anchor="w", justify="left").grid(
+                     row=row, column=0, columnspan=3,
+                     sticky="w", pady=(2, 6))
         self._snapshot = {key: str(self.data.get(key) or "") for key, _l, _w
                           in fields}
         self._pending = self._apply_meta
@@ -602,6 +611,23 @@ class StandardEditorWindow(tk.Toplevel):
         self.data.update(meta)
         self._snapshot = dict(meta)
         return True
+
+    def _pick_title_page(self):
+        """Выбрать DOCX титульного листа для сборки стандарта."""
+        path = filedialog.askopenfilename(
+            parent=self, title="DOCX титульного листа",
+            initialdir=es.folder(),
+            filetypes=[("Word", "*.docx"), ("Все файлы", "*.*")])
+        if not path:
+            return
+        reference = path
+        try:
+            relative = os.path.relpath(path, es.folder())
+            if not relative.startswith(".."):
+                reference = relative
+        except ValueError:
+            pass
+        self.vars["title_page"].set(reference)
 
     # --------------------------------------------------------------- текст
     def _render_text(self, kind, item):

@@ -804,6 +804,7 @@ class StandardFieldsDialog(tk.Toplevel):
             ("name", "Наименование", 64),
             ("property", "Принадлежность", 44),
             ("date", "Дата введения", 16),
+            ("title_page", "Титульный лист (DOCX)", 44),
         )
         row = 0
         for key, label, width in fields:
@@ -813,16 +814,41 @@ class StandardFieldsDialog(tk.Toplevel):
             tk.Entry(form, textvariable=var, font=ui_theme.font(9),
                      width=width).grid(row=row, column=1, sticky="we", pady=3)
             self.vars[key] = var
+            if key == "title_page":
+                ttk.Button(form, text="Выбрать…",
+                           command=self._pick_title_page).grid(
+                               row=row, column=2, sticky="w", pady=3,
+                               padx=(4, 0))
             row += 1
-        tk.Label(form, text="Дата — ДД.ММ.ГГГГ; можно оставить пустой.",
+        tk.Label(form, text="Дата — ДД.ММ.ГГГГ; можно оставить пустой.\n"
+                            "Титульный лист: DOCX открывает отчёт, дальше "
+                            "идёт сгенерированный документ.",
                  font=ui_theme.font(8), fg=ui_theme.TEXT_MUTED,
-                 anchor="w").grid(row=row, column=0, columnspan=2,
-                                  sticky="w", pady=(2, 6))
+                 anchor="w", justify="left").grid(
+                     row=row, column=0, columnspan=3,
+                     sticky="w", pady=(2, 6))
         row += 1
         footer = tk.Frame(form)
         footer.grid(row=row, column=0, columnspan=2, sticky="we")
         _button(footer, "Сохранить", self.save, width=14, side=tk.RIGHT)
         _button(footer, "Отмена", self.destroy, width=10, side=tk.RIGHT)
+
+    def _pick_title_page(self):
+        """Выбрать DOCX титульного листа для сборки стандарта."""
+        path = filedialog.askopenfilename(
+            parent=self, title="DOCX титульного листа",
+            initialdir=es.folder(),
+            filetypes=[("Word", "*.docx"), ("Все файлы", "*.*")])
+        if not path:
+            return
+        reference = path
+        try:
+            relative = os.path.relpath(path, es.folder())
+            if not relative.startswith(".."):
+                reference = relative
+        except ValueError:
+            pass
+        self.vars["title_page"].set(reference)
 
     def save(self):
         meta = {key: var.get().strip() for key, var in self.vars.items()}

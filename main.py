@@ -189,12 +189,15 @@ PALETTE_ITEMS = [
 
 
 class ToolTip:
-    """Всплывающая подсказка для кнопок-иконок.
+    """Подсказка у элемента палитры: под иконкой, в пределах экрана.
 
-    Подсказка выводится под иконкой по центру: сверху она закрывала бы
-    подпись панели и соседние элементы. Если снизу не хватает места
-    (иконка у нижнего края экрана), подсказка показывается над иконкой.
+    Позиция считается по экранным координатам самого widget: палитра лежит
+    внутри прокручиваемого Canvas, и привязка к её контейнеру уводила
+    подсказку от иконки. Широкая подсказка сдвигается влево ровно настолько,
+    насколько нужно, чтобы не вылезти за экран, — а не к углу монитора.
     """
+
+    _MARGIN = 8
 
     def __init__(self, widget, text, delay=450):
         self.widget = widget
@@ -202,12 +205,44 @@ class ToolTip:
         self.delay = delay
         self.tip = None
         self._after_id = None
+        self._pointer = None
         widget.bind("<Enter>", self._schedule, add="+")
         widget.bind("<Leave>", self._hide, add="+")
         widget.bind("<ButtonPress>", self._hide, add="+")
 
+    @staticmethod
+    def _place(widget_box, tip_size, screen_size, margin=_MARGIN):
+        """Координаты подсказки рядом с ``widget_box`` (x, y, w, h)."""
+        wx, wy, ww, wh = widget_box
+        tip_w, tip_h = tip_size
+        screen_w, screen_h = screen_size
+        # Левый край подсказки совпадает с левым краем иконки: центрирование
+        # для длинных подписей уводило её за левый край экрана.
+        x = wx
+        y = wy + wh + 4
+        max_x = max(margin, screen_w - tip_w - margin)
+        max_y = max(margin, screen_h - tip_h - margin)
+        x = min(max(x, margin), max_x)
+        if y + tip_h > screen_h - margin:
+            above = wy - tip_h - 4
+            y = above if above >= margin else max_y
+        return x, min(max(y, margin), max_y)
+
+    def _box(self):
+        """Экранный прямоугольник иконки; fallback — точка входа мыши."""
+        x = self.widget.winfo_rootx()
+        y = self.widget.winfo_rooty()
+        width = self.widget.winfo_width()
+        height = self.widget.winfo_height()
+        if width > 1 and height > 1:
+            return x, y, width, height
+        px, py = self._pointer or (x, y)
+        return px, py, 0, 0
+
     def _schedule(self, event=None):
         self._cancel()
+        if event is not None and hasattr(event, "x_root"):
+            self._pointer = (event.x_root, event.y_root)
         self._after_id = self.widget.after(self.delay, self._show)
 
     def _show(self):
@@ -219,24 +254,20 @@ class ToolTip:
         self.tip.wm_overrideredirect(True)
         self.tip.wm_attributes("-topmost", True)
         tk.Label(self.tip, text=self.text, bg="#ffffe0", fg="black",
-                 relief="solid", bd=1, padx=6, pady=2,
+                 relief="solid", bd=1, padx=6, pady=3,
+                 wraplength=260, justify="left",
                  font=("Arial", 9)).pack()
         self.tip.update_idletasks()
-        tip_w = self.tip.winfo_reqwidth()
-        tip_h = self.tip.winfo_reqheight()
-        widget_x = self.widget.winfo_rootx()
-        widget_y = self.widget.winfo_rooty()
-        x = widget_x + (self.widget.winfo_width() - tip_w) // 2
-        y = widget_y + self.widget.winfo_height() + 4
-        screen_w = self.widget.winfo_screenwidth()
-        screen_h = self.widget.winfo_screenheight()
-        x = max(0, min(x, screen_w - tip_w))
-        if y + tip_h > screen_h:
-            y = max(0, widget_y - tip_h - 4)
+        box = self._box()
+        screen = (self.widget.winfo_screenwidth(),
+                  self.widget.winfo_screenheight())
+        x, y = self._place(box, (self.tip.winfo_reqwidth(),
+                                 self.tip.winfo_reqheight()), screen)
         self.tip.wm_geometry("+%d+%d" % (x, y))
 
     def _hide(self, event=None):
         self._cancel()
+        self._pointer = None
         if self.tip is not None:
             self.tip.destroy()
             self.tip = None

@@ -460,6 +460,7 @@ def test_fields():
         dialog.vars["name"].set("Новое наименование")
         dialog.vars["property"].set("ПАО «Тест»")
         dialog.vars["date"].set("01.01.2027")
+        dialog.vars["title_page"].set("title_page.docx")
         dialog.save()
         saved = es.load(path)
         check(saved["code"] == "НОВЫЙ ШИФР", "шифр сохранён")
@@ -467,6 +468,8 @@ def test_fields():
               "наименование сохранено")
         check(saved["property"] == "ПАО «Тест»", "принадлежность сохранена")
         check(saved["date"] == "01.01.2027", "дата сохранена")
+        check(saved["title_page"] == "title_page.docx",
+              "ссылка на титульный DOCX сохранена")
         check(window._data["code"] == "НОВЫЙ ШИФР",
               "окно видит новый шифр")
     except Exception as exc:                      # noqa: BLE001
@@ -1862,6 +1865,74 @@ def _first_figure(data):
     return None
 
 
+def test_reference_number_switch():
+    """Суффикс /#/0: REF-поле показывает только номер, метка убрана."""
+    print("3б. ссылка только на номер (/#/0)")
+    try:
+        from docx import Document
+    except ImportError:            # pragma: no cover
+        print("  --   python-docx нет: проверка пропущена")
+        return
+    doc = Document()
+    doc.add_paragraph("См. Таблица 5.1/#/0 и Рисунок 4.1, также Таблица 5.2")
+    references = {
+        ("T", "5.1"): "RefT_5_1",
+        ("F", "4.1"): "RefF_4_1",
+        ("T", "5.2"): "RefT_5_2",
+    }
+    ea_docx._link_references(doc, references)
+    xml = doc.element.body.xml
+    check('REF RefT_5_1 \\h \\#"0"' in xml,
+          "поле REF для /#/0 получило переключатель \\#\"0\"")
+    check('REF RefF_4_1 \\h ' in xml and 'REF RefF_4_1 \\h \\#' not in xml,
+          "обычная ссылка осталась ссылкой на подпись")
+    text = doc.paragraphs[0].text
+    check(text == "См. 5.1 и Рисунок 4.1, также Таблица 5.2",
+          "виден только номер: %s" % text)
+    check("/#/0" not in text, "суффикс /#/0 убран из текста")
+
+
+def test_title_page_before_report(data):
+    """Реквизит title_page: готовый DOCX открывает сгенерированный отчёт."""
+    print("3в. титульный DOCX перед отчётом")
+    try:
+        from docx import Document
+    except ImportError:            # pragma: no cover
+        print("  --   python-docx нет: проверка пропущена")
+        return
+    folder = tempfile.mkdtemp()
+    title = os.path.join(folder, "my_title.docx")
+    source = Document()
+    source.add_paragraph("ТИТУЛЬНЫЙ ЛИСТ")
+    source.add_paragraph("Титул: Таблица 5.1")
+    source.save(title)
+
+    clone = copy.deepcopy(data)
+    clone["title_page"] = title
+    out = os.path.join(folder, "with_title.docx")
+    counters = ea_docx.build(clone, out, toc=False, max_rows=1)
+    check(counters["титульный_лист"] == title,
+          "в счётчике указан использованный титульный DOCX")
+
+    doc = Document(out)
+    texts = [paragraph.text for paragraph in doc.paragraphs]
+    title_at = next(index for index, text in enumerate(texts)
+                    if text == "ТИТУЛЬНЫЙ ЛИСТ")
+    report_at = next(index for index, text in enumerate(texts)
+                     if text == "Введение")
+    check(title_at < report_at, "готовый титул идёт перед отчётом")
+    check(not any(text.startswith("Разделов:") for text in texts),
+          "встроенный титул не дублируется")
+    check(len(doc.sections) >= 2,
+          "отчёт отделён от титула новой секцией")
+    check("REF RefT_5_1" in doc.element.body.xml,
+          "перекрёстные ссылки отчёта сохранились")
+    title_mention = next(paragraph for paragraph in doc.paragraphs
+                         if paragraph.text.startswith("Титул:"))
+    check("REF" not in title_mention._p.xml,
+          "текст готового титула не переписывается")
+
+
 def test_report_tables_font():
     print("3a. шрифт таблиц отчётов")
     import docxreport
@@ -1882,6 +1953,8 @@ def main(argv=None):
     test_catalog_sync(data)
     test_new_standard(data)
     test_docx(data)
+    test_reference_number_switch()
+    test_title_page_before_report(data)
     test_report_tables_font()
     test_archive()
     test_rebuild_from_standards()

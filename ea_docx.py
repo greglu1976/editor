@@ -18,6 +18,10 @@
 заголовки не пишутся — их автоматически проставляет шаблон нумерацией
 стилей «Заголовок 1» и «Заголовок 2».
 
+Если в реквизите ``title_page`` указан DOCX титульного листа, он берётся
+за основу без очистки: готовое содержимое остаётся первым, а сгенерированный
+отчёт добавляется после него новой секцией (альбомная A4, поля 1,5 см).
+
     python ea_docx.py --out "Отчет.docx"
     python ea_docx.py --file "EA/....json" --out "Отчет.docx" --max-rows 50
     python ea_docx.py --out "Отчет.docx" --no-toc
@@ -50,6 +54,8 @@ FONT = "Times New Roman"
 HEADER_FILL = "DCE6F1"
 USABLE_CM = 26.7          # А4 в альбомной ориентации минус поля 1,5 см
 TEMPLATE_NAME = "template.docx"
+#: Реквизит стандарта с путём к DOCX, который должен открывать отчёт.
+TITLE_PAGE_FIELD = "title_page"
 
 
 class DocxError(Exception):
@@ -297,17 +303,25 @@ def _page_number(section):
 # Перекрестные ссылки на таблицы и рисунки
 # ---------------------------------------------------------------------------
 #: «Таблица 5.2», «табл. 5.2», «Рисунок 4.1», «рис. 4.1» и т. п.
+#: Суффикс ``/#/0`` (либо полевый ``\# 0``) просит вывести только номер:
+#: «Таблица 5.2/#/0» → «5.2»: REF-поле получает ``\#"0"``.
 _REFERENCE_RE = re.compile(
-    r"(таблиц\w*|табл\.?|рисунк\w*|рис\.?)\s+(\d+(?:\.\d+)*)", re.I)
+    r"(?P<label>таблиц\w*|табл\.?|рисун\w*|рис\.?)\s+"
+    r"(?P<number>\d+(?:\.\d+)*)"
+    r"(?P<only>/#/0|\\#\s*\"?0\"?)?", re.I)
+
+
+def _key_from_match(match):
+    """Нормализованная ссылка из совпадения: (T|F, номер) или None."""
+    if match is None:
+        return None
+    kind = "T" if match.group("label").lower().startswith("табл") else "F"
+    return kind, match.group("number")
 
 
 def _reference_key(text):
     """Нормализованная ссылка: (T|F, номер) или None."""
-    match = _REFERENCE_RE.search(str(text or ""))
-    if match is None:
-        return None
-    kind = "T" if match.group(1).lower().startswith("табл") else "F"
-    return kind, match.group(2)
+    return _key_from_match(_REFERENCE_RE.search(str(text or "")))
 
 
 def _register_reference(references, reference):
@@ -356,18 +370,21 @@ def _text_run(paragraph, text, template=None):
     return run
 
 
-def _link_references(doc, references):
+def _link_references(doc, references, skip=0):
     """Заменить упоминания таблиц и рисунков на поля REF.
 
     Обрабатываются все абзацы тела документа, включая ячейки таблиц.
-    Подписи с закладками пропускаются, чтобы ссылка не указывала сама
-    на себя. Текст сохраняется как кэш поля — документ читаем и без
-    обновления полей в Word.
+    ``skip`` — число первых абзацев готового титульного листа: их
+    содержимое менять нельзя. Подписи с закладками пропускаются, чтобы
+    ссылка не указывала сама на себя. Текст сохраняется как кэш поля —
+    документ читаем и без обновления полей в Word.
     """
     if not references:
         return
     used_names = set(references.values())
-    for element in doc.element.body.iter(qn("w:p")):
+    for index, element in enumerate(doc.element.body.iter(qn("w:p"))):
+        if index < skip:
+            continue
         markers = [item.get(qn("w:name"))
                    for item in element.findall(qn("w:bookmarkStart"))]
         if any(name in used_names for name in markers):
@@ -386,13 +403,18 @@ def _link_references(doc, references):
         for match in matches:
             if match.start() > cursor:
                 _text_run(paragraph, text[cursor:match.start()], source_run)
-            name = references.get(_reference_key(match.group(0)))
+            name = references.get(_key_from_match(match))
+            only_number = bool(match.group("only"))
+            # Суффикс /#/0 убирается из видимого текста: остаётся только номер.
+            visible = match.group("number") if only_number else match.group(0)
             if name:
-                field = _field(paragraph, " REF %s \\h " % name,
-                               result=match.group(0))
+                instruction = " REF %s \\h" % name
+                if only_number:
+                    instruction += r' \#"0"'
+                field = _field(paragraph, instruction + " ", result=visible)
                 _copy_run_props(source_run, field)
             else:
-                _text_run(paragraph, match.group(0), source_run)
+                _text_run(paragraph, visible, source_run)
             cursor = match.end()
         if cursor < len(text):
             _text_run(paragraph, text[cursor:], source_run)
@@ -713,6 +735,30 @@ def template_path(folder=None):
     return None
 
 
+def title_page_path(data, folder=None):
+    """Путь к DOCX титульного листа из реквизитов стандарта.
+
+    Относительный путь ищется рядом с выходным файлом и в папке
+    стандартов — так ссылка, выбранная в редакторе, переживает перенос
+    проекта. Пустой реквизит означает обычную выгрузку.
+    """
+    raw = str((data or {}).get(TITLE_PAGE_FIELD) or "").strip()
+    if not raw:
+        return None
+    candidates = []
+    if os.path.isabs(raw):
+        candidates.append(raw)
+    else:
+        if folder:
+            candidates.append(os.path.join(folder, raw))
+        candidates.append(os.path.join(es.folder(), raw))
+        candidates.append(raw)
+    for path in candidates:
+        if os.path.isfile(path):
+            return os.path.abspath(path)
+    raise DocxError("нет файла титульного листа: %s" % raw)
+
+
 def _clear_body(doc):
     """Убрать содержимое шаблона, оставив параметры последней секции."""
     body = doc.element.body
@@ -730,25 +776,45 @@ def build(data, path, toc=True, max_rows=0):
     folder = os.path.dirname(os.path.abspath(path))
     if folder and not os.path.isdir(folder):
         raise DocxError("нет папки: %s" % folder)
-    template = template_path(os.path.dirname(os.path.abspath(path)))
-    if template:
-        doc = Document(template)
-        _clear_body(doc)
+    title = title_page_path(data, folder)
+    skip_paragraphs = 0
+    if title:
+        # Готовый титульный лист остаётся как есть; сгенерированный отчёт
+        # начинается новой секцией сразу после него.
+        doc = Document(title)
+        skip_paragraphs = sum(1 for _ in doc.element.body.iter(qn("w:p")))
         _setup(doc, layout=False)
+        section = doc.add_section(WD_SECTION.NEW_PAGE)
+        section.orientation = WD_ORIENT.LANDSCAPE
+        section.page_width = Cm(29.7)
+        section.page_height = Cm(21.0)
+        for name in ("left_margin", "right_margin", "top_margin",
+                     "bottom_margin"):
+            setattr(section, name, Cm(1.5))
+        section.footer.is_linked_to_previous = False
+        _page_number(section)
     else:
-        doc = Document()
-        _setup(doc)
+        template = template_path(folder)
+        if template:
+            doc = Document(template)
+            _clear_body(doc)
+            _setup(doc, layout=False)
+        else:
+            doc = Document()
+            _setup(doc)
     stats = es.stats(data)
     counters = {"разделы": 0, "таблицы": 0, "строки": 0,
-                "рисунки": 0, "ошибки_рисунков": []}
+                "рисунки": 0, "ошибки_рисунков": [],
+                "титульный_лист": title or ""}
     references = {}
     figure_errors = counters["ошибки_рисунков"]
-    _title_page(doc, data, stats)
+    if not title:
+        _title_page(doc, data, stats)
     if toc:
         _toc(doc)
         doc.add_page_break()
     _render_sections(doc, data, max_rows, counters, references, figure_errors)
-    _link_references(doc, references)
+    _link_references(doc, references, skip=skip_paragraphs)
     doc.save(path)
     counters["размер"] = os.path.getsize(path)
     return counters

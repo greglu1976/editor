@@ -128,6 +128,24 @@ def test_clean_points():
           "битые пары отбрасываются")
 
 
+def test_cabinet_port_grid():
+    """Все точки шкафа лежат в узлах сетки — связи не перекошиваются."""
+    print("1а. порты шкафа на сетке")
+    import library
+    for count in range(1, library.CABINET_MAX_KOMPLETS + 1):
+        cabinet = library.Cabinet("grid", 200, 300, grid_size=10)
+        cabinet.komplets = library.normalize_komplets(
+            [{"name": "К{}".format(index + 1)} for index in range(count)])
+        cabinet.generate_ports()
+        x1, _y1, x2, y2 = cabinet.get_bounding_box()
+        points = [(x1, y2), (x2, y2), cabinet.bind_point()]
+        points += [cabinet.analog_point(index) for index in range(count)]
+        points += [(port["x"], port["y"]) for port in cabinet.ports.values()]
+        check(all(abs(value % 10) < 0.001
+                  for point in points for value in point),
+              "%d компл.: кромки и порты в узлах сетки" % count)
+
+
 def test_route(app):
     print("2. маршрут связи защиты")
     _reset(app)
@@ -407,6 +425,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     test_clean_points()
+    test_cabinet_port_grid()
     if args.no_gui:
         print("\nGUI-проверки пропущены (--no-gui)")
     elif tk is None:

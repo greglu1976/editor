@@ -1354,6 +1354,21 @@ def test_schematic_elements(app):
           "элемент принципиальной схемы выделяется кликом по нему")
 
 
+def test_tooltip_geometry():
+    print("28в. подсказки палитры рядом с элементом")
+    import main
+    place = main.ToolTip._place
+    x, y = place((12, 300, 46, 46), (260, 28), (1920, 1080))
+    check(x == 12 and y == 350,
+          "широкая подсказка не уходит к левому краю экрана: %s" % ((x, y),))
+    x, y = place((1880, 300, 46, 46), (260, 28), (1920, 1080))
+    check(x == 1920 - 260 - 8 and y == 350,
+          "у правого края подсказка сдвигается минимально: %s" % ((x, y),))
+    x, y = place((300, 1040, 46, 46), (260, 28), (1920, 1080))
+    check(y < 1040 and x == 300,
+          "у нижнего края подсказка поднимается над иконкой: %s" % ((x, y),))
+
+
 def test_schematic_field_editing(app, root):
     print("28а. поля элемента: свойства, координаты и перетаскивание")
     import schematic_library as sl
@@ -1485,6 +1500,7 @@ def test_schematic_library_save(app, root):
 
 def run_gui():
     import main
+    test_tooltip_geometry()
     main.messagebox.showinfo = lambda *args, **kwargs: None
     main.messagebox.showerror = lambda *args, **kwargs: None
     main.messagebox.askyesno = lambda *args, **kwargs: True

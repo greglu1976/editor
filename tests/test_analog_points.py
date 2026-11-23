@@ -371,7 +371,8 @@ def test_export(app):
     print("10. экспорт: ломаная и острие стрелки")
     import pdfexport
     _reset(app)
-    _, _, link = _bent(app)
+    cabinet, _, link = _bent(app)
+    port_x, _port_y = app.elements[cabinet].analog_point(0)
     recorder = pdfexport.SceneRecorder()
     app._draw_scene(recorder)
 
@@ -389,7 +390,7 @@ def test_export(app):
              if call[0] == "create_polygon"
              and call[2].get("fill") == app.ANALOG_COLOR]
     check(bool(heads), "острие стрелки попало в сцену")
-    check(any(abs(head[1][0] - 105) < 1 for head in heads),
+    check(any(abs(head[1][0] - port_x) < 1 for head in heads),
           "острие стоит на конце связи у комплекта")
 
 

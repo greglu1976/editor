@@ -1320,9 +1320,11 @@ class Cabinet(Component):
     и испытательные блоки по напряжению и току.
     """
 
-    WIDTH = 190
-    ROW_H = 30
-    TOP_H = 22
+    # Габарит кратен шагу сетки (10): кромки, точка привязки и порты
+    # комплектов попадают в узлы сетки, поэтому связи идут прямо.
+    WIDTH = 200
+    ROW_H = 40
+    TOP_H = 20
     MAX_KOMPLETS = CABINET_MAX_KOMPLETS
 
     def __init__(self, comp_id, x, y, grid_size=20):

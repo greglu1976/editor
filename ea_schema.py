@@ -29,6 +29,7 @@ CLASSES = {
             ("code", "s", ""),
             ("property", "s", ""),
             ("date", "s", ""),
+            ("title_page", "s", ""),
         ],
         "children": [
             ("sections", "Section"),
@@ -455,6 +456,7 @@ LABELS = {
     "code": "Шифр",
     "property": "Принадлежность",
     "date": "Дата введения",
+    "title_page": "Титульный лист (DOCX)",
     "number": "Номер",
     "header": "Заголовок",
     "header_style": "Стиль заголовка",
@@ -561,7 +563,8 @@ LABELS = {
 #: Поля редактора, которых нет в UML. Не добавляются при миграции, но
 #: остаются доступны в редакторе и создаются у новых узлов.
 EXTRA_FIELDS = {("Table", "cabinet"), ("Cabinet", "containers"),
-                ("Standard", "functional_blocks")}
+                ("Standard", "functional_blocks"),
+                ("Standard", "title_page")}
 # LD/LN/DO/DA — дополнение редактора к UML: при миграции не добавляются,
 # но создаются у новых узлов и доступны в редакторе и отчётах.
 EXTRA_FIELDS.update(
