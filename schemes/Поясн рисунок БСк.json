@@ -1,0 +1,2131 @@
+{
+    "elements": [
+        {
+            "id": "LI7bbd",
+            "type": "line",
+            "name": "W3",
+            "x": 140,
+            "y": 90,
+            "rotation": 0
+        },
+        {
+            "id": "LIe0f3",
+            "type": "line_trap",
+            "name": "LT3",
+            "x": 140,
+            "y": 170,
+            "rotation": 0,
+            "label": [
+                -22.1,
+                -2.3
+            ]
+        },
+        {
+            "id": "CO0f8f",
+            "type": "connection_filter",
+            "name": "CF3",
+            "x": 170,
+            "y": 130,
+            "rotation": 90,
+            "label": [
+                -36.6,
+                -20.7
+            ]
+        },
+        {
+            "id": "GR4992",
+            "type": "ground",
+            "name": "G3",
+            "x": 220,
+            "y": 130,
+            "rotation": 270,
+            "label": [
+                -2.0,
+                8.1
+            ]
+        },
+        {
+            "id": "DI4a07",
+            "type": "disconnector",
+            "name": "QS9",
+            "x": 220,
+            "y": 290,
+            "rotation": 180
+        },
+        {
+            "id": "GR1d0b",
+            "type": "grounding_switch",
+            "name": "QSG11",
+            "x": 240,
+            "y": 320,
+            "rotation": 270
+        },
+        {
+            "id": "GRb7de",
+            "type": "grounding_switch",
+            "name": "QSG12",
+            "x": 240,
+            "y": 360,
+            "rotation": 270
+        },
+        {
+            "id": "DI30a6",
+            "type": "disconnector",
+            "name": "QS10",
+            "x": 220,
+            "y": 400,
+            "rotation": 180
+        },
+        {
+            "id": "GR170f",
+            "type": "grounding_switch",
+            "name": "QSG13",
+            "x": 240,
+            "y": 430,
+            "rotation": 270
+        },
+        {
+            "id": "CU296b",
+            "type": "current_transformer",
+            "name": "TA3",
+            "x": 220,
+            "y": 460,
+            "rotation": 0
+        },
+        {
+            "id": "BRe6dd",
+            "type": "breaker",
+            "name": "Q3",
+            "x": 220,
+            "y": 510,
+            "rotation": 0
+        },
+        {
+            "id": "GR6012",
+            "type": "grounding_switch",
+            "name": "QSG14",
+            "x": 240,
+            "y": 550,
+            "rotation": 270
+        },
+        {
+            "id": "DI31f5",
+            "type": "disconnector",
+            "name": "QS11",
+            "x": 220,
+            "y": 580,
+            "rotation": 0
+        },
+        {
+            "id": "NO9433",
+            "type": "node",
+            "name": "N20",
+            "x": 220,
+            "y": 340
+        },
+        {
+            "id": "GRb772",
+            "type": "grounding_switch",
+            "name": "QSG15",
+            "x": 160,
+            "y": 650,
+            "rotation": 270,
+            "label": [
+                -4.4,
+                -2.8
+            ]
+        },
+        {
+            "id": "DIecc7",
+            "type": "disconnector",
+            "name": "QS12",
+            "x": 140,
+            "y": 680,
+            "rotation": 0,
+            "label": [
+                -12.9,
+                -0.5
+            ]
+        },
+        {
+            "id": "NOaaed",
+            "type": "node",
+            "name": "N23",
+            "x": 220,
+            "y": 540
+        },
+        {
+            "id": "LI5aa1",
+            "type": "line",
+            "name": "W4",
+            "x": 440,
+            "y": 90,
+            "rotation": 0
+        },
+        {
+            "id": "LI6461",
+            "type": "line_trap",
+            "name": "LT4",
+            "x": 440,
+            "y": 170,
+            "rotation": 0,
+            "label": [
+                -22.1,
+                -2.3
+            ]
+        },
+        {
+            "id": "CO621d",
+            "type": "connection_filter",
+            "name": "CF4",
+            "x": 470,
+            "y": 130,
+            "rotation": 90,
+            "label": [
+                -36.6,
+                -20.7
+            ]
+        },
+        {
+            "id": "GR3b24",
+            "type": "ground",
+            "name": "G4",
+            "x": 520,
+            "y": 130,
+            "rotation": 270,
+            "label": [
+                -2.0,
+                8.1
+            ]
+        },
+        {
+            "id": "DI512a",
+            "type": "disconnector",
+            "name": "QS13",
+            "x": 520,
+            "y": 290,
+            "rotation": 180
+        },
+        {
+            "id": "GR46ee",
+            "type": "grounding_switch",
+            "name": "QSG16",
+            "x": 540,
+            "y": 320,
+            "rotation": 270
+        },
+        {
+            "id": "GR8cc6",
+            "type": "grounding_switch",
+            "name": "QSG17",
+            "x": 540,
+            "y": 360,
+            "rotation": 270
+        },
+        {
+            "id": "DI51df",
+            "type": "disconnector",
+            "name": "QS14",
+            "x": 520,
+            "y": 400,
+            "rotation": 180
+        },
+        {
+            "id": "GRb1bb",
+            "type": "grounding_switch",
+            "name": "QSG18",
+            "x": 540,
+            "y": 430,
+            "rotation": 270
+        },
+        {
+            "id": "CUea50",
+            "type": "current_transformer",
+            "name": "TA4",
+            "x": 520,
+            "y": 460,
+            "rotation": 0
+        },
+        {
+            "id": "BRa995",
+            "type": "breaker",
+            "name": "Q4",
+            "x": 520,
+            "y": 510,
+            "rotation": 0
+        },
+        {
+            "id": "GRb446",
+            "type": "grounding_switch",
+            "name": "QSG19",
+            "x": 540,
+            "y": 550,
+            "rotation": 270
+        },
+        {
+            "id": "DI0b67",
+            "type": "disconnector",
+            "name": "QS15",
+            "x": 520,
+            "y": 580,
+            "rotation": 0
+        },
+        {
+            "id": "NO1066",
+            "type": "node",
+            "name": "N24",
+            "x": 520,
+            "y": 340
+        },
+        {
+            "id": "GR0141",
+            "type": "grounding_switch",
+            "name": "QSG20",
+            "x": 460,
+            "y": 650,
+            "rotation": 270,
+            "label": [
+                -4.4,
+                -2.8
+            ]
+        },
+        {
+            "id": "DIdfd1",
+            "type": "disconnector",
+            "name": "QS16",
+            "x": 440,
+            "y": 680,
+            "rotation": 0,
+            "label": [
+                -12.9,
+                -0.5
+            ]
+        },
+        {
+            "id": "NO3465",
+            "type": "node",
+            "name": "N27",
+            "x": 520,
+            "y": 540
+        },
+        {
+            "id": "VOeb33",
+            "type": "voltage_transformer",
+            "name": "TV2",
+            "x": 1470,
+            "y": 910,
+            "rotation": 0
+        },
+        {
+            "id": "GRf12f",
+            "type": "grounding_switch",
+            "name": "QSG2-TV2",
+            "x": 1490,
+            "y": 870,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DI5298",
+            "type": "disconnector",
+            "name": "QS1-TV2",
+            "x": 1470,
+            "y": 830,
+            "rotation": 0,
+            "label": [
+                -0.7,
+                0.0
+            ]
+        },
+        {
+            "id": "GR416c",
+            "type": "grounding_switch",
+            "name": "QSG1-TV2",
+            "x": 1490,
+            "y": 790,
+            "rotation": 270,
+            "label": [
+                -2.2,
+                -0.9
+            ]
+        },
+        {
+            "id": "DI8a53",
+            "type": "disconnector",
+            "name": "QS36",
+            "x": 900,
+            "y": 290,
+            "rotation": 180
+        },
+        {
+            "id": "GR9ed2",
+            "type": "grounding_switch",
+            "name": "QSG49",
+            "x": 920,
+            "y": 320,
+            "rotation": 270
+        },
+        {
+            "id": "GR5cd2",
+            "type": "grounding_switch",
+            "name": "QSG50",
+            "x": 920,
+            "y": 360,
+            "rotation": 270
+        },
+        {
+            "id": "DIa320",
+            "type": "disconnector",
+            "name": "QS37",
+            "x": 900,
+            "y": 400,
+            "rotation": 180
+        },
+        {
+            "id": "GR11d6",
+            "type": "grounding_switch",
+            "name": "QSG51",
+            "x": 920,
+            "y": 430,
+            "rotation": 270
+        },
+        {
+            "id": "CU44d3",
+            "type": "current_transformer",
+            "name": "TA15",
+            "x": 900,
+            "y": 460,
+            "rotation": 0
+        },
+        {
+            "id": "BRf15d",
+            "type": "breaker",
+            "name": "Q10",
+            "x": 900,
+            "y": 510,
+            "rotation": 0
+        },
+        {
+            "id": "GR30ac",
+            "type": "grounding_switch",
+            "name": "QSG52",
+            "x": 920,
+            "y": 550,
+            "rotation": 270
+        },
+        {
+            "id": "DIcc90",
+            "type": "disconnector",
+            "name": "QS38",
+            "x": 900,
+            "y": 580,
+            "rotation": 0
+        },
+        {
+            "id": "NO2f98",
+            "type": "node",
+            "name": "N43",
+            "x": 900,
+            "y": 340
+        },
+        {
+            "id": "GRb2ab",
+            "type": "grounding_switch",
+            "name": "QSG53",
+            "x": 840,
+            "y": 650,
+            "rotation": 270,
+            "label": [
+                -4.4,
+                -2.8
+            ]
+        },
+        {
+            "id": "DI9a47",
+            "type": "disconnector",
+            "name": "QS39",
+            "x": 820,
+            "y": 680,
+            "rotation": 0,
+            "label": [
+                -12.9,
+                -0.5
+            ]
+        },
+        {
+            "id": "NO5db2",
+            "type": "node",
+            "name": "N46",
+            "x": 900,
+            "y": 540
+        },
+        {
+            "id": "REd9f8",
+            "type": "reactor",
+            "name": "R1",
+            "x": 740,
+            "y": 830,
+            "rotation": 0
+        },
+        {
+            "id": "CU0c44",
+            "type": "current_transformer",
+            "name": "TA16",
+            "x": 740,
+            "y": 760,
+            "rotation": 0
+        },
+        {
+            "id": "CU7108",
+            "type": "current_transformer",
+            "name": "TA17",
+            "x": 740,
+            "y": 900,
+            "rotation": 0
+        },
+        {
+            "id": "GRd4b0",
+            "type": "ground",
+            "name": "",
+            "x": 740,
+            "y": 950,
+            "rotation": 0
+        },
+        {
+            "id": "DIe445",
+            "type": "disconnector",
+            "name": "QS40",
+            "x": 1240,
+            "y": 290,
+            "rotation": 180
+        },
+        {
+            "id": "GR22fb",
+            "type": "grounding_switch",
+            "name": "QSG54",
+            "x": 1260,
+            "y": 320,
+            "rotation": 270
+        },
+        {
+            "id": "GRd22d",
+            "type": "grounding_switch",
+            "name": "QSG55",
+            "x": 1260,
+            "y": 360,
+            "rotation": 270
+        },
+        {
+            "id": "DI05dd",
+            "type": "disconnector",
+            "name": "QS41",
+            "x": 1240,
+            "y": 400,
+            "rotation": 180
+        },
+        {
+            "id": "GR0c57",
+            "type": "grounding_switch",
+            "name": "QSG56",
+            "x": 1260,
+            "y": 430,
+            "rotation": 270
+        },
+        {
+            "id": "CU9f7d",
+            "type": "current_transformer",
+            "name": "TA18",
+            "x": 1240,
+            "y": 460,
+            "rotation": 0
+        },
+        {
+            "id": "BRfaa9",
+            "type": "breaker",
+            "name": "Q11",
+            "x": 1240,
+            "y": 510,
+            "rotation": 0
+        },
+        {
+            "id": "GRb652",
+            "type": "grounding_switch",
+            "name": "QSG57",
+            "x": 1260,
+            "y": 550,
+            "rotation": 270
+        },
+        {
+            "id": "DI1719",
+            "type": "disconnector",
+            "name": "QS42",
+            "x": 1240,
+            "y": 580,
+            "rotation": 0
+        },
+        {
+            "id": "NO4b7e",
+            "type": "node",
+            "name": "N48",
+            "x": 1240,
+            "y": 340
+        },
+        {
+            "id": "GR4f03",
+            "type": "grounding_switch",
+            "name": "QSG58",
+            "x": 1180,
+            "y": 650,
+            "rotation": 270,
+            "label": [
+                -4.4,
+                -2.8
+            ]
+        },
+        {
+            "id": "DI357b",
+            "type": "disconnector",
+            "name": "QS43",
+            "x": 1160,
+            "y": 680,
+            "rotation": 0,
+            "label": [
+                -12.9,
+                -0.5
+            ]
+        },
+        {
+            "id": "NOddf5",
+            "type": "node",
+            "name": "N50",
+            "x": 1240,
+            "y": 540
+        },
+        {
+            "id": "CU76ab",
+            "type": "current_transformer",
+            "name": "",
+            "x": 1110,
+            "y": 990,
+            "rotation": 0
+        },
+        {
+            "id": "GR98e6",
+            "type": "ground",
+            "name": "",
+            "x": 1110,
+            "y": 1040,
+            "rotation": 0
+        },
+        {
+            "id": "CA7f70",
+            "type": "capacitor_battery",
+            "name": "",
+            "x": 1080,
+            "y": 830,
+            "rotation": 0
+        },
+        {
+            "id": "BU31c1",
+            "type": "bus",
+            "name": "BB1",
+            "x": 720,
+            "y": 250,
+            "length": 620
+        },
+        {
+            "id": "BU1703",
+            "type": "bus",
+            "name": "BB2",
+            "x": 720,
+            "y": 620,
+            "length": 620
+        },
+        {
+            "id": "BU9b7e",
+            "type": "bus",
+            "name": "BB3",
+            "x": 720,
+            "y": 720,
+            "length": 620
+        },
+        {
+            "id": "VObf43",
+            "type": "voltage_transformer",
+            "name": "TV3",
+            "x": 1630,
+            "y": 910,
+            "rotation": 0
+        },
+        {
+            "id": "GR9044",
+            "type": "grounding_switch",
+            "name": "QSG59",
+            "x": 1650,
+            "y": 870,
+            "rotation": 270,
+            "label": [
+                -15.1,
+                -17.7
+            ]
+        },
+        {
+            "id": "DI54a6",
+            "type": "disconnector",
+            "name": "QS44",
+            "x": 1630,
+            "y": 830,
+            "rotation": 0,
+            "label": [
+                -0.7,
+                0.0
+            ]
+        },
+        {
+            "id": "GR346f",
+            "type": "grounding_switch",
+            "name": "QSG60",
+            "x": 1650,
+            "y": 790,
+            "rotation": 270,
+            "label": [
+                -2.2,
+                -0.9
+            ]
+        },
+        {
+            "id": "COb243",
+            "type": "comment_node",
+            "name": "",
+            "x": 220,
+            "y": 250
+        },
+        {
+            "id": "COb425",
+            "type": "comment_node",
+            "name": "",
+            "x": 220,
+            "y": 340
+        },
+        {
+            "id": "COf5fe",
+            "type": "comment_node",
+            "name": "",
+            "x": 520,
+            "y": 250
+        },
+        {
+            "id": "CO1f4c",
+            "type": "comment_node",
+            "name": "",
+            "x": 520,
+            "y": 340
+        },
+        {
+            "id": "CO1b87",
+            "type": "comment_node",
+            "name": "",
+            "x": 220,
+            "y": 550
+        },
+        {
+            "id": "CO1cc7",
+            "type": "comment_node",
+            "name": "",
+            "x": 220,
+            "y": 540
+        },
+        {
+            "id": "COc62d",
+            "type": "comment_node",
+            "name": "",
+            "x": 220,
+            "y": 620
+        },
+        {
+            "id": "CO03b5",
+            "type": "comment_node",
+            "name": "",
+            "x": 520,
+            "y": 540
+        },
+        {
+            "id": "CO61b4",
+            "type": "comment_node",
+            "name": "",
+            "x": 520,
+            "y": 430
+        },
+        {
+            "id": "CO89c2",
+            "type": "comment_node",
+            "name": "",
+            "x": 520,
+            "y": 360
+        },
+        {
+            "id": "CO1892",
+            "type": "comment_node",
+            "name": "",
+            "x": 520,
+            "y": 320
+        },
+        {
+            "id": "COde41",
+            "type": "comment_node",
+            "name": "",
+            "x": 220,
+            "y": 320
+        },
+        {
+            "id": "CO5bd0",
+            "type": "comment_node",
+            "name": "",
+            "x": 220,
+            "y": 360
+        },
+        {
+            "id": "CO622b",
+            "type": "comment_node",
+            "name": "",
+            "x": 220,
+            "y": 430
+        },
+        {
+            "id": "CO4279",
+            "type": "comment_node",
+            "name": "",
+            "x": 140,
+            "y": 650
+        },
+        {
+            "id": "COee67",
+            "type": "comment_node",
+            "name": "",
+            "x": 140,
+            "y": 720
+        },
+        {
+            "id": "CO7476",
+            "type": "comment_node",
+            "name": "",
+            "x": 180,
+            "y": 720
+        },
+        {
+            "id": "CO0046",
+            "type": "comment_node",
+            "name": "",
+            "x": 1470,
+            "y": 790
+        },
+        {
+            "id": "CO8fbd",
+            "type": "comment_node",
+            "name": "",
+            "x": 1470,
+            "y": 870
+        },
+        {
+            "id": "COa20a",
+            "type": "comment_node",
+            "name": "",
+            "x": 1630,
+            "y": 790
+        },
+        {
+            "id": "COff68",
+            "type": "comment_node",
+            "name": "",
+            "x": 1630,
+            "y": 870
+        },
+        {
+            "id": "CO0d89",
+            "type": "comment_node",
+            "name": "",
+            "x": 440,
+            "y": 720
+        },
+        {
+            "id": "COb7aa",
+            "type": "comment_node",
+            "name": "",
+            "x": 520,
+            "y": 620
+        },
+        {
+            "id": "COd4b0",
+            "type": "comment_node",
+            "name": "",
+            "x": 440,
+            "y": 650
+        },
+        {
+            "id": "CO95b6",
+            "type": "comment_node",
+            "name": "",
+            "x": 340,
+            "y": 620
+        },
+        {
+            "id": "COae74",
+            "type": "comment_node",
+            "name": "",
+            "x": 900,
+            "y": 250
+        },
+        {
+            "id": "CO0e7b",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 250
+        },
+        {
+            "id": "CO093d",
+            "type": "comment_node",
+            "name": "",
+            "x": 900,
+            "y": 320
+        },
+        {
+            "id": "COcb4e",
+            "type": "comment_node",
+            "name": "",
+            "x": 900,
+            "y": 340
+        },
+        {
+            "id": "CO0802",
+            "type": "comment_node",
+            "name": "",
+            "x": 900,
+            "y": 360
+        },
+        {
+            "id": "CO141f",
+            "type": "comment_node",
+            "name": "",
+            "x": 520,
+            "y": 550
+        },
+        {
+            "id": "CO597b",
+            "type": "comment_node",
+            "name": "",
+            "x": 900,
+            "y": 430
+        },
+        {
+            "id": "COc25a",
+            "type": "comment_node",
+            "name": "",
+            "x": 900,
+            "y": 540
+        },
+        {
+            "id": "CO7eb3",
+            "type": "comment_node",
+            "name": "",
+            "x": 900,
+            "y": 550
+        },
+        {
+            "id": "CO229e",
+            "type": "comment_node",
+            "name": "",
+            "x": 910,
+            "y": 620
+        },
+        {
+            "id": "CO549e",
+            "type": "comment_node",
+            "name": "",
+            "x": 820,
+            "y": 720
+        },
+        {
+            "id": "CO8e91",
+            "type": "comment_node",
+            "name": "",
+            "x": 820,
+            "y": 650
+        },
+        {
+            "id": "CO5ab2",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 340
+        },
+        {
+            "id": "CO7604",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 320
+        },
+        {
+            "id": "CO761e",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 360
+        },
+        {
+            "id": "CO1ef4",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 430
+        },
+        {
+            "id": "CO40b0",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 540
+        },
+        {
+            "id": "CO79c4",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 550
+        },
+        {
+            "id": "COf099",
+            "type": "comment_node",
+            "name": "",
+            "x": 1160,
+            "y": 650
+        },
+        {
+            "id": "CO7896",
+            "type": "comment_node",
+            "name": "",
+            "x": 1160,
+            "y": 720
+        },
+        {
+            "id": "COa609",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 620
+        },
+        {
+            "id": "COaf31",
+            "type": "comment_node",
+            "name": "",
+            "x": 140,
+            "y": 130
+        },
+        {
+            "id": "CO456d",
+            "type": "comment_node",
+            "name": "",
+            "x": 440,
+            "y": 130
+        },
+        {
+            "id": "CAd0a6",
+            "type": "cabinet",
+            "name": "EL1",
+            "x": 590,
+            "y": 1120,
+            "cabinet": {
+                "key": "shet-431-21-1",
+                "title": "ШЭТ 431.21-1",
+                "info": {
+                    "code": "ШЭТ 431.21-1",
+                    "name": "Шкаф защит батареи статических конденсаторов 110-330 кВ, УРОВ, АУВ",
+                    "title": "Шкаф защит батарей статических конденсаторов 110-330 кВ типа ШЭТ 431.21-1 для архитектуры II типа",
+                    "description": "Шкаф защит БСК 110-330 кВ, включающий в себя дифференциальную токовую защиту, дифференциальную токовую защиту нулевой последовательности, небалансную токовую защиту, защиту от перегрузки токами высших гармоник, защиту минимального и максимального напряжения, а также резервные токовые защиты; в составе шкафа реализуется УРОВ и АУВ выключателя БСК для двух БСК",
+                    "voltage": "110-330 кВ",
+                    "architecture": "II тип",
+                    "protected": "БСК 110-330 кВ",
+                    "controlled": [
+                        "Выключатель БСК"
+                    ],
+                    "its_functions": [
+                        "ДТЗ",
+                        "ДТЗ НП",
+                        "ЗВП",
+                        "ЗПВГ",
+                        "ЗМН",
+                        "ЗПН",
+                        "МТЗ ВН",
+                        "ТЗОП ВН",
+                        "ТЗНП ВН",
+                        "ТЗНП НЕЙТР",
+                        "РАС"
+                    ],
+                    "applicability": "РУ 110-330 кВ: подключение БСК через один выключатель к системе шин с/без ОСШ; подключение БСК к РУ через два выключателя",
+                    "source": "разд. 5.2",
+                    "standard": "СТО 56947007-33.040.20.280-XXXX",
+                    "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура II типа. Изменение 1",
+                    "group": "СКРМ",
+                    "goose": true,
+                    "mp_functions": "ИЭУ1: ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, ЗНР, БНН, РАС; ИЭУ2: УРОВ, ЗНФ, АУВ",
+                    "its_functions_desc": "ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, РАС",
+                    "power_supply": "питание ИЭУ; освещение шкафа",
+                    "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+                    "connection_scheme": "Рисунок 5.2.1",
+                    "general_view": "Рисунок 5.2.2",
+                    "structural_scheme": "Рисунок 5.2.3"
+                },
+                "komplets": [
+                    {
+                        "key": "",
+                        "name": "Комплект 1",
+                        "kind": "typical",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДТЗ",
+                            "ДТЗ НП",
+                            "ЗВП",
+                            "ЗПВГ",
+                            "ЗМН",
+                            "ЗПН",
+                            "МТЗ ВН",
+                            "ТЗОП ВН",
+                            "ТЗНП ВН",
+                            "ТЗНП НЕЙТР",
+                            "ЗНР",
+                            "БНН",
+                            "РАС",
+                            "УРОВ",
+                            "ЗНФ",
+                            "АУВ"
+                        ],
+                        "desc": "ИЭУ1: ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, ЗНР, БНН, РАС, УРОВ, ЗНФ, АУВ",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": ""
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "test_block_list": [],
+                        "analog_inputs": [
+                            {
+                                "block": "SG1",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи БСК"
+                            },
+                            {
+                                "block": "SG2",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи ОВ"
+                            },
+                            {
+                                "block": "SG3",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи нейтрали"
+                            },
+                            {
+                                "block": "SG4",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи средней перемычки"
+                            },
+                            {
+                                "block": "SG5",
+                                "signals": "Iн",
+                                "contacts": "2+1",
+                                "note": "Ток в цепи заземления нейтрали"
+                            },
+                            {
+                                "block": "SG6",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-1»"
+                            },
+                            {
+                                "block": "SG7",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-2»"
+                            },
+                            {
+                                "block": "SG8",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-1» ОВ"
+                            },
+                            {
+                                "block": "SG9",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-2» ОВ"
+                            }
+                        ],
+                        "mp_functions": null,
+                        "its_functions_desc": null,
+                        "power_supply": null,
+                        "ports": null,
+                        "connection_scheme": null,
+                        "components": null,
+                        "additional_equipment": null,
+                        "parameters": null,
+                        "general_view": null,
+                        "structural_scheme": null,
+                        "schematic": null,
+                        "climate": null,
+                        "enclosure": null,
+                        "cooling": null,
+                        "communication": null,
+                        "notes": null,
+                        "cabinet_key": "shet-431-21-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 431.21-1",
+                        "cabinet_name": "Шкаф защит батареи статических конденсаторов 110-330 кВ, УРОВ, АУВ",
+                        "cabinet_group": "СКРМ",
+                        "source": "user"
+                    },
+                    {
+                        "key": "",
+                        "name": "Комплект 2",
+                        "kind": "typical",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДТЗ",
+                            "ДТЗ НП",
+                            "ЗВП",
+                            "ЗПВГ",
+                            "ЗМН",
+                            "ЗПН",
+                            "МТЗ ВН",
+                            "ТЗОП ВН",
+                            "ТЗНП ВН",
+                            "ТЗНП НЕЙТР",
+                            "ЗНР",
+                            "БНН",
+                            "РАС",
+                            "УРОВ",
+                            "ЗНФ",
+                            "АУВ"
+                        ],
+                        "desc": "ИЭУ2: ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, ЗНР, БНН, РАС, УРОВ, ЗНФ, АУВ",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ИЭУ2",
+                                "type": "МП РЗА",
+                                "desc": ""
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "test_block_list": [],
+                        "analog_inputs": [
+                            {
+                                "block": "SG1",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи БСК"
+                            },
+                            {
+                                "block": "SG2",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи ОВ"
+                            },
+                            {
+                                "block": "SG3",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи нейтрали"
+                            },
+                            {
+                                "block": "SG4",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи средней перемычки"
+                            },
+                            {
+                                "block": "SG5",
+                                "signals": "Iн",
+                                "contacts": "2+1",
+                                "note": "Ток в цепи заземления нейтрали"
+                            },
+                            {
+                                "block": "SG6",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-1»"
+                            },
+                            {
+                                "block": "SG7",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-2»"
+                            },
+                            {
+                                "block": "SG8",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-1» ОВ"
+                            },
+                            {
+                                "block": "SG9",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-2» ОВ"
+                            }
+                        ],
+                        "mp_functions": null,
+                        "its_functions_desc": null,
+                        "power_supply": null,
+                        "ports": null,
+                        "connection_scheme": null,
+                        "components": null,
+                        "additional_equipment": null,
+                        "parameters": null,
+                        "general_view": null,
+                        "structural_scheme": null,
+                        "schematic": null,
+                        "climate": null,
+                        "enclosure": null,
+                        "cooling": null,
+                        "communication": null,
+                        "notes": null,
+                        "cabinet_key": "shet-431-21-1",
+                        "cabinet_index": 1,
+                        "cabinet_code": "ШЭТ 431.21-1",
+                        "cabinet_name": "Шкаф защит батареи статических конденсаторов 110-330 кВ, УРОВ, АУВ",
+                        "cabinet_group": "СКРМ",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "KEcf9f",
+            "type": "container",
+            "name": "EK1",
+            "x": -140,
+            "y": 1110,
+            "container": {
+                "key": "кэт-6-р24-ii",
+                "code": "КЭТ 6-Р24-II",
+                "title": "СЗАУ двух (2) ВЛ 110-220 кВ, СКРМ 110-220 кВ",
+                "size": "20dc",
+                "slots": 8,
+                "info": {
+                    "code": "КЭТ 6-Р24-II",
+                    "name": "СЗАУ двух (2) ВЛ 110-220 кВ, СКРМ 110-220 кВ",
+                    "title": "СЗАУ двух (2) ВЛ 110-220 кВ, СКРМ 110-220 кВ",
+                    "description": "СЗАУ двух (2) ВЛ 110-220 кВ, СКРМ 110-220 кВ",
+                    "group": "РЗА СКРМ",
+                    "size": "20dc",
+                    "size_code": "20’DC",
+                    "size_title": "20 футов, сухогрузный (20’DC)",
+                    "dimensions": "6058×2438×2591 мм (Д×Ш×В)",
+                    "climate": "УХЛ1",
+                    "ip": "IP-23 при открытых жалюзи / IP-55 при закрытых"
+                },
+                "cabinets": [
+                    "CAd0a6",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                ],
+                "slot_labels": [
+                    "EL1 · ШЭТ 431.21-1",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    "",
+                    ""
+                ],
+                "link_points": [
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    [],
+                    []
+                ]
+            }
+        },
+        {
+            "id": "CA9581",
+            "type": "capacitor_battery",
+            "name": "",
+            "x": 1080,
+            "y": 930,
+            "rotation": 0
+        },
+        {
+            "id": "CA5cb4",
+            "type": "capacitor_battery",
+            "name": "BSK1",
+            "x": 1140,
+            "y": 830,
+            "rotation": 0
+        },
+        {
+            "id": "CA3648",
+            "type": "capacitor_battery",
+            "name": "BSK2",
+            "x": 1140,
+            "y": 930,
+            "rotation": 0
+        },
+        {
+            "id": "CU02e8",
+            "type": "current_transformer",
+            "name": "",
+            "x": 1110,
+            "y": 880,
+            "rotation": 90
+        }
+    ],
+    "connections": [
+        {
+            "node_from": "N_LI7bbd_out",
+            "node_to": "N_LIe0f3_top",
+            "port_from": "out",
+            "port_to": "top",
+            "element_from": "LI7bbd",
+            "element_to": "LIe0f3"
+        },
+        {
+            "node_from": "N_LIe0f3_top",
+            "node_to": "N_CO0f8f_bottom",
+            "port_from": "top",
+            "port_to": "bottom",
+            "element_from": "LIe0f3",
+            "element_to": "CO0f8f"
+        },
+        {
+            "node_from": "N_CO0f8f_top",
+            "node_to": "N_GR4992_top",
+            "port_from": "top",
+            "port_to": "top",
+            "element_from": "CO0f8f",
+            "element_to": "GR4992"
+        },
+        {
+            "node_from": "N_DI4a07_bot",
+            "node_to": "N_GR1d0b_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI4a07",
+            "element_to": "GR1d0b"
+        },
+        {
+            "node_from": "N_DI30a6_top",
+            "node_to": "N_GRb7de_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI30a6",
+            "element_to": "GRb7de"
+        },
+        {
+            "node_from": "N_DI30a6_bot",
+            "node_to": "N_GR170f_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI30a6",
+            "element_to": "GR170f"
+        },
+        {
+            "node_from": "N_GR170f_left",
+            "node_to": "N_CU296b_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR170f",
+            "element_to": "CU296b"
+        },
+        {
+            "node_from": "N_CU296b_bot",
+            "node_to": "N_BRe6dd_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU296b",
+            "element_to": "BRe6dd"
+        },
+        {
+            "node_from": "N_GR6012_left",
+            "node_to": "N_DI31f5_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR6012",
+            "element_to": "DI31f5"
+        },
+        {
+            "node_from": "N_GR1d0b_left",
+            "node_to": "NO9433",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR1d0b",
+            "element_to": "NO9433"
+        },
+        {
+            "node_from": "NO9433",
+            "node_to": "N_GRb7de_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO9433",
+            "element_to": "GRb7de"
+        },
+        {
+            "node_from": "N_GRb772_left",
+            "node_to": "N_DIecc7_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRb772",
+            "element_to": "DIecc7"
+        },
+        {
+            "node_from": "N_BRe6dd_bot",
+            "node_to": "NOaaed",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "BRe6dd",
+            "element_to": "NOaaed"
+        },
+        {
+            "node_from": "NOaaed",
+            "node_to": "N_GR6012_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NOaaed",
+            "element_to": "GR6012"
+        },
+        {
+            "node_from": "N_LI5aa1_out",
+            "node_to": "N_LI6461_top",
+            "port_from": "out",
+            "port_to": "top",
+            "element_from": "LI5aa1",
+            "element_to": "LI6461"
+        },
+        {
+            "node_from": "N_LI6461_top",
+            "node_to": "N_CO621d_bottom",
+            "port_from": "top",
+            "port_to": "bottom",
+            "element_from": "LI6461",
+            "element_to": "CO621d"
+        },
+        {
+            "node_from": "N_CO621d_top",
+            "node_to": "N_GR3b24_top",
+            "port_from": "top",
+            "port_to": "top",
+            "element_from": "CO621d",
+            "element_to": "GR3b24"
+        },
+        {
+            "node_from": "N_DI512a_bot",
+            "node_to": "N_GR46ee_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI512a",
+            "element_to": "GR46ee"
+        },
+        {
+            "node_from": "N_DI51df_top",
+            "node_to": "N_GR8cc6_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI51df",
+            "element_to": "GR8cc6"
+        },
+        {
+            "node_from": "N_DI51df_bot",
+            "node_to": "N_GRb1bb_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI51df",
+            "element_to": "GRb1bb"
+        },
+        {
+            "node_from": "N_GRb1bb_left",
+            "node_to": "N_CUea50_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRb1bb",
+            "element_to": "CUea50"
+        },
+        {
+            "node_from": "N_CUea50_bot",
+            "node_to": "N_BRa995_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CUea50",
+            "element_to": "BRa995"
+        },
+        {
+            "node_from": "N_GRb446_left",
+            "node_to": "N_DI0b67_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRb446",
+            "element_to": "DI0b67"
+        },
+        {
+            "node_from": "N_GR46ee_left",
+            "node_to": "NO1066",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR46ee",
+            "element_to": "NO1066"
+        },
+        {
+            "node_from": "NO1066",
+            "node_to": "N_GR8cc6_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO1066",
+            "element_to": "GR8cc6"
+        },
+        {
+            "node_from": "N_GR0141_left",
+            "node_to": "N_DIdfd1_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR0141",
+            "element_to": "DIdfd1"
+        },
+        {
+            "node_from": "N_BRa995_bot",
+            "node_to": "NO3465",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "BRa995",
+            "element_to": "NO3465"
+        },
+        {
+            "node_from": "NO3465",
+            "node_to": "N_GRb446_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO3465",
+            "element_to": "GRb446"
+        },
+        {
+            "node_from": "N_DI5298_bot",
+            "node_to": "N_GRf12f_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI5298",
+            "element_to": "GRf12f"
+        },
+        {
+            "node_from": "N_GRf12f_left",
+            "node_to": "N_VOeb33_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRf12f",
+            "element_to": "VOeb33"
+        },
+        {
+            "node_from": "N_DI5298_top",
+            "node_to": "N_GR416c_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI5298",
+            "element_to": "GR416c"
+        },
+        {
+            "node_from": "N_DI8a53_bot",
+            "node_to": "N_GR9ed2_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI8a53",
+            "element_to": "GR9ed2"
+        },
+        {
+            "node_from": "N_DIa320_top",
+            "node_to": "N_GR5cd2_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DIa320",
+            "element_to": "GR5cd2"
+        },
+        {
+            "node_from": "N_DIa320_bot",
+            "node_to": "N_GR11d6_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIa320",
+            "element_to": "GR11d6"
+        },
+        {
+            "node_from": "N_GR11d6_left",
+            "node_to": "N_CU44d3_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR11d6",
+            "element_to": "CU44d3"
+        },
+        {
+            "node_from": "N_CU44d3_bot",
+            "node_to": "N_BRf15d_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU44d3",
+            "element_to": "BRf15d"
+        },
+        {
+            "node_from": "N_GR30ac_left",
+            "node_to": "N_DIcc90_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR30ac",
+            "element_to": "DIcc90"
+        },
+        {
+            "node_from": "N_GR9ed2_left",
+            "node_to": "NO2f98",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR9ed2",
+            "element_to": "NO2f98"
+        },
+        {
+            "node_from": "NO2f98",
+            "node_to": "N_GR5cd2_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO2f98",
+            "element_to": "GR5cd2"
+        },
+        {
+            "node_from": "N_GRb2ab_left",
+            "node_to": "N_DI9a47_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRb2ab",
+            "element_to": "DI9a47"
+        },
+        {
+            "node_from": "N_BRf15d_bot",
+            "node_to": "NO5db2",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "BRf15d",
+            "element_to": "NO5db2"
+        },
+        {
+            "node_from": "NO5db2",
+            "node_to": "N_GR30ac_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO5db2",
+            "element_to": "GR30ac"
+        },
+        {
+            "node_from": "N_CU0c44_bot",
+            "node_to": "N_REd9f8_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU0c44",
+            "element_to": "REd9f8"
+        },
+        {
+            "node_from": "N_REd9f8_bottom",
+            "node_to": "N_CU7108_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "REd9f8",
+            "element_to": "CU7108"
+        },
+        {
+            "node_from": "N_CU7108_bot",
+            "node_to": "N_GRd4b0_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU7108",
+            "element_to": "GRd4b0"
+        },
+        {
+            "node_from": "N_DIe445_bot",
+            "node_to": "N_GR22fb_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DIe445",
+            "element_to": "GR22fb"
+        },
+        {
+            "node_from": "N_DI05dd_top",
+            "node_to": "N_GRd22d_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI05dd",
+            "element_to": "GRd22d"
+        },
+        {
+            "node_from": "N_DI05dd_bot",
+            "node_to": "N_GR0c57_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI05dd",
+            "element_to": "GR0c57"
+        },
+        {
+            "node_from": "N_GR0c57_left",
+            "node_to": "N_CU9f7d_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR0c57",
+            "element_to": "CU9f7d"
+        },
+        {
+            "node_from": "N_CU9f7d_bot",
+            "node_to": "N_BRfaa9_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU9f7d",
+            "element_to": "BRfaa9"
+        },
+        {
+            "node_from": "N_GRb652_left",
+            "node_to": "N_DI1719_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GRb652",
+            "element_to": "DI1719"
+        },
+        {
+            "node_from": "N_GR22fb_left",
+            "node_to": "NO4b7e",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GR22fb",
+            "element_to": "NO4b7e"
+        },
+        {
+            "node_from": "NO4b7e",
+            "node_to": "N_GRd22d_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO4b7e",
+            "element_to": "GRd22d"
+        },
+        {
+            "node_from": "N_GR4f03_left",
+            "node_to": "N_DI357b_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR4f03",
+            "element_to": "DI357b"
+        },
+        {
+            "node_from": "N_BRfaa9_bot",
+            "node_to": "NOddf5",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "BRfaa9",
+            "element_to": "NOddf5"
+        },
+        {
+            "node_from": "NOddf5",
+            "node_to": "N_GRb652_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NOddf5",
+            "element_to": "GRb652"
+        },
+        {
+            "node_from": "N_CU76ab_bot",
+            "node_to": "N_GR98e6_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU76ab",
+            "element_to": "GR98e6"
+        },
+        {
+            "node_from": "N_DI54a6_bot",
+            "node_to": "N_GR9044_left",
+            "port_from": "bottom",
+            "port_to": "left",
+            "element_from": "DI54a6",
+            "element_to": "GR9044"
+        },
+        {
+            "node_from": "N_GR9044_left",
+            "node_to": "N_VObf43_top",
+            "port_from": "left",
+            "port_to": "top",
+            "element_from": "GR9044",
+            "element_to": "VObf43"
+        },
+        {
+            "node_from": "N_DI54a6_top",
+            "node_to": "N_GR346f_left",
+            "port_from": "top",
+            "port_to": "left",
+            "element_from": "DI54a6",
+            "element_to": "GR346f"
+        },
+        {
+            "node_from": "N_BU31c1_p_6",
+            "node_to": "N_DI4a07_top",
+            "port_from": "p_6",
+            "port_to": "top",
+            "element_from": "BU31c1",
+            "element_to": "DI4a07"
+        },
+        {
+            "node_from": "N_DI31f5_bot",
+            "node_to": "N_BU1703_p_6",
+            "port_from": "bottom",
+            "port_to": "p_6",
+            "element_from": "DI31f5",
+            "element_to": "BU1703"
+        },
+        {
+            "node_from": "N_DIecc7_bot",
+            "node_to": "N_BU9b7e_p_2",
+            "port_from": "bottom",
+            "port_to": "p_2",
+            "element_from": "DIecc7",
+            "element_to": "BU9b7e"
+        },
+        {
+            "node_from": "N_DIdfd1_bot",
+            "node_to": "N_BU9b7e_p_17",
+            "port_from": "bottom",
+            "port_to": "p_17",
+            "element_from": "DIdfd1",
+            "element_to": "BU9b7e"
+        },
+        {
+            "node_from": "N_DI0b67_bot",
+            "node_to": "N_BU1703_p_21",
+            "port_from": "bottom",
+            "port_to": "p_21",
+            "element_from": "DI0b67",
+            "element_to": "BU1703"
+        },
+        {
+            "node_from": "N_BU31c1_p_21",
+            "node_to": "N_DI512a_top",
+            "port_from": "p_21",
+            "port_to": "top",
+            "element_from": "BU31c1",
+            "element_to": "DI512a"
+        },
+        {
+            "node_from": "N_BU31c1_p_39",
+            "node_to": "N_DI8a53_top",
+            "port_from": "p_39",
+            "port_to": "top",
+            "element_from": "BU31c1",
+            "element_to": "DI8a53"
+        },
+        {
+            "node_from": "N_DIcc90_bot",
+            "node_to": "N_BU1703_p_39",
+            "port_from": "bottom",
+            "port_to": "p_39",
+            "element_from": "DIcc90",
+            "element_to": "BU1703"
+        },
+        {
+            "node_from": "N_DI9a47_bot",
+            "node_to": "N_BU9b7e_p_35",
+            "port_from": "bottom",
+            "port_to": "p_35",
+            "element_from": "DI9a47",
+            "element_to": "BU9b7e"
+        },
+        {
+            "node_from": "N_DI357b_bot",
+            "node_to": "N_BU9b7e_p_52",
+            "port_from": "bottom",
+            "port_to": "p_52",
+            "element_from": "DI357b",
+            "element_to": "BU9b7e"
+        },
+        {
+            "node_from": "N_DI1719_bot",
+            "node_to": "N_BU1703_p_56",
+            "port_from": "bottom",
+            "port_to": "p_56",
+            "element_from": "DI1719",
+            "element_to": "BU1703"
+        },
+        {
+            "node_from": "N_BU31c1_p_56",
+            "node_to": "N_DIe445_top",
+            "port_from": "p_56",
+            "port_to": "top",
+            "element_from": "BU31c1",
+            "element_to": "DIe445"
+        },
+        {
+            "node_from": "NO4b7e",
+            "node_to": "N_CA7f70_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NO4b7e",
+            "element_to": "CA7f70",
+            "points": [
+                [
+                    1080.0,
+                    340.0
+                ]
+            ]
+        },
+        {
+            "node_from": "N_CU0c44_top",
+            "node_to": "NO2f98",
+            "port_from": "top",
+            "port_to": "center",
+            "element_from": "CU0c44",
+            "element_to": "NO2f98",
+            "points": [
+                [
+                    740.0,
+                    340.0
+                ]
+            ]
+        },
+        {
+            "node_from": "NOddf5",
+            "node_to": "N_GR4f03_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NOddf5",
+            "element_to": "GR4f03",
+            "points": [
+                [
+                    1160.0,
+                    540.0
+                ]
+            ]
+        },
+        {
+            "node_from": "N_GRb2ab_left",
+            "node_to": "NO5db2",
+            "port_from": "left",
+            "port_to": "center",
+            "element_from": "GRb2ab",
+            "element_to": "NO5db2",
+            "points": [
+                [
+                    820.0,
+                    540.0
+                ]
+            ]
+        },
+        {
+            "node_from": "NO3465",
+            "node_to": "N_GR0141_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NO3465",
+            "element_to": "GR0141",
+            "points": [
+                [
+                    440.0,
+                    540.0
+                ]
+            ]
+        },
+        {
+            "node_from": "N_LI6461_bottom",
+            "node_to": "NO1066",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "LI6461",
+            "element_to": "NO1066",
+            "points": [
+                [
+                    440.0,
+                    340.0
+                ]
+            ]
+        },
+        {
+            "node_from": "N_LIe0f3_bottom",
+            "node_to": "NO9433",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "LIe0f3",
+            "element_to": "NO9433",
+            "points": [
+                [
+                    140.0,
+                    340.0
+                ]
+            ]
+        },
+        {
+            "node_from": "NOaaed",
+            "node_to": "N_GRb772_left",
+            "port_from": "center",
+            "port_to": "left",
+            "element_from": "NOaaed",
+            "element_to": "GRb772",
+            "points": [
+                [
+                    140.0,
+                    540.0
+                ]
+            ]
+        },
+        {
+            "node_from": "N_CA9581_bottom",
+            "node_to": "N_CU76ab_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CA9581",
+            "element_to": "CU76ab"
+        },
+        {
+            "node_from": "N_CU76ab_top",
+            "node_to": "N_CA3648_bottom",
+            "port_from": "top",
+            "port_to": "bottom",
+            "element_from": "CU76ab",
+            "element_to": "CA3648"
+        }
+    ],
+    "view": {
+        "zoom": 2.8418,
+        "offset_x": -2659.56,
+        "offset_y": -2218.3
+    }
+}
