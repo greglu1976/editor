@@ -20,6 +20,8 @@
 11. диалог связи: введённый номер и тип не теряются после закрытия окна;
 12. окно функционального блока: таблица функций сохраняется;
 13. вставка блока с палитры сразу открывает окно свойств;
+13а. диалог функции: новый вход сохраняется, идентификаторы слотов не
+    смешиваются;
 14. смену типа выбранной связи из ленты и отмену;
 15. легенду типов связей на полотне;
 16. сквозную нумерацию связей;
@@ -762,6 +764,45 @@ def test_block_dialog(app, root):
     check(app.is_modified is True, "схема помечена изменённой")
 
 
+def test_function_dialog_slots(app, root):
+    """Регрессия: добавленный вход и правки функции доходят до модели."""
+    print("13а. диалог функции: вход сохраняется, выход не подменяется")
+    data = ll.normalize_function({
+        "kind": "AND", "title": "Пуск", "name": "Start",
+        "inputs": [{"name": "A", "description": "Первый"}],
+        "outputs": [{"name": "Y", "description": "Выход"}],
+    })
+
+    def add_slot(function_dialog):
+        def fill_nested():
+            nested = [w for w in function_dialog.winfo_children()
+                      if isinstance(w, tk.Toplevel)]
+            if not nested:
+                return
+            entries = _find(nested[-1].winfo_children()[0], "Entry")
+            entries[0].delete(0, tk.END)
+            entries[0].insert(0, "B")
+            _click(nested[-1], "ОК")
+
+        root.after(150, fill_nested)
+        _click(function_dialog, "Добавить…")   # первая таблица — входы
+        root.after(150, lambda: _click(function_dialog, "Сохранить"))
+
+    _dialog_action(root, add_slot)
+    saved = app._edit_logic_function_data(data, root)
+    check(saved is not None, "диалог функции закрывается с результатом")
+    if saved is None:
+        return
+    check([slot["name"] for slot in saved["inputs"]] == ["A", "B"],
+          "новый вход сохранён вместе с существующими")
+    check(saved["title"] == "Пуск" and saved["name"] == "Start",
+          "остальные поля функции не потеряны")
+    check(saved["inputs"][0]["id"] == "in1"
+          and saved["outputs"][0]["id"] == "out1"
+          and saved["outputs"][0]["name"] == "Y",
+          "вход не получает идентификатор выхода")
+
+
 def test_block_insert_dialog(app):
     print("14. вставка блока открывает окно свойств")
     _reset(app)
@@ -1292,6 +1333,7 @@ def run_gui():
         test_delete(app)
         test_link_dialog(app, root)
         test_block_dialog(app, root)
+        test_function_dialog_slots(app, root)
         test_block_insert_dialog(app)
         test_ribbon_kind(app)
         test_legend(app)

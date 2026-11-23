@@ -2355,16 +2355,20 @@ class LogicEditorMixin:
             (150, 180, 110, 260))
         notebook.add(parameters_tab, text="Параметры")
 
-        slot_store = {}   # iid -> исходный слот (сохраняет LD/LN/DO/DA)
+        # У каждой таблицы свои iid: автономера Tkinter повторяются, и общий
+        # словарь затирал бы входы данными выходов.
+        slot_store = {}   # table -> iid -> исходный слот (LD/LN/DO/DA)
 
         def fill_slots(tree, slots):
             tree.delete(*tree.get_children())
+            store = slot_store.setdefault(tree, {})
+            store.clear()
             for slot in slots:
                 iid = tree.insert("", "end", values=(
                     slot.get("name", ""), slot.get("description", ""),
                     slot.get("iec_name", ""),
                     ll.slot_type_title(slot.get("type", ""))))
-                slot_store[iid] = dict(slot)
+                store[iid] = dict(slot)
 
         def fill_settings(tree, settings):
             tree.delete(*tree.get_children())
@@ -2415,7 +2419,7 @@ class LogicEditorMixin:
             iid = tree.insert("", "end", values=(
                 slot["name"], slot["description"], slot["iec_name"],
                 ll.slot_type_title(slot["type"])))
-            slot_store[iid] = slot
+            slot_store.setdefault(tree, {})[iid] = slot
 
         def edit_slot(tree, direction):
             current = selected_values(tree)
@@ -2436,8 +2440,8 @@ class LogicEditorMixin:
             tree.item(iid, values=(
                 values["name"], values["description"], values["iec_name"],
                 ll.slot_type_title(values["type"])))
-            if iid in slot_store:
-                slot_store[iid].update({
+            if iid in slot_store.get(tree, {}):
+                slot_store[tree][iid].update({
                     "name": values["name"],
                     "description": values["description"],
                     "iec_name": values["iec_name"],
@@ -2572,12 +2576,12 @@ class LogicEditorMixin:
             for item in tree.get_children():
                 values = list(tree.item(item, "values"))
                 values += [""] * (4 - len(values))
-                slot = dict(slot_store.get(item) or {})
+                slot = dict(slot_store.get(tree, {}).get(item) or {})
                 slot.update({
                     "name": values[0], "description": values[1],
                     "iec_name": values[2], "type": slot_type_key(values[3]),
                 })
-                slots.append(ll.normalize_slot(slot, direction))
+                slots.append(ll.normalize_slots([slot], direction)[0])
             return slots
 
         def collect_settings():
