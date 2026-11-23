@@ -1,0 +1,956 @@
+{
+    "elements": [
+        {
+            "id": "VOeb33",
+            "type": "voltage_transformer",
+            "name": "",
+            "x": 1240,
+            "y": 820,
+            "rotation": 0
+        },
+        {
+            "id": "DI5298",
+            "type": "disconnector",
+            "name": "",
+            "x": 1240,
+            "y": 770,
+            "rotation": 0,
+            "label": [
+                -0.7,
+                0.0
+            ]
+        },
+        {
+            "id": "DIe445",
+            "type": "disconnector",
+            "name": "QS40",
+            "x": 1240,
+            "y": 410,
+            "rotation": 180
+        },
+        {
+            "id": "DI05dd",
+            "type": "disconnector",
+            "name": "QS41",
+            "x": 1240,
+            "y": 470,
+            "rotation": 180
+        },
+        {
+            "id": "CU9f7d",
+            "type": "current_transformer",
+            "name": "TA18",
+            "x": 1240,
+            "y": 520,
+            "rotation": 0
+        },
+        {
+            "id": "BRfaa9",
+            "type": "breaker",
+            "name": "Q11",
+            "x": 1240,
+            "y": 570,
+            "rotation": 0
+        },
+        {
+            "id": "DI1719",
+            "type": "disconnector",
+            "name": "QS42",
+            "x": 1240,
+            "y": 630,
+            "rotation": 0
+        },
+        {
+            "id": "NO4b7e",
+            "type": "node",
+            "name": "N48",
+            "x": 1240,
+            "y": 440
+        },
+        {
+            "id": "DI357b",
+            "type": "disconnector",
+            "name": "",
+            "x": 1160,
+            "y": 690,
+            "rotation": 0,
+            "label": [
+                -12.9,
+                -0.5
+            ]
+        },
+        {
+            "id": "CU76ab",
+            "type": "current_transformer",
+            "name": "",
+            "x": 1110,
+            "y": 990,
+            "rotation": 0
+        },
+        {
+            "id": "GR98e6",
+            "type": "ground",
+            "name": "",
+            "x": 1110,
+            "y": 1090,
+            "rotation": 0
+        },
+        {
+            "id": "CA7f70",
+            "type": "capacitor_battery",
+            "name": "",
+            "x": 1080,
+            "y": 830,
+            "rotation": 0
+        },
+        {
+            "id": "BU31c1",
+            "type": "bus",
+            "name": "BB1",
+            "x": 1220,
+            "y": 370,
+            "length": 80
+        },
+        {
+            "id": "BU1703",
+            "type": "bus",
+            "name": "BB2",
+            "x": 1230,
+            "y": 660,
+            "length": 110,
+            "label": [
+                -41.6,
+                4.3
+            ]
+        },
+        {
+            "id": "BU9b7e",
+            "type": "bus",
+            "name": "BB3",
+            "x": 1230,
+            "y": 720,
+            "length": 110,
+            "label": [
+                0.0,
+                3.9
+            ]
+        },
+        {
+            "id": "VObf43",
+            "type": "voltage_transformer",
+            "name": "",
+            "x": 1300,
+            "y": 820,
+            "rotation": 0
+        },
+        {
+            "id": "DI54a6",
+            "type": "disconnector",
+            "name": "",
+            "x": 1300,
+            "y": 770,
+            "rotation": 0,
+            "label": [
+                -0.7,
+                0.0
+            ]
+        },
+        {
+            "id": "CO0e7b",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 370
+        },
+        {
+            "id": "CO5ab2",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 440
+        },
+        {
+            "id": "CO7896",
+            "type": "comment_node",
+            "name": "",
+            "x": 1160,
+            "y": 720
+        },
+        {
+            "id": "COa609",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 660
+        },
+        {
+            "id": "CAd0a6",
+            "type": "cabinet",
+            "name": "",
+            "x": 1330,
+            "y": 1020,
+            "cabinet": {
+                "key": "shet-431-21-1",
+                "title": "ШЭТ 431.21-1",
+                "info": {
+                    "code": "ШЭТ 431.21-1",
+                    "name": "Шкаф защит батареи статических конденсаторов 110-330 кВ, УРОВ, АУВ",
+                    "title": "Шкаф защит батарей статических конденсаторов 110-330 кВ типа ШЭТ 431.21-1 для архитектуры II типа",
+                    "description": "Шкаф защит БСК 110-330 кВ, включающий в себя дифференциальную токовую защиту, дифференциальную токовую защиту нулевой последовательности, небалансную токовую защиту, защиту от перегрузки токами высших гармоник, защиту минимального и максимального напряжения, а также резервные токовые защиты; в составе шкафа реализуется УРОВ и АУВ выключателя БСК для двух БСК",
+                    "voltage": "110-330 кВ",
+                    "architecture": "II тип",
+                    "protected": "БСК 110-330 кВ",
+                    "controlled": [
+                        "Выключатель БСК"
+                    ],
+                    "its_functions": [
+                        "ДТЗ",
+                        "ДТЗ НП",
+                        "ЗВП",
+                        "ЗПВГ",
+                        "ЗМН",
+                        "ЗПН",
+                        "МТЗ ВН",
+                        "ТЗОП ВН",
+                        "ТЗНП ВН",
+                        "ТЗНП НЕЙТР",
+                        "РАС"
+                    ],
+                    "applicability": "РУ 110-330 кВ: подключение БСК через один выключатель к системе шин с/без ОСШ; подключение БСК к РУ через два выключателя",
+                    "source": "разд. 5.2",
+                    "standard": "СТО 56947007-33.040.20.280-XXXX",
+                    "standard_title": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура II типа. Изменение 1",
+                    "group": "СКРМ",
+                    "goose": true,
+                    "mp_functions": "ИЭУ1: ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, ЗНР, БНН, РАС; ИЭУ2: УРОВ, ЗНФ, АУВ",
+                    "its_functions_desc": "ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, РАС",
+                    "power_supply": "питание ИЭУ; освещение шкафа",
+                    "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+                    "connection_scheme": "Рисунок 5.2.1",
+                    "general_view": "Рисунок 5.2.2",
+                    "structural_scheme": "Рисунок 5.2.3"
+                },
+                "komplets": [
+                    {
+                        "key": "",
+                        "name": "Комплект 1",
+                        "kind": "typical",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДТЗ",
+                            "ДТЗ НП",
+                            "ЗВП",
+                            "ЗПВГ",
+                            "ЗМН",
+                            "ЗПН",
+                            "МТЗ ВН",
+                            "ТЗОП ВН",
+                            "ТЗНП ВН",
+                            "ТЗНП НЕЙТР",
+                            "ЗНР",
+                            "БНН",
+                            "РАС",
+                            "УРОВ",
+                            "ЗНФ",
+                            "АУВ"
+                        ],
+                        "desc": "ИЭУ1: ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, ЗНР, БНН, РАС, УРОВ, ЗНФ, АУВ",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ИЭУ1",
+                                "type": "МП РЗА",
+                                "desc": ""
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "test_block_list": [],
+                        "analog_inputs": [
+                            {
+                                "block": "SG1",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи БСК"
+                            },
+                            {
+                                "block": "SG2",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи ОВ"
+                            },
+                            {
+                                "block": "SG3",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи нейтрали"
+                            },
+                            {
+                                "block": "SG4",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи средней перемычки"
+                            },
+                            {
+                                "block": "SG5",
+                                "signals": "Iн",
+                                "contacts": "2+1",
+                                "note": "Ток в цепи заземления нейтрали"
+                            },
+                            {
+                                "block": "SG6",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-1»"
+                            },
+                            {
+                                "block": "SG7",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-2»"
+                            },
+                            {
+                                "block": "SG8",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-1» ОВ"
+                            },
+                            {
+                                "block": "SG9",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-2» ОВ"
+                            }
+                        ],
+                        "mp_functions": null,
+                        "its_functions_desc": null,
+                        "power_supply": null,
+                        "ports": null,
+                        "connection_scheme": null,
+                        "components": null,
+                        "additional_equipment": null,
+                        "parameters": null,
+                        "general_view": null,
+                        "structural_scheme": null,
+                        "schematic": null,
+                        "climate": null,
+                        "enclosure": null,
+                        "cooling": null,
+                        "communication": null,
+                        "notes": null,
+                        "cabinet_key": "shet-431-21-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ 431.21-1",
+                        "cabinet_name": "Шкаф защит батареи статических конденсаторов 110-330 кВ, УРОВ, АУВ",
+                        "cabinet_group": "СКРМ",
+                        "source": "user"
+                    },
+                    {
+                        "key": "",
+                        "name": "Комплект 2",
+                        "kind": "typical",
+                        "type": "МП РЗА",
+                        "functions": [
+                            "ДТЗ",
+                            "ДТЗ НП",
+                            "ЗВП",
+                            "ЗПВГ",
+                            "ЗМН",
+                            "ЗПН",
+                            "МТЗ ВН",
+                            "ТЗОП ВН",
+                            "ТЗНП ВН",
+                            "ТЗНП НЕЙТР",
+                            "ЗНР",
+                            "БНН",
+                            "РАС",
+                            "УРОВ",
+                            "ЗНФ",
+                            "АУВ"
+                        ],
+                        "desc": "ИЭУ2: ДТЗ, ДТЗ НП, ЗВП, ЗПВГ, ЗМН, ЗПН, МТЗ ВН, ТЗОП ВН, ТЗНП ВН, ТЗНП НЕЙТР, ЗНР, БНН, РАС, УРОВ, ЗНФ, АУВ",
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ИЭУ2",
+                                "type": "МП РЗА",
+                                "desc": ""
+                            }
+                        ],
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "test_block_list": [],
+                        "analog_inputs": [
+                            {
+                                "block": "SG1",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи БСК"
+                            },
+                            {
+                                "block": "SG2",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи ОВ"
+                            },
+                            {
+                                "block": "SG3",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи нейтрали"
+                            },
+                            {
+                                "block": "SG4",
+                                "signals": "Ia, Ib, Ic",
+                                "contacts": "6+1",
+                                "note": "Токи средней перемычки"
+                            },
+                            {
+                                "block": "SG5",
+                                "signals": "Iн",
+                                "contacts": "2+1",
+                                "note": "Ток в цепи заземления нейтрали"
+                            },
+                            {
+                                "block": "SG6",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-1»"
+                            },
+                            {
+                                "block": "SG7",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-2»"
+                            },
+                            {
+                                "block": "SG8",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-1» ОВ"
+                            },
+                            {
+                                "block": "SG9",
+                                "signals": "Ua, Ub, Uc",
+                                "contacts": "4+1",
+                                "note": "Напряжения «ВО-2» ОВ"
+                            }
+                        ],
+                        "mp_functions": null,
+                        "its_functions_desc": null,
+                        "power_supply": null,
+                        "ports": null,
+                        "connection_scheme": null,
+                        "components": null,
+                        "additional_equipment": null,
+                        "parameters": null,
+                        "general_view": null,
+                        "structural_scheme": null,
+                        "schematic": null,
+                        "climate": null,
+                        "enclosure": null,
+                        "cooling": null,
+                        "communication": null,
+                        "notes": null,
+                        "cabinet_key": "shet-431-21-1",
+                        "cabinet_index": 1,
+                        "cabinet_code": "ШЭТ 431.21-1",
+                        "cabinet_name": "Шкаф защит батареи статических конденсаторов 110-330 кВ, УРОВ, АУВ",
+                        "cabinet_group": "СКРМ",
+                        "source": "user"
+                    }
+                ]
+            }
+        },
+        {
+            "id": "CA9581",
+            "type": "capacitor_battery",
+            "name": "",
+            "x": 1080,
+            "y": 930,
+            "rotation": 0
+        },
+        {
+            "id": "CA5cb4",
+            "type": "capacitor_battery",
+            "name": "БСК",
+            "x": 1140,
+            "y": 830,
+            "rotation": 0,
+            "label": [
+                -48.1,
+                -54.9
+            ]
+        },
+        {
+            "id": "CA3648",
+            "type": "capacitor_battery",
+            "name": "",
+            "x": 1140,
+            "y": 930,
+            "rotation": 0
+        },
+        {
+            "id": "CU02e8",
+            "type": "current_transformer",
+            "name": "",
+            "x": 1110,
+            "y": 880,
+            "rotation": 90
+        },
+        {
+            "id": "NOe97f",
+            "type": "node",
+            "name": "N51",
+            "x": 1080,
+            "y": 880
+        },
+        {
+            "id": "NO030c",
+            "type": "node",
+            "name": "N52",
+            "x": 1140,
+            "y": 880
+        },
+        {
+            "id": "NObafd",
+            "type": "node",
+            "name": "N53",
+            "x": 1110,
+            "y": 790
+        },
+        {
+            "id": "CU8b00",
+            "type": "current_transformer",
+            "name": "",
+            "x": 1110,
+            "y": 1040,
+            "rotation": 0
+        },
+        {
+            "id": "NOd6ae",
+            "type": "node",
+            "name": "N54",
+            "x": 1240,
+            "y": 600
+        },
+        {
+            "id": "COa4a6",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 600
+        },
+        {
+            "id": "COaf7c",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 720
+        },
+        {
+            "id": "CO6c5d",
+            "type": "comment_node",
+            "name": "",
+            "x": 1300,
+            "y": 660
+        },
+        {
+            "id": "CAeb45",
+            "type": "cabinet",
+            "name": "",
+            "x": 1330,
+            "y": 910,
+            "cabinet": {
+                "key": "shet-cn-2-1",
+                "title": "ШЭТ ЦН.2-1",
+                "info": {
+                    "code": "ШЭТ ЦН.2-1",
+                    "name": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и РПР обходного выключателя (исполнение 1)",
+                    "title": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и РПР обходного выключателя (исполнение 1)",
+                    "description": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и реле-повторителями обходного выключателя, исполнение 1",
+                    "voltage": "—",
+                    "architecture": "I и II типа",
+                    "controlled": [],
+                    "its_functions": [
+                        "цепи напряжения двух ТН",
+                        "реле-повторители положения обходного выключателя",
+                        "переключение цепей напряжения"
+                    ],
+                    "applicability": "Внутренняя установка, архитектуры I и II типа",
+                    "source": "п. 14.5",
+                    "standard": "СТО 56947007-33.040.20.307-2020",
+                    "standard_title": "Корпоративные шкафы вторичной коммутации (ВК): шкафы зажимов измерительных трансформаторов, промежуточных согласующих трансформаторов, организации цепей напряжения, перевода на обходной выключатель",
+                    "group": "ВК",
+                    "goose": true,
+                    "mp_functions": "Распределение цепей переменного напряжения устройств РЗА, АСУ ТП и перевод цепей напряжения на резервируемый ТН. Автоматическое переключение цепей напряжения двустабильными промежуточными реле для присоединения обходного выключателя",
+                    "power_supply": "питание оперативных цепей КВЦН, схемы перевода цепей переменного напряжения; освещение шкафа",
+                    "ports": "порт A шины станции (Duplex LC); порт B шины станции (Duplex LC)",
+                    "components": "Таблица 14.5.11",
+                    "general_view": "Рисунок 14.5.1",
+                    "schematic": "Рисунок 14.5.2"
+                },
+                "komplets": [
+                    {
+                        "desc": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и реле-повторителями обходного выключателя, исполнение 1",
+                        "functions": [
+                            "цепи напряжения двух ТН",
+                            "реле-повторители положения обходного выключателя",
+                            "переключение цепей напряжения"
+                        ],
+                        "has_ied": true,
+                        "ieds": [
+                            {
+                                "name": "ВК",
+                                "type": "ВК",
+                                "desc": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и РПР обходного выключателя (исполнение 1)"
+                            }
+                        ],
+                        "kind": "typical",
+                        "name": "Комплект 1",
+                        "test_block_list": [
+                            {
+                                "name": "Испытательные (измерительные)",
+                                "circuits": "-",
+                                "count": "396",
+                                "note": ""
+                            }
+                        ],
+                        "type": "ВК",
+                        "key": "",
+                        "test_blocks": {
+                            "voltage": {
+                                "count": 0,
+                                "circuits": []
+                            },
+                            "current": {
+                                "count": 0,
+                                "circuits": []
+                            }
+                        },
+                        "analog_inputs": [],
+                        "mp_functions": null,
+                        "its_functions_desc": null,
+                        "power_supply": null,
+                        "ports": null,
+                        "connection_scheme": null,
+                        "components": null,
+                        "additional_equipment": null,
+                        "parameters": null,
+                        "general_view": null,
+                        "structural_scheme": null,
+                        "schematic": null,
+                        "climate": null,
+                        "enclosure": null,
+                        "cooling": null,
+                        "communication": null,
+                        "notes": null,
+                        "cabinet_key": "shet-cn-2-1",
+                        "cabinet_index": 0,
+                        "cabinet_code": "ШЭТ ЦН.2-1",
+                        "cabinet_name": "Шкаф организации цепей напряжения двух ТН с резервированием от одного источника и РПР обходного выключателя (исполнение 1)",
+                        "cabinet_group": "ВК",
+                        "source": "user"
+                    }
+                ]
+            }
+        }
+    ],
+    "connections": [
+        {
+            "node_from": "N_CU9f7d_bot",
+            "node_to": "N_BRfaa9_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU9f7d",
+            "element_to": "BRfaa9"
+        },
+        {
+            "node_from": "N_CA9581_bottom",
+            "node_to": "N_CU76ab_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CA9581",
+            "element_to": "CU76ab"
+        },
+        {
+            "node_from": "N_CU76ab_top",
+            "node_to": "N_CA3648_bottom",
+            "port_from": "top",
+            "port_to": "bottom",
+            "element_from": "CU76ab",
+            "element_to": "CA3648"
+        },
+        {
+            "node_from": "N_CA7f70_bottom",
+            "node_to": "NOe97f",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "CA7f70",
+            "element_to": "NOe97f"
+        },
+        {
+            "node_from": "NOe97f",
+            "node_to": "N_CU02e8_bot",
+            "port_from": "center",
+            "port_to": "bottom",
+            "element_from": "NOe97f",
+            "element_to": "CU02e8"
+        },
+        {
+            "node_from": "NOe97f",
+            "node_to": "N_CA9581_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NOe97f",
+            "element_to": "CA9581"
+        },
+        {
+            "node_from": "N_CA5cb4_bottom",
+            "node_to": "NO030c",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "CA5cb4",
+            "element_to": "NO030c"
+        },
+        {
+            "node_from": "NO030c",
+            "node_to": "N_CA3648_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NO030c",
+            "element_to": "CA3648"
+        },
+        {
+            "node_from": "N_CU02e8_top",
+            "node_to": "NO030c",
+            "port_from": "top",
+            "port_to": "center",
+            "element_from": "CU02e8",
+            "element_to": "NO030c"
+        },
+        {
+            "node_from": "NO4b7e",
+            "node_to": "NObafd",
+            "port_from": "center",
+            "port_to": "center",
+            "element_from": "NO4b7e",
+            "element_to": "NObafd",
+            "points": [
+                [
+                    1110.0,
+                    440.0
+                ]
+            ]
+        },
+        {
+            "node_from": "N_CA7f70_top",
+            "node_to": "NObafd",
+            "port_from": "top",
+            "port_to": "center",
+            "element_from": "CA7f70",
+            "element_to": "NObafd"
+        },
+        {
+            "node_from": "NObafd",
+            "node_to": "N_CA5cb4_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NObafd",
+            "element_to": "CA5cb4"
+        },
+        {
+            "node_from": "N_CU76ab_bot",
+            "node_to": "N_CU8b00_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU76ab",
+            "element_to": "CU8b00"
+        },
+        {
+            "node_from": "N_CU8b00_bot",
+            "node_to": "N_GR98e6_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU8b00",
+            "element_to": "GR98e6"
+        },
+        {
+            "node_from": "N_BU31c1_p_4",
+            "node_to": "N_DIe445_top",
+            "port_from": "p_4",
+            "port_to": "top",
+            "element_from": "BU31c1",
+            "element_to": "DIe445"
+        },
+        {
+            "node_from": "N_DIe445_bot",
+            "node_to": "NO4b7e",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "DIe445",
+            "element_to": "NO4b7e"
+        },
+        {
+            "node_from": "NO4b7e",
+            "node_to": "N_DI05dd_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NO4b7e",
+            "element_to": "DI05dd"
+        },
+        {
+            "node_from": "N_DI05dd_bot",
+            "node_to": "N_CU9f7d_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "DI05dd",
+            "element_to": "CU9f7d"
+        },
+        {
+            "node_from": "N_DI1719_bot",
+            "node_to": "N_BU1703_p_6",
+            "port_from": "bottom",
+            "port_to": "p_6",
+            "element_from": "DI1719",
+            "element_to": "BU1703"
+        },
+        {
+            "node_from": "NOd6ae",
+            "node_to": "N_DI357b_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NOd6ae",
+            "element_to": "DI357b",
+            "points": [
+                [
+                    1160.0,
+                    600.0
+                ]
+            ]
+        },
+        {
+            "node_from": "N_DI357b_bot",
+            "node_to": "N_BU9b7e_p_2",
+            "port_from": "bottom",
+            "port_to": "p_2",
+            "element_from": "DI357b",
+            "element_to": "BU9b7e"
+        },
+        {
+            "node_from": "N_DI54a6_top",
+            "node_to": "N_BU1703_p_9",
+            "port_from": "top",
+            "port_to": "p_9",
+            "element_from": "DI54a6",
+            "element_to": "BU1703"
+        },
+        {
+            "node_from": "N_BU9b7e_p_6",
+            "node_to": "N_DI5298_top",
+            "port_from": "p_6",
+            "port_to": "top",
+            "element_from": "BU9b7e",
+            "element_to": "DI5298"
+        },
+        {
+            "node_from": "N_DI5298_bot",
+            "node_to": "N_VOeb33_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "DI5298",
+            "element_to": "VOeb33"
+        },
+        {
+            "node_from": "N_DI54a6_bot",
+            "node_to": "N_VObf43_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "DI54a6",
+            "element_to": "VObf43"
+        }
+    ],
+    "analog_links": [
+        {
+            "from": "CAeb45#0",
+            "to": "CAd0a6#0",
+            "points": [
+                [
+                    1210.0,
+                    950.0
+                ],
+                [
+                    1210.0,
+                    1010.0
+                ]
+            ]
+        },
+        {
+            "from": "VOeb33",
+            "to": "CAeb45#0",
+            "points": [
+                [
+                    1180.0,
+                    820.0
+                ],
+                [
+                    1180.0,
+                    910.0
+                ]
+            ]
+        },
+        {
+            "from": "VObf43",
+            "to": "CAeb45#0",
+            "points": [
+                [
+                    1300.0,
+                    850.0
+                ],
+                [
+                    1200.0,
+                    850.0
+                ],
+                [
+                    1200.0,
+                    900.0
+                ]
+            ]
+        },
+        {
+            "from": "CU9f7d",
+            "to": "CAd0a6#0",
+            "points": [
+                [
+                    990.0,
+                    520.0
+                ],
+                [
+                    990.0,
+                    1000.0
+                ]
+            ]
+        }
+    ],
+    "view": {
+        "zoom": 3.0209,
+        "offset_x": -2218.51,
+        "offset_y": -2237.12
+    }
+}
