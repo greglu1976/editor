@@ -65,6 +65,8 @@ ABOUT_TEXT = (
     "• Стандарты СТО: структура КЭТ → шкафы → комплекты, сверка со "
     "стандартами, редактор изменений и отчёт Word.\n"
     "• Связи РЗА и аналоговые цепи, подписи и комментарии к чертежу.\n"
+    "• Принципиальная схема шкафа: клеммы, контакты, реле, входы и "
+    "другие обозначения из DXF-библиотеки.\n"
     "• Функционально-логические схемы: клавиши, светодиоды, шины, "
     "блоки с сигналами и логическими узлами.\n"
     "• Отчёты по схеме, выделению, шкафам и КЭТ, отчёт по НИР.\n"
@@ -145,7 +147,8 @@ SEARCH_LAYOUT = {
 SEARCH_LAYOUT_TABLE = str.maketrans(SEARCH_LAYOUT)
 
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
-PALETTE_MODES = ("Первичная схема", "Логическая схема", "Монтажная схема")
+PALETTE_MODES = ("Первичная схема", "Принципиальная схема",
+                 "Логическая схема", "Монтажная схема")
 
 PALETTE_ITEMS = [
     ("Выключатель", "breaker"),
@@ -976,8 +979,8 @@ class CircuitEditor(report_selection.SelectionReportMixin,
 
         tk.Label(palette, text="Элементы схемы", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(pady=5)
 
-        # Переключаемая панель: первичная / логическая / монтажная схема.
-        # Группы переключаются вкладками (как в ленте), а не списком.
+        # Переключаемая панель: первичная / принципиальная / логическая /
+        # монтажная схема. Группы — вкладками (как в ленте), не списком.
         mode_frame = tk.Frame(palette, bg="#f0f0f0")
         mode_frame.pack(fill=tk.X, padx=4, pady=(0, 4))
         self._palette_mode = tk.StringVar(value=PALETTE_MODES[0])
@@ -1008,8 +1011,10 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             return frame
 
         build_palette_group(PALETTE_MODES[0], PALETTE_ITEMS)
-        build_palette_group(PALETTE_MODES[1], logic_library.PALETTE_ITEMS)
-        build_palette_group(PALETTE_MODES[2], logic_library.MOUNT_PALETTE_ITEMS)
+        build_palette_group(PALETTE_MODES[1],
+                            logic_library.SCHEMATIC_PALETTE_ITEMS)
+        build_palette_group(PALETTE_MODES[2], logic_library.PALETTE_ITEMS)
+        build_palette_group(PALETTE_MODES[3], logic_library.MOUNT_PALETTE_ITEMS)
         self._set_palette_mode()
 
         tk.Frame(palette, height=2, bg="gray").pack(fill=tk.X, pady=6)
@@ -7624,12 +7629,14 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._analog_start = None
         self._logic_start = None
         self.current_tool = tool
-        # Монтажные элементы по умолчанию связываются монтажной цепью,
-        # но инструмент остаётся самим элементом: иначе клик по полотну
-        # начинал бы связь вместо размещения элемента.
-        if (logic_library.is_mount_type(tool)
-                and hasattr(self, "set_logic_link_kind")):
-            self.set_logic_link_kind("mount", switch_tool=False)
+        # Монтажные элементы и элементы принципиальной схемы по умолчанию
+        # связываются своей цепью, но инструмент остаётся самим элементом:
+        # иначе клик по полотну начинал бы связь вместо размещения.
+        if hasattr(self, "set_logic_link_kind"):
+            if logic_library.is_mount_type(tool):
+                self.set_logic_link_kind("mount", switch_tool=False)
+            elif logic_library.is_schematic_type(tool):
+                self.set_logic_link_kind("schematic", switch_tool=False)
         self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
         self._mark_active_tool()
         if had_protection_start:

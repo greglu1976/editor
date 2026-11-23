@@ -28,6 +28,7 @@ import re
 
 import ea_model
 import mount_library as ml
+import schematic_library as sl
 from library import CELL, Component
 
 #: Части МЭК 61850-пути, общие с моделью стандарта.
@@ -86,10 +87,19 @@ LOGIC_LINK_KINDS = {
         "dash": None,
         "width": 1.4,
     },
+    # Принципиальная схема шкафа: обычные проводники между контактами,
+    # клеммами и входами/выходами устройств.
+    "schematic": {
+        "title": "Цепь принципиальной схемы",
+        "full": "Цепь принципиальной схемы шкафа",
+        "color": "#212121",
+        "dash": None,
+        "width": 1.4,
+    },
 }
 
 LOGIC_LINK_ORDER = ("analog", "discrete", "control", "internal", "external",
-                    "mount")
+                    "mount", "schematic")
 
 #: С какого номера начинается автоматическая нумерация связей.
 LOGIC_LINK_START = 9000
@@ -133,7 +143,11 @@ PALETTE_ITEMS = [
 # сериализации, что и ФЛС, но живут в отдельной группе палитры.
 MOUNT_COMPONENT_TYPES = ml.COMPONENT_TYPES
 MOUNT_PALETTE_ITEMS = ml.PALETTE_ITEMS
-ALL_COMPONENT_TYPES = LOGIC_COMPONENT_TYPES + MOUNT_COMPONENT_TYPES
+# Принципиальная схема шкафа: обозначения перенесены из DXF.
+SCHEMATIC_COMPONENT_TYPES = sl.COMPONENT_TYPES
+SCHEMATIC_PALETTE_ITEMS = sl.PALETTE_ITEMS
+ALL_COMPONENT_TYPES = (LOGIC_COMPONENT_TYPES + MOUNT_COMPONENT_TYPES
+                       + SCHEMATIC_COMPONENT_TYPES)
 
 
 def is_mount_type(comp_type):
@@ -145,13 +159,21 @@ def is_mount_type(comp_type):
     return ml.split_palette_type(comp_type)[0] in MOUNT_COMPONENT_TYPES
 
 
+def is_schematic_type(comp_type):
+    """Относится ли тип к элементам принципиальной схемы шкафа."""
+    return sl.is_schematic_type(comp_type)
+
+
 def is_logic_type(comp_type):
-    """Тип работает через общий слой ФЛС/монтажа (порты, связи, JSON)."""
-    return comp_type in LOGIC_COMPONENT_TYPES or is_mount_type(comp_type)
+    """Тип работает через общий слой ФЛС/монтажа/принципиальной схемы."""
+    return (comp_type in LOGIC_COMPONENT_TYPES or is_mount_type(comp_type)
+            or is_schematic_type(comp_type))
 
 
 PREFIX_BY_TYPE.update(ml.PREFIX_BY_TYPE)
 ELEMENT_TYPE_TITLES.update(ml.TYPE_TITLES)
+PREFIX_BY_TYPE.update(sl.PREFIX_BY_TYPE)
+ELEMENT_TYPE_TITLES.update(sl.TYPE_TITLES)
 
 #: Виды логических узлов: символ на схеме и русское название.
 FUNCTION_KINDS = {
@@ -1364,6 +1386,8 @@ class LogicBlock(LogicComponent):
 def create_component(comp_type, comp_id, x, y, grid_size=20):
     if is_mount_type(comp_type):
         return ml.create_component(comp_type, comp_id, x, y, grid_size)
+    if is_schematic_type(comp_type):
+        return sl.create_component(comp_type, comp_id, x, y, grid_size)
     if comp_type == "logic_bus":
         return LogicBus(comp_id, x, y, grid_size)
     if comp_type == "logic_key":
@@ -1461,9 +1485,11 @@ LOGIC_FIELDS = {
 
 
 def element_payload(el):
-    """Поля элемента ФЛС/монтажа для JSON."""
+    """Поля элемента ФЛС/монтажа/принципиальной схемы для JSON."""
     if is_mount_type(getattr(el, "type", "")):
         return ml.element_payload(el)
+    if is_schematic_type(getattr(el, "type", "")):
+        return sl.element_payload(el)
     payload = {}
     for field in LOGIC_FIELDS.get(getattr(el, "type", ""), ()):
         if hasattr(el, field):
@@ -1472,11 +1498,14 @@ def element_payload(el):
 
 
 def restore_element(el, payload):
-    """Восстанавливает поля элемента ФЛС/монтажа из JSON."""
+    """Восстанавливает поля ФЛС/монтажа/принципиальной схемы из JSON."""
     if not isinstance(payload, dict):
         return
     if is_mount_type(getattr(el, "type", "")):
         ml.restore_element(el, payload)
+        return
+    if is_schematic_type(getattr(el, "type", "")):
+        sl.restore_element(el, payload)
         return
     for field in LOGIC_FIELDS.get(getattr(el, "type", ""), ()):
         if field in payload:
@@ -1541,9 +1570,12 @@ def restore_element(el, payload):
 
 
 def copy_element_fields(source, target):
-    """Копирует поля ФЛС/монтажа при копировании фрагмента."""
+    """Копирует поля ФЛС/монтажа/принципиальной схемы при копировании."""
     if is_mount_type(getattr(source, "type", "")):
         ml.copy_element_fields(source, target)
+        return
+    if is_schematic_type(getattr(source, "type", "")):
+        sl.copy_element_fields(source, target)
         return
     for field in LOGIC_FIELDS.get(getattr(source, "type", ""), ()):
         if hasattr(source, field):
@@ -1552,9 +1584,12 @@ def copy_element_fields(source, target):
 
 
 def draw_palette_icon(canvas, comp_type, size=46):
-    """Компактный значок элемента ФЛС/монтажа для палитры."""
+    """Компактный значок элемента ФЛС/монтажа/схемы для палитры."""
     if is_mount_type(ml.split_palette_type(comp_type)[0]):
         ml.draw_palette_icon(canvas, comp_type, size)
+        return
+    if is_schematic_type(comp_type):
+        sl.draw_palette_icon(canvas, comp_type, size)
         return
     s = size / 46.0
     center = size / 2.0

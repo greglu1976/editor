@@ -1300,7 +1300,7 @@ def test_mount_elements(app):
           "клемма → БИ → ИЭУ и переключатель связаны монтажной цепью")
     check(all(mode in getattr(app, "_palette_frames", {})
               for mode in main.PALETTE_MODES),
-          "панель элементов переключается на три схемы")
+          "панель элементов переключается на четыре схемы")
     # Группы палитры переключаются вкладками, а не выпадающим списком.
     def _walk(widget):
         yield widget
@@ -1312,7 +1312,7 @@ def test_mount_elements(app):
               if isinstance(item, ttk.Combobox)]
     check(not combos, "выпадающего списка в палитре больше нет")
     tabs = getattr(app, "_palette_tab_buttons", {})
-    check(set(tabs) == set(main.PALETTE_MODES) and len(tabs) == 3,
+    check(set(tabs) == set(main.PALETTE_MODES) and len(tabs) == 4,
           "вкладки панелей: %s" % ", ".join(main.PALETTE_MODES))
     app._set_palette_mode("Монтажная схема")
     app.root.update()
@@ -1351,6 +1351,46 @@ def test_mount_elements(app):
           "после размещения элемента инструмент остаётся включенным")
 
 
+def test_schematic_elements(app):
+    print("28. принципиальная схема шкафа (элементы из DXF)")
+    import schematic_library as sl
+    _reset(app)
+    lamp = app.elements[_add(app, "sc_lamp", 100, 200)]
+    contact = app.elements[_add(app, "sc_closing_contact", 300, 200)]
+    coil = app.elements[_add(app, "sc_relay_coil", 500, 200)]
+    check(lamp.type == "sc_lamp" and contact.type == "sc_closing_contact"
+          and coil.type == "sc_relay_coil",
+          "элементы принципиальной схемы поставлены на чертёж")
+    check(lamp.name.startswith("HL") and coil.name.startswith("KA"),
+          "элементы получили префиксы из библиотеки")
+    check(set(lamp.ports) == {"left", "right"}
+          and set(coil.ports) == {"left", "right"},
+          "у элементов два вывода — слева и справа")
+    app.logic_link_kind = "schematic"
+    link = app._add_logic_link((lamp.id, "right"), (contact.id, "left"))
+    check(link is not None and link["kind"] == "schematic",
+          "элементы связаны цепью принципиальной схемы")
+    tabs = getattr(app, "_palette_tab_buttons", {})
+    check("Принципиальная схема" in tabs,
+          "в палитре есть вкладка принципиальной схемы")
+    app._set_palette_mode("Принципиальная схема")
+    app.root.update()
+    check(app._palette_frames["Принципиальная схема"].winfo_manager() == "pack"
+          and app._palette_frames["Первичная схема"].winfo_manager() == "",
+          "вкладка принципиальной схемы показывает свои элементы")
+    app.set_tool("sc_resistor")
+    check(app.logic_link_kind == "schematic"
+          and app.current_tool == "sc_resistor",
+          "выбор элемента принципиальной схемы включает её цепь")
+    payload = sl.element_payload(lamp)
+    check(payload["type"] == "Лампа",
+          "свойства элемента сохраняются в JSON")
+    lamp.designation = "HL77"
+    sl.restore_element(lamp, sl.element_payload(lamp))
+    check(lamp.designation == "HL77" and set(lamp.ports) == {"left", "right"},
+          "восстановление из JSON сохраняет подпись и порты")
+
+
 def run_gui():
     import main
     main.messagebox.showinfo = lambda *args, **kwargs: None
@@ -1387,6 +1427,7 @@ def run_gui():
         test_point_drag(app)
         test_mark_drag(app)
         test_mount_elements(app)
+        test_schematic_elements(app)
     finally:
         root.destroy()
 

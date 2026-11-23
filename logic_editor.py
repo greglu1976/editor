@@ -1643,8 +1643,33 @@ class LogicEditorMixin:
             self.edit_logic_port(element)
         elif ll.is_mount_type(element.type):
             self.edit_mount_element(element)
+        elif ll.is_schematic_type(element.type):
+            self.edit_schematic_element(element)
         else:
             self.edit_logic_signal_element(element)
+
+    # ---------- элементы принципиальной схемы шкафа ----------
+    def edit_schematic_element(self, element):
+        if element is None:
+            return
+        values = self._ask_fields(
+            self.root, "Элемент принципиальной схемы — свойства",
+            (("element_type", "Тип", 32),
+             ("designation", "Обозначение", 32),
+             ("description", "Описание", 46),
+             ("note", "Примечание", 46)),
+            {"element_type": getattr(element, "element_type", ""),
+             "designation": getattr(element, "designation", ""),
+             "description": getattr(element, "description", ""),
+             "note": getattr(element, "note", "")})
+        if values is None:
+            return
+        self._push_undo()
+        element.element_type = values.get("element_type", "")
+        element.designation = values.get("designation", "")
+        element.description = values.get("description", "")
+        element.note = values.get("note", "")
+        self.redraw_all()
 
     def edit_logic_port(self, element):
         title = ("Входной порт — свойства"
