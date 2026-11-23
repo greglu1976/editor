@@ -111,6 +111,14 @@ class SchematicElement(Component):
                 canvas.create_oval(sx - r, sy - r, sx + r, sy + r,
                                    fill="", outline="black", width=width)
                 continue
+            elif kind == "text":
+                _, text, tx, ty = prim
+                world = self._world_point(tx, ty)
+                sx, sy = self._to_screen(world, zoom, offset_x, offset_y)
+                canvas.create_text(sx, sy, text=text, anchor="center",
+                                   font=("Arial", max(1, int(9 * zoom))),
+                                   fill="black")
+                continue
             else:
                 continue
             screen = [self._to_screen(p, zoom, offset_x, offset_y)

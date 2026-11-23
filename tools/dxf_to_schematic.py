@@ -89,6 +89,15 @@ SYMBOLS = [
          ports={"left": (138.5, 82.0), "right": (140.5, 82.0)}),
 ]
 
+#: Дополнительные элементы: отдельный DXF и YAML-описание полей/портов.
+#: Поля — подписи MTEXT, которые нужно нарисовать на символе; порты
+#: задаются словами «Начало/Конец» и «отрезок слева/справа».
+EXTRA_SYMBOLS = [
+    dict(type="sc_test_block", title="Тестовый блок", prefix="TB",
+         path=os.path.join("mount_elements", "test_block.txt"),
+         description=os.path.join("mount_elements", "test_block.yaml")),
+]
+
 GEO = ("LINE", "LWPOLYLINE", "CIRCLE", "ARC")
 
 
@@ -146,18 +155,25 @@ def _decode(text):
                   lambda m: chr(int(m.group(1), 16)), text or "")
 
 
-def _expand(group, blocks):
-    """INSERT -> список примитивов блока со сдвигом; остальное как есть."""
+def _expand(group, blocks, apply_scale=False):
+    """INSERT -> список примитивов блока со сдвигом и (опционально) масштабом.
+
+    Для основного чертежа масштаб INSERT не применяется: таблица SYMBOLS
+    собрана по прежним координатам, и её нельзя менять при перегенерации.
+    """
     kind = group[0][1].strip()
     fields = _fields(group)
     if kind == "INSERT":
         name = _one(fields, "2")
         dx, dy = _num(fields, "10"), _num(fields, "20")
-        return [_primitive(sub, dx, dy) for sub in blocks.get(name, [])]
+        sx = (_num(fields, "41", 1.0) or 1.0) if apply_scale else 1.0
+        sy = (_num(fields, "42", 1.0) or 1.0) if apply_scale else 1.0
+        return [_primitive(sub, dx, dy, sx, sy)
+                for sub in blocks.get(name, [])]
     return [_primitive(group, 0.0, 0.0)]
 
 
-def _primitive(group, dx, dy):
+def _primitive(group, dx, dy, sx=1.0, sy=1.0):
     kind = group[0][1].strip()
     if kind not in GEO:
         return None
@@ -165,24 +181,31 @@ def _primitive(group, dx, dy):
     if _one(fields, "60") == "1":  # невидимая линия динамического блока
         return None
     if kind == "LINE":
-        return ("line", _num(fields, "10") + dx, _num(fields, "20") + dy,
-                _num(fields, "11") + dx, _num(fields, "21") + dy)
+        return ("line",
+                _num(fields, "10") * sx + dx, _num(fields, "20") * sy + dy,
+                _num(fields, "11") * sx + dx, _num(fields, "21") * sy + dy)
     if kind == "LWPOLYLINE":
         points, x = [], None
         for code, value in group[1:]:
             if code == "10":
                 x = float(value)
             elif code == "20" and x is not None:
-                points.append((x + dx, float(value) + dy))
+                points.append((x * sx + dx, float(value) * sy + dy))
                 x = None
         closed = bool(int(_num(fields, "70")) & 1)
         return ("poly", points, closed)
     if kind == "CIRCLE":
-        return ("circle", _num(fields, "10") + dx, _num(fields, "20") + dy,
-                _num(fields, "40"))
+        return ("circle", _num(fields, "10") * sx + dx,
+                _num(fields, "20") * sy + dy,
+                _num(fields, "40") * max(abs(sx), abs(sy)))
     if kind == "ARC":
-        return ("arc", _num(fields, "10") + dx, _num(fields, "20") + dy,
-                _num(fields, "40"), _num(fields, "50"), _num(fields, "51"))
+        # Зеркальный INSERT по X: угол отсчитывается в другую сторону.
+        start, end = _num(fields, "50"), _num(fields, "51")
+        if sx < 0:
+            start, end = 180.0 - end, 180.0 - start
+        return ("arc", _num(fields, "10") * sx + dx,
+                _num(fields, "20") * sy + dy,
+                _num(fields, "40") * max(abs(sx), abs(sy)), start, end)
     return None
 
 
@@ -216,6 +239,12 @@ def _bounds(primitives):
         elif kind in ("circle", "arc"):
             xs += [item[1] - item[3], item[1] + item[3]]
             ys += [item[2] - item[3], item[2] + item[3]]
+        elif kind == "text":
+            # Приблизительные габариты подписи — только для рамки выделения.
+            _, text, tx, ty = item
+            half = max(3.0, len(text) * 2.0)
+            xs += [tx - half, tx + half]
+            ys += [ty - 4.0, ty + 4.0]
     return min(xs), min(ys), max(xs), max(ys)
 
 
@@ -261,18 +290,19 @@ def _literal(value):
     return _render_number(value)
 
 
-def build():
-    pairs = _pairs(SOURCE)
+def _entities(pairs, apply_scale=False):
+    """Геометрия и подписи ENTITIES; INSERT раскрывается в примитивы.
+
+    Номера сущностей в таблице SYMBOLS считаются только по геометрии,
+    INSERT и подписям: служебные ATTDEF/HATCH в них не входят.
+    """
     blocks = _blocks(pairs)
-    # Номера сущностей в таблице SYMBOLS считаются только по геометрии,
-    # INSERT и подписям: служебные ATTDEF/HATCH в них не входят. INSERT
-    # раскрывается в отдельные примитивы, каждый со своим номером.
     entities = []
     labels = {}
     for group in _section(pairs, "ENTITIES"):
         kind = group[0][1].strip()
         if kind in GEO or kind == "INSERT":
-            for prim in _expand(group, blocks):
+            for prim in _expand(group, blocks, apply_scale):
                 if prim:
                     entities.append(prim)
         elif kind in ("MTEXT", "TEXT"):
@@ -280,8 +310,103 @@ def build():
             text = _decode("".join(fields["1"]))
             if text:
                 entities.append(("text", text))
-                labels[text.lower()] = (_num(fields, "10"),
-                                        _num(fields, "20"))
+                labels[text.strip().lower()] = (_num(fields, "10"),
+                                                _num(fields, "20"))
+    return entities, labels
+
+
+def _read_description(path):
+    """Поля и порты из YAML-описания элемента (простой формат проекта)."""
+    fields, ports = [], {}
+    section = None
+    current = None
+    with open(path, encoding="utf-8-sig") as handle:
+        for raw in handle:
+            line = raw.rstrip()
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            if line.startswith("Поля:"):
+                section, current = "fields", None
+                continue
+            if line.startswith("Порты:"):
+                section, current = "ports", None
+                continue
+            if section == "fields" and line.strip().startswith("- "):
+                fields.append(line.strip()[2:].strip())
+                continue
+            if section != "ports":
+                continue
+            match = re.match(r"^\s+(\d+):\s*$", line)
+            if match:
+                current = match.group(1)
+                ports[current] = {}
+                continue
+            match = re.match(r"^\s+(Начало|Конец):\s*(.+?)\s*$", line)
+            if match and current:
+                ports[current][match.group(1)] = match.group(2)
+    return fields, ports
+
+
+def _port_point(lines, phrase):
+    """Точка порта: «отрезок слева» — левый конец, «справа» — правый."""
+    side = phrase.lower()
+    if "слева" in side:
+        line = min(lines, key=lambda item: min(item[1], item[3]))
+        _kind, x1, y1, x2, y2 = line
+        return (x1, y1) if x1 <= x2 else (x2, y2)
+    if "справа" in side:
+        line = max(lines, key=lambda item: max(item[1], item[3]))
+        _kind, x1, y1, x2, y2 = line
+        return (x1, y1) if x1 >= x2 else (x2, y2)
+    raise ValueError("не понятно, где порт: %r" % phrase)
+
+
+def _extra_symbol(spec):
+    """Символ из отдельного DXF с полями и портами из YAML."""
+    path = os.path.join(ROOT, spec["path"])
+    entities, labels = _entities(_pairs(path), apply_scale=True)
+    raw = [prim for prim in entities if prim[0] != "text"]
+    if not raw:
+        raise ValueError("Нет геометрии в %s" % path)
+    x1, y1, x2, y2 = _bounds(raw)
+    cx, cy = (x1 + x2) / 2.0, (y1 + y2) / 2.0
+    primitives = [_transform(prim, cx, cy) for prim in raw]
+
+    field_names, port_specs = _read_description(
+        os.path.join(ROOT, spec["description"]))
+    for name in field_names:
+        point = labels.get(name.strip().lower())
+        if point is None:
+            raise ValueError("Подпись %r не найдена в %s" % (name, path))
+        lx, ly = _local(point, cx, cy)
+        primitives.append(("text", name, lx, ly))
+
+    lines = [prim for prim in raw if prim[0] == "line"]
+    ports = {}
+    for name, anchors in port_specs.items():
+        for anchor, phrase in anchors.items():
+            point = _port_point(lines, phrase)
+            lx, ly = _local(point, cx, cy)
+            ports[name] = {
+                "x": lx, "y": ly,
+                "direction": "in" if anchor == "Начало" else "out",
+            }
+
+    bx1, by1, bx2, by2 = _bounds(primitives)
+    return {
+        "type": spec["type"],
+        "title": spec["title"],
+        "prefix": spec["prefix"],
+        "source": spec["title"],
+        "primitives": primitives,
+        "ports": ports,
+        "bbox": (round(bx1, 3), round(by1, 3),
+                 round(bx2, 3), round(by2, 3)),
+    }
+
+
+def build():
+    entities, labels = _entities(_pairs(SOURCE))
 
     result = []
     for spec in SYMBOLS:
@@ -326,9 +451,10 @@ def write(symbols):
         "# -*- coding: utf-8 -*-",
         '"""Условные обозначения принципиальной схемы шкафа.',
         "",
-        "Сгенерировано из mount_elements/Чертеж1.txt скриптом",
-        "tools/dxf_to_schematic.py. Не редактируйте вручную — измените",
-        "описание символов в скрипте и запустите его заново.",
+        "Сгенерировано из mount_elements/Чертеж1.txt и",
+        "mount_elements/test_block.txt скриптом tools/dxf_to_schematic.py.",
+        "Не редактируйте вручную — измените описание символов в скрипте",
+        "и запустите его заново.",
         '"""',
         "",
         "SCALE = %s" % _render_number(SCALE),
@@ -361,7 +487,9 @@ def main():
     if not os.path.exists(SOURCE):
         sys.stderr.write("Нет файла %s\n" % SOURCE)
         return 1
-    write(build())
+    symbols = build()
+    symbols.extend(_extra_symbol(spec) for spec in EXTRA_SYMBOLS)
+    write(symbols)
     return 0
 
 

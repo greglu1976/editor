@@ -1234,14 +1234,31 @@ def test_schematic_elements(app):
     lamp = app.elements[_add(app, "sc_lamp", 100, 200)]
     contact = app.elements[_add(app, "sc_closing_contact", 300, 200)]
     coil = app.elements[_add(app, "sc_relay_coil", 500, 200)]
+    test_block = app.elements[_add(app, "sc_test_block", 700, 200)]
     check(lamp.type == "sc_lamp" and contact.type == "sc_closing_contact"
-          and coil.type == "sc_relay_coil",
+          and coil.type == "sc_relay_coil"
+          and test_block.type == "sc_test_block",
           "элементы принципиальной схемы поставлены на чертёж")
-    check(lamp.name.startswith("HL") and coil.name.startswith("KA"),
+    check(lamp.name.startswith("HL") and coil.name.startswith("KA")
+          and test_block.name.startswith("TB"),
           "элементы получили префиксы из библиотеки")
     check(set(lamp.ports) == {"left", "right"}
           and set(coil.ports) == {"left", "right"},
           "у элементов два вывода — слева и справа")
+    check(set(test_block.ports) == {"1", "2"}
+          and test_block.ports["1"]["direction"] == "in"
+          and test_block.ports["2"]["direction"] == "out",
+          "у тестового блока порты 1 и 2 из YAML-описания")
+    icon = getattr(app, "_tool_icons", {}).get("sc_test_block")
+    check(("Тестовый блок", "sc_test_block") in sl.PALETTE_ITEMS
+          and icon is not None and len(icon.find_all()) > 5,
+          "тестовый блок добавлен в палитру принципиальных схем")
+    app.redraw_all()
+    texts = {app.canvas.itemcget(item, "text")
+             for item in app.canvas.find_all()
+             if app.canvas.type(item) == "text"}
+    check({"ОУ", "В1", "В2"} <= texts,
+          "поля ОУ, В1, В2 нарисованы на тестовом блоке")
     app.logic_link_kind = "schematic"
     link = app._add_logic_link((lamp.id, "right"), (contact.id, "left"))
     check(link is not None and link["kind"] == "schematic",
