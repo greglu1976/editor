@@ -64,9 +64,10 @@ class SchematicElement(Component):
         self.ports = ports
 
     def get_bounding_box(self):
-        x1, y1, x2, y2 = self.spec["bbox"]
-        return self._rotated_bbox((self.x + x1, self.y + y1,
-                                   self.x + x2, self.y + y2))
+        # spec['bbox'] уже локальные координаты; _rotated_bbox сам добавляет
+        # центр элемента. Передача мировых координат давала двойной сдвиг,
+        # из-за чего новый элемент не выделялся кликом по нему.
+        return self._rotated_bbox(self.spec["bbox"])
 
     def _world_point(self, dx, dy):
         rx, ry = rotate_point(dx, dy, self.rotation)

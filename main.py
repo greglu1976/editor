@@ -148,7 +148,7 @@ SEARCH_LAYOUT_TABLE = str.maketrans(SEARCH_LAYOUT)
 
 # Палитра иконок: подпись (всплывающая подсказка) и тип элемента.
 PALETTE_MODES = ("Первичная схема", "Принципиальная схема",
-                 "Логическая схема", "Монтажная схема")
+                 "Логическая схема")
 
 PALETTE_ITEMS = [
     ("Выключатель", "breaker"),
@@ -979,8 +979,8 @@ class CircuitEditor(report_selection.SelectionReportMixin,
 
         tk.Label(palette, text="Элементы схемы", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(pady=5)
 
-        # Переключаемая панель: первичная / принципиальная / логическая /
-        # монтажная схема. Группы — вкладками (как в ленте), не списком.
+        # Переключаемая панель: первичная / принципиальная / логическая
+        # схема. Группы — вкладками (как в ленте), не списком.
         mode_frame = tk.Frame(palette, bg="#f0f0f0")
         mode_frame.pack(fill=tk.X, padx=4, pady=(0, 4))
         self._palette_mode = tk.StringVar(value=PALETTE_MODES[0])
@@ -1014,7 +1014,6 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         build_palette_group(PALETTE_MODES[1],
                             logic_library.SCHEMATIC_PALETTE_ITEMS)
         build_palette_group(PALETTE_MODES[2], logic_library.PALETTE_ITEMS)
-        build_palette_group(PALETTE_MODES[3], logic_library.MOUNT_PALETTE_ITEMS)
         self._set_palette_mode()
 
         tk.Frame(palette, height=2, bg="gray").pack(fill=tk.X, pady=6)
@@ -7629,13 +7628,11 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._analog_start = None
         self._logic_start = None
         self.current_tool = tool
-        # Монтажные элементы и элементы принципиальной схемы по умолчанию
-        # связываются своей цепью, но инструмент остаётся самим элементом:
-        # иначе клик по полотну начинал бы связь вместо размещения.
+        # Элементы принципиальной схемы по умолчанию связываются своей цепью,
+        # но инструмент остаётся самим элементом: иначе клик по полотну
+        # начинал бы связь вместо размещения.
         if hasattr(self, "set_logic_link_kind"):
-            if logic_library.is_mount_type(tool):
-                self.set_logic_link_kind("mount", switch_tool=False)
-            elif logic_library.is_schematic_type(tool):
+            if logic_library.is_schematic_type(tool):
                 self.set_logic_link_kind("schematic", switch_tool=False)
         self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
         self._mark_active_tool()
@@ -8390,9 +8387,6 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             # иначе на полотно попадает блок с умолчаниями без настройки.
             if tool == "logic_block" and created is not None:
                 self.edit_logic_block(created)
-            elif (str(tool).startswith("mount_ied")
-                  and created is not None):
-                self.edit_mount_ied(created)
 
     def get_next_name(self, prefix, el_type=None):
         """Следующий свободный номер по префиксу.

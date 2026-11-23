@@ -58,7 +58,6 @@ except ImportError:         # pragma: no cover
 
 import logic_library as ll
 import logic_scheme_render as lsr
-import mount_library as ml
 import ui_theme
 
 FAILURES = []
@@ -235,89 +234,6 @@ def test_structure2_model():
           "слоты читаются из JSON")
     check(restored.settings and restored.parameters,
           "уставки и параметры читаются из JSON")
-
-
-def test_mount_model():
-    print("2б. монтажные элементы шкафа")
-    feed = ml.create_component("mount_terminal:feed", "X1", 0, 0)
-    measure = ml.create_component("mount_terminal:measure", "X2", 100, 0)
-    check(feed.variant == "feed" and measure.variant == "measure"
-          and set(feed.ports) == {"top", "bottom"},
-          "клеммы проходная/измерительная и их выводы")
-    disconnect = ml.create_component("mount_terminal:disconnect", "X3", 200, 0)
-    check(disconnect.variant == "disconnect"
-          and set(disconnect.ports) == {"top", "bottom"},
-          "клемма с размыкателем и её выводы")
-    block4 = ml.create_component("mount_test_block:4+1", "BI1", 200, 0)
-    block6 = ml.create_component("mount_test_block:6+1", "BI2", 400, 0)
-    check(len(block4.ports) == 5 and len(block6.ports) == 7,
-          "испытательные блоки 4+1 и 6+1: нужные выводы")
-    check(block4.ports["common"]["direction"] == "out"
-          and block4.ports["contact1"]["direction"] == "in",
-          "направление выводов испытательного блока")
-
-    switch2 = ml.create_component("mount_switch:2", "SA1", 600, 0)
-    switch3 = ml.create_component("mount_switch:3", "SA2", 800, 0)
-    check(switch2.variant == "2" and switch3.variant == "3"
-          and len(switch2.ports) == 3 and len(switch3.ports) == 4
-          and "common" in switch3.ports and "position3" in switch3.ports,
-          "переключатели на 2 и 3 положения: общий вывод и положения")
-    switch2.designation = "SA1"
-    switch2.description = "Режим работы"
-    payload = ll.element_payload(switch2)
-    restored_switch = ml.create_component("mount_switch:2", "SA9", 0, 0)
-    ll.restore_element(restored_switch, payload)
-    check(payload["description"] == "Режим работы"
-          and restored_switch.description == "Режим работы"
-          and restored_switch.variant == "2"
-          and "position2" in restored_switch.ports,
-          "переключатель сохраняется и читается обратно")
-    payload3 = ll.element_payload(switch3)
-    restored3 = ml.create_component("mount_switch:2", "SA8", 0, 0)
-    ll.restore_element(restored3, payload3)
-    check(restored3.variant == "3" and len(restored3.ports) == 4,
-          "после загрузки трёхположений у переключателя три выхода")
-    terminal = ml.create_component("mount_terminal:disconnect", "X4", 0, 0)
-    terminal.description = "Разрыв токовой цепи"
-    terminal_payload = ll.element_payload(terminal)
-    restored_terminal = ml.create_component("mount_terminal:feed", "X5", 0, 0)
-    ll.restore_element(restored_terminal, terminal_payload)
-    check(restored_terminal.variant == "disconnect"
-          and restored_terminal.description == "Разрыв токовой цепи",
-          "клемма с размыкателем сохраняет вариант и описание")
-
-    ied = ml.create_component("mount_ied", "IEU1", 0, 300)
-    ied.designation = "ШЭТ 431.11-1 / ИЭУ1"
-    ied.description = "Защита шин"
-    ied.ied_type = "ШЭТ 431.11-1"
-    ied.add_port(name="X1:1", description="Вход", direction="in",
-                 terminal="X1:1")
-    ied.add_function({
-        "name": "ДЗШ", "iec_name": "PDIF", "LNclass": "PDIF",
-        "outputs": [{"name": "Срабатывание", "iec_name": "PDIF1.Op",
-                     "type": "control_operation"}],
-        "settings": [{"name": "Iуст", "unit": "о.е."}],
-    }, {"block": "ДЗШ", "cabinet": "ШЭТ 431.11-1", "source": "functional_blocks"})
-    check("port1" in ied.ports and ied.ports["port1"]["direction"] == "in"
-          and "func1" in ied.ports and ied.ports["func1"]["direction"] == "out",
-          "в ИЭУ можно привязать порт и вывести функцию")
-    check(ied.function_items[0]["settings"][0]["unit"] == "о.е.",
-          "уставки функции сохранены внутри ИЭУ")
-
-    payload = ll.element_payload(ied)
-    restored = ml.create_component("mount_ied", "IEU2", 0, 0)
-    ll.restore_element(restored, payload)
-    check(payload["type"] == "ШЭТ 431.11-1",
-          "поле «Тип» ИЭУ не подменяется типом элемента")
-    check(restored.ied_type == "ШЭТ 431.11-1"
-          and restored.designation == ied.designation
-          and len(restored.port_items) == 1
-          and len(restored.function_items) == 1
-          and "func1" in restored.ports,
-          "mount_ied сохраняется и читается обратно")
-    check(ll.is_logic_type("mount_terminal:measure")
-          and ll.link_style("mount")["color"] == "#212121",
-          "монтажные элементы и связи работают через общий слой")
 
 
 def test_elements(app):
@@ -1270,87 +1186,6 @@ def test_mark_drag(app):
           "экспорт рисует номер со смещением")
 
 
-def test_mount_elements(app):
-    print("27. монтажная схема шкафа")
-    import main
-    _reset(app)
-    terminal = app.elements[_add(app, "mount_terminal:measure", 100, 200)]
-    disconnect = app.elements[_add(app, "mount_terminal:disconnect", 100, 420)]
-    block = app.elements[_add(app, "mount_test_block:6+1", 300, 200)]
-    switch = app.elements[_add(app, "mount_switch:2", 300, 420)]
-    ied = app.elements[_add(app, "mount_ied", 520, 200)]
-    check(terminal.type == "mount_terminal" and terminal.variant == "measure"
-          and block.variant == "6+1" and ied.type == "mount_ied",
-          "клемма, БИ 6+1 и ИЭУ поставлены на схему")
-    check(disconnect.variant == "disconnect"
-          and switch.type == "mount_switch" and switch.variant == "2",
-          "клемма с размыкателем и переключатель поставлены на схему")
-    check(terminal.name.startswith("X") and block.name.startswith("BI")
-          and ied.name.startswith("IEU") and switch.name.startswith("SA"),
-          "монтажные элементы получили обозначения")
-    app.logic_link_kind = "mount"
-    first = app._add_logic_link((terminal.id, "bottom"),
-                                (block.id, "contact1"))
-    second = app._add_logic_link((block.id, "common"), (ied.id, "port1"))
-    third = app._add_logic_link((switch.id, "position1"),
-                                (disconnect.id, "top"))
-    check(first is not None and second is not None and third is not None
-          and first["kind"] == "mount" and second["kind"] == "mount"
-          and third["kind"] == "mount",
-          "клемма → БИ → ИЭУ и переключатель связаны монтажной цепью")
-    check(all(mode in getattr(app, "_palette_frames", {})
-              for mode in main.PALETTE_MODES),
-          "панель элементов переключается на четыре схемы")
-    # Группы палитры переключаются вкладками, а не выпадающим списком.
-    def _walk(widget):
-        yield widget
-        for child in widget.winfo_children():
-            for item in _walk(child):
-                yield item
-
-    combos = [item for item in _walk(app._palette_wrap)
-              if isinstance(item, ttk.Combobox)]
-    check(not combos, "выпадающего списка в палитре больше нет")
-    tabs = getattr(app, "_palette_tab_buttons", {})
-    check(set(tabs) == set(main.PALETTE_MODES) and len(tabs) == 4,
-          "вкладки панелей: %s" % ", ".join(main.PALETTE_MODES))
-    app._set_palette_mode("Монтажная схема")
-    app.root.update()
-    check(app._palette_mode.get() == "Монтажная схема"
-          and app._palette_frames["Монтажная схема"].winfo_manager() == "pack"
-          and app._palette_frames["Логическая схема"].winfo_manager() == "",
-          "выбранная группа палитры показана, остальные скрыты")
-    check(tabs["Монтажная схема"].cget("bg") == ui_theme.TOOL_ACTIVE
-          and tabs["Первичная схема"].cget("bg") == ui_theme.PALETTE,
-          "активная вкладка палитры выделена цветом темы")
-    app._set_palette_mode("Первичная схема")
-    app.root.update()
-    check(app._palette_mode.get() == "Первичная схема"
-          and tabs["Первичная схема"].cget("bg") == ui_theme.TOOL_ACTIVE,
-          "вкладки палитры переключаются кликом")
-    app.set_tool("mount_ied")
-    check(app.logic_link_kind == "mount",
-          "при выборе монтажного элемента включается монтажная цепь")
-    check(app.current_tool == "mount_ied",
-          "выбор монтажного элемента не переключает инструмент на связь")
-    # Размещение реальным кликом по полотну: выбор монтажного элемента
-    # раньше затирал инструмент типом связи, и элемент не ставился.
-    app.zoom = 1.0
-    app.offset_x = app.offset_y = 0.0
-    app.set_tool("mount_switch:3")
-    before_click = set(app.elements)
-    app.on_left_click(_event(760, 300))
-    app.root.update()
-    placed = [el for el in app.elements.values()
-              if el.id not in before_click]
-    check(len(placed) == 1 and placed[0].type == "mount_switch"
-          and placed[0].variant == "3"
-          and placed[0].name.startswith("SA"),
-          "переключатель ставится на схему кликом по полотну")
-    check(app.current_tool == "mount_switch:3",
-          "после размещения элемента инструмент остаётся включенным")
-
-
 def test_schematic_elements(app):
     print("28. принципиальная схема шкафа (элементы из DXF)")
     import schematic_library as sl
@@ -1390,6 +1225,47 @@ def test_schematic_elements(app):
     check(lamp.designation == "HL77" and set(lamp.ports) == {"left", "right"},
           "восстановление из JSON сохраняет подпись и порты")
 
+    # Палитра: три вкладки, без выпадающего списка, переключение вкладок.
+    import main
+    check(all(mode in getattr(app, "_palette_frames", {})
+              for mode in main.PALETTE_MODES),
+          "панель элементов переключается на три схемы")
+
+    def _walk(widget):
+        yield widget
+        for child in widget.winfo_children():
+            for item in _walk(child):
+                yield item
+
+    combos = [item for item in _walk(app._palette_wrap)
+              if isinstance(item, ttk.Combobox)]
+    check(not combos, "выпадающего списка в палитре больше нет")
+    check(set(tabs) == set(main.PALETTE_MODES) and len(tabs) == 3,
+          "вкладки панелей: %s" % ", ".join(main.PALETTE_MODES))
+    check(tabs["Принципиальная схема"].cget("bg") == ui_theme.TOOL_ACTIVE
+          and tabs["Первичная схема"].cget("bg") == ui_theme.PALETTE,
+          "активная вкладка палитры выделена цветом темы")
+    app._set_palette_mode("Первичная схема")
+    app.root.update()
+    check(app._palette_mode.get() == "Первичная схема"
+          and tabs["Первичная схема"].cget("bg") == ui_theme.TOOL_ACTIVE,
+          "вкладки палитры переключаются кликом")
+
+    # Регрессия: элементы принципиальной схемы не выделялись кликом из-за
+    # двойного сдвига bbox (spec['bbox'] локальный, а _rotated_bbox сам
+    # прибавляет координаты центра элемента).
+    app.zoom = 1.0
+    app.offset_x = app.offset_y = 0.0
+    bx1, by1, bx2, by2 = coil.get_bounding_box()
+    cx, cy = app.world_to_screen((bx1 + bx2) / 2.0, (by1 + by2) / 2.0)
+    check(app._element_at(cx, cy) == coil.id,
+          "bbox элемента принципиальной схемы совпадает с его положением")
+    app.set_tool("select")
+    app.selected_elements = []
+    app.on_left_click(_event(cx, cy))
+    check(coil.id in app.selected_elements,
+          "элемент принципиальной схемы выделяется кликом по нему")
+
 
 def run_gui():
     import main
@@ -1426,7 +1302,6 @@ def run_gui():
         test_update_links(app)
         test_point_drag(app)
         test_mark_drag(app)
-        test_mount_elements(app)
         test_schematic_elements(app)
     finally:
         root.destroy()
@@ -1443,7 +1318,6 @@ def main(argv=None):
     test_payload()
     test_full_signal_label()
     test_structure2_model()
-    test_mount_model()
     if args.no_gui:
         print("\nGUI-проверки пропущены (--no-gui)")
     elif tk is None:
