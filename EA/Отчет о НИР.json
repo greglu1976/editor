@@ -2117,14 +2117,16 @@
               "content": "Шкаф защит БСК 110–330 кВ (дифференциальная токовая защита и дифференциальная токовая защита нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК).",
               "subclauses": [],
               "tables": [],
-              "figures": []
+              "figures": [],
+              "order": 0
             },
             {
               "number": "5.3.2",
               "content": "Описание шкафа ШЭТ 431.11-1 и ссылки на информационные материалы, определяющие типовые требования, приведены в таблице Таблица 5.2 -.",
               "subclauses": [],
               "tables": [],
-              "figures": []
+              "figures": [],
+              "order": 1
             }
           ],
           "tables": [
@@ -2343,7 +2345,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 2
             },
             {
               "number": "5.3",
@@ -2362,7 +2365,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 3
             },
             {
               "number": "5.4",
@@ -2380,7 +2384,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 4
             },
             {
               "number": "5.5",
@@ -2400,7 +2405,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 5
             },
             {
               "number": "5.6",
@@ -2419,7 +2425,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 6
             },
             {
               "number": "5.7",
@@ -2437,7 +2444,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 7
             },
             {
               "number": "5.8",
@@ -2458,7 +2466,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 8
             },
             {
               "number": "5.9",
@@ -2476,7 +2485,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 9
             },
             {
               "number": "5.10",
@@ -2513,7 +2523,8 @@
                   "is_header_second_row": true
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 10
             },
             {
               "number": "5.11",
@@ -2532,7 +2543,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 11
             },
             {
               "number": "5.12",
@@ -2549,7 +2561,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 12
             },
             {
               "number": "5.13",
@@ -2567,7 +2580,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 13
             },
             {
               "number": "5.14",
@@ -2598,7 +2612,8 @@
                   "is_header_second_row": true
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 14
             },
             {
               "number": "5.15",
@@ -2616,7 +2631,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 15
             }
           ],
           "figures": [
@@ -2626,7 +2642,8 @@
               "reference": "Рисунок 5.1",
               "scheme": "C:/WWWW/www_ai/schemes/220-13Н СКРМ.json",
               "format": "",
-              "orientation": ""
+              "orientation": "",
+              "order": 16
             },
             {
               "number": "5.2",
@@ -2634,7 +2651,8 @@
               "reference": "Рисунок 5.2",
               "scheme": "",
               "format": "",
-              "orientation": ""
+              "orientation": "",
+              "order": 17
             }
           ]
         },
