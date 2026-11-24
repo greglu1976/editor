@@ -15,12 +15,14 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import ea_catalog as ec
 import ea_edit as ee
 import ea_merge as em
+import ea_report as er
 import ea_schema as sc
 import ea_standard as es
 import ea_structure as st
@@ -2969,10 +2971,138 @@ class StandardEditorWindow(tk.Toplevel):
             self.status.config(text=text)
 
     # -------------------------------------------------- контекстное меню
+    def _targets_for_node(self, node):
+        """Элементы отчёта для узла дерева (пусто — отчёт не строится)."""
+        kind = node[0]
+        if kind == "root":
+            which = node[1]
+            if which == "doc":
+                return [er.target("Standard", self.data,
+                                  "Документ стандарта")]
+            if which == "cabs":
+                return [er.target("Cabinet", item)
+                        for item in self.data.get("cabinets") or []
+                        if isinstance(item, dict)]
+            if which == "fb":
+                return [er.target("FunctionalBlockEntry", item)
+                        for item in self.data.get("functional_blocks") or []
+                        if isinstance(item, dict)]
+            return []
+        if kind == "meta":
+            return [er.target("Standard", self.data, "Реквизиты стандарта",
+                              children=False)]
+        if kind == "text":
+            class_name = er.TEXT_CLASS.get(node[1])
+            return [er.target(class_name, node[2])] if class_name else []
+        if kind == "slot":
+            class_name = er.SLOT_CLASS.get(node[2])
+            return [er.target(class_name, node[1])] if class_name else []
+        if kind == "table_column":
+            # Колонка — не самостоятельный элемент модели.
+            return []
+        class_name = sc.KIND_CLASS.get(kind)
+        return [er.target(class_name, node[1])] if class_name else []
+
+    def _report_targets(self, iids):
+        """Описания элементов отчёта без повторов (по объекту данных)."""
+        targets, seen = [], set()
+        for iid in iids:
+            node = self._nodes.get(iid)
+            if not node:
+                continue
+            for item in self._targets_for_node(node):
+                key = (id(item["item"]), item.get("children", True))
+                if key in seen:
+                    continue
+                seen.add(key)
+                targets.append(item)
+        return targets
+
+    def _report_nodes(self, iids):
+        """Спросить файл и записать отчёт по узлам ``iids`` в DOCX."""
+        if not self._apply_pending():
+            return
+        targets = self._report_targets(iids)
+        if not targets:
+            messagebox.showinfo("Отчёт",
+                                "Для этого элемента отчёт не строится.",
+                                parent=self)
+            return
+        if len(targets) == 1:
+            name = targets[0].get("title") or "элемент"
+        else:
+            name = "выделенная группа"
+        base = re.sub(r"[^0-9A-Za-zА-Яа-яЁё]+", " ", name).strip()
+        base = (base[:80].strip() or "отчет")
+        path = filedialog.asksaveasfilename(
+            parent=self, title="Куда сохранить отчёт",
+            initialdir=es.folder(), initialfile=base + ".docx",
+            defaultextension=".docx", filetypes=[("Word", "*.docx")])
+        if not path:
+            return
+        # Отчёт по документу или крупному шкафу собирается секунды: показываем
+        # модальное окно и строим в фоне, чтобы редактор не «замерзал».
+        progress = tk.Toplevel(self)
+        progress.title("Отчёт")
+        progress.transient(self)
+        progress.resizable(False, False)
+        tk.Label(progress, text="Собираю отчёт…",
+                 font=ui_theme.font(9)).pack(padx=18, pady=(14, 6))
+        bar = ttk.Progressbar(progress, mode="indeterminate", length=300)
+        bar.pack(padx=18, pady=(0, 14))
+        bar.start(12)
+        _place_on_parent(progress, self)
+        progress.grab_set()
+        outcome = {}
+
+        def work():
+            try:
+                outcome["counters"] = er.build(self.data, targets, path)
+            except Exception as exc:                  # noqa: BLE001
+                outcome["error"] = exc
+
+        thread = threading.Thread(target=work, daemon=True)
+        thread.start()
+        self._await_report(thread, progress, bar, path, outcome)
+
+    def _await_report(self, thread, progress, bar, path, outcome):
+        """Дождаться фоновой сборки отчёта и показать итог."""
+        if thread.is_alive():
+            try:
+                self.after(120, lambda: self._await_report(
+                    thread, progress, bar, path, outcome))
+            except tk.TclError:
+                pass
+            return
+        try:
+            bar.stop()
+            progress.destroy()
+        except tk.TclError:
+            pass
+        error = outcome.get("error")
+        if error is not None:
+            messagebox.showerror(
+                "Отчёт", "Не удалось собрать отчёт:\n%s" % error, parent=self)
+            return
+        counters = outcome.get("counters") or {}
+        messagebox.showinfo(
+            "Отчёт",
+            "Отчёт сохранён:\n%s\n\nЭлементов: %s, таблиц данных: %s, "
+            "полей: %s"
+            % (path, counters.get("элементы"), counters.get("таблицы"),
+               counters.get("поля")), parent=self)
+        self.status.config(text="Отчёт: %s" % path)
+
     def _group_menu(self, group):
         """Меню действий над выделенной группой узлов."""
         kinds = {self._node_kind(iid) for iid in group}
         items = []
+        if self._report_targets(group):
+            items += [
+                ("Сформировать отчёт по выделенному (%d)…" % len(group),
+                 lambda: self._report_nodes(group)),
+                None,
+            ]
         if kinds == {"table"}:
             items += [
                 ("Привязать выделенное (%d) к другому шкафу…" % len(group),
@@ -2992,9 +3122,17 @@ class StandardEditorWindow(tk.Toplevel):
         return items
 
     def _menu_items(self, iid, node):
+        """Меню узла: общий пункт отчёта плюс действия по виду узла."""
         group = self._selection_iids()
         if len(group) > 1 and iid in group:
             return self._group_menu(group)
+        items = self._base_menu_items(iid, node)
+        if self._targets_for_node(node):
+            items = [("Сформировать отчёт (DOCX)…",
+                      lambda: self._report_nodes([iid])), None] + items
+        return items
+
+    def _base_menu_items(self, iid, node):
         kind = node[0]
         if kind == "root":
             if node[1] == "doc":

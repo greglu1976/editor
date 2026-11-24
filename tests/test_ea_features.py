@@ -838,7 +838,9 @@ def test_editor():
         check(window._owners[doc_iid][0] is window.data["sections"],
               "корень документа связан со списком разделов")
         items = window._menu_items(doc_iid, window._nodes[doc_iid])
-        check(bool(items) and items[0][0].startswith("Добавить"),
+        labels = [entry[0] for entry in items if entry]
+        check("Добавить раздел…" in labels
+              and any("Сформировать отчёт" in label for label in labels),
               "контекстное меню корня документа")
 
         created = []
@@ -1191,7 +1193,8 @@ def test_editor():
         cabinet_iid = next(key for key, node in window._nodes.items()
                            if node[0] == "cabinet")
         menu = window._menu_items(cabinet_iid, window._nodes[cabinet_iid])
-        check(any("типовой комплект" in label for label, _cmd in menu),
+        labels = [entry[0] for entry in menu if entry]
+        check(any("типовой комплект" in label for label in labels),
               "в меню шкафа есть «Добавить типовой комплект из каталога»")
         chosen = next(kit for kit in komplekts.typical_komplekts()
                       if komplekts.effective_ieds(kit))
@@ -1222,7 +1225,8 @@ def test_editor():
         cabs_iid = next(key for key, node in window._nodes.items()
                         if node == ("root", "cabs"))
         menu = window._menu_items(cabs_iid, window._nodes[cabs_iid])
-        check(any("типовой шкаф" in label for label, _cmd in menu),
+        labels = [entry[0] for entry in menu if entry]
+        check(any("типовой шкаф" in label for label in labels),
               "в меню шкафов есть «Добавить типовой шкаф из каталога»")
         existing = {em.norm_cypher(item.get("cypher"))
                     for item in es.cabinets(window.data)}
@@ -1538,6 +1542,89 @@ def test_kit_identity():
               "копия комплекта сохранила группу «Идентичны»")
     except Exception as exc:                      # noqa: BLE001
         check(False, "идентичные комплекты: %s" % exc)
+    finally:
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
+def test_editor_report():
+    """Пункт 30: пункт «Сформировать отчёт» в дереве редактора."""
+    print("10г. отчёт из дерева стандарта")
+    if tk is None:
+        print("  --   tkinter нет: проверка пропущена")
+        return
+    try:
+        import time
+        import ea_editor
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "редактор стандарта: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    window = None
+    try:
+        window = ea_editor.show(path, root)
+        root.update()
+        cabinet_iid = next(iid for iid, node in window._nodes.items()
+                           if node[0] == "cabinet")
+        labels = [entry[0] for entry in
+                  window._menu_items(cabinet_iid,
+                                     window._nodes[cabinet_iid]) if entry]
+        check("Сформировать отчёт (DOCX)…" in labels,
+              "в меню шкафа есть формирование отчёта")
+        check([item["class"] for item in
+               window._report_targets([cabinet_iid])] == ["Cabinet"],
+              "шкаф превращается в элемент отчёта")
+
+        table_iid = next(iid for iid, node in window._nodes.items()
+                         if node[0] == "table")
+        check([item["class"] for item in
+               window._report_targets([table_iid])] == ["Table"],
+              "таблица превращается в элемент отчёта")
+        function_iid = next(iid for iid, node in window._nodes.items()
+                            if node[0] == "function")
+        check([item["class"] for item in
+               window._report_targets([function_iid])] == ["Function"],
+              "функция превращается в элемент отчёта")
+
+        cabinets = [iid for iid, node in window._nodes.items()
+                    if node[0] == "cabinet"][:2]
+        group = [entry[0] for entry in window._group_menu(cabinets)
+                 if entry]
+        check(any("Сформировать отчёт по выделенному" in label
+                  for label in group),
+              "у выделенной группы есть общий отчёт")
+        check(len(window._report_targets(cabinets)) == 2,
+              "в групповой отчёт попадают оба элемента")
+
+        out = os.path.join(folder, "element.docx")
+        original_save = ea_editor.filedialog.asksaveasfilename
+        original_info = ea_editor.messagebox.showinfo
+        original_error = ea_editor.messagebox.showerror
+        errors = []
+        ea_editor.filedialog.asksaveasfilename = lambda *a, **k: out
+        ea_editor.messagebox.showinfo = lambda *a, **k: None
+        ea_editor.messagebox.showerror = lambda *a, **k: errors.append(a)
+        try:
+            window._report_nodes([function_iid])
+            deadline = time.time() + 30
+            while not os.path.isfile(out) and time.time() < deadline:
+                root.update()
+                time.sleep(0.05)
+            root.update()
+        finally:
+            ea_editor.filedialog.asksaveasfilename = original_save
+            ea_editor.messagebox.showinfo = original_info
+            ea_editor.messagebox.showerror = original_error
+        check(os.path.isfile(out) and not errors
+              and os.path.getsize(out) > 10000,
+              "отчёт из редактора записан в DOCX")
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "отчёт из редактора: %s" % exc)
     finally:
         if window is not None:
             window.destroy()
@@ -2484,6 +2571,112 @@ def _first_figure(data):
     return None
 
 
+def test_element_report(data):
+    """Пункт 30: отчёт по любому элементу стандарта в DOCX."""
+    print("3в. отчёт по элементу стандарта")
+    try:
+        from docx import Document
+    except ImportError:
+        print("  --   python-docx нет: проверка пропущена")
+        return
+    import ea_report as er
+
+    folder = tempfile.mkdtemp()
+    cabinet = es.cabinet(data, "ШЭТ 431.11-1")
+    function = next(
+        function
+        for cab in data["cabinets"]
+        for kit in cab.get("kits") or []
+        for ied in kit.get("ieds") or []
+        for block in ied.get("function_blocks") or []
+        for function in block.get("functions") or []
+        if function.get("parameters"))
+
+    # Шкаф: поля карточки, комплекты, ИЭУ и коллекции листовых элементов.
+    path = os.path.join(folder, "cabinet.docx")
+    counters = er.build(data, [er.target("Cabinet", cabinet)], path)
+    check(os.path.isfile(path) and counters["поля"] > 100,
+          "отчёт по шкафу собран: %d полей" % counters["поля"])
+    doc = Document(path)
+    headings = [paragraph.text for paragraph in doc.paragraphs
+                if paragraph.style.name.startswith("Heading")]
+    check(any(cabinet["cypher"] in text for text in headings),
+          "в отчёте есть заголовок шкафа")
+    check("Комплекты (1)" in headings and "ИЭУ (1)" in headings,
+          "в отчёте перечислены комплекты и ИЭУ шкафа")
+    fields = next(table for table in doc.tables
+                  if [cell.text for cell in table.rows[0].cells]
+                  == ["Поле", "Значение"])
+    values = {row.cells[0].text: row.cells[1].text
+              for row in fields.rows[1:]}
+    check(values.get("Шифр шкафа") == cabinet["cypher"]
+          and values.get("Архитектура") == cabinet.get("architecture"),
+          "поля шкафа выведены со значениями")
+    check(any([cell.text for cell in table.rows[0].cells]
+              == ["Элемент", "Поле", "Значение"] for table in doc.tables),
+          "входы/выходы и параметры собраны в таблицы коллекций")
+
+    # Функция: поля, параметры и подписи вложенных элементов.
+    path = os.path.join(folder, "function.docx")
+    er.build(data, [er.target("Function", function)], path)
+    doc = Document(path)
+    headings = [paragraph.text for paragraph in doc.paragraphs
+                if paragraph.style.name.startswith("Heading")]
+    check(any(text.startswith("Функция — ") for text in headings),
+          "в отчёте есть заголовок функции")
+    fields = next(table for table in doc.tables
+                  if [cell.text for cell in table.rows[0].cells]
+                  == ["Поле", "Значение"])
+    values = {row.cells[0].text: row.cells[1].text
+              for row in fields.rows[1:]}
+    check(values.get("Наименование") == function["name"],
+          "поля функции выведены со значениями")
+    check(any(text.startswith("Параметры (") for text in headings),
+          "параметры функции выведены отдельной коллекцией")
+
+    # Таблица: двухуровневая шапка и строки из шкафа.
+    table = es.table_by_number(data, "5.10")
+    path = os.path.join(folder, "table.docx")
+    counters = er.build(data, [er.target("Table", table)], path,
+                        max_rows=3)
+    doc = Document(path)
+    check(counters["таблицы"] == 1, "таблица данных посчитана")
+    headings = [paragraph.text for paragraph in doc.paragraphs
+                if paragraph.style.name.startswith("Heading")]
+    check(any(table["reference"] in text for text in headings),
+          "в отчёте есть заголовок таблицы")
+    data_table = doc.tables[1]
+    check(data_table.cell(0, 0).text == "Информационный сигнал"
+          and data_table.cell(1, 0).text == "Наименование"
+          and len(data_table.rows) == 2 + 3,
+          "таблица выведена с двумя ярусами шапки и строками из шкафа")
+    xml = data_table._tbl.xml
+    check("<w:gridSpan" in xml and "<w:vMerge" in xml,
+          "объединения шапки сохранены в отчёте по таблице")
+
+    # Выделенная группа: общий заголовок и главы по каждому элементу.
+    path = os.path.join(folder, "group.docx")
+    er.build(data, [er.target("Cabinet", cabinet),
+                    er.target("Table", es.table_by_number(data, "5.2"))],
+             path, max_rows=1)
+    doc = Document(path)
+    texts = [paragraph.text for paragraph in doc.paragraphs]
+    headings = [paragraph.text for paragraph in doc.paragraphs
+                if paragraph.style.name.startswith("Heading")]
+    check("Элементов в отчёте: 2." in texts,
+          "в отчёте указано число элементов группы")
+    check(any(text.startswith("Шкаф — ") for text in headings)
+          and any(text.startswith("Таблица 5.2") for text in headings),
+          "в групповом отчёте есть главы обоих элементов")
+
+    try:
+        er.build(data, [], path)
+        empty = False
+    except er.DocxError:
+        empty = True
+    check(empty, "пустой список элементов — ошибка отчёта")
+
+
 def test_reference_number_switch():
     """Суффикс /#/0: REF-поле показывает только номер, метка убрана."""
     print("3б. ссылка только на номер (/#/0)")
@@ -2613,6 +2806,7 @@ def main(argv=None):
     test_catalog_sync(data)
     test_new_standard(data)
     test_docx(data)
+    test_element_report(data)
     test_reference_number_switch()
     test_title_page_before_report(data)
     test_report_tables_font()
@@ -2635,6 +2829,7 @@ def main(argv=None):
         test_editor_drag_reorder()
         test_editor_fields()
         test_kit_identity()
+        test_editor_report()
     print("")
     if FAILURES:
         print("ПРОВАЛЕНО: %d" % len(FAILURES))
