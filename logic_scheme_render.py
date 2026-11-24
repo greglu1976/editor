@@ -32,6 +32,10 @@ except Exception:                                    # pragma: no cover
     pngexport = None
 
 
+#: Цвет аналоговых цепей — как в редакторе.
+ANALOG_COLOR = "#7b1fa2"
+
+
 # ==========================================================================
 # Точки и ссылки
 # ==========================================================================
@@ -394,6 +398,86 @@ def draw_logic_links(canvas, elements, links):
 
 
 # ==========================================================================
+# Аналоговые цепи
+# ==========================================================================
+def split_analog_ref(ref):
+    """«id#3» → (id, 3); «id» → (id, None)."""
+    element_id, sep, index = str(ref or "").partition("#")
+    if sep and index.isdigit():
+        return element_id, int(index)
+    return element_id, None
+
+
+def analog_ref_point(elements, ref):
+    """Мировая точка конца аналоговой связи: порт комплекта или центр ТТ/ТН."""
+    element_id, index = split_analog_ref(ref)
+    element = elements.get(element_id)
+    if element is None:
+        return None
+    if index is not None and element.type == "cabinet":
+        point = getattr(element, "analog_point", None)
+        if callable(point):
+            return point(index)
+    return (element.x, element.y)
+
+
+def analog_route(elements, link):
+    """Мировые точки аналоговой связи: «from» → изломы → «to»."""
+    start = analog_ref_point(elements, (link or {}).get("from"))
+    end = analog_ref_point(elements, (link or {}).get("to"))
+    if start is None or end is None:
+        return []
+    points = [tuple(start)]
+    points.extend((float(point[0]), float(point[1]))
+                  for point in clean_points(link.get("points")))
+    points.append(tuple(end))
+    return points
+
+
+def analog_signals_text(link):
+    """Подпись аналоговой связи: цепи напряжения и тока."""
+    parts = []
+    voltage = str((link or {}).get("voltage") or "").strip()
+    current = str((link or {}).get("current") or "").strip()
+    if voltage:
+        parts.append(voltage)
+    if current:
+        parts.append(current)
+    return " / ".join(parts)
+
+
+def draw_analog_links(canvas, elements, links):
+    """Аналоговые цепи для PDF/PNG: пунктир, стрелка и подпись цепей."""
+    for link in links or []:
+        if not isinstance(link, dict):
+            continue
+        points = analog_route(elements, link)
+        if len(points) < 2:
+            continue
+        last_x, last_y = points[-1]
+        prev_x, prev_y = points[-2]
+        distance = math.hypot(last_x - prev_x, last_y - prev_y)
+        if distance < 1e-6:
+            continue
+        ux, uy = ((last_x - prev_x) / distance,
+                  (last_y - prev_y) / distance)
+        coords = []
+        for x, y in points[:-1]:
+            coords.extend((x, y))
+        coords.extend((last_x - ux * 5.4, last_y - uy * 5.4))
+        canvas.create_line(*coords, fill=ANALOG_COLOR, width=1, dash=(6, 3))
+        arrowhead(canvas, prev_x, prev_y, last_x, last_y, fill=ANALOG_COLOR)
+        signals = analog_signals_text(link)
+        if signals:
+            middle = path_point(points, 0.5)
+            if middle is not None:
+                mid_x, mid_y, mx, my = middle
+                canvas.create_text(mid_x - my * 11, mid_y + mx * 11,
+                                   text=signals, fill=ANALOG_COLOR,
+                                   font=("Arial", 6), anchor="center")
+
+
+# ==========================================================================
 # Сборка схемы из JSON
 # ==========================================================================
 def build_elements(data):
@@ -573,7 +657,10 @@ def render_scene(canvas, data):
     for element in elements.values():
         element.draw(canvas, 1.0, 0.0, 0.0)
 
-    # 3. Связи ФЛС с подписями
+    # 3. Аналоговые цепи — поверх символов, под связями ФЛС
+    draw_analog_links(canvas, elements, data.get("analog_links") or [])
+
+    # 4. Связи ФЛС с подписями
     draw_logic_links(canvas, elements, links)
     return elements, connections, links
 

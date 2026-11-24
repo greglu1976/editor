@@ -2041,6 +2041,97 @@ def test_ied_scheme(data):
         shutil.rmtree(folder, ignore_errors=True)
 
 
+def test_analog_links_in_report():
+    """Пункт 20: аналоговые цепи в JSON-рисунке отчёта (PNG и DOCX)."""
+    print("17. аналоговые цепи в рисунках отчёта")
+    import io
+    import json
+    import zipfile
+
+    import pdfexport
+    import logic_scheme_render as lsr
+
+    try:
+        from PIL import Image
+    except ImportError:                          # pragma: no cover
+        Image = None
+
+    scheme = {
+        "elements": [
+            {"id": "CA1", "type": "cabinet", "x": 300, "y": 300,
+             "cabinet": {"key": "", "title": "Шкаф", "info": {},
+                         "komplets": [{"name": "Комплект 1"},
+                                      {"name": "Комплект 2"}]}},
+            {"id": "CT1", "type": "current_transformer", "x": 700, "y": 220},
+        ],
+        "connections": [],
+        "analog_links": [
+            {"from": "CT1", "to": "CA1#0", "voltage": "Ua, Ub",
+             "current": "Ia", "points": [[500, 220]]},
+        ],
+    }
+    recorder = pdfexport.SceneRecorder()
+    lsr.render_scene(recorder, scheme)
+    lines = [call for call in recorder.calls
+             if call[0] == "create_line"
+             and call[2].get("fill") == lsr.ANALOG_COLOR]
+    check(bool(lines), "аналоговая связь нарисована в сцене отчёта")
+    check(any(call[2].get("dash") for call in lines),
+          "аналоговая связь нарисована пунктиром")
+    arrows = [call for call in recorder.calls
+              if call[0] == "create_polygon"
+              and call[2].get("fill") == lsr.ANALOG_COLOR]
+    check(bool(arrows), "стрелка аналоговой связи нарисована")
+    texts = [call[2].get("text") for call in recorder.calls
+             if call[0] == "create_text"]
+    check(any("Ua, Ub / Ia" in str(text) for text in texts),
+          "подпись цепей напряжения и тока нарисована")
+
+    folder = tempfile.mkdtemp()
+    try:
+        scheme_path = os.path.join(folder, "analog.json")
+        with open(scheme_path, "w", encoding="utf-8") as handle:
+            json.dump(scheme, handle, ensure_ascii=False)
+        image_path = os.path.join(folder, "analog.png")
+        lsr.export_png_file(scheme_path, image_path)
+        check(os.path.getsize(image_path) > 0,
+              "схема с аналоговыми цепями рендерится в PNG")
+        if Image is not None:
+            image = Image.open(image_path).convert("RGB")
+            purple = sum(1 for r, g, b in image.getdata()
+                         if abs(r - 123) <= 24 and abs(g - 31) <= 24
+                         and abs(b - 162) <= 24)
+            check(purple > 0, "в PNG есть пиксели аналоговых цепей")
+
+        # DOCX отчёта: рисунок с этой JSON-схемой.
+        clone = es.load(REFERENCE)
+        figure = _first_figure(clone)
+        check(figure is not None, "в стандарте есть рисунок для отчёта")
+        figure["scheme"] = scheme_path
+        out = os.path.join(folder, "report.docx")
+        ea_docx.build(clone, out, toc=False)
+        with zipfile.ZipFile(out) as archive:
+            media = [archive.read(name) for name in archive.namelist()
+                     if name.startswith("word/media/")
+                     and name.endswith(".png")]
+        check(bool(media), "DOCX содержит изображение схемы")
+        if Image is not None:
+            purple = 0
+            for payload in media:
+                try:
+                    image = Image.open(io.BytesIO(payload)).convert("RGB")
+                except Exception:                # noqa: BLE001
+                    continue
+                purple += sum(1 for r, g, b in image.getdata()
+                              if abs(r - 123) <= 24 and abs(g - 31) <= 24
+                              and abs(b - 162) <= 24)
+            check(purple > 0,
+                  "в изображении отчёта есть аналоговые цепи")
+    finally:
+        import shutil
+        shutil.rmtree(folder, ignore_errors=True)
+
+
 def sc_missing(cls, key):
     """Есть ли поле ``key`` у класса ``cls`` в схеме structure2?"""
     import ea_schema as sc
@@ -2159,6 +2250,7 @@ def main(argv=None):
     test_functional_blocks(data)
     test_structure2_schema()
     test_ied_scheme(data)
+    test_analog_links_in_report()
     if not args.no_gui:
         test_gui(data)
         test_fields()
