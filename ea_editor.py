@@ -325,10 +325,7 @@ class StandardEditorWindow(tk.Toplevel):
                                     open=False)
             self._register_node(node, ("text", "section", section), sections,
                            section, doc)
-            self._add_blocks(node, section)
-            clauses = section.setdefault("clauses", [])
-            for clause in clauses:
-                self._tree_clause(node, clause, clauses)
+            self._add_items(node, section)
             subsections = section.setdefault("subsections", [])
             for sub in subsections:
                 title = "%s %s" % (sub.get("number", ""),
@@ -337,10 +334,7 @@ class StandardEditorWindow(tk.Toplevel):
                                             text=title.strip(), open=False)
                 self._register_node(sub_node, ("text", "subsection", sub),
                                subsections, sub, node)
-                self._add_blocks(sub_node, sub)
-                sub_clauses = sub.setdefault("clauses", [])
-                for clause in sub_clauses:
-                    self._tree_clause(sub_node, clause, sub_clauses)
+                self._add_items(sub_node, sub)
 
         cabs = self.tree.insert(root, tk.END, text="Шкафы", open=True)
         cabinets = self.data.setdefault("cabinets", [])
@@ -438,9 +432,9 @@ class StandardEditorWindow(tk.Toplevel):
                             else (kind, entry))
                     self._register_node(enode, node, entries, entry, fnode)
 
-    def _add_blocks(self, parent, container):
-        """Таблицы и рисунки контейнера — в общем порядке документа."""
-        for kind, item in st.ordered_blocks(container):
+    def _add_items(self, parent, container):
+        """Пункты, подпункты, таблицы и рисунки — в общем порядке документа."""
+        for kind, item in st.ordered_items(container):
             if kind == "table":
                 label = "%s %s" % (item.get("reference") or "Таблица",
                                    item.get("name") or "")
@@ -449,13 +443,19 @@ class StandardEditorWindow(tk.Toplevel):
                                     container.setdefault("tables", []),
                                     item, parent)
                 self._add_table_columns(node, item)
-            else:
+            elif kind == "figure":
                 label = "%s %s" % (item.get("reference") or "Рисунок",
                                    item.get("name") or "")
                 node = self.tree.insert(parent, tk.END, text=label.strip())
                 self._register_node(node, ("figure", item),
                                     container.setdefault("figures", []),
                                     item, parent)
+            elif kind == "clause":
+                self._tree_clause(parent, item,
+                                  container.setdefault("clauses", []))
+            else:
+                self._tree_subclause(parent, item,
+                                     container.setdefault("subclauses", []))
 
     def _add_table_columns(self, node, table):
         """Колонки таблицы — дочерними узлами: состав виден прямо в дереве."""
@@ -472,7 +472,16 @@ class StandardEditorWindow(tk.Toplevel):
             text="%s %s" % (clause.get("number", ""), text[:90]))
         self._register_node(node, ("text", "clause", clause), clauses, clause,
                        parent)
-        self._add_blocks(node, clause)
+        self._add_items(node, clause)
+
+    def _tree_subclause(self, parent, subclause, subclauses):
+        text = (subclause.get("content") or "").split("\n")[0]
+        node = self.tree.insert(
+            parent, tk.END,
+            text="%s %s" % (subclause.get("number", ""), text[:90]))
+        self._register_node(node, ("text", "subclause", subclause),
+                            subclauses, subclause, parent)
+        self._add_items(node, subclause)
 
     # ------------------------------------------------------------- выборка
     def _selection_iids(self):
@@ -497,8 +506,10 @@ class StandardEditorWindow(tk.Toplevel):
         return node[1] if node[0] == "text" else node[0]
 
     # ------------------------------------------------------- мышь: перенос
-    _DRAG_KINDS = {"section", "subsection", "table", "figure"}
+    _DRAG_KINDS = {"section", "subsection", "clause", "subclause",
+                   "table", "figure"}
     _DRAG_WORDS = {"section": "раздел", "subsection": "подраздел",
+                   "clause": "пункт", "subclause": "подпункт",
                    "table": "таблица", "figure": "рисунок"}
 
     def _drag_kind(self, iid):
@@ -563,6 +574,29 @@ class StandardEditorWindow(tk.Toplevel):
                 anchor, after = None, False
             else:
                 return None
+        elif kind in ("clause", "subclause"):
+            # Пункт вкладывается в раздел/подраздел, подпункт — в пункт.
+            parents = (("section", "subsection") if kind == "clause"
+                       else ("clause",))
+            if tkind == kind and towner:
+                container = self._container_for_iid(towner[2])
+                anchor, after = towner[1], where != "before"
+            elif tkind in ("table", "figure") and towner:
+                container = self._container_for_iid(towner[2])
+                if container is None \
+                        or self._node_kind(towner[2]) not in parents:
+                    return None
+                anchor, after = towner[1], where != "before"
+            elif tkind in parents:
+                container = tnode[2]
+                anchor, after = None, False
+            else:
+                return None
+            if container is None:
+                return None
+            return {"container": container, "anchor": anchor,
+                    "after": after, "kind": kind,
+                    "word": self._DRAG_WORDS[kind]}
         else:
             if tkind in ("table", "figure") and towner:
                 container = self._container_for_iid(towner[2])
@@ -570,10 +604,20 @@ class StandardEditorWindow(tk.Toplevel):
                     return None
                 anchor = towner[1]
                 after = where != "before"
-            elif tkind in ("section", "subsection", "clause"):
-                container = self._container_for_iid(target)
-                if container is None:
-                    return None
+            elif tkind in ("clause", "subclause"):
+                if where == "into":
+                    # Внутрь пункта — в конец его собственных элементов.
+                    container = tnode[2]
+                    anchor, after = None, False
+                else:
+                    # Перед/после пункта — среди его соседей.
+                    container = (self._container_for_iid(towner[2])
+                                 if towner else None)
+                    if container is None:
+                        return None
+                    anchor, after = towner[1], where == "after"
+            elif tkind in ("section", "subsection"):
+                container = tnode[2]
                 anchor, after = None, False
             else:
                 return None
@@ -632,9 +676,9 @@ class StandardEditorWindow(tk.Toplevel):
 
         def action():
             if plan.get("container") is not None:
-                return st.move_block(plan["kind"], owner[1], owner[0],
-                                     plan["container"], plan["anchor"],
-                                     plan["after"])
+                return st.move_item(plan["kind"], owner[1], owner[0],
+                                    plan["container"], plan["anchor"],
+                                    plan["after"])
             return st.place_node(owner[1], owner[0], plan["dest"],
                                  plan["anchor"], plan["after"])
 
@@ -790,7 +834,7 @@ class StandardEditorWindow(tk.Toplevel):
     # --------------------------------------------------------------- текст
     def _render_text(self, kind, item):
         title = {"section": "Раздел", "subsection": "Подраздел",
-                 "clause": "Пункт"}[kind]
+                 "clause": "Пункт", "subclause": "Подпункт"}[kind]
         self.caption.config(text="%s %s" % (title, item.get("number", "")))
         self._panel_item = item
         form = tk.Frame(self.body)
@@ -1712,7 +1756,8 @@ class StandardEditorWindow(tk.Toplevel):
         kind = node[0]
         if kind == "text":
             return {"section": "Section", "subsection": "Subsection",
-                    "clause": "Clause"}.get(node[1], "Section")
+                    "clause": "Clause",
+                    "subclause": "Subclause"}.get(node[1], "Section")
         if kind == "table_column":
             return "Table"
         if kind == "slot":
@@ -2633,8 +2678,8 @@ class StandardEditorWindow(tk.Toplevel):
             kind = self._node_kind(iid)
             if not owner or owner[1] is None:
                 continue
-            if kind not in ("section", "subsection", "clause", "table",
-                            "figure", "cabinet", "kit", "ied") \
+            if kind not in ("section", "subsection", "clause", "subclause",
+                            "table", "figure", "cabinet", "kit", "ied") \
                     and kind not in _GENERIC_KINDS:
                 continue
             entries.append((iid, kind, owner[0], owner[1], owner[2]))
@@ -2769,8 +2814,8 @@ class StandardEditorWindow(tk.Toplevel):
             return
         container, item, parent_iid = owner
         kind = node[1] if node[0] == "text" else node[0]
-        if kind not in ("section", "subsection", "clause", "table",
-                        "figure", "cabinet", "kit", "ied") \
+        if kind not in ("section", "subsection", "clause", "subclause",
+                        "table", "figure", "cabinet", "kit", "ied") \
                 and kind not in _GENERIC_KINDS:
             return
         issues = st.delete_issues(self.data, item, kind)
@@ -2784,7 +2829,8 @@ class StandardEditorWindow(tk.Toplevel):
                                    parent=self)
             return
         label = {"section": "раздел", "subsection": "подраздел",
-                 "clause": "пункт", "table": "таблицу",
+                 "clause": "пункт", "subclause": "подпункт",
+                 "table": "таблицу",
                  "figure": "рисунок", "cabinet": "шкаф",
                  "kit": "комплект", "ied": "ИЭУ",
                  "block": "блок функций", "function": "функцию",
@@ -2876,11 +2922,12 @@ class StandardEditorWindow(tk.Toplevel):
                     None,
                     ("Удалить подраздел", lambda: self._delete_node(iid)),
                 ]
+            word = "подпункт" if node[1] == "subclause" else "пункт"
             return [
                 ("Добавить таблицу…", lambda: self._add_table(iid)),
                 ("Добавить рисунок…", lambda: self._add_figure(iid)),
                 None,
-                ("Удалить пункт", lambda: self._delete_node(iid)),
+                ("Удалить %s" % word, lambda: self._delete_node(iid)),
             ]
         if kind == "cabinet":
             return [

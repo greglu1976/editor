@@ -711,30 +711,39 @@ def _render_figure_block(doc, figure, references, counters, errors):
         _restore_page_setup(doc.sections[-1], original)
 
 
+def _render_item(doc, data, kind, item, max_rows, counters, references,
+                 errors):
+    """Вывести один элемент контейнера: пункт, подпункт, таблицу, рисунок."""
+    if kind == "table":
+        _render_table(doc, data, item, max_rows, counters, references)
+    elif kind == "figure":
+        _render_figure_block(doc, item, references, counters, errors)
+    else:
+        _render_clause(doc, data, item, max_rows, counters, references,
+                       errors)
+
+
+def _render_clause(doc, data, clause, max_rows, counters, references, errors):
+    """Пункт или подпункт: номер с текстом и вложенные элементы по порядку."""
+    number = str(clause.get("number") or "")
+    lines = _clause_lines(clause.get("content"))
+    if lines:
+        lines[0] = ("%s %s" % (number, lines[0])).strip()
+    elif number:
+        lines = [number]
+    for line in lines:
+        _body(doc, line)
+    for kind, item in st.ordered_items(clause):
+        _render_item(doc, data, kind, item, max_rows, counters, references,
+                     errors)
+
+
 def _render_container(doc, data, container, level, max_rows, counters,
                       references, errors):
     _text_block(doc, container.get("content"))
-    for kind, item in st.ordered_blocks(container):
-        if kind == "table":
-            _render_table(doc, data, item, max_rows, counters, references)
-        else:
-            _render_figure_block(doc, item, references, counters, errors)
-    for clause in container.get("clauses") or []:
-        number = clause.get("number") or ""
-        lines = _clause_lines(clause.get("content"))
-        if lines:
-            lines[0] = ("%s %s" % (number, lines[0])).strip()
-        elif number:
-            lines = [number]
-        for line in lines:
-            _body(doc, line)
-        for kind, item in st.ordered_blocks(clause):
-            if kind == "table":
-                _render_table(doc, data, item, max_rows, counters,
-                              references)
-            else:
-                _render_figure_block(doc, item, references, counters,
-                                     errors)
+    for kind, item in st.ordered_items(container):
+        _render_item(doc, data, kind, item, max_rows, counters, references,
+                     errors)
 
 
 def _render_sections(doc, data, max_rows, counters, references, errors):

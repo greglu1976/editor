@@ -1384,6 +1384,51 @@ def test_editor_drag_reorder():
         check(order.index(window._find_iid(table_item))
               < order.index(window._find_iid(figure_item)),
               "таблица перенесена мышью над рисунком")
+
+        # Пункт 26: пункты и подпункты в общем порядке с блоками.
+        mixed_section = st.new_section(window.data, header="Тест 26")
+        st.add(window.data.setdefault("sections", []), mixed_section)
+        mixed_table = st.new_table(window.data,
+                                   {"name": "Тест 26", "headers": ["П"]})
+        mixed_clause = st.new_clause(window.data, mixed_section, number="99.1")
+        mixed_clause["content"] = "Тестовый пункт"
+        st.add(mixed_section.setdefault("tables", []), mixed_table)
+        st.add(mixed_section.setdefault("clauses", []), mixed_clause)
+        window._fill_tree()
+        root.update()
+        drag(window._find_iid(mixed_clause), window._find_iid(mixed_table))
+        parent_iid = window._find_iid(mixed_section)
+        order = window.tree.get_children(parent_iid)
+        check(order.index(window._find_iid(mixed_clause))
+              < order.index(window._find_iid(mixed_table)),
+              "пункт перенесён мышью над таблицей")
+        check(all("order" in item for item in
+                  list(mixed_section.get("clauses") or [])
+                  + list(mixed_section.get("tables") or [])
+                  + list(mixed_section.get("figures") or [])),
+              "у пунктов и блоков контейнера общий порядок")
+        drag(window._find_iid(mixed_table), window._find_iid(mixed_clause))
+        parent_iid = window._find_iid(mixed_section)
+        order = window.tree.get_children(parent_iid)
+        check(order.index(window._find_iid(mixed_table))
+              < order.index(window._find_iid(mixed_clause)),
+              "таблица перенесена мышью над пунктом")
+
+        mixed_sub = {"number": "99.1.1", "content": "Тестовый подпункт",
+                     "tables": [], "figures": []}
+        mixed_clause.setdefault("subclauses", []).append(mixed_sub)
+        sub_table = st.new_table(window.data,
+                                 {"name": "Тест 26.1", "headers": ["П"]})
+        st.add(mixed_clause.setdefault("tables", []), sub_table)
+        window._fill_tree()
+        root.update()
+        check(window._find_iid(mixed_sub) is not None,
+              "подпункт показан в дереве редактора")
+        drag(window._find_iid(mixed_sub), window._find_iid(sub_table))
+        order = window.tree.get_children(window._find_iid(mixed_clause))
+        check(order.index(window._find_iid(mixed_sub))
+              < order.index(window._find_iid(sub_table)),
+              "подпункт перенесён мышью над таблицей")
     except Exception as exc:                      # noqa: BLE001
         check(False, "перетаскивание мышью: %s" % exc)
     finally:
@@ -1520,6 +1565,45 @@ def test_structure_ops(data):
     check(blocks["tables"] == [table_two, table_one]
           and blocks["figures"] == [figure],
           "списки таблиц и рисунков переписаны в общем порядке")
+
+    # Пункт 26: пункты и подпункты в общем порядке с таблицами/рисунками.
+    mixed = {"tables": [], "figures": [], "clauses": []}
+    first_table = st.new_table(clone, {"name": "Т1", "headers": ["П"]})
+    mixed_figure = st.new_figure(clone, mixed, name="Рисунок")
+    mixed_clause = st.new_clause(clone, mixed, number="1.1")
+    mixed_clause["content"] = "Пункт"
+    mixed_sub = {"number": "1.1.1", "content": "Подпункт",
+                 "tables": [], "figures": []}
+    clause_table = st.new_table(clone, {"name": "Т2", "headers": ["П"]})
+    mixed_clause["subclauses"].append(mixed_sub)
+    st.add(mixed_clause["tables"], clause_table)
+    st.add(mixed["tables"], first_table)
+    st.add(mixed["figures"], mixed_figure)
+    st.add(mixed["clauses"], mixed_clause)
+    check([kind for kind, _item in st.ordered_items(mixed)]
+          == ["table", "figure", "clause"],
+          "без order пункты идут после таблиц и рисунков")
+    st.move_item("clause", mixed_clause, mixed["clauses"], mixed,
+                 anchor=first_table, after=False)
+    check([item for _kind, item in st.ordered_items(mixed)]
+          == [mixed_clause, first_table, mixed_figure],
+          "пункт перенесён над таблицей и рисунком")
+    st.move_item("table", first_table, mixed["tables"], mixed,
+                 anchor=mixed_figure, after=True)
+    check([item for _kind, item in st.ordered_items(mixed)]
+          == [mixed_clause, mixed_figure, first_table],
+          "таблица перенесена под рисунок")
+    st.move_item("subclause", mixed_sub, mixed_clause["subclauses"],
+                 mixed_clause, anchor=clause_table, after=False)
+    check([item for _kind, item in st.ordered_items(mixed_clause)]
+          == [mixed_sub, clause_table],
+          "подпункт перенесён над таблицей пункта")
+    try:
+        st.move_item("clause", mixed_clause, mixed["clauses"], mixed_clause)
+    except st.StructureError:
+        check(True, "пункт нельзя вложить в пункт")
+    else:
+        check(False, "пункт нельзя вложить в пункт")
 
 
 def test_merge_all_cabinets():
@@ -2196,36 +2280,47 @@ def test_analog_links_in_report():
 
 
 def test_block_order_in_report():
-    """Пункт 21: отчёт выводит рисунки и таблицы в общем порядке."""
-    print("18. порядок таблиц и рисунков в отчёте")
+    """Пункты 21 и 26: отчёт выводит элементы в общем порядке."""
+    print("18. порядок пунктов, таблиц и рисунков в отчёте")
     import ea_docx
     import ea_structure as st
 
+    clause_table = {"name": "В пункте", "reference": "Таблица 3"}
+    sub_table = {"name": "В подпункте", "reference": "Таблица 4"}
+    sub = {"number": "1.1.1", "content": "Подпункт",
+           "tables": [sub_table], "figures": []}
+    clause = {"number": "1.1", "content": "Пункт",
+              "tables": [clause_table], "figures": [],
+              "subclauses": [sub]}
     container = {
         "tables": [{"name": "Первая", "reference": "Таблица 1"},
                    {"name": "Вторая", "reference": "Таблица 2"}],
         "figures": [{"name": "Схема", "reference": "Рисунок 1"}],
-        "clauses": [],
+        "clauses": [clause],
     }
-    st.move_block("figure", container["figures"][0],
-                  container["figures"], container,
-                  anchor=container["tables"][0], after=False)
+    st.move_item("clause", clause, container["clauses"], container,
+                 anchor=container["tables"][0], after=False)
+    st.move_item("subclause", sub, clause["subclauses"], clause,
+                 anchor=clause_table, after=False)
     calls = []
     originals = (ea_docx._render_table, ea_docx._render_figure_block,
-                 ea_docx._text_block)
+                 ea_docx._text_block, ea_docx._body)
     ea_docx._render_table = lambda doc, data, table, *a: calls.append(
         ("table", table["name"]))
     ea_docx._render_figure_block = lambda doc, figure, *a: calls.append(
         ("figure", figure["name"]))
     ea_docx._text_block = lambda *a: None
+    ea_docx._body = lambda doc, text: calls.append(("text", text))
     try:
         ea_docx._render_container(None, {}, container, 2, 50, {}, {}, [])
     finally:
         (ea_docx._render_table, ea_docx._render_figure_block,
-         ea_docx._text_block) = originals
-    check(calls == [("figure", "Схема"), ("table", "Первая"),
-                    ("table", "Вторая")],
-          "отчёт выводит рисунок над таблицами в заданном порядке")
+         ea_docx._text_block, ea_docx._body) = originals
+    check(calls == [("text", "1.1 Пункт"), ("text", "1.1.1 Подпункт"),
+                    ("table", "В подпункте"), ("table", "В пункте"),
+                    ("table", "Первая"), ("table", "Вторая"),
+                    ("figure", "Схема")],
+          "отчёт выводит пункт и подпункт над таблицами и рисунком")
 
 
 def sc_missing(cls, key):

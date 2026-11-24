@@ -436,75 +436,95 @@ def place_node(node, source, target, anchor=None, after=False):
 
 
 # ---------------------------------------------------------------------------
-# Порядок таблиц и рисунков в документе
+# Общий порядок пунктов, подпунктов, таблиц и рисунков
 # ---------------------------------------------------------------------------
-#: Вид блока документа → ключ его списка в контейнере.
+#: Вид элемента документа → ключ его списка в контейнере.
+_ORDER_KEYS = {"clause": "clauses", "subclause": "subclauses",
+               "table": "tables", "figure": "figures"}
+#: Порядок, пока поле ``order`` не задано: как выводили раньше — таблицы,
+#: рисунки, затем пункты и подпункты.
+_LEGACY_KINDS = ("table", "figure", "clause", "subclause")
 _BLOCK_KEYS = {"table": "tables", "figure": "figures"}
 
 
 def _has_order(item):
-    """Задано ли у блока числовое поле общего порядка."""
+    """Задано ли у элемента числовое поле общего порядка."""
     value = item.get("order") if isinstance(item, dict) else None
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def ordered_blocks(container):
-    """Таблицы и рисунки контейнера в порядке документа.
+def ordered_items(container):
+    """Пункты, подпункты, таблицы и рисунки контейнера в порядке документа.
 
-    Пока ни у одного блока нет поля ``order``, порядок прежний: сначала
-    таблицы, затем рисунки. После первого переноса поле ``order`` задано у
-    всех блоков контейнера и определяет их общий порядок. Блоки без поля
-    (добавленные после переноса) идут в конце — так же, как они дописаны в
-    свои списки.
+    Пока ни у одного элемента нет поля ``order``, порядок прежний: сначала
+    таблицы и рисунки, затем пункты и подпункты. После первого переноса
+    поле ``order`` задано у всех элементов контейнера и определяет их общий
+    порядок. Элементы без поля (добавленные после переноса) идут в конце —
+    так же, как они дописаны в свои списки.
     """
-    blocks = []
-    for kind, key in _BLOCK_KEYS.items():
-        for item in container.get(key) or []:
+    items = []
+    for kind in _LEGACY_KINDS:
+        for item in container.get(_ORDER_KEYS[kind]) or []:
             if isinstance(item, dict):
-                blocks.append((kind, item))
-    if not any(_has_order(item) for _kind, item in blocks):
-        return blocks
-    ordered = [(kind, item) for kind, item in blocks if _has_order(item)]
-    unordered = [(kind, item) for kind, item in blocks
+                items.append((kind, item))
+    if not any(_has_order(item) for _kind, item in items):
+        return items
+    ordered = [(kind, item) for kind, item in items if _has_order(item)]
+    unordered = [(kind, item) for kind, item in items
                  if not _has_order(item)]
     ordered.sort(key=lambda pair: float(pair[1].get("order")))
     return ordered + unordered
 
 
-def move_block(kind, item, source, target, anchor=None, after=False):
-    """Перенести таблицу/рисунок в контейнер с общим порядком блоков.
+def ordered_blocks(container):
+    """Таблицы и рисунки контейнера в порядке документа."""
+    return [(kind, item) for kind, item in ordered_items(container)
+            if kind in _BLOCK_KEYS]
 
-    ``source`` — список, из которого берётся узел (``tables``/``figures``),
-    ``target`` — словарь раздела, подраздела или пункта. После переноса все
-    блоки целевого контейнера получают поле ``order``, а списки таблиц и
-    рисунков переписываются в общем порядке. Возвращает узел.
+
+def move_item(kind, item, source, target, anchor=None, after=False):
+    """Перенести пункт, подпункт, таблицу или рисунок в общий порядок.
+
+    ``source`` — список, из которого берётся узел, ``target`` — словарь
+    раздела, подраздела, пункта или подпункта. После переноса все элементы
+    целевого контейнера получают поле ``order``, а списки переписываются в
+    общем порядке. Возвращает узел.
     """
-    if kind not in _BLOCK_KEYS or not isinstance(item, dict):
-        raise StructureError("неизвестный вид блока: %s" % kind)
-    blocks = ordered_blocks(target)
-    if any(value is item for _kind, value in blocks):
-        blocks = [(block_kind, value) for block_kind, value in blocks
-                  if value is not item]
+    if kind not in _ORDER_KEYS or not isinstance(item, dict):
+        raise StructureError("неизвестный вид элемента: %s" % kind)
+    if kind == "clause" and "subclauses" in target:
+        raise StructureError("пункт нельзя вложить в пункт")
+    if kind == "subclause" and "subclauses" not in target:
+        raise StructureError("подпункт можно вложить только в пункт")
+    items = ordered_items(target)
+    if any(value is item for _kind, value in items):
+        items = [(item_kind, value) for item_kind, value in items
+                 if value is not item]
     else:
         remove(source, item)
     item.pop("order", None)
     if anchor is not None:
         index = next((position for position, (_kind, value)
-                      in enumerate(blocks) if value is anchor), None)
+                      in enumerate(items) if value is anchor), None)
         if index is None:
-            index = len(blocks)
+            index = len(items)
         elif after:
             index += 1
     else:
-        index = len(blocks)
-    blocks.insert(index, (kind, item))
-    for position, (_kind, value) in enumerate(blocks):
+        index = len(items)
+    items.insert(index, (kind, item))
+    for position, (_kind, value) in enumerate(items):
         value["order"] = position
-    target["tables"] = [value for block_kind, value in blocks
-                        if block_kind == "table"]
-    target["figures"] = [value for block_kind, value in blocks
-                         if block_kind == "figure"]
+    for item_kind, key in _ORDER_KEYS.items():
+        if key in target or item_kind == kind:
+            target[key] = [value for value_kind, value in items
+                           if value_kind == item_kind]
     return item
+
+
+def move_block(kind, item, source, target, anchor=None, after=False):
+    """Перенести таблицу/рисунок в контейнер с общим порядком блоков."""
+    return move_item(kind, item, source, target, anchor=anchor, after=after)
 
 
 def copy_figure(figure, container, number=None, base=""):
