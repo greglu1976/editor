@@ -163,6 +163,7 @@ _KIT_FIELDS = (
     ("number", "Номер комплекта", 18),
     ("description", "Описание", 52),
     ("type", "Тип", 24),
+    ("identical", "Идентичны (группа)", 24),
 )
 
 _DATE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
@@ -1242,6 +1243,12 @@ class StandardEditorWindow(tk.Toplevel):
                      width=width).grid(row=row, column=1, sticky="we", pady=2)
             self.vars[key] = var
             row += 1
+        tk.Label(self.body,
+                 text="Комплекты с одинаковой непустой группой считаются "
+                      "идентичными: таблицы шкафа остаются рабочими, пока "
+                      "в нём есть хотя бы один комплект этой группы.",
+                 font=ui_theme.font(8), fg=ui_theme.TEXT_MUTED,
+                 anchor="w", justify="left").pack(fill=tk.X, padx=4, pady=(0, 6))
         self._snapshot = {key: str(kit.get(key) or "")
                           for key, _l, _w in _KIT_FIELDS}
         self._pending = self._apply_kit
@@ -2186,6 +2193,86 @@ class StandardEditorWindow(tk.Toplevel):
 
         self._mutate(action)
 
+    def _duplicate_kit(self, iid):
+        """Скопировать комплект, сохранив группу «Идентичны»."""
+        owner = self._owners.get(iid)
+        if not owner or owner[1] is None:
+            return
+        kit = owner[1]
+        parent = self._owners.get(owner[2])
+        cabinet = parent[1] if parent else None
+        if cabinet is None:
+            return
+
+        def action():
+            return st.copy_kit(kit, cabinet)
+
+        self._mutate(action)
+
+    def _move_kit(self, iid):
+        """Перенести комплект в другой шкаф, при необходимости — таблицы."""
+        owner = self._owners.get(iid)
+        if not owner or owner[1] is None:
+            return
+        kit = owner[1]
+        parent = self._owners.get(owner[2])
+        cabinet = parent[1] if parent else None
+        if cabinet is None:
+            return
+        others = [item for item in es.cabinets(self.data)
+                  if item is not cabinet]
+        if not others:
+            messagebox.showinfo("Редактор стандарта",
+                                "В стандарте нет другого шкафа.",
+                                parent=self)
+            return
+        target = self._choose_cabinet(others, "Куда переместить комплект")
+        if target is None:
+            return
+        source_code = str(cabinet.get("cypher") or "")
+        target_code = str(target.get("cypher") or "")
+        was_source = st.kit_feeds_tables(self.data, kit, cabinet)
+        rebind = False
+        if was_source:
+            detail = ""
+            if target.get("kits"):
+                detail = ("\nВ шкафу %s уже есть комплекты: таблицы будут "
+                          "брать данные из первого из них." % target_code)
+            rebind = messagebox.askyesno(
+                "Перенос комплекта",
+                "Комплект %s — первый у шкафа %s, из него собираются "
+                "таблицы.\nПерепривязать эти таблицы к шкафу %s?%s"
+                % (kit.get("number"), source_code, target_code, detail),
+                parent=self)
+        replacement = None
+        if was_source and not rebind:
+            replacement = st.identical_replacement(self.data, kit, cabinet)
+            if replacement[0] is not cabinet:
+                messagebox.showwarning(
+                    "Перенос комплекта",
+                    "В шкафу %s нет другого комплекта с той же группой "
+                    "«Идентичны». Перепривязать таблицы к шкафу %s или "
+                    "отменить перенос." % (source_code, target_code),
+                    parent=self)
+                return
+
+        def action():
+            st.move_kit(kit, cabinet, target)
+            if rebind:
+                st.rebind_tables(self.data, source_code, target_code)
+            elif replacement is not None and replacement[0] is not None:
+                st.promote_kit(replacement[0], replacement[1])
+            return kit
+
+        if self._mutate(action, select_item=kit):
+            if rebind:
+                self.status.config(text="Комплект перенесён, таблицы "
+                                        "привязаны к шкафу %s" % target_code)
+            elif replacement is not None and replacement[0] is not None:
+                self.status.config(text="Комплект перенесён, таблицы "
+                                        "остались на шкафу %s (идентичный "
+                                        "комплект)" % source_code)
+
     def _choose_typical_kit(self):
         """Выбрать типовой комплект каталога. Возвращает dict или None."""
         kits = komplekts.typical_komplekts()
@@ -2820,6 +2907,16 @@ class StandardEditorWindow(tk.Toplevel):
             return
         issues = st.delete_issues(self.data, item, kind)
         rebind = None
+        cabinet = None
+        replacement = None
+        if kind == "kit" and parent_iid in self._owners:
+            cabinet = self._owners[parent_iid][1]
+            if st.kit_feeds_tables(self.data, item, cabinet):
+                replacement_cabinet, replacement_kit = \
+                    st.identical_replacement(self.data, item, cabinet)
+                if replacement_cabinet is not None:
+                    replacement = (replacement_cabinet, replacement_kit)
+                    issues = []      # есть идентичный комплект-замена
         if issues and kind == "cabinet":
             rebind = self._ask_rebind(item)
             if rebind is not None:
@@ -2848,13 +2945,28 @@ class StandardEditorWindow(tk.Toplevel):
                        if parent_iid in self._owners else None)
 
         def action():
+            if replacement is not None:
+                replacement_cabinet, replacement_kit = replacement
+                st.promote_kit(replacement_cabinet, replacement_kit)
+                if cabinet is not None and replacement_cabinet is not cabinet:
+                    st.rebind_tables(self.data, cabinet.get("cypher"),
+                                     replacement_cabinet.get("cypher"))
             if rebind is not None:
                 st.rebind_tables(self.data, item.get("cypher"),
                                  rebind.get("cypher"))
             st.remove(container, item)
             return None
 
-        self._mutate(action, select_item=parent_item)
+        if self._mutate(action, select_item=parent_item) \
+                and replacement is not None and cabinet is not None:
+            replacement_cabinet = replacement[0]
+            if replacement_cabinet is cabinet:
+                text = ("Комплект заменён идентичным — таблицы остались "
+                        "на шкафу %s" % cabinet.get("cypher"))
+            else:
+                text = ("Таблицы перепривязаны к шкафу %s (идентичный "
+                        "комплект)" % replacement_cabinet.get("cypher"))
+            self.status.config(text=text)
 
     # -------------------------------------------------- контекстное меню
     def _group_menu(self, group):
@@ -2937,8 +3049,12 @@ class StandardEditorWindow(tk.Toplevel):
                 None, ("Удалить шкаф", lambda: self._delete_node(iid)),
             ]
         if kind == "kit":
-            return [("Добавить ИЭУ…", lambda: self._add_ied(iid)),
-                    None, ("Удалить комплект", lambda: self._delete_node(iid))]
+            return [
+                ("Добавить ИЭУ…", lambda: self._add_ied(iid)),
+                ("Дублировать комплект", lambda: self._duplicate_kit(iid)),
+                ("Переместить в другой шкаф…", lambda: self._move_kit(iid)),
+                None, ("Удалить комплект", lambda: self._delete_node(iid)),
+            ]
         if kind == "table":
             items = []
             if node[1].get("cabinet"):

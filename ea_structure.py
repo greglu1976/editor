@@ -267,6 +267,7 @@ def new_kit(data, cabinet, number=None):
         "type": "ИЭУ",
         "tag": "",
         "group": "",
+        "identical": "",
         "ieds": [],
     }
 
@@ -541,9 +542,9 @@ def copy_figure(figure, container, number=None, base=""):
     return clone
 
 
-def _unique_copy_name(container, name):
+def _unique_copy_name(container, name, key="name"):
     """Имя копии узла: «(копия)», при повторе — «(копия 2)» и далее."""
-    existing = {str(item.get("name") or "") for item in container
+    existing = {str(item.get(key) or "") for item in container
                 if isinstance(item, dict)}
     base = str(name or "").strip() or "Копия"
     candidate = base + " (копия)"
@@ -600,6 +601,18 @@ def duplicate_node(item, container):
     return clone
 
 
+def copy_kit(kit, cabinet, number=None):
+    """Скопировать комплект в шкаф, сохранив группу «Идентичны»."""
+    clone = copy.deepcopy(kit)
+    kits = cabinet.setdefault("kits", [])
+    clone["number"] = _as_number(
+        number if number is not None else next_number(kits))
+    clone["description"] = _unique_copy_name(
+        kits, clone.get("description"), key="description")
+    add(kits, clone)
+    return clone
+
+
 # ---------------------------------------------------------------------------
 # Привязка таблиц к шкафу
 # ---------------------------------------------------------------------------
@@ -625,6 +638,66 @@ def rebind_tables(data, old, new):
             rebind_table(table, new)
             count += 1
     return count
+
+
+# ---------------------------------------------------------------------------
+# Идентичные комплекты и перенос между шкафами
+# ---------------------------------------------------------------------------
+def kit_feeds_tables(data, kit, cabinet):
+    """Первый комплект шкафа, из которого собираются его таблицы."""
+    kits = cabinet.get("kits") or []
+    if not kits or kits[0] is not kit:
+        return False
+    code = cabinet.get("cypher")
+    return any(table.get("cabinet") == code for table in es.iter_tables(data))
+
+
+def identical_replacement(data, kit, cabinet=None):
+    """Другой комплект той же непустой группы «Идентичны».
+
+    Сначала ищется в том же шкафу, затем в остальных. Возвращает
+    ``(шкаф, комплект)`` или ``(None, None)``.
+    """
+    group = str(kit.get("identical") or "").strip()
+    if not group:
+        return None, None
+    if cabinet is not None:
+        for other in cabinet.get("kits") or []:
+            if other is not kit and \
+                    str(other.get("identical") or "").strip() == group:
+                return cabinet, other
+    for other_cabinet in es.cabinets(data):
+        if other_cabinet is cabinet:
+            continue
+        for other in other_cabinet.get("kits") or []:
+            if other is not kit and \
+                    str(other.get("identical") or "").strip() == group:
+                return other_cabinet, other
+    return None, None
+
+
+def promote_kit(cabinet, kit):
+    """Сделать комплект первым: таблицы шкафа собираются из первого."""
+    kits = cabinet.setdefault("kits", [])
+    if not any(value is kit for value in kits):
+        raise StructureError("комплект не найден в шкафу")
+    if kits[0] is not kit:
+        remove(kits, kit)
+        kits.insert(0, kit)
+    return kit
+
+
+def move_kit(kit, source, target, number=None):
+    """Перенести комплект в другой шкаф, сохранив группу «Идентичны»."""
+    kits = source.get("kits") or []
+    if not any(value is kit for value in kits):
+        raise StructureError("комплект не найден в шкафу")
+    remove(kits, kit)
+    target_kits = target.setdefault("kits", [])
+    kit["number"] = _as_number(
+        number if number is not None else next_number(target_kits))
+    add(target_kits, kit)
+    return kit
 
 
 # ---------------------------------------------------------------------------
@@ -665,8 +738,10 @@ def delete_issues(data, node, kind):
             used = ((kind == "kit" and kits and node is kits[0])
                     or (kind == "ied" and node is first_ied))
             if linked and used:
-                issues.append("этот %s — первый у шкафа, от него зависят "
-                              "таблицы: %s. Сначала удалите таблицы."
-                              % ("комплект" if kind == "kit" else "ИЭУ",
-                                 ", ".join(linked[:8])))
+                issues.append(
+                    "этот %s — первый у шкафа, от него зависят таблицы: %s. "
+                    "Укажите у другого комплекта ту же группу «Идентичны» "
+                    "или сначала удалите/перепривяжите таблицы."
+                    % ("комплект" if kind == "kit" else "ИЭУ",
+                       ", ".join(linked[:8])))
     return issues

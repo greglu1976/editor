@@ -1437,6 +1437,92 @@ def test_editor_drag_reorder():
         root.destroy()
 
 
+def test_kit_identity():
+    """Пункт 28: идентичные комплекты, перенос и замена у шкафа."""
+    print("10в. идентичные комплекты и перепривязка таблиц")
+    if tk is None:
+        print("  --   tkinter нет: проверка пропущена")
+        return
+    try:
+        import ea_editor
+        import ea_structure as st
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "редактор стандарта: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    window = None
+    try:
+        window = ea_editor.show(path, root)
+        data = window.data
+        cab_a = st.new_cabinet(data, cypher="ШЭТ 900-1", name="Шкаф A")
+        cab_b = st.new_cabinet(data, cypher="ШЭТ 900-2", name="Шкаф B")
+        st.add(data.setdefault("cabinets", []), cab_a)
+        st.add(data["cabinets"], cab_b)
+        kit_a1 = st.new_kit(data, cab_a)
+        kit_a2 = st.new_kit(data, cab_a)
+        kit_a1["identical"] = "группа 900"
+        kit_a2["identical"] = "группа 900"
+        st.add(cab_a["kits"], kit_a1)
+        st.add(cab_a["kits"], kit_a2)
+        table = st.new_table(data, {
+            "name": "Входные аналоговые измерения шкафа ШЭТ 900-1",
+            "cabinet": "ШЭТ 900-1", "kind": "analog_inputs"})
+        st.add(data["sections"][0].setdefault("tables", []), table)
+        window._fill_tree()
+        root.update()
+
+        original_confirm = ea_editor.messagebox.askyesno
+        original_warning = ea_editor.messagebox.showwarning
+        warnings = []
+        ea_editor.messagebox.askyesno = lambda *args, **kwargs: True
+        ea_editor.messagebox.showwarning = lambda *args, **kwargs: \
+            warnings.append(args)
+        try:
+            # Удаление первого комплекта: заменяет идентичный того же шкафа.
+            window._delete_node(window._find_iid(kit_a1))
+            root.update()
+        finally:
+            ea_editor.messagebox.askyesno = original_confirm
+            ea_editor.messagebox.showwarning = original_warning
+        check(not warnings
+              and not any(value is kit_a1 for value in cab_a["kits"])
+              and cab_a["kits"][0] is kit_a2
+              and table["cabinet"] == "ШЭТ 900-1",
+              "первый комплект удалён, таблицы остались на шкафу")
+
+        # Перенос первого комплекта в другой шкаф с перепривязкой таблиц.
+        original_choose = window._choose_cabinet
+        window._choose_cabinet = lambda *args, **kwargs: cab_b
+        ea_editor.messagebox.askyesno = lambda *args, **kwargs: True
+        try:
+            window._move_kit(window._find_iid(kit_a2))
+            root.update()
+        finally:
+            window._choose_cabinet = original_choose
+            ea_editor.messagebox.askyesno = original_confirm
+        check(cab_a["kits"] == [] and cab_b["kits"] == [kit_a2]
+              and table["cabinet"] == "ШЭТ 900-2",
+              "комплект перенесён, таблицы привязаны к новому шкафу")
+
+        # Копия комплекта сохраняет группу «Идентичны».
+        window._duplicate_kit(window._find_iid(kit_a2))
+        root.update()
+        copy = cab_b["kits"][-1]
+        check(copy is not kit_a2 and copy["identical"] == "группа 900"
+              and copy["number"] == 2,
+              "копия комплекта сохранила группу «Идентичны»")
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "идентичные комплекты: %s" % exc)
+    finally:
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
 def test_structure_ops(data):
     """Добавление/удаление узлов без GUI (ea_structure)."""
     print("11. структурные операции (ea_structure)")
@@ -1604,6 +1690,43 @@ def test_structure_ops(data):
         check(True, "пункт нельзя вложить в пункт")
     else:
         check(False, "пункт нельзя вложить в пункт")
+
+    # Пункт 28: идентичные комплекты и перенос между шкафами.
+    cab_a = st.new_cabinet(clone, cypher="ШЭТ 900-1", name="Шкаф A")
+    cab_b = st.new_cabinet(clone, cypher="ШЭТ 900-2", name="Шкаф B")
+    st.add(clone["cabinets"], cab_a)
+    st.add(clone["cabinets"], cab_b)
+    kit_a1 = st.new_kit(clone, cab_a)
+    kit_a2 = st.new_kit(clone, cab_a)
+    kit_a1["identical"] = "группа 900"
+    kit_a2["identical"] = "группа 900"
+    st.add(cab_a["kits"], kit_a1)
+    st.add(cab_a["kits"], kit_a2)
+    check(kit_a1["identical"] == kit_a2["identical"],
+          "комплекты можно пометить одной группой «Идентичны»")
+    table = st.new_table(clone, {
+        "name": "Входные аналоговые измерения шкафа ШЭТ 900-1",
+        "cabinet": "ШЭТ 900-1", "kind": "analog_inputs"})
+    st.add(section["tables"], table)
+    check(st.kit_feeds_tables(clone, kit_a1, cab_a),
+          "первый комплект шкафа питает таблицы")
+    check(not st.kit_feeds_tables(clone, kit_a2, cab_a),
+          "второй комплект таблицы не питает")
+    repl_cabinet, repl_kit = st.identical_replacement(clone, kit_a1, cab_a)
+    check(repl_cabinet is cab_a and repl_kit is kit_a2,
+          "найдена замена того же шкафа")
+    st.promote_kit(cab_a, kit_a2)
+    check(cab_a["kits"][0] is kit_a2, "идентичный комплект стал первым")
+    st.move_kit(kit_a1, cab_a, cab_b)
+    check(cab_a["kits"] == [kit_a2] and cab_b["kits"] == [kit_a1]
+          and kit_a1["number"] == 1,
+          "комплект перенесён в другой шкаф с новым номером")
+    check(kit_a1["identical"] == "группа 900",
+          "группа «Идентичны» сохранена при переносе")
+    copy = st.copy_kit(kit_a1, cab_b)
+    check(copy is not kit_a1 and copy["identical"] == kit_a1["identical"]
+          and copy["number"] == 2 and "копия" in copy["description"],
+          "копия комплекта сохраняет группу «Идентичны»")
 
 
 def test_merge_all_cabinets():
@@ -2490,6 +2613,7 @@ def main(argv=None):
         test_editor()
         test_editor_drag_reorder()
         test_editor_fields()
+        test_kit_identity()
     print("")
     if FAILURES:
         print("ПРОВАЛЕНО: %d" % len(FAILURES))
