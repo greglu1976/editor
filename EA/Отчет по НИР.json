@@ -2616,18 +2616,18 @@
           ],
           "figures": [
             {
+              "number": "5.2",
+              "name": "Эскиз общего вида ШЭТ 431.21-1",
+              "reference": "Рисунок 5.2",
+              "scheme": "C:/WWWW/www_ai/1.png",
+              "format": "",
+              "orientation": ""
+            },
+            {
               "number": "5.1",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 431.21-1",
               "reference": "Рисунок 5.1",
               "scheme": "C:/WWWW/www_ai/schemes/Поясн рисунок БСК без ЗНjson.json",
-              "format": "A4",
-              "orientation": "книжная"
-            },
-            {
-              "number": "5.2",
-              "name": "Эскиз общего вида ШЭТ 431.21-1",
-              "reference": "Рисунок 5.2",
-              "scheme": "G:/editor/logic_scheme.png",
               "format": "",
               "orientation": ""
             }
