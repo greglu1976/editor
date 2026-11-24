@@ -2338,7 +2338,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 0
             },
             {
               "number": "5.3",
@@ -2357,7 +2358,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 2
             },
             {
               "number": "5.4",
@@ -2375,7 +2377,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 3
             },
             {
               "number": "5.5",
@@ -2395,7 +2398,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 4
             },
             {
               "number": "5.6",
@@ -2414,7 +2418,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 5
             },
             {
               "number": "5.7",
@@ -2432,7 +2437,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 6
             },
             {
               "number": "5.8",
@@ -2453,7 +2459,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 7
             },
             {
               "number": "5.9",
@@ -2471,7 +2478,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 8
             },
             {
               "number": "5.10",
@@ -2508,7 +2516,8 @@
                   "is_header_second_row": true
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 9
             },
             {
               "number": "5.11",
@@ -2527,7 +2536,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 10
             },
             {
               "number": "5.12",
@@ -2544,7 +2554,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 11
             },
             {
               "number": "5.13",
@@ -2562,7 +2573,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 12
             },
             {
               "number": "5.14",
@@ -2593,7 +2605,8 @@
                   "is_header_second_row": true
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 13
             },
             {
               "number": "5.15",
@@ -2611,25 +2624,28 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "order": 14
             }
           ],
           "figures": [
-            {
-              "number": "5.2",
-              "name": "Эскиз общего вида ШЭТ 431.21-1",
-              "reference": "Рисунок 5.2",
-              "scheme": "C:/WWWW/www_ai/1.png",
-              "format": "",
-              "orientation": ""
-            },
             {
               "number": "5.1",
               "name": "Поясняющие схемы подключения ИЭУ шкафа ШЭТ 431.21-1",
               "reference": "Рисунок 5.1",
               "scheme": "C:/WWWW/www_ai/schemes/Поясн рисунок БСК без ЗНjson.json",
               "format": "",
-              "orientation": ""
+              "orientation": "",
+              "order": 1
+            },
+            {
+              "number": "5.2",
+              "name": "Эскиз общего вида ШЭТ 431.21-1",
+              "reference": "Рисунок 5.2",
+              "scheme": "C:/WWWW/www_ai/1.png",
+              "format": "",
+              "orientation": "",
+              "order": 15
             }
           ],
           "content": ""
