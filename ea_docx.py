@@ -20,7 +20,9 @@
 
 Если в реквизите ``title_page`` указан DOCX титульного листа, он берётся
 за основу без очистки: готовое содержимое остаётся первым, а сгенерированный
-отчёт добавляется после него новой секцией (альбомная A4, поля 1,5 см).
+отчёт добавляется после него новой секцией (книжная A4, поля 1,5 см).
+Колонтитулы титула в отчёт не переносятся: в верхнем колонтитуле новой
+секции продолжается нумерация страниц, нижний остаётся пустым.
 
     python ea_docx.py --out "Отчет.docx"
     python ea_docx.py --file "EA/....json" --out "Отчет.docx" --max-rows 50
@@ -294,10 +296,42 @@ def _toc(doc):
     _field(paragraph, r'TOC \o "1-2" \h \z \u')
 
 
-def _page_number(section):
-    paragraph = section.footer.paragraphs[0]
+def _page_number_in(part):
+    """Поле PAGE в колонтитуле: номер продолжает нумерацию документа."""
+    paragraph = part.paragraphs[0]
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
     _field(paragraph, "PAGE")
+
+
+def _page_number(section):
+    _page_number_in(section.footer)
+
+
+def _report_after_title(doc):
+    """Секция отчёта после готового титульного DOCX.
+
+    Страница — книжная A4 с полями 1,5 см. Колонтитулы титула (логотип,
+    подпись отчёта) не наследуются: в верхнем колонтитуле новой секции
+    стоит поле PAGE, поэтому нумерация продолжается от титула, а не
+    начинается заново. ``titlePg`` убирается — иначе первая страница
+    отчёта взяла бы «особый колонтитул первой страницы» титула; ``pgNumType``
+    тоже, иначе унаследованный от титула сброс нумерации начал бы её с 1.
+    """
+    section = doc.add_section(WD_SECTION.NEW_PAGE)
+    section.orientation = WD_ORIENT.PORTRAIT
+    section.page_width = Cm(21.0)
+    section.page_height = Cm(29.7)
+    for name in ("left_margin", "right_margin", "top_margin",
+                 "bottom_margin"):
+        setattr(section, name, Cm(1.5))
+    for tag in ("w:titlePg", "w:pgNumType"):
+        element = section._sectPr.find(qn(tag))
+        if element is not None:
+            section._sectPr.remove(element)
+    section.header.is_linked_to_previous = False
+    _page_number_in(section.header)
+    section.footer.is_linked_to_previous = False
+    return section
 
 
 # ---------------------------------------------------------------------------
@@ -493,7 +527,7 @@ def _render_table(doc, data, table, max_rows, counters, references):
 # ---------------------------------------------------------------------------
 # Рисунки со схемами редактора
 # ---------------------------------------------------------------------------
-#: Максимальная ширина картинки схемы в документе, см (лист А4 альбомный).
+#: Максимальная ширина картинки схемы в документе, см (лист А4).
 SCHEME_WIDTH_CM = 24.0
 #: Форматы страницы, которые можно задать в поле «Формат» рисунка.
 PAGE_FORMATS_CM = {"A5": (14.8, 21.0), "A4": (21.0, 29.7),
@@ -791,15 +825,7 @@ def build(data, path, toc=True, max_rows=0):
         doc = Document(title)
         skip_paragraphs = sum(1 for _ in doc.element.body.iter(qn("w:p")))
         _setup(doc, layout=False)
-        section = doc.add_section(WD_SECTION.NEW_PAGE)
-        section.orientation = WD_ORIENT.LANDSCAPE
-        section.page_width = Cm(29.7)
-        section.page_height = Cm(21.0)
-        for name in ("left_margin", "right_margin", "top_margin",
-                     "bottom_margin"):
-            setattr(section, name, Cm(1.5))
-        section.footer.is_linked_to_previous = False
-        _page_number(section)
+        _report_after_title(doc)
     else:
         template = template_path(folder)
         if template:

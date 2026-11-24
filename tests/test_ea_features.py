@@ -2280,11 +2280,28 @@ def test_title_page_before_report(data):
     except ImportError:            # pragma: no cover
         print("  --   python-docx нет: проверка пропущена")
         return
+    from docx.enum.section import WD_ORIENT
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
     folder = tempfile.mkdtemp()
     title = os.path.join(folder, "my_title.docx")
     source = Document()
     source.add_paragraph("ТИТУЛЬНЫЙ ЛИСТ")
     source.add_paragraph("Титул: Таблица 5.1")
+    # Колонтитулы титула не должны попасть в отчёт.
+    title_section = source.sections[0]
+    title_section.header.is_linked_to_previous = False
+    title_section.header.paragraphs[0].text = "КОЛОНТИТУЛ ТИТУЛА"
+    title_section.footer.is_linked_to_previous = False
+    title_section.footer.paragraphs[0].text = "ПОДПИСЬ ТИТУЛА"
+    # Титул может сбрасывать нумерацию — отчёт всё равно её продолжает.
+    pg_num = OxmlElement("w:pgNumType")
+    pg_num.set(qn("w:start"), "1")
+    title_section._sectPr.insert_element_before(
+        pg_num, "w:cols", "w:formProt", "w:vAlign", "w:noEndnote",
+        "w:titlePg", "w:textDirection", "w:bidi", "w:rtlGutter",
+        "w:docGrid", "w:printerSettings", "w:sectPrChange")
     source.save(title)
 
     clone = copy.deepcopy(data)
@@ -2311,6 +2328,30 @@ def test_title_page_before_report(data):
                          if paragraph.text.startswith("Титул:"))
     check("REF" not in title_mention._p.xml,
           "текст готового титула не переписывается")
+
+    report = doc.sections[-1]
+    check(report.orientation == WD_ORIENT.PORTRAIT,
+          "отчёт после титула идёт в книжной ориентации")
+    check(abs(report.page_width.cm - 21.0) < 0.01
+          and abs(report.page_height.cm - 29.7) < 0.01,
+          "отчёт после титула — A4: %.1f×%.1f см"
+          % (report.page_width.cm, report.page_height.cm))
+    check(report._sectPr.find(qn("w:titlePg")) is None,
+          "у отчёта нет особого колонтитула первой страницы титула")
+    check(not report.header.is_linked_to_previous,
+          "верхний колонтитул отчёта не наследуется от титула")
+    check(not report.footer.is_linked_to_previous,
+          "нижний колонтитул отчёта не наследуется от титула")
+    header_xml = report.header._element.xml
+    check("PAGE" in header_xml, "в верхнем колонтитуле отчёта поле PAGE")
+    check("КОЛОНТИТУЛ ТИТУЛА" not in header_xml,
+          "логотип и текст титула не попали в верхний колонтитул")
+    footer_text = "\n".join(paragraph.text
+                            for paragraph in report.footer.paragraphs)
+    check("ПОДПИСЬ ТИТУЛА" not in footer_text,
+          "подпись титула не попала в нижний колонтитул")
+    check(report._sectPr.find(qn("w:pgNumType")) is None,
+          "нумерация страниц отчёта продолжается от титула")
 
 
 def test_report_tables_font():
