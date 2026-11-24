@@ -125,7 +125,14 @@ def catalog(paths=None, use_cache=True):
     пока файлы не изменились. При совпадении шифров побеждает первый файл
     по порядку ``es.files()``.
     """
-    paths = list(paths) if paths is not None else es.files()
+    explicit = paths is not None
+    paths = list(paths) if explicit else es.files()
+    if not explicit:
+        # Отчёты НИР содержат те же шифры, что и том 5, но по имени идут
+        # раньше. При дедупликации по шифру они перехватывали бы шкафы
+        # настоящего тома, и в каталоге пропадала бы метка «т. 5».
+        paths = sorted(paths, key=lambda path: (
+            not _VOLUME.search(os.path.basename(path)), path))
     key = _cache_key(paths)
     if use_cache and _CACHE["key"] == key and _CACHE["entries"] is not None:
         return list(_CACHE["entries"])

@@ -12139,7 +12139,7 @@
           "group": "СКРМ",
           "ieds": [
             {
-              "number": "2",
+              "number": 2,
               "analog_inputs": [
                 {
                   "circuit_type": "Ia, Ib, Ic",

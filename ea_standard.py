@@ -86,9 +86,26 @@ def folder():
     return FOLDER
 
 
+def is_standard(path):
+    """Отличить стандарт EA от лежащего рядом JSON другой формы.
+
+    В папке стандартов могут оказаться, например, файлы схем ФЛС
+    (``elements`` / ``connections`` / ``logic_links``): у настоящего
+    стандарта есть дерево документа ``sections`` или шкафы ``cabinets``.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return False
+    return isinstance(data, dict) and ("sections" in data
+                                       or "cabinets" in data)
+
+
 def files():
     """Список JSON стандартов в папке (по имени файла)."""
-    return sorted(glob.glob(os.path.join(FOLDER, "*.json")))
+    return [path for path in sorted(glob.glob(os.path.join(FOLDER, "*.json")))
+            if is_standard(path)]
 
 
 def available():
