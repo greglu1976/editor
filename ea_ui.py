@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """Окно стандартов СТО в структуре EA для редактора схем.
 
-Показывает дерево документа (разделы → подразделы → пункты → таблицы) и
-шкафы с комплектами и ИЭУ. Строки таблиц не хранятся в документе: они
-собираются из шкафа через :func:`ea_standard.table_view`, поэтому в окне
-видно ровно то, что лежит в ``cabinets``.
+Показывает дерево документа (разделы, подразделы, пункты, подпункты,
+таблицы и рисунки) и шкафы с комплектами и ИЭУ. Пункты, таблицы и рисунки
+внутри контейнера идут в общем порядке ``ea_structure.ordered_items()`` —
+том же, что используют редактор и выгрузка DOCX. Строки таблиц не хранятся
+в документе: они собираются из шкафа через :func:`ea_standard.table_view`,
+поэтому в окне видно ровно то, что лежит в ``cabinets``.
 
 Из окна шкаф можно поставить на схему («На схему»), а комплект — добавить в
 выбранный на схеме шкаф («Комплект → в шкаф»). Шкаф при этом один раз
@@ -29,6 +31,7 @@ import ea_editor
 import ea_merge as em
 import ea_new_standard as ns
 import ea_standard as es
+import ea_structure as st
 import komplekts
 import ui_theme
 
@@ -242,18 +245,14 @@ class EAStandardWindow(tk.Toplevel):
             node = self.tree.insert(root, tk.END, text=title.strip(), open=False)
             self._nodes[node] = ("text", section.get("header", ""),
                                  section.get("content", ""))
-            self._add_tables(node, section)
-            for clause in section.get("clauses") or []:
-                self._add_clause(node, clause)
+            self._add_items(node, section)
             for sub in section.get("subsections") or []:
                 sub_node = self.tree.insert(
                     node, tk.END,
                     text="%s %s" % (sub.get("number", ""), sub.get("header", "")),
                     open=False)
                 self._nodes[sub_node] = ("text", sub.get("header", ""), "")
-                self._add_tables(sub_node, sub)
-                for clause in sub.get("clauses") or []:
-                    self._add_clause(sub_node, clause)
+                self._add_items(sub_node, sub)
         cabinets_node = self.tree.insert("", tk.END, text="Шкафы", open=True)
         for item in es.cabinets(self._data):
             code = item.get("cypher", "")
@@ -294,21 +293,32 @@ class EAStandardWindow(tk.Toplevel):
             self._nodes[fb_node] = ("fb_entry", entry)
         self._update_actions(None)
 
-    def _add_tables(self, parent, container):
-        for table in container.get("tables") or []:
-            label = "%s %s" % (table.get("reference") or "Таблица",
-                               table.get("name") or "")
-            node = self.tree.insert(parent, tk.END, text=label.strip())
-            self._nodes[node] = ("table", table)
+    def _add_items(self, parent, container):
+        """Пункты, подпункты, таблицы и рисунки в порядке документа."""
+        for kind, item in st.ordered_items(container):
+            if kind == "table":
+                label = "%s %s" % (item.get("reference") or "Таблица",
+                                   item.get("name") or "")
+                node = self.tree.insert(parent, tk.END, text=label.strip())
+                self._nodes[node] = ("table", item)
+            elif kind == "figure":
+                label = "%s %s" % (item.get("reference") or "Рисунок",
+                                   item.get("name") or "")
+                node = self.tree.insert(parent, tk.END, text=label.strip())
+                self._nodes[node] = ("figure", item)
+            elif kind == "clause":
+                self._add_clause(parent, item, "Пункт")
+            else:
+                self._add_clause(parent, item, "Подпункт")
 
-    def _add_clause(self, parent, clause):
+    def _add_clause(self, parent, clause, word="Пункт"):
         text = clause.get("content") or ""
         title = "%s %s" % (clause.get("number", ""),
                            text.split("\n")[0][:90])
         node = self.tree.insert(parent, tk.END, text=title.strip())
-        self._nodes[node] = ("text", "Пункт %s" % clause.get("number", ""),
+        self._nodes[node] = ("text", "%s %s" % (word, clause.get("number", "")),
                              text)
-        self._add_tables(node, clause)
+        self._add_items(node, clause)
 
     # ------------------------------------------------------------- показ
     def _show(self):
@@ -321,6 +331,8 @@ class EAStandardWindow(tk.Toplevel):
         self._update_actions(kind)
         if kind == "table":
             self._show_table(node[1])
+        elif kind == "figure":
+            self._show_figure(node[1])
         elif kind == "cabinet":
             self._show_cabinet(node[1])
         elif kind == "kit":
@@ -363,6 +375,27 @@ class EAStandardWindow(tk.Toplevel):
         code = table.get("cabinet")
         note = ("Данные из шкафа %s" % code) if code else "Таблица документа"
         self.status.config(text="%s — строк %d" % (note, len(rows)))
+
+    def _show_figure(self, figure):
+        """Карточка рисунка: подпись и параметры, без изменения данных."""
+        reference = str(figure.get("reference") or "Рисунок").strip()
+        name = str(figure.get("name") or "").strip()
+        caption = ("%s — %s" % (reference, name)) if name else reference
+        scheme = str(figure.get("scheme") or "").strip()
+        path = scheme
+        if scheme and not os.path.isabs(scheme):
+            path = os.path.join(es.folder(), scheme)
+        rows = [
+            ["Номер", str(figure.get("number") or "—")],
+            ["Наименование", name or "—"],
+            ["Ссылка", reference],
+            ["Файл схемы", scheme or "—"],
+            ["Файл", "есть" if path and os.path.isfile(path) else "нет"],
+            ["Формат страницы", str(figure.get("format") or "по умолчанию")],
+            ["Ориентация", str(figure.get("orientation") or "по умолчанию")],
+        ]
+        self._show_card(caption, ["Параметр", "Значение"], rows)
+        self.status.config(text=caption)
 
     def _show_grid(self, caption, headers, rows):
         """Таблица с обеими прокрутками: ширина колонок по содержимому."""

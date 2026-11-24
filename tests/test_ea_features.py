@@ -2782,6 +2782,87 @@ def test_block_order_in_report():
           "отчёт выводит пункт и подпункт над таблицами и рисунком")
 
 
+def test_block_order_in_viewer():
+    """Пункт 34: просмотрщик повторяет общий порядок редактора."""
+    print("34. порядок пунктов, таблиц и рисунков в просмотрщике")
+    if tk is None:
+        print("  --   tkinter нет: проверка пропущена")
+        return
+    import ea_ui
+    import ea_structure as st
+
+    class App:
+        def __init__(self, root):
+            self.root = root
+
+    root = tk.Tk()
+    root.withdraw()
+    window = None
+    try:
+        window = ea_ui.show(App(root), REFERENCE)
+        root.update()
+
+        sub_table = {"name": "В подпункте", "reference": "Таблица 4"}
+        sub = {"number": "1.1.1", "content": "Подпункт",
+               "tables": [sub_table], "figures": []}
+        clause_table = {"name": "В пункте", "reference": "Таблица 3"}
+        clause = {"number": "1.1", "content": "Пункт",
+                  "tables": [clause_table], "figures": [],
+                  "subclauses": [sub]}
+        section = {"number": "1", "header": "Раздел", "content": "",
+                   "subsections": [], "clauses": [clause],
+                   "tables": [{"name": "Первая", "reference": "Таблица 1"},
+                              {"name": "Вторая", "reference": "Таблица 2"}],
+                   "figures": []}
+        figure = st.new_figure({"sections": [section]}, section,
+                               number="1", name="Схема")
+        section["figures"] = [figure]
+        data = {"code": "Проверка", "sections": [section],
+                "cabinets": [], "functional_blocks": []}
+        st.move_item("clause", clause, section["clauses"], section,
+                     anchor=section["tables"][0], after=False)
+        st.move_item("subclause", sub, clause["subclauses"], clause,
+                     anchor=clause_table, after=False)
+
+        window._data = data
+        window._fill_tree()
+        root.update()
+        document = next(
+            iid for iid in window.tree.get_children("")
+            if window.tree.item(iid, "text") == "Проверка")
+        section_iid = window.tree.get_children(document)[0]
+        labels = [window.tree.item(iid, "text").strip()
+                  for iid in window.tree.get_children(section_iid)]
+        check(labels == ["1.1 Пункт", "Таблица 1 Первая",
+                         "Таблица 2 Вторая", "Рисунок 1 Схема"],
+              "пункт, таблицы и рисунок идут в общем порядке: %s" % labels)
+        clause_iid = window.tree.get_children(section_iid)[0]
+        nested = [window.tree.item(iid, "text").strip()
+                  for iid in window.tree.get_children(clause_iid)]
+        check(nested == ["1.1.1 Подпункт", "Таблица 3 В пункте"],
+              "внутри пункта подпункт идёт перед таблицей: %s" % nested)
+        sub_iid = window.tree.get_children(clause_iid)[0]
+        check([window.tree.item(iid, "text").strip()
+               for iid in window.tree.get_children(sub_iid)]
+              == ["Таблица 4 В подпункте"],
+              "таблица подпункта показана внутри подпункта")
+
+        figure_iid = next(
+            iid for iid, node in window._nodes.items()
+            if node[0] == "figure" and node[1] is figure)
+        window.tree.selection_set(figure_iid)
+        window._show()
+        root.update()
+        check(window.caption.cget("text") == "Рисунок 1 — Схема",
+              "рисунок открывается карточкой в просмотрщике")
+        check(len(window.table.get_children()) >= 6,
+              "карточка рисунка заполнена")
+    finally:
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
 def sc_missing(cls, key):
     """Есть ли поле ``key`` у класса ``cls`` в схеме structure2?"""
     import ea_schema as sc
@@ -3128,6 +3209,7 @@ def main(argv=None):
     test_block_order_in_report()
     if not args.no_gui:
         test_gui(data)
+        test_block_order_in_viewer()
         test_fields()
         test_editor()
         test_editor_drag_reorder()
