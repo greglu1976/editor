@@ -1,8 +1,8 @@
 {
   "name": "Типовые шкафы ШЭТ РЗА шунтирующих реакторов, компенсационных реакторов и батарей статических конденсаторов 110-750 кВ. Архитектура II типа",
-  "code": "Отчет о НИР",
+  "code": "СТО (проект) Раздел 4.16, т. 5, ред. 2",
   "property": "ПАО «Россети»",
-  "date": "24.11.2026",
+  "date": "",
   "sections": [
     {
       "number": "",
@@ -2117,16 +2117,14 @@
               "content": "Шкаф защит БСК 110–330 кВ (дифференциальная токовая защита и дифференциальная токовая защита нулевой последовательности, резервные токовые защиты, защиты по напряжению, защита от перегрузки, защита от внутренних повреждений и управление выключателем БСК).",
               "subclauses": [],
               "tables": [],
-              "figures": [],
-              "order": 0
+              "figures": []
             },
             {
               "number": "5.3.2",
               "content": "Описание шкафа ШЭТ 431.11-1 и ссылки на информационные материалы, определяющие типовые требования, приведены в таблице Таблица 5.2 -.",
               "subclauses": [],
               "tables": [],
-              "figures": [],
-              "order": 1
+              "figures": []
             }
           ],
           "tables": [
@@ -2345,8 +2343,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 2
+              "colums_width": []
             },
             {
               "number": "5.3",
@@ -2365,8 +2362,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 3
+              "colums_width": []
             },
             {
               "number": "5.4",
@@ -2384,8 +2380,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 4
+              "colums_width": []
             },
             {
               "number": "5.5",
@@ -2405,8 +2400,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 5
+              "colums_width": []
             },
             {
               "number": "5.6",
@@ -2425,8 +2419,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 6
+              "colums_width": []
             },
             {
               "number": "5.7",
@@ -2444,8 +2437,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 7
+              "colums_width": []
             },
             {
               "number": "5.8",
@@ -2466,8 +2458,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 8
+              "colums_width": []
             },
             {
               "number": "5.9",
@@ -2485,8 +2476,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 9
+              "colums_width": []
             },
             {
               "number": "5.10",
@@ -2523,8 +2513,7 @@
                   "is_header_second_row": true
                 }
               ],
-              "colums_width": [],
-              "order": 10
+              "colums_width": []
             },
             {
               "number": "5.11",
@@ -2543,8 +2532,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 11
+              "colums_width": []
             },
             {
               "number": "5.12",
@@ -2561,8 +2549,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 12
+              "colums_width": []
             },
             {
               "number": "5.13",
@@ -2580,8 +2567,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 13
+              "colums_width": []
             },
             {
               "number": "5.14",
@@ -2612,8 +2598,7 @@
                   "is_header_second_row": true
                 }
               ],
-              "colums_width": [],
-              "order": 14
+              "colums_width": []
             },
             {
               "number": "5.15",
@@ -2631,8 +2616,7 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 15
+              "colums_width": []
             }
           ],
           "figures": [
@@ -2642,8 +2626,7 @@
               "reference": "Рисунок 5.1",
               "scheme": "C:/WWWW/www_ai/schemes/220-13Н СКРМ.json",
               "format": "",
-              "orientation": "",
-              "order": 16
+              "orientation": ""
             },
             {
               "number": "5.2",
@@ -2651,8 +2634,7 @@
               "reference": "Рисунок 5.2",
               "scheme": "",
               "format": "",
-              "orientation": "",
-              "order": 17
+              "orientation": ""
             }
           ]
         },
@@ -3741,9 +3723,9 @@
           "tables": [
             {
               "number": "5.44",
-              "name": "Описание ШЭТ 431.12-1",
+              "name": "Описание ШЭТ 431.14-1",
               "reference": "Таблица 5.44",
-              "cabinet": "ШЭТ 431.12-1",
+              "cabinet": "ШЭТ 431.14-1",
               "rows": [
                 {
                   "content": [
@@ -5609,11 +5591,11 @@
       ],
       "kits": [
         {
-          "number": "1",
-          "description": "Комплект защит батареи статических конденсаторов",
+          "number": 1,
+          "description": "Комплект ИЭУ шкафа",
           "type": "ИЭУ",
-          "tag": "Отчет о НИР",
-          "group": "СКРМ",
+          "tag": "",
+          "group": "",
           "ieds": [
             {
               "number": 1,
@@ -12131,314 +12113,6 @@
               "scheme": ""
             }
           ]
-        },
-        {
-          "number": "2",
-          "description": "Комплект защит батареи статических конденсаторов",
-          "type": "ИЭУ",
-          "tag": "Отчет о НИР",
-          "group": "СКРМ",
-          "ieds": [
-            {
-              "number": "2",
-              "description": "",
-              "scheme": "",
-              "analog_inputs": [
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG1",
-                  "contacts_count": "6+1",
-                  "note": "Токи БСК"
-                },
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG2",
-                  "contacts_count": "6+1",
-                  "note": "Токи ОВ"
-                },
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG3",
-                  "contacts_count": "6+1",
-                  "note": "Токи нейтрали"
-                },
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG4",
-                  "contacts_count": "6+1",
-                  "note": "Токи средней перемычки"
-                },
-                {
-                  "circuit_type": "Iн",
-                  "test_block": "SG5",
-                  "contacts_count": "2+1",
-                  "note": "Ток в цепи заземления нейтрали"
-                },
-                {
-                  "circuit_type": "Ua, Ub, Uc",
-                  "test_block": "SG6",
-                  "contacts_count": "4+1",
-                  "note": "Напряжения «ВО-1»"
-                },
-                {
-                  "circuit_type": "Ua, Ub, Uc",
-                  "test_block": "SG7",
-                  "contacts_count": "4+1",
-                  "note": "Напряжения «ВО-2»"
-                },
-                {
-                  "circuit_type": "Ua, Ub, Uc",
-                  "test_block": "SG8",
-                  "contacts_count": "4+1",
-                  "note": "Напряжения «ВО-1» ОВ"
-                },
-                {
-                  "circuit_type": "Ua, Ub, Uc",
-                  "test_block": "SG9",
-                  "contacts_count": "4+1",
-                  "note": "Напряжения «ВО-2» ОВ"
-                }
-              ],
-              "osc_analog_signals": [],
-              "incoming_goose_signals": [],
-              "inner_discrete_circuits": [],
-              "datasets": [],
-              "ports": [],
-              "functional_buttons": [],
-              "leds": [],
-              "control_commands": [],
-              "function_blocks": [
-                {
-                  "name": "ДТЗ НП",
-                  "russian_path": "ДТЗ НП",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ДТЗ НП",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ДТЗ",
-                  "russian_path": "ДТЗ",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ДТЗ",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ЗВП",
-                  "russian_path": "ЗВП",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ЗВП",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ЗМН",
-                  "russian_path": "ЗМН",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ЗМН",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ЗНР",
-                  "russian_path": "ЗНР",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ЗНР",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ЗПВГ",
-                  "russian_path": "ЗПВГ",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ЗПВГ",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ЗПН",
-                  "russian_path": "ЗПН",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ЗПН",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "МТЗ",
-                  "russian_path": "МТЗ",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "МТЗ",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ТЗНП ВН",
-                  "russian_path": "ТЗНП ВН",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ТЗНП ВН",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ТЗНП НЕЙТР",
-                  "russian_path": "ТЗНП НЕЙТР",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ТЗНП НЕЙТР",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ТЗОП",
-                  "russian_path": "ТЗОП",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ТЗОП",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "УРОВ",
-                  "russian_path": "УРОВ",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "УРОВ",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
         }
       ],
       "containers": []
@@ -12906,7 +12580,7 @@
       ],
       "kits": [
         {
-          "number": 1,
+          "number": "1",
           "description": "Комплект ИЭУ шкафа",
           "type": "ИЭУ",
           "tag": "",
@@ -23553,10 +23227,11 @@
               "description": "",
               "scheme": ""
             }
-          ]
+          ],
+          "identical": "ШР330"
         },
         {
-          "number": 2,
+          "number": "2",
           "description": "Комплект ИЭУ шкафа",
           "type": "ИЭУ",
           "tag": "Невыпущенные СТО",
@@ -23899,7 +23574,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "identical": "ШР330"
         },
         {
           "number": "3",
@@ -24045,7 +23721,7 @@
               ]
             }
           ],
-          "identical": "1"
+          "identical": "КР"
         }
       ],
       "containers": []
@@ -33483,308 +33159,6 @@
               "scheme": ""
             }
           ]
-        },
-        {
-          "number": 2,
-          "description": "Комплект ИЭУ шкафа",
-          "type": "ИЭУ",
-          "tag": "Невыпущенные СТО",
-          "group": "СКРМ",
-          "ieds": [
-            {
-              "number": 1,
-              "description": "",
-              "scheme": "",
-              "analog_inputs": [
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG1",
-                  "contacts_count": "6+1",
-                  "note": "Токи ВН"
-                },
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG2",
-                  "contacts_count": "6+1",
-                  "note": "Токи ОВ"
-                },
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG3",
-                  "contacts_count": "6+1",
-                  "note": "Токи расщепленной нейтрали ШР первой группы"
-                },
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG4",
-                  "contacts_count": "6+1",
-                  "note": "Токи расщепленной нейтрали ШР второй группы"
-                },
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG5",
-                  "contacts_count": "6+1",
-                  "note": "Токи треугольника КОР(ВО2)"
-                },
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG6",
-                  "contacts_count": "6+1",
-                  "note": "Токи ОУР(ВО1)"
-                },
-                {
-                  "circuit_type": "Ia, Ib, Ic",
-                  "test_block": "SG7",
-                  "contacts_count": "6+1",
-                  "note": "Токи НН"
-                },
-                {
-                  "circuit_type": "Ua, Ub, Uc",
-                  "test_block": "SG8",
-                  "contacts_count": "4+1",
-                  "note": "Напряжения ТН НН"
-                }
-              ],
-              "osc_analog_signals": [],
-              "incoming_goose_signals": [],
-              "inner_discrete_circuits": [],
-              "datasets": [],
-              "ports": [],
-              "functional_buttons": [],
-              "leds": [],
-              "control_commands": [],
-              "function_blocks": [
-                {
-                  "name": "ЗНР",
-                  "russian_path": "ЗНР",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ЗНР",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "КИ НН",
-                  "russian_path": "КИ НН",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "КИ НН",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "МТЗ КОР",
-                  "russian_path": "МТЗ КОР",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "МТЗ КОР",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "МТЗ НН",
-                  "russian_path": "МТЗ НН",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "МТЗ НН",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "МТЗ",
-                  "russian_path": "МТЗ",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "МТЗ",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ПДЗР",
-                  "russian_path": "ПДЗР",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ПДЗР",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ТЗНП ВН",
-                  "russian_path": "ТЗНП ВН",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ТЗНП ВН",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ТЗНП КОР",
-                  "russian_path": "ТЗНП КОР",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ТЗНП КОР",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ТЗНП НВ",
-                  "russian_path": "ТЗНП НВ",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ТЗНП НВ",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ТЗОП КОР",
-                  "russian_path": "ТЗОП КОР",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ТЗОП КОР",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "ТЗОП",
-                  "russian_path": "ТЗОП",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "ТЗОП",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                },
-                {
-                  "name": "УРОВ",
-                  "russian_path": "УРОВ",
-                  "isMainFunction": true,
-                  "isInITS": false,
-                  "iec_name": "",
-                  "corp_prof_name": "",
-                  "functions": [
-                    {
-                      "name": "УРОВ",
-                      "iec_name": "",
-                      "LNclass": "",
-                      "inputs": [],
-                      "outputs": [],
-                      "settings": [],
-                      "parameters": []
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
         }
       ],
       "containers": []
@@ -38205,7 +37579,7 @@
               "scheme": ""
             }
           ],
-          "identical": "1"
+          "identical": "КР"
         }
       ],
       "containers": []
