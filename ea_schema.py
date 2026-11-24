@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import copy
+import re
 
 #: Схема классов. Порядок полей совпадает с порядком атрибутов в structure2.
 CLASSES = {
@@ -47,6 +48,9 @@ CLASSES = {
             ("number", "s", ""),
             ("content", "s", ""),
             ("header", "s", ""),
+            # Метки перекрёстных ссылок: в тексте стандарта они
+            # используются как \ref{метка}.
+            ("ref", "s", ""),
         ],
         "children": [
             ("subsections", "Subsection"),
@@ -60,6 +64,7 @@ CLASSES = {
             ("header_style", "s", ""),
             ("number", "s", ""),
             ("header", "s", ""),
+            ("ref", "s", ""),
         ],
         "children": [
             ("clauses", "Clause"),
@@ -89,6 +94,7 @@ CLASSES = {
             # Поле не описано в UML, но используется редактором как ссылка
             # на шкаф, из которого собираются строки таблицы.
             ("cabinet", "s", ""),
+            ("ref", "s", ""),
         ],
         "children": [("rows", "TableRow")],
     },
@@ -112,6 +118,7 @@ CLASSES = {
             # формат и ориентацию текущего раздела документа.
             ("format", "s", ""),
             ("orientation", "s", ""),
+            ("ref", "s", ""),
         ],
         "children": [],
     },
@@ -472,6 +479,7 @@ LABELS = {
     "tables": "Таблицы",
     "figures": "Рисунки",
     "reference": "Ссылка",
+    "ref": "Метка ссылки",
     "scheme": "Файл схемы редактора",
     "format": "Формат",
     "orientation": "Ориентация",
@@ -575,7 +583,10 @@ LABELS = {
 EXTRA_FIELDS = {("Table", "cabinet"), ("Cabinet", "containers"),
                 ("Kit", "identical"),
                 ("Standard", "functional_blocks"),
-                ("Standard", "title_page")}
+                ("Standard", "title_page"),
+                # Метки перекрёстных ссылок — дополнение редактора к UML.
+                ("Section", "ref"), ("Subsection", "ref"),
+                ("Table", "ref"), ("Figure", "ref")}
 # LD/LN/DO/DA — дополнение редактора к UML: при миграции не добавляются,
 # но создаются у новых узлов и доступны в редакторе и отчётах.
 EXTRA_FIELDS.update(
@@ -598,6 +609,41 @@ ALIASES = {
 def label(key):
     """Человекочитаемое название поля ``key``."""
     return LABELS.get(key, str(key))
+
+
+#: Метки перекрёстных ссылок хранятся в поле ``ref`` через ';' или перевод
+#: строки; пользователь мог вставить и готовую запись ``\ref{метка}``.
+_REF_SEPARATOR_RE = re.compile(r"[;\n\r]+")
+_REF_WRAPPER_RE = re.compile(r"^\\ref\s*\{\s*(.*?)\s*\}$", re.I | re.S)
+
+
+def clean_ref_label(value):
+    """Метка в том виде, как её видит пользователь (без ``\\ref{}``)."""
+    text = str(value or "").strip()
+    match = _REF_WRAPPER_RE.match(text)
+    if match:
+        text = match.group(1)
+    return " ".join(text.split())
+
+
+def normalize_ref_label(value):
+    """Ключ метки: пробелы и регистр не важны при поиске в тексте."""
+    return clean_ref_label(value).casefold()
+
+
+def reference_labels(value):
+    """Метки из поля ``ref``: без пустых, скобок и повторов (регистр не важен)."""
+    labels, seen = [], set()
+    for part in _REF_SEPARATOR_RE.split(str(value or "")):
+        name = clean_ref_label(part)
+        if not name or "{" in name or "}" in name:
+            continue
+        key = normalize_ref_label(name)
+        if key in seen:
+            continue
+        seen.add(key)
+        labels.append(name)
+    return labels
 
 
 def kind_of(cls, key):

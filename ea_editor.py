@@ -3093,6 +3093,69 @@ class StandardEditorWindow(tk.Toplevel):
                counters.get("поля")), parent=self)
         self.status.config(text="Отчёт: %s" % path)
 
+    def _reference_item(self, node):
+        """Объект дерева, к которому можно привязать метку ссылки."""
+        if not node:
+            return None
+        if node[0] == "text" and node[1] in ("section", "subsection"):
+            return node[2]
+        if node[0] in ("table", "figure"):
+            return node[1]
+        return None
+
+    def _label_owner(self, label, current):
+        """Подпись узла, у которого уже занята эта метка."""
+        key = sc.normalize_ref_label(label)
+        for iid, node in self._nodes.items():
+            item = self._reference_item(node)
+            if item is None or item is current:
+                continue
+            for used in sc.reference_labels(item.get("ref")):
+                if sc.normalize_ref_label(used) == key:
+                    return self.tree.item(iid, "text") or "другой элемент"
+        return None
+
+    def _insert_reference(self, iid):
+        r"""Пункт 31: метки ``\ref{…}`` для таблицы, рисунка, раздела."""
+        item = self._reference_item(self._nodes.get(iid))
+        if item is None or not self._apply_pending():
+            return
+        prompt = ("Метка перекрёстной ссылки.\n"
+                  r"В тексте стандарта: \ref{метка}. "
+                  "Несколько меток — через ';'.")
+        raw = self._ask(prompt, item.get("ref") or "")
+        if raw is None:
+            return
+        labels = sc.reference_labels(raw)
+        if str(raw).strip() and not labels:
+            messagebox.showerror(
+                "Редактор стандарта",
+                "Метка пустая или содержит '{}' — так ссылка не найдётся.",
+                parent=self)
+            return
+        for name in labels:
+            owner = self._label_owner(name, item)
+            if owner:
+                messagebox.showerror(
+                    "Редактор стандарта",
+                    "Метка «%s» уже привязана к: %s" % (name, owner),
+                    parent=self)
+                return
+
+        def action():
+            if labels:
+                item["ref"] = "; ".join(labels)
+            else:
+                item.pop("ref", None)
+            return item
+
+        if self._mutate(action):
+            if labels:
+                self.status.config(
+                    text="Метка ссылки: \\ref{%s}" % labels[0])
+            else:
+                self.status.config(text="Метки перекрёстных ссылок удалены")
+
     def _group_menu(self, group):
         """Меню действий над выделенной группой узлов."""
         kinds = {self._node_kind(iid) for iid in group}
@@ -3162,6 +3225,7 @@ class StandardEditorWindow(tk.Toplevel):
                     ("Добавить таблицу…", lambda: self._add_table(iid)),
                     ("Добавить рисунок…", lambda: self._add_figure(iid)),
                     None,
+                    ("Вставить ссылку…", lambda: self._insert_reference(iid)),
                     ("Удалить раздел", lambda: self._delete_node(iid)),
                 ]
             if node[1] == "subsection":
@@ -3170,6 +3234,7 @@ class StandardEditorWindow(tk.Toplevel):
                     ("Добавить таблицу…", lambda: self._add_table(iid)),
                     ("Добавить рисунок…", lambda: self._add_figure(iid)),
                     None,
+                    ("Вставить ссылку…", lambda: self._insert_reference(iid)),
                     ("Удалить подраздел", lambda: self._delete_node(iid)),
                 ]
             word = "подпункт" if node[1] == "subclause" else "пункт"
@@ -3194,11 +3259,13 @@ class StandardEditorWindow(tk.Toplevel):
                 None, ("Удалить комплект", lambda: self._delete_node(iid)),
             ]
         if kind == "table":
-            items = []
+            items = [("Вставить ссылку…",
+                      lambda: self._insert_reference(iid))]
             if node[1].get("cabinet"):
-                items += [("Привязать к другому шкафу…",
-                           lambda: self._rebind_table(iid)), None]
+                items += [None, ("Привязать к другому шкафу…",
+                                 lambda: self._rebind_table(iid))]
             return items + [
+                None,
                 ("Переместить в другой раздел…",
                  lambda: self._move_table(iid, copy=False)),
                 ("Копировать в другой раздел…",
@@ -3207,7 +3274,10 @@ class StandardEditorWindow(tk.Toplevel):
                 ("Удалить таблицу", lambda: self._delete_node(iid)),
             ]
         if kind == "figure":
-            return [("Удалить рисунок", lambda: self._delete_node(iid))]
+            return [("Вставить ссылку…",
+                     lambda: self._insert_reference(iid)),
+                    None,
+                    ("Удалить рисунок", lambda: self._delete_node(iid))]
         if kind == "ied":
             return [
                 ("Добавить блок функций…",

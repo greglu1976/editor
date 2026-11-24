@@ -15,7 +15,9 @@
 6. редактирование таблиц (``ea_edit``) и окно редактора (``ea_editor``);
 7. добавление/удаление узлов стандарта (``ea_structure``);
 8. схему ФЛС в составе ИЭУ: поле ``IED.scheme``, генерацию из функций,
-   рендер в PNG и вставку в DOCX (``logic_scheme_render``).
+   рендер в PNG и вставку в DOCX (``logic_scheme_render``);
+9. перекрёстные ссылки по меткам ``\\ref{…}`` (пункт 31): поле ``ref``,
+   REF-поля в DOCX и пункт меню редактора.
 """
 
 from __future__ import annotations
@@ -23,6 +25,7 @@ from __future__ import annotations
 import argparse
 import copy
 import os
+import re
 import sys
 import tempfile
 
@@ -1631,6 +1634,86 @@ def test_editor_report():
         root.destroy()
 
 
+def test_editor_reference():
+    """Пункт 31: метка ссылки из контекстного меню дерева редактора."""
+    print("10д. метки перекрёстных ссылок в редакторе")
+    if tk is None:
+        print("  --   tkinter нет: редактор не проверяется")
+        return
+    try:
+        import ea_editor
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "редактор стандарта: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    window = None
+    original_ask = ea_editor.simpledialog.askstring
+    original_info = ea_editor.messagebox.showinfo
+    original_error = ea_editor.messagebox.showerror
+    try:
+        window = ea_editor.show(path, root)
+        root.update()
+        nodes = {}
+        for iid, node in window._nodes.items():
+            if node[0] == "text" and node[1] in ("section", "subsection"):
+                nodes.setdefault(node[1], (iid, node[2]))
+            elif node[0] in ("table", "figure"):
+                nodes.setdefault(node[0], (iid, node[1]))
+        for kind in ("section", "subsection", "table", "figure"):
+            iid = nodes[kind][0]
+            labels = [entry[0] for entry in
+                      window._menu_items(iid, window._nodes[iid]) if entry]
+            check("Вставить ссылку…" in labels,
+                  "в меню %s есть вставка ссылки" % kind)
+
+        iid, item = nodes["table"]
+        entry = next(entry for entry in
+                     window._menu_items(iid, window._nodes[iid])
+                     if entry and entry[0] == "Вставить ссылку…")
+        ea_editor.simpledialog.askstring = lambda *a, **k: "метка таблицы"
+        ea_editor.messagebox.showinfo = lambda *a, **k: None
+        entry[1]()
+        root.update()
+        check(item.get("ref") == "метка таблицы",
+              "метка записана в поле ref таблицы")
+        window.save()
+        saved = es.load(path)
+        check(es.table_by_number(saved, item["number"]).get("ref")
+              == "метка таблицы",
+              "метка сохранилась в JSON")
+
+        # Та же метка у другого объекта не перезаписывает первую.
+        figure_iid, figure = nodes["figure"]
+        figure_iid = window._find_iid(figure)
+        errors = []
+        ea_editor.simpledialog.askstring = lambda *a, **k: "метка таблицы"
+        ea_editor.messagebox.showerror = lambda *a, **k: errors.append(a)
+        window._insert_reference(figure_iid)
+        root.update()
+        check(not figure.get("ref") and bool(errors),
+              "повторная метка отклонена")
+
+        # Пустой ввод снимает метку.
+        table_iid = window._find_iid(item)
+        ea_editor.simpledialog.askstring = lambda *a, **k: ""
+        window._insert_reference(table_iid)
+        root.update()
+        check("ref" not in item, "пустой ввод удаляет метку")
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "метки в редакторе: %s" % exc)
+    finally:
+        ea_editor.simpledialog.askstring = original_ask
+        ea_editor.messagebox.showinfo = original_info
+        ea_editor.messagebox.showerror = original_error
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
 def test_structure_ops(data):
     """Добавление/удаление узлов без GUI (ea_structure)."""
     print("11. структурные операции (ea_structure)")
@@ -2704,6 +2787,79 @@ def test_reference_number_switch():
     check("/#/0" not in text, "суффикс /#/0 убран из текста")
 
 
+def test_reference_labels():
+    """Пункт 31: метки поля ref читаются, повторы и скобки отбрасываются."""
+    print("3г. разбор меток перекрёстных ссылок")
+    import ea_schema as sc
+
+    check(sc.reference_labels(
+        r"\ref{ссылка на рис.1}; МЕТКА ;ссылка на рис.1")
+        == ["ссылка на рис.1", "МЕТКА"],
+        "метки читаются из ref, готовый вид \\ref{...} снимается")
+    check(sc.normalize_ref_label("  Ссылка   На Рис.1 ")
+          == "ссылка на рис.1",
+          "пробелы и регистр не важны при поиске метки")
+    check(sc.reference_labels(" ; {плохая} ; ") == [],
+          "метка со скобками не создаётся")
+
+
+def test_named_references(data):
+    """Пункт 31: \\ref{метка} превращается в REF с одним номером."""
+    print("3д. перекрёстные ссылки по меткам")
+    try:
+        from docx import Document
+    except ImportError:            # pragma: no cover
+        print("  --   python-docx нет: проверка пропущена")
+        return
+    clone = copy.deepcopy(data)
+    table = es.table_by_number(clone, "5.2")
+    table["ref"] = "ссылка на рис.1; вторая метка"
+    figure = next(es.iter_figures(clone))
+    figure["ref"] = "метка рисунка"
+    section = clone["sections"][1]
+    section["ref"] = "метка раздела"
+    sub = next(item["subsections"][0] for item in clone["sections"]
+               if item.get("subsections"))
+    sub["ref"] = "метка подраздела"
+    section["content"] = (
+        "Смотри \\ref{ссылка на рис.1}, \\ref{метка рисунка}, "
+        "\\ref{МЕТКА РАЗДЕЛА} и \\ref{метка подраздела}. "
+        "Нет \\ref{неизвестная метка}.")
+
+    path = os.path.join(tempfile.mkdtemp(), "refs.docx")
+    ea_docx.build(clone, path, toc=False, max_rows=1)
+    doc = Document(path)
+    mention = next(paragraph for paragraph in doc.paragraphs
+                   if paragraph.text.startswith("Смотри "))
+    check(mention.text == "Смотри 5.2, 4.1, 1 и 3.1. "
+          "Нет неизвестная метка.",
+          "метки заменены номерами: %s" % mention.text)
+    xml = mention._p.xml
+    check(xml.count(" REF ") == 4 and xml.count(r' \#"0"') == 4,
+          "ссылки по меткам — поля REF только на номер")
+    names = re.findall(r"REF (\S+)", xml)
+    check(len(names) == 4 and len(set(names)) == 4,
+          "метки указывают на четыре разные закладки")
+
+    caption = next(paragraph for paragraph in doc.paragraphs
+                   if paragraph.text.startswith("Таблица 5.2 —"))
+    check("bookmarkStart" in caption._p.xml,
+          "подпись таблицы держит закладку")
+    heading = next(paragraph for paragraph in doc.paragraphs
+                   if paragraph.text == "Область применения")
+    check("bookmarkStart" in heading._p.xml,
+          "заголовок раздела тоже получил закладку")
+
+    index = next((paragraph for paragraph in doc.paragraphs
+                  if paragraph.text == "Метки перекрёстных ссылок"), None)
+    check(index is not None, "в отчёте есть таблица объявленных меток")
+    index_table = next((item for item in doc.tables
+                        if [cell.text for cell in item.rows[0].cells]
+                        == ["Метка", "Объект", "Номер"]), None)
+    check(index_table is not None and len(index_table.rows) == 6,
+          "в таблицу попали все пять меток четырёх объектов")
+
+
 def test_title_page_before_report(data):
     """Реквизит title_page: готовый DOCX открывает сгенерированный отчёт."""
     print("3в. титульный DOCX перед отчётом")
@@ -2808,6 +2964,8 @@ def main(argv=None):
     test_docx(data)
     test_element_report(data)
     test_reference_number_switch()
+    test_reference_labels()
+    test_named_references(data)
     test_title_page_before_report(data)
     test_report_tables_font()
     test_archive()
@@ -2830,6 +2988,7 @@ def main(argv=None):
         test_editor_fields()
         test_kit_identity()
         test_editor_report()
+        test_editor_reference()
     print("")
     if FAILURES:
         print("ПРОВАЛЕНО: %d" % len(FAILURES))
