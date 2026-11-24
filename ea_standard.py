@@ -521,6 +521,31 @@ def _stored_view(table):
     return rows[0], rows[1:]
 
 
+def table_header_rows(table):
+    """Строки шапки таблицы: одна или две (двухуровневая шапка).
+
+    У таблицы документа двухуровневая шапка помечена флагами
+    ``is_header_first_row`` / ``is_header_second_row``; у таблицы шкафа
+    шапка всегда одноуровневая (форма из ``_form_headers``).
+    """
+    rows = table.get("rows") or []
+    if "описание шэт" in (table.get("name") or "").lower():
+        return [_form_headers(table)]
+    if not rows:
+        return [_form_headers(table)] if table.get("cabinet") else []
+    first = list(rows[0].get("content") or [])
+    if len(rows) > 1 and rows[1].get("is_header_second_row"):
+        second = list(rows[1].get("content") or [])
+        width = max(len(first), len(second))
+        first += [""] * (width - len(first))
+        second += [""] * (width - len(second))
+        return [first, second]
+    if table.get("cabinet"):
+        # У таблицы шкафа все строки формы — шапка (обычно одна).
+        return [_form_headers(table)]
+    return [first]
+
+
 def _merge_headers(rows):
     """Склеить одно- и двухъярусную шапку в список подписей колонок."""
     width = max(len(row) for row in rows)

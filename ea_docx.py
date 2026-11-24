@@ -5,7 +5,9 @@
 Строит документ Word по JSON стандарта (см. :mod:`ea_standard`): титул,
 оглавление, разделы с текстом и таблицами. Строки таблиц берутся из шкафов
 через :func:`ea_standard.table_view` — ровно то же, что показывает окно
-«СТО (EA)…», поэтому документ и окно не расходятся.
+«СТО (EA)…», поэтому документ и окно не расходятся. Двухуровневая шапка
+таблицы выводится двумя строками с объединением одинаковых ячеек
+(:func:`ea_standard.table_header_rows`).
 
 Рисунок, у которого заполнено поле ``scheme`` (файл ФЛС редактора),
 вставляется в документ картинкой: схема рендерится в PNG тем же кодом,
@@ -115,6 +117,34 @@ def _widths(headers, rows, available=USABLE_CM):
     return [width * scale for width in widths]
 
 
+def _min_widths(headers):
+    """Минимальная ширина колонки, чтобы не рвать слова в шапке."""
+    widths = []
+    for header in headers:
+        words = re.split(r"[\s/]+", str(header or ""))
+        longest = max((len(word) for word in words), default=1)
+        widths.append(min(2.5, max(0.9, longest * 0.24 + 0.55)))
+    return widths
+
+
+def _fit_minimums(widths, minimums):
+    """Подтянуть узкие колонки до минимума за счёт широких."""
+    deficit = sum(max(0.0, low - value)
+                  for value, low in zip(widths, minimums))
+    excess = sum(max(0.0, value - low)
+                 for value, low in zip(widths, minimums))
+    if deficit <= 0.0 or excess <= 0.0:
+        return widths
+    if deficit >= excess:
+        # Минимумы не помещаются в ширину текста — сжимаем их пропорционально.
+        total = sum(widths)
+        minimum_total = sum(minimums)
+        return [low * total / minimum_total for low in minimums]
+    factor = max(0.0, (excess - deficit) / excess)
+    return [low if value <= low else low + (value - low) * factor
+            for value, low in zip(widths, minimums)]
+
+
 def _available_cm(doc):
     """Ширина текста текущей секции: страница минус левое/правое поля."""
     section = doc.sections[-1]
@@ -167,12 +197,97 @@ def _hard_width(table, widths):
     layout.set(qn("w:type"), "fixed")
 
 
-def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None):
+def _header_cell(cell, text, size=10):
+    """Подпись шапки в (возможно, объединённой) ячейке."""
+    paragraphs = cell.paragraphs
+    for extra in paragraphs[1:]:
+        extra._element.getparent().remove(extra._element)
+    paragraph = cell.paragraphs[0]
+    for run in list(paragraph.runs):
+        run._element.getparent().remove(run._element)
+    _cell(cell, text, size, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
+
+
+def _header_groups(row):
+    """Соседние одинаковые ячейки шапки: ``[начало, конец, текст]``."""
+    groups = []
+    index = 0
+    while index < len(row):
+        text = str(row[index] or "").strip()
+        end = index + 1
+        while text and end < len(row) \
+                and str(row[end] or "").strip() == text:
+            end += 1
+        groups.append([index, end - 1, text])
+        index = end
+    return groups
+
+
+def _header_merges(header_rows):
+    """Объединения двухуровневой шапки: ``(r1, c1, r2, c2, текст)``.
+
+    Одинаковые соседние подписи верхнего яруса объединяются по горизонтали.
+    Если подпись повторяется и во втором ярусе, ячейки сливаются по
+    вертикали (подпись занимает оба яруса).
+    """
+    top, bottom = header_rows
+    top_groups = _header_groups(top)
+    bottom_groups = _header_groups(bottom)
+    bottom_by_start = {group[0]: group for group in bottom_groups}
+    used = set()
+    merges = []
+    for start, end, text in top_groups:
+        match = bottom_by_start.get(start)
+        if text and match is not None \
+                and match[1] == end and match[2] == text:
+            merges.append((0, start, 1, end, text))
+            used.add(start)
+        else:
+            merges.append((0, start, 0, end, text))
+    for start, end, text in bottom_groups:
+        if start not in used:
+            merges.append((1, start, 1, end, text))
+    return merges
+
+
+def _two_level_header(table, header_rows, size=10):
+    """Собрать двухуровневую шапку с объединением одинаковых ячеек."""
+    width = len(table.columns)
+    top = [str(header_rows[0][index])
+           if index < len(header_rows[0]) else "" for index in range(width)]
+    bottom = [str(header_rows[1][index])
+              if index < len(header_rows[1]) else "" for index in range(width)]
+    merges = _header_merges([top, bottom])
+    for r1, c1, r2, c2, _text in merges:
+        if (r1, c1) != (r2, c2):
+            table.cell(r1, c1).merge(table.cell(r2, c2))
+    for r1, c1, _r2, _c2, text in merges:
+        cell = table.cell(r1, c1)
+        _header_cell(cell, text, size)
+        _shade(cell)
+
+
+def _header_widths(header_rows, headers):
+    """Подписи для расчёта ширины: самая длинная ячейка каждого столбца."""
+    if len(header_rows) < 2:
+        return headers
+    result = []
+    for index, header in enumerate(headers):
+        parts = [str(row[index]).strip() for row in header_rows
+                 if index < len(row) and str(row[index]).strip()]
+        result.append(max(parts, key=len) if parts else str(header))
+    return result
+
+
+def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None,
+           header_rows=None):
     """Таблица с шапкой; возвращает число выведенных строк данных."""
     if not headers:
         return 0
+    header_rows = [list(row) for row in (header_rows or [headers])]
     shown = rows[:max_rows] if max_rows else rows
-    table = doc.add_table(rows=len(shown) + 1, cols=len(headers))
+    table = doc.add_table(rows=len(shown) + len(header_rows),
+                          cols=len(headers))
     table.style = "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.autofit = False
@@ -180,23 +295,40 @@ def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None):
     widths = _fixed_widths(headers, widths_mm, available)
     fixed = widths is not None
     if not fixed:
-        widths = _widths(headers, shown, available)
-    for index, header in enumerate(headers):
-        cell = table.rows[0].cells[index]
-        _cell(cell, header, size, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
-        _shade(cell)
-    _repeat_header(table.rows[0])
-    for row, values in zip(table.rows[1:], shown):
+        width_headers = _header_widths(header_rows, headers)
+        widths = _fit_minimums(
+            _widths(width_headers, shown, available),
+            _min_widths(width_headers))
+    if len(header_rows) > 1:
+        _two_level_header(table, header_rows, size)
+        for row in table.rows[:len(header_rows)]:
+            _repeat_header(row)
+    else:
+        for index, header in enumerate(headers):
+            cell = table.rows[0].cells[index]
+            _cell(cell, header, size, bold=True,
+                  align=WD_ALIGN_PARAGRAPH.CENTER)
+            _shade(cell)
+        _repeat_header(table.rows[0])
+    for row, values in zip(table.rows[len(header_rows):], shown):
         for index in range(len(headers)):
             _cell(row.cells[index],
                   values[index] if index < len(values) else "", size)
     for index, width in enumerate(widths):
-        value = Mm(width) if fixed else Cm(width)
-        table.columns[index].width = value
+        unit = Mm if fixed else Cm
+        table.columns[index].width = unit(width)
         # Колонки Liberty/Word всё равно пересчитывают ширину ячеек,
         # поэтому жёсткую ширину проставляем и на каждой ячейке.
-        for row in table.rows:
-            row.cells[index].width = value
+        for row_index, row in enumerate(table.rows):
+            cell = row.cells[index]
+            span = cell.grid_span if row_index < len(header_rows) else 1
+            if span > 1:
+                # У объединённой ячейки ширина — сумма её колонок.
+                if index and row.cells[index - 1]._tc is cell._tc:
+                    continue
+                cell.width = unit(sum(widths[index:index + span]))
+            else:
+                cell.width = unit(width)
     if fixed:
         _hard_width(table, widths)
     return len(shown)
@@ -521,7 +653,8 @@ def _render_table(doc, data, table, max_rows, counters, references):
              bookmark if is_new else None, 1000 + len(references))
     counters["таблицы"] += 1
     counters["строки"] += _table(doc, headers, rows, max_rows=max_rows,
-                                 widths_mm=table.get("colums_width") or [])
+                                 widths_mm=table.get("colums_width") or [],
+                                 header_rows=es.table_header_rows(table))
 
 
 # ---------------------------------------------------------------------------

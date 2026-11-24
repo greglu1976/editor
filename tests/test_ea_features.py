@@ -241,6 +241,7 @@ def test_docx(data):
     print("3. выгрузка в DOCX")
     try:
         from docx import Document
+        from docx.oxml.ns import qn
     except ImportError:
         print("  --   python-docx нет: проверка пропущена")
         return
@@ -299,6 +300,27 @@ def test_docx(data):
         check(doc.styles["Normal"].font.size.pt == 10 and sizes <= {10},
               "таблицы отчёта набраны кеглем 10 (%s)" % (sizes or "стиль"))
 
+    # Пункт 29: двухуровневая шапка выводится двумя ярусами, а одинаковые
+    # ячейки объединяются по горизонтали и вертикали.
+    two_level = es.table_by_number(data, "5.10")
+    header_rows = es.table_header_rows(two_level)
+    check(len(header_rows) == 2
+          and header_rows[0][:2] == ["Информационный сигнал"] * 2
+          and header_rows[1][:2] == ["Наименование", "Статус"],
+          "таблица 5.10 читается как двухуровневая шапка")
+    two_table = next((item for item in doc.tables
+                      if item.cell(0, 0).text == "Информационный сигнал"
+                      and item.cell(1, 0).text == "Наименование"), None)
+    check(two_table is not None, "таблица 5.10 выведена с двумя ярусами")
+    if two_table is not None:
+        xml = two_table._tbl.xml
+        check(xml.count("<w:gridSpan") >= 2 and "<w:vMerge" in xml,
+              "одинаковые ячейки шапки объединены")
+        check(all(row._tr.find(qn("w:trPr")) is not None
+                  and row._tr.find(qn("w:trPr")).find(qn("w:tblHeader"))
+                  is not None for row in two_table.rows[:2]),
+              "оба яруса шапки повторяются на новой странице")
+
     # шаблон: колонтитул и параметры страницы сохраняются, тело заменяется
     template_dir = tempfile.mkdtemp()
     template = os.path.join(template_dir, ea_docx.TEMPLATE_NAME)
@@ -316,7 +338,6 @@ def test_docx(data):
           "содержимое шаблона заменено")
 
     # Автоматическая ширина не должна выходить за поля страницы.
-    from docx.oxml.ns import qn
     from docx.shared import Emu
     for label, report in (("основной", doc), ("с шаблоном", with_template)):
         section = report.sections[-1]
