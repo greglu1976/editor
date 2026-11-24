@@ -417,9 +417,9 @@ def load(data, table):
     kind = es.table_kind(table.get("name"))
     if not code:
         return _load_document(table)
-    if kind == "description":
+    if kind in ("description", "description_kit"):
         headers, rows = es.table_view(data, table)
-        return headers, rows, ("Описание шкафа собирается из карточки шкафа; "
+        return headers, rows, ("Описание собирается из карточки шкафа и ИЭУ; "
                                "здесь не редактируется.")
     if kind in _FLAT:
         return _load_flat(data, table, kind)
@@ -440,8 +440,8 @@ def save(data, table, rows):
     if not code:
         _save_document(table, rows)
         return
-    if kind == "description":
-        raise TableEditError("описание шкафа здесь не редактируется")
+    if kind in ("description", "description_kit"):
+        raise TableEditError("описание здесь не редактируется")
     if kind in _FLAT:
         _save_flat(data, table, kind, rows)
         return

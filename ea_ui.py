@@ -820,6 +820,14 @@ class StandardFieldsDialog(tk.Toplevel):
                                row=row, column=2, sticky="w", pady=3,
                                padx=(4, 0))
             row += 1
+        self.split_var = tk.BooleanVar(
+            value=bool(self.data.get("description_split")))
+        tk.Checkbutton(form,
+                       text="Разделять описание шкафа и описания ИЭУ",
+                       variable=self.split_var, font=ui_theme.font(9),
+                       anchor="w").grid(row=row, column=0, columnspan=2,
+                                        sticky="w", pady=(2, 4))
+        row += 1
         tk.Label(form, text="Дата — ДД.ММ.ГГГГ; можно оставить пустой.\n"
                             "Титульный лист: DOCX открывает отчёт, дальше "
                             "идёт сгенерированный документ.",
@@ -852,6 +860,7 @@ class StandardFieldsDialog(tk.Toplevel):
 
     def save(self):
         meta = {key: var.get().strip() for key, var in self.vars.items()}
+        meta["description_split"] = self.split_var.get()
         if not meta["code"] or not meta["name"]:
             messagebox.showwarning("Поля стандарта",
                                    "Заполните шифр и наименование.",
@@ -1073,6 +1082,12 @@ class NewStandardDialog(tk.Toplevel):
                        anchor="w").grid(row=row, column=0, columnspan=2,
                                         sticky="w")
         row += 1
+        self.split_descriptions = tk.BooleanVar(value=True)
+        tk.Checkbutton(form, text="Разделять описание шкафа и описания ИЭУ",
+                       variable=self.split_descriptions, font=ui_theme.font(9),
+                       anchor="w").grid(row=row, column=0, columnspan=2,
+                                        sticky="w")
+        row += 1
 
         footer = tk.Frame(form)
         footer.grid(row=row, column=0, columnspan=2, sticky="we",
@@ -1109,6 +1124,7 @@ class NewStandardDialog(tk.Toplevel):
 
     def create(self):
         meta = {key: var.get().strip() for key, var in self.vars.items()}
+        meta["description_split"] = self.split_descriptions.get()
         if not meta["code"] or not meta["name"]:
             messagebox.showwarning("Новый стандарт",
                                    "Заполните шифр и наименование.",

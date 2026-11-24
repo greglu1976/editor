@@ -199,7 +199,9 @@ def test_new_standard(data):
                    keep=["ШЭТ 431.12-1"])
     check([cab["cypher"] for cab in one["data"]["cabinets"]] == ["ШЭТ 431.12-1"],
           "оставлен один шкаф")
-    check(one["stats"]["формы"] == 14, "таблиц-форм: %d"
+    check(one["data"].get("description_split") is True,
+          "новый стандарт помечен как разделённый")
+    check(one["stats"]["формы"] == 15, "таблиц-форм: %d"
           % one["stats"]["формы"])
     subs = [sub for section in one["data"]["sections"]
             for sub in section.get("subsections") or []
@@ -208,8 +210,17 @@ def test_new_standard(data):
           "подраздел перенумерован в 5.3")
     tables = [table["number"] for table in es.iter_tables(one["data"])
               if table.get("cabinet")]
-    check(tables == ["5.%d" % index for index in range(2, 16)],
-          "таблицы перенумерованы 5.2…5.15")
+    check(tables == ["5.%d" % index for index in range(2, 17)],
+          "таблицы перенумерованы 5.2…5.16")
+    description = next(table for table in es.iter_tables(one["data"])
+                       if table.get("description_part") == "cabinet")
+    kit_table = next(table for table in es.iter_tables(one["data"])
+                     if table.get("description_part") == "kit")
+    check(len(description["rows"]) == 8,
+          "в таблице шкафа остались только поля шкафа")
+    check(es.table_kind(kit_table["name"]) == "description_kit"
+          and "Описание ИЭУ1 в составе" in kit_table["name"],
+          "описание ИЭУ вынесено в отдельную таблицу")
     figures = [figure["number"] for sub in subs
                for figure in sub.get("figures") or []]
     check(figures == ["5.1", "5.2"], "рисунки перенумерованы: %s" % figures)
@@ -235,6 +246,68 @@ def test_new_standard(data):
     broken = {key: value for key, value in data.items() if key != "code"}
     check(any("Шифр стандарта" in item for item in ns.validate(broken)),
           "проверка замечает пустой шифр")
+
+
+def test_split_descriptions(data):
+    """Пункт 33: описание шкафа и описания ИЭУ в новом стандарте."""
+    print("2б. разделённое описание шкафа и ИЭУ")
+    import ea_structure as st
+
+    legacy = ns.build(data, meta={"code": "OLD", "date": "01.01.2027",
+                                  "description_split": False})
+    check(legacy["data"].get("description_split") is False,
+          "флаг позволяет оставить старый формат")
+    legacy_description = [table for table in es.iter_tables(legacy["data"])
+                          if es.table_kind(table.get("name")) == "description"]
+    check(len(legacy_description) == len(es.cabinets(legacy["data"]))
+          and not [table for table in es.iter_tables(legacy["data"])
+                   if table.get("description_part")],
+          "старый стандарт сохраняет одну таблицу описания на шкаф")
+
+    new = ns.build(data, meta={"code": "NEW", "date": "01.01.2027"})["data"]
+    cabinets = es.cabinets(new)
+    cabinet_tables = [table for table in es.iter_tables(new)
+                      if table.get("description_part") == "cabinet"]
+    kit_tables = [table for table in es.iter_tables(new)
+                  if table.get("description_part") == "kit"]
+    check(len(cabinet_tables) == len(cabinets)
+          and len(kit_tables) == len(cabinets),
+          "на каждый шкаф — описание шкафа и описание ИЭУ")
+    check(all(es.table_kind(table["name"]) == "description_kit"
+              for table in kit_tables),
+          "описание ИЭУ распознаётся как вид таблицы")
+    check(all(len(table["rows"]) == 8 for table in cabinet_tables)
+          and all(len(table["rows"]) == 19 for table in kit_tables),
+          "поля разделены по документации: 8 и 19")
+
+    header, rows = es.table_view(new, cabinet_tables[0])
+    values = dict(rows)
+    check(header == ["Параметр", "Значение"]
+          and values.get("Шифр шкафа") == cabinets[0]["cypher"]
+          and "Наименование комплекта" not in values,
+          "таблица шкафа берёт значения из карточки шкафа")
+    kit = cabinets[0]["kits"][0]
+    _header, kit_rows = es.table_view(new, kit_tables[0])
+    kit_values = dict(kit_rows)
+    check(kit_values.get("Наименование комплекта") == kit.get("description")
+          and bool(kit_values.get("Основные функции")),
+          "таблица ИЭУ берёт значения из комплекта и его ИЭУ")
+
+    # Идентичные комплекты дают одну таблицу «ИЭУ1(2)».
+    second = copy.deepcopy(cabinets[0]["kits"][0])
+    second["number"] = 2
+    second["identical"] = "группа 33"
+    cabinets[0]["kits"][0]["identical"] = "группа 33"
+    cabinets[0]["kits"].append(second)
+    before = len([table for table in es.iter_tables(new)
+                  if table.get("description_part") == "kit"])
+    created = st.split_description_tables(new)
+    after = [table for table in es.iter_tables(new)
+             if table.get("description_part") == "kit"]
+    check(created == before and len(after) == before,
+          "повторная генерация не дублирует таблицы")
+    check(any("ИЭУ1(2)" in table["name"] for table in after),
+          "идентичные ИЭУ описаны одной таблицей")
 
 
 # ---------------------------------------------------------------------------
@@ -485,6 +558,7 @@ def test_fields():
         dialog.vars["property"].set("ПАО «Тест»")
         dialog.vars["date"].set("01.01.2027")
         dialog.vars["title_page"].set("title_page.docx")
+        dialog.split_var.set(True)
         dialog.save()
         saved = es.load(path)
         check(saved["code"] == "НОВЫЙ ШИФР", "шифр сохранён")
@@ -494,6 +568,8 @@ def test_fields():
         check(saved["date"] == "01.01.2027", "дата сохранена")
         check(saved["title_page"] == "title_page.docx",
               "ссылка на титульный DOCX сохранена")
+        check(saved.get("description_split") is True,
+              "флаг разделённого описания сохранён в реквизитах")
         check(window._data["code"] == "НОВЫЙ ШИФР",
               "окно видит новый шифр")
     except Exception as exc:                      # noqa: BLE001
@@ -617,6 +693,8 @@ def test_gui(data):
               "все шкафы выбраны по умолчанию")
         check(dialog.vars["date"].get().count(".") == 2,
               "дата заполнена по умолчанию")
+        check(dialog.split_descriptions.get(),
+              "в диалоге включено разделение описания ИЭУ")
         existing = {em.norm_cypher(item.get("cypher"))
                     for _kind, item in dialog.items}
         catalog_cabinet = next(
@@ -1714,6 +1792,73 @@ def test_editor_reference():
         root.destroy()
 
 
+def test_editor_update_standard():
+    """Пункт 33: флаг в реквизитах и кнопка обновления стандарта."""
+    print("10е. обновление стандарта в редакторе")
+    if tk is None:
+        print("  --   tkinter нет: редактор не проверяется")
+        return
+    try:
+        import ea_editor
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "редактор стандарта: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    window = None
+    original_info = ea_editor.messagebox.showinfo
+    original_error = ea_editor.messagebox.showerror
+    ea_editor.messagebox.showinfo = lambda *a, **k: None
+    ea_editor.messagebox.showerror = lambda *a, **k: None
+    try:
+        window = ea_editor.show(path, root)
+        root.update()
+        check(hasattr(window, "update_standard")
+              and hasattr(window, "split_var"),
+              "в редакторе есть обновление и флаг в реквизитах")
+        check(not window.split_var.get(),
+              "старый стандарт открыт без разделения описания")
+        window.split_var.set(True)
+        window.update_standard()
+        root.update()
+        kits = [table for table in es.iter_tables(window.data)
+                if table.get("description_part") == "kit"]
+        check(window.data.get("description_split") is True and len(kits) == 4,
+              "обновление создало описания ИЭУ: %d" % len(kits))
+        # Переименование копии в «Описание ИЭУ…» больше не блокируется.
+        kit_iid = window._find_iid(kits[0])
+        window.tree.selection_set(kit_iid)
+        root.update()
+        window.vars["name"].set("Описание ИЭУ1 (проверка) в составе шкафа")
+        check(window._apply_pending()
+              and "Описание ИЭУ1" in kits[0]["name"],
+              "таблица описания ИЭУ переименовывается и сохраняется")
+        window.save()
+        saved = es.load(path)
+        check(saved.get("description_split") is True
+              and len([table for table in es.iter_tables(saved)
+                       if table.get("description_part") == "kit"]) == 4,
+              "обновлённый стандарт записан в JSON")
+        before = len([table for table in es.iter_tables(saved)
+                      if table.get("description_part") == "kit"])
+        window.update_standard()
+        root.update()
+        after = len([table for table in es.iter_tables(window.data)
+                     if table.get("description_part") == "kit"])
+        check(after == before, "повторное обновление не дублирует таблицы")
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "обновление стандарта: %s" % exc)
+    finally:
+        ea_editor.messagebox.showinfo = original_info
+        ea_editor.messagebox.showerror = original_error
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
 def test_structure_ops(data):
     """Добавление/удаление узлов без GUI (ea_structure)."""
     print("11. структурные операции (ea_structure)")
@@ -2026,7 +2171,7 @@ def test_typical_transfer():
     data = result["data"]
     check(es.cabinet(data, source["code"]) is not None,
           "типовой шкаф добавлен в стандарт")
-    check(len(result["subsection"]["tables"]) == len(es.KINDS),
+    check(len(result["subsection"]["tables"]) == len(em._FORM_NAMES),
           "созданы таблицы-формы всех видов: %d"
           % len(result["subsection"]["tables"]))
     check(em.validate_merged(data) == [], "стандарт с типовым шкафом валиден")
@@ -2961,6 +3106,7 @@ def main(argv=None):
     test_catalog_new(data)
     test_catalog_sync(data)
     test_new_standard(data)
+    test_split_descriptions(data)
     test_docx(data)
     test_element_report(data)
     test_reference_number_switch()
@@ -2989,6 +3135,7 @@ def main(argv=None):
         test_kit_identity()
         test_editor_report()
         test_editor_reference()
+        test_editor_update_standard()
     print("")
     if FAILURES:
         print("ПРОВАЛЕНО: %d" % len(FAILURES))

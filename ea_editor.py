@@ -22,6 +22,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 import ea_catalog as ec
 import ea_edit as ee
 import ea_merge as em
+import ea_new_standard as ens
 import ea_report as er
 import ea_schema as sc
 import ea_standard as es
@@ -258,6 +259,8 @@ class StandardEditorWindow(tk.Toplevel):
         _button(top, "Сохранить", self.save, width=12, side=tk.RIGHT)
         _button(top, "Применить", self.apply, width=12, side=tk.RIGHT)
         _button(top, "Перечитать", self.reload, width=12, side=tk.RIGHT)
+        _button(top, "Обновить стандарт", self.update_standard,
+                width=18, side=tk.RIGHT)
         _button(top, "Проверить", self.check, width=10, side=tk.RIGHT)
         _button(top, "Закрыть", self.close, width=10, side=tk.RIGHT)
 
@@ -794,6 +797,14 @@ class StandardEditorWindow(tk.Toplevel):
                                row=row, column=2, sticky="w", pady=3,
                                padx=(4, 0))
             row += 1
+        self.split_var = tk.BooleanVar(
+            value=bool(self.data.get("description_split")))
+        tk.Checkbutton(form,
+                       text="Разделять описание шкафа и описания ИЭУ",
+                       variable=self.split_var, font=ui_theme.font(9),
+                       anchor="w").grid(row=row, column=0, columnspan=2,
+                                        sticky="w", pady=(2, 4))
+        row += 1
         tk.Label(form, text="Дата — ДД.ММ.ГГГГ; можно оставить пустой.\n"
                             "Титульный лист: DOCX открывает отчёт, дальше "
                             "идёт сгенерированный документ.",
@@ -803,10 +814,13 @@ class StandardEditorWindow(tk.Toplevel):
                      sticky="w", pady=(2, 6))
         self._snapshot = {key: str(self.data.get(key) or "") for key, _l, _w
                           in fields}
+        self._snapshot["description_split"] = bool(
+            self.data.get("description_split"))
         self._pending = self._apply_meta
 
     def _apply_meta(self):
         meta = {key: var.get().strip() for key, var in self.vars.items()}
+        meta["description_split"] = bool(self.split_var.get())
         if not meta["code"] or not meta["name"]:
             raise ee.TableEditError("заполните шифр и наименование")
         if meta["date"] and not _DATE.match(meta["date"]):
@@ -3399,6 +3413,26 @@ class StandardEditorWindow(tk.Toplevel):
     def apply(self):
         if self._apply_pending():
             self.status.config(text="Правки применены (в памяти)")
+
+    def update_standard(self):
+        """Пересобрать формы описания и сквозную нумерацию стандарта."""
+        if not self._apply_pending():
+            return
+        try:
+            forms = st.split_description_tables(self.data)
+            mapping = ens.renumber_standard(self.data)
+        except (st.StructureError, ValueError, KeyError) as exc:
+            messagebox.showerror("Редактор стандарта",
+                                 "Не удалось обновить стандарт:\n%s" % exc,
+                                 parent=self)
+            return
+        problems = es.validate(self.data)
+        self._changed = True
+        self._update_title()
+        self._fill_tree()
+        self.status.config(
+            text="Стандарт обновлён: описаний ИЭУ %d, перенумеровано таблиц "
+                 "%d, замечаний %d" % (forms, len(mapping), len(problems)))
 
     def save(self, event=None):
         if not self._apply_pending():

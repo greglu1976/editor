@@ -31,6 +31,8 @@ CLASSES = {
             ("property", "s", ""),
             ("date", "s", ""),
             ("title_page", "s", ""),
+            # Новый формат описания шкафа: отдельные таблицы шкафа и ИЭУ.
+            ("description_split", "b", False),
         ],
         "children": [
             ("sections", "Section"),
@@ -95,6 +97,9 @@ CLASSES = {
             # на шкаф, из которого собираются строки таблицы.
             ("cabinet", "s", ""),
             ("ref", "s", ""),
+            # Разделённая форма описания: cabinet / kit и номер ИЭУ.
+            ("description_part", "s", ""),
+            ("kit", "s", ""),
         ],
         "children": [("rows", "TableRow")],
     },
@@ -468,6 +473,9 @@ LABELS = {
     "property": "Принадлежность",
     "date": "Дата введения",
     "title_page": "Титульный лист (DOCX)",
+    "description_split": "Разделять описание шкафа и ИЭУ",
+    "description_part": "Часть описания",
+    "kit": "ИЭУ (номер)",
     "number": "Номер",
     "header": "Заголовок",
     "header_style": "Стиль заголовка",
@@ -586,7 +594,9 @@ EXTRA_FIELDS = {("Table", "cabinet"), ("Cabinet", "containers"),
                 ("Standard", "title_page"),
                 # Метки перекрёстных ссылок — дополнение редактора к UML.
                 ("Section", "ref"), ("Subsection", "ref"),
-                ("Table", "ref"), ("Figure", "ref")}
+                ("Table", "ref"), ("Figure", "ref"),
+                ("Standard", "description_split"),
+                ("Table", "description_part"), ("Table", "kit")}
 # LD/LN/DO/DA — дополнение редактора к UML: при миграции не добавляются,
 # но создаются у новых узлов и доступны в редакторе и отчётах.
 EXTRA_FIELDS.update(

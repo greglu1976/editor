@@ -49,6 +49,7 @@ migrate_document = ea_model.migrate_document
 
 #: Фрагменты названий таблиц шкафа -> вид данных в Cabinet (порядок важен).
 KINDS = (
+    ("описание иэу", "description_kit"),
     ("описание шэт", "description"),
     ("входные аналоговые измерения", "analog_inputs"),
     ("внутренние дискретные цепи", "inner_discrete_circuits"),
@@ -75,6 +76,42 @@ _DESCRIPTION_FIELDS = (
     ("управляемый элемент", "controllable_element"),
     ("защищаемый элемент", "protected_element"),
     ("область применения", "scope"),
+)
+
+#: Строки формы описания шкафа в новом формате (поля ``{cabinet_field}``
+#: в «Доработка описания шкафа.docx»).
+CABINET_DESCRIPTION_ROWS = (
+    "Шифр шкафа",
+    "Архитектура построения ПС",
+    "Наименование шкафа",
+    "Область применения в рамках типовых схем РУ",
+    "Вводы питания оперативного постоянного тока шкафа",
+    "Ряды зажимов",
+    "Основные компоненты шкафа",
+    "Эскиз общего вида",
+)
+
+#: Строки формы описания ИЭУ/комплекта (поля ``{kitX_field}``).
+KIT_DESCRIPTION_ROWS = (
+    "Наименование комплекта",
+    "Управляемый элемент",
+    "Защищаемый элемент",
+    "Основные функции",
+    "Функции ИТС в составе шкафа",
+    "Цифровые порты",
+    "Поясняющая схема подключения",
+    "Входные аналоговые измерения",
+    "Внутренние дискретные цепи",
+    "Информационные сигналы в составе входящих сообщений",
+    "Функциональные клавиши",
+    "Светодиодная сигнализация",
+    "Сообщения и отчеты, исходящие от ИЭУ",
+    "Информационные сигналы в составе исходящих сообщений",
+    "Информационные сигналы в составе исходящих отчетов",
+    "Осциллографируемые аналоговые сигналы",
+    "Команды управления от АСУ ТП",
+    "Основные параметры функций РЗА",
+    "Структурно-функциональная схема",
 )
 
 
@@ -452,6 +489,18 @@ def _ied(cabinet_item):
     return ieds[0] if ieds else {}
 
 
+def _kit_ied(cabinet_item, number):
+    """ИЭУ из комплекта с номером ``number``; по умолчанию — первый."""
+    if number is not None and str(number).strip():
+        for kit in cabinet_item.get("kits") or []:
+            if str(kit.get("number")) == str(number).strip():
+                ieds = kit.get("ieds") or []
+                if ieds:
+                    return ieds[0]
+                return {}
+    return _ied(cabinet_item)
+
+
 def _text(value):
     if value is None:
         return ""
@@ -538,6 +587,11 @@ def _stored_view(table):
     return rows[0], rows[1:]
 
 
+def _is_description_form(table):
+    """Описание шкафа или ИЭУ: форма «Параметр — Значение»."""
+    return table_kind(table.get("name")) in ("description", "description_kit")
+
+
 def table_header_rows(table):
     """Строки шапки таблицы: одна или две (двухуровневая шапка).
 
@@ -546,7 +600,7 @@ def table_header_rows(table):
     шапка всегда одноуровневая (форма из ``_form_headers``).
     """
     rows = table.get("rows") or []
-    if "описание шэт" in (table.get("name") or "").lower():
+    if _is_description_form(table):
         return [_form_headers(table)]
     if not rows:
         return [_form_headers(table)] if table.get("cabinet") else []
@@ -579,7 +633,7 @@ def _merge_headers(rows):
 
 def _form_headers(table):
     """Подписи колонок по форме таблицы."""
-    if "описание шэт" in (table.get("name") or "").lower():
+    if _is_description_form(table):
         return ["Параметр", "Значение"]
     form = table.get("rows") or []
     if not form:
@@ -621,21 +675,28 @@ def _figure_refs(data, cabinet_item):
     return refs
 
 
-def _description_value(key, cabinet_item, refs, figures):
+def _description_value(key, cabinet_item, refs, figures, ied=None, kit=None,
+                       cabinet_only=False):
+    """Значение строки описания из карточки шкафа или конкретного ИЭУ."""
     low = (key or "").lower()
+    if not cabinet_only and low.startswith("наименование комплекта"):
+        return _text((kit or {}).get("description"))
     for needle, field in _DESCRIPTION_FIELDS:
         if low.startswith(needle):
             return _text(cabinet_item.get(field))
-    ied = _ied(cabinet_item)
-    if low.startswith("основные функции"):
-        return _function_names(ied, "isMainFunction")
-    if low.startswith("функции итс"):
-        return _function_names(ied, "isInITS")
     if low.startswith("вводы питания"):
         return "; ".join(p.get("purpose", "")
                          for p in cabinet_item.get("power_supplies") or [])
-    if low.startswith("цифровые порты"):
-        return "; ".join(p.get("description", "") for p in ied.get("ports") or [])
+    if not cabinet_only:
+        if ied is None:
+            ied = _ied(cabinet_item)
+        if low.startswith("основные функции"):
+            return _function_names(ied, "isMainFunction")
+        if low.startswith("функции итс"):
+            return _function_names(ied, "isInITS")
+        if low.startswith("цифровые порты"):
+            return "; ".join(p.get("description", "")
+                             for p in ied.get("ports") or [])
     for needle, reference in figures.items():
         if low.startswith(needle):
             return reference
@@ -651,11 +712,22 @@ def _description_value(key, cabinet_item, refs, figures):
 def _rows_description(data, cabinet_item, table):
     refs = _table_refs(data, cabinet_item)
     figures = _figure_refs(data, cabinet_item)
+    part = str(table.get("description_part") or "")
+    kind = table_kind(table.get("name"))
+    ied, kit = None, None
+    if part == "kit" or kind == "description_kit":
+        ied = _kit_ied(cabinet_item, table.get("kit"))
+        for candidate in cabinet_item.get("kits") or []:
+            if str(candidate.get("number")) == str(table.get("kit")):
+                kit = candidate
+                break
     rows = []
     for row in table.get("rows") or []:
         cells = row.get("content") or []
         key = cells[0] if cells else ""
-        rows.append([key, _description_value(key, cabinet_item, refs, figures)])
+        rows.append([key, _description_value(key, cabinet_item, refs, figures,
+                                             ied=ied, kit=kit,
+                                             cabinet_only=part == "cabinet")])
     return rows
 
 
@@ -796,7 +868,7 @@ def table_view(data, table):
     headers = _form_headers(table)
     if cabinet_item is None:
         return headers, []
-    if kind == "description":
+    if kind in ("description", "description_kit"):
         return headers, _rows_description(data, cabinet_item, table)
     return headers, _cabinet_rows_for(kind, cabinet_item)
 

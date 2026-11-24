@@ -36,6 +36,7 @@ import re
 import sys
 
 import ea_standard as es
+import ea_structure as st
 
 #: Реквизиты стандарта, которые можно заменить (ключ → подпись).
 META_FIELDS = (
@@ -43,6 +44,11 @@ META_FIELDS = (
     ("name", "Наименование"),
     ("property", "Принадлежность"),
     ("date", "Дата введения"),
+)
+
+#: Реквизит-переключатель: описание шкафа делится на таблицу шкафа и ИЭУ.
+BOOL_META_FIELDS = (
+    ("description_split", "Разделять описание шкафа и ИЭУ"),
 )
 
 #: Ссылка на таблицу или рисунок: «Таблица 5.12», «рисунке 5.3».
@@ -114,6 +120,13 @@ def apply_meta(data, meta):
             continue
         value = str(value).strip()
         if value and data.get(key) != value:
+            data[key] = value
+            changed.append(key)
+    for key, _label in BOOL_META_FIELDS:
+        if key not in (meta or {}) or meta[key] is None:
+            continue
+        value = bool(meta[key])
+        if data.get(key) != value:
             data[key] = value
             changed.append(key)
     return changed
@@ -409,8 +422,17 @@ def build(source, meta=None, replacements=None, keep=None, renumber=True,
 
     changed = apply_meta(data, meta or {})
     if changed:
+        labels = dict(META_FIELDS + BOOL_META_FIELDS)
         notes.append("изменены реквизиты: %s" % ", ".join(
-            label for key, label in META_FIELDS if key in changed))
+            labels[key] for key in changed if key in labels))
+    # Новый стандарт по умолчанию переводится на разделённое описание;
+    # старые документы без флага остаются в прежнем формате.
+    if "description_split" not in data:
+        data["description_split"] = True
+    if data.get("description_split"):
+        forms = st.split_description_tables(data)
+        if forms:
+            notes.append("таблиц описания ИЭУ: %d" % forms)
 
     mapping = renumber_standard(data, starts) if renumber else {}
     if mapping:

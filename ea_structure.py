@@ -96,7 +96,7 @@ def kind_headers(kind):
         return list(_FUNCTION_HEADERS)
     if kind == "terminal_blocks":
         return list(_TERMINAL_HEADERS)
-    if kind == "description":
+    if kind in ("description", "description_kit"):
         return ["Параметр", "Значение"]
     return []
 
@@ -114,6 +114,14 @@ def _form_rows(headers):
     return [{"content": list(headers),
              "is_header_first_row": True,
              "is_header_second_row": False}]
+
+
+def _description_rows(labels):
+    """Строки формы описания: по одной строке на поле «Параметр — Значение»."""
+    return [{"content": [label, ""],
+             "is_header_first_row": index == 0,
+             "is_header_second_row": False}
+            for index, label in enumerate(labels)]
 
 
 def _as_number(value):
@@ -337,6 +345,108 @@ def new_table(data, spec, number=None):
     if code:
         table["cabinet"] = code
     return table
+
+
+def _containers_with_tables(data, container=None):
+    """Контейнеры документа, где могут лежать таблицы (в порядке дерева)."""
+    if container is None:
+        for section in es.sections(data):
+            yield from _containers_with_tables(data, section)
+        return
+    yield container
+    # ordered_items не включает подразделы — обходим их отдельно.
+    for sub in container.get("subsections") or []:
+        if isinstance(sub, dict):
+            yield from _containers_with_tables(data, sub)
+    for kind, item in ordered_items(container):
+        if kind in ("clause", "subclause"):
+            yield from _containers_with_tables(data, item)
+
+
+def _table_container(data, table):
+    """Раздел/подраздел/пункт, в котором лежит ``table``."""
+    for container in _containers_with_tables(data):
+        if table in (container.get("tables") or []):
+            return container
+    return None
+
+
+def _kit_description_name(code, numbers):
+    """«Описание ИЭУ1(2) в составе ШЭТ …» по списку номеров группы."""
+    label = "ИЭУ%s" % numbers[0]
+    if len(numbers) > 1:
+        label += "(%s)" % ",".join(str(number) for number in numbers[1:])
+    return "Описание %s в составе %s" % (label, code)
+
+
+def split_description_tables(data):
+    """Разделить описание шкафа на таблицу шкафа и таблицы ИЭУ.
+
+    Работает только для стандартов с ``description_split``; повторный вызов
+    пересобирает таблицы ИЭУ заново, не оставляя дублей. Возвращает число
+    созданных таблиц описания ИЭУ.
+    """
+    if not isinstance(data, dict) or not data.get("description_split"):
+        return 0
+    created = 0
+    for cabinet_item in es.cabinets(data):
+        code = str(cabinet_item.get("cypher") or "")
+        description = next((
+            table for table in es.iter_tables(data)
+            if table.get("cabinet") == code
+            and es.table_kind(table.get("name")) == "description"), None)
+        if description is None:
+            continue
+        container = _table_container(data, description)
+        if container is None:
+            continue
+        # Прежние таблицы ИЭУ удаляются: «Обновить стандарт» пересобирает
+        # форму заново, а не копирует её всё больше.
+        for owner in _containers_with_tables(data):
+            tables = owner.get("tables") or []
+            for table in list(tables):
+                if (table is not description
+                        and table.get("cabinet") == code
+                        and (table.get("description_part") == "kit"
+                             or es.table_kind(table.get("name"))
+                             == "description_kit")):
+                    tables.remove(table)
+        description["description_part"] = "cabinet"
+        description.pop("kit", None)
+        description["rows"] = _description_rows(es.CABINET_DESCRIPTION_ROWS)
+
+        kits = cabinet_item.get("kits") or []
+        groups, seen = [], set()
+        for index, kit in enumerate(kits, 1):
+            if not isinstance(kit, dict):
+                continue
+            identical = str(kit.get("identical") or "").strip()
+            if identical and identical in seen:
+                continue
+            members = [position for position, other in enumerate(kits, 1)
+                       if isinstance(other, dict) and identical
+                       and str(other.get("identical") or "").strip()
+                       == identical]
+            if not members:
+                members = [index]
+            if identical:
+                seen.add(identical)
+            groups.append((members, kit))
+
+        for members, kit in groups:
+            number = kit.get("number") or members[0]
+            table = new_table(data, {
+                "name": _kit_description_name(code, members),
+                "cabinet": code,
+                "kind": "description_kit",
+                "headers": ["Параметр", "Значение"],
+            })
+            table["rows"] = _description_rows(es.KIT_DESCRIPTION_ROWS)
+            table["description_part"] = "kit"
+            table["kit"] = str(number)
+            add(container.setdefault("tables", []), table)
+            created += 1
+    return created
 
 
 # ---------------------------------------------------------------------------
