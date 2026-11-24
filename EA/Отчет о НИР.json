@@ -23902,7 +23902,7 @@
           ]
         },
         {
-          "number": 3,
+          "number": "3",
           "description": "Комплект ИЭУ шкафа",
           "type": "ИЭУ",
           "tag": "Невыпущенные СТО",
@@ -24044,7 +24044,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "identical": "1"
         }
       ],
       "containers": []
@@ -33992,7 +33993,7 @@
       ],
       "kits": [
         {
-          "number": 1,
+          "number": "1",
           "description": "Комплект ИЭУ шкафа",
           "type": "ИЭУ",
           "tag": "",
@@ -38203,7 +38204,8 @@
               "description": "",
               "scheme": ""
             }
-          ]
+          ],
+          "identical": "1"
         }
       ],
       "containers": []
