@@ -23,23 +23,31 @@
         {
             "id": "DIe445",
             "type": "disconnector",
-            "name": "QS40",
+            "name": "Р ОСШ",
             "x": 1240,
             "y": 410,
-            "rotation": 180
+            "rotation": 180,
+            "label": [
+                -7.5,
+                0.0
+            ]
         },
         {
             "id": "DI05dd",
             "type": "disconnector",
-            "name": "QS41",
+            "name": "Р3  В БСК",
             "x": 1240,
             "y": 470,
-            "rotation": 180
+            "rotation": 180,
+            "label": [
+                -6.9,
+                0.0
+            ]
         },
         {
             "id": "CU9f7d",
             "type": "current_transformer",
-            "name": "TA18",
+            "name": "",
             "x": 1240,
             "y": 520,
             "rotation": 0
@@ -47,7 +55,7 @@
         {
             "id": "BRfaa9",
             "type": "breaker",
-            "name": "Q11",
+            "name": "В БСК",
             "x": 1240,
             "y": 570,
             "rotation": 0
@@ -55,10 +63,14 @@
         {
             "id": "DI1719",
             "type": "disconnector",
-            "name": "QS42",
+            "name": "Р 2СШ В БСК",
             "x": 1240,
             "y": 630,
-            "rotation": 0
+            "rotation": 0,
+            "label": [
+                1.2,
+                0.0
+            ]
         },
         {
             "id": "NO4b7e",
@@ -70,7 +82,7 @@
         {
             "id": "DI357b",
             "type": "disconnector",
-            "name": "",
+            "name": "Р 1СШ В БСК",
             "x": 1160,
             "y": 690,
             "rotation": 0,
@@ -106,33 +118,37 @@
         {
             "id": "BU31c1",
             "type": "bus",
-            "name": "BB1",
-            "x": 1220,
+            "name": "ОСШ",
+            "x": 1300,
             "y": 370,
-            "length": 80
+            "length": 180,
+            "label": [
+                -33.7,
+                11.2
+            ]
         },
         {
             "id": "BU1703",
             "type": "bus",
-            "name": "BB2",
-            "x": 1230,
+            "name": "2СШ",
+            "x": 1300,
             "y": 660,
-            "length": 110,
+            "length": 180,
             "label": [
-                -41.6,
-                4.3
+                204.6,
+                22.6
             ]
         },
         {
             "id": "BU9b7e",
             "type": "bus",
-            "name": "BB3",
-            "x": 1230,
+            "name": "1СШ",
+            "x": 1300,
             "y": 720,
-            "length": 110,
+            "length": 180,
             "label": [
-                0.0,
-                3.9
+                203.5,
+                22.2
             ]
         },
         {
@@ -670,6 +686,142 @@
                     }
                 ]
             }
+        },
+        {
+            "id": "CO4ab1",
+            "type": "comment_node",
+            "name": "",
+            "x": 1080,
+            "y": 880
+        },
+        {
+            "id": "COc6f0",
+            "type": "comment_node",
+            "name": "",
+            "x": 1140,
+            "y": 880
+        },
+        {
+            "id": "CO9dff",
+            "type": "comment_node",
+            "name": "",
+            "x": 1110,
+            "y": 790
+        },
+        {
+            "id": "COff8a",
+            "type": "comment_node",
+            "name": "",
+            "x": 1110,
+            "y": 970
+        },
+        {
+            "id": "CO48de",
+            "type": "comment_node",
+            "name": "",
+            "x": 1110,
+            "y": 1020
+        },
+        {
+            "id": "COed62",
+            "type": "comment_node",
+            "name": "",
+            "x": 1110,
+            "y": 1060
+        },
+        {
+            "id": "CO4f41",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 500
+        },
+        {
+            "id": "CO67c8",
+            "type": "comment_node",
+            "name": "",
+            "x": 1240,
+            "y": 540
+        },
+        {
+            "id": "DId471",
+            "type": "disconnector",
+            "name": "QS2",
+            "x": 1460,
+            "y": 470,
+            "rotation": 180,
+            "label": [
+                -6.9,
+                0.0
+            ]
+        },
+        {
+            "id": "CU8e6d",
+            "type": "current_transformer",
+            "name": "TA1",
+            "x": 1460,
+            "y": 520,
+            "rotation": 0
+        },
+        {
+            "id": "BR2039",
+            "type": "breaker",
+            "name": "Q1",
+            "x": 1460,
+            "y": 570,
+            "rotation": 0
+        },
+        {
+            "id": "DIb08a",
+            "type": "disconnector",
+            "name": "QS3",
+            "x": 1460,
+            "y": 630,
+            "rotation": 0,
+            "label": [
+                1.2,
+                0.0
+            ]
+        },
+        {
+            "id": "NOe02e",
+            "type": "node",
+            "name": "N56",
+            "x": 1460,
+            "y": 600
+        },
+        {
+            "id": "CO94a3",
+            "type": "comment_node",
+            "name": "",
+            "x": 1460,
+            "y": 600
+        },
+        {
+            "id": "CObd3d",
+            "type": "comment_node",
+            "name": "",
+            "x": 1460,
+            "y": 500
+        },
+        {
+            "id": "CO0e16",
+            "type": "comment_node",
+            "name": "",
+            "x": 1460,
+            "y": 540
+        },
+        {
+            "id": "DI8ec4",
+            "type": "disconnector",
+            "name": "QS4",
+            "x": 1380,
+            "y": 690,
+            "rotation": 0,
+            "label": [
+                -12.9,
+                -0.5
+            ]
         }
     ],
     "connections": [
@@ -792,14 +944,6 @@
             "element_to": "GR98e6"
         },
         {
-            "node_from": "N_BU31c1_p_4",
-            "node_to": "N_DIe445_top",
-            "port_from": "p_4",
-            "port_to": "top",
-            "element_from": "BU31c1",
-            "element_to": "DIe445"
-        },
-        {
             "node_from": "N_DIe445_bot",
             "node_to": "NO4b7e",
             "port_from": "bottom",
@@ -854,14 +998,6 @@
             "element_to": "BU9b7e"
         },
         {
-            "node_from": "N_DI54a6_top",
-            "node_to": "N_BU1703_p_9",
-            "port_from": "top",
-            "port_to": "p_9",
-            "element_from": "DI54a6",
-            "element_to": "BU1703"
-        },
-        {
             "node_from": "N_BU9b7e_p_6",
             "node_to": "N_DI5298_top",
             "port_from": "p_6",
@@ -884,6 +1020,108 @@
             "port_to": "top",
             "element_from": "DI54a6",
             "element_to": "VObf43"
+        },
+        {
+            "node_from": "N_BRfaa9_bot",
+            "node_to": "NOd6ae",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "BRfaa9",
+            "element_to": "NOd6ae"
+        },
+        {
+            "node_from": "NOd6ae",
+            "node_to": "N_DI1719_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NOd6ae",
+            "element_to": "DI1719"
+        },
+        {
+            "node_from": "N_CU8e6d_bot",
+            "node_to": "N_BR2039_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "CU8e6d",
+            "element_to": "BR2039"
+        },
+        {
+            "node_from": "N_DId471_bot",
+            "node_to": "N_CU8e6d_top",
+            "port_from": "bottom",
+            "port_to": "top",
+            "element_from": "DId471",
+            "element_to": "CU8e6d"
+        },
+        {
+            "node_from": "NOe02e",
+            "node_to": "N_DI8ec4_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NOe02e",
+            "element_to": "DI8ec4",
+            "points": [
+                [
+                    1380.0,
+                    600.0
+                ]
+            ]
+        },
+        {
+            "node_from": "N_BR2039_bot",
+            "node_to": "NOe02e",
+            "port_from": "bottom",
+            "port_to": "center",
+            "element_from": "BR2039",
+            "element_to": "NOe02e"
+        },
+        {
+            "node_from": "NOe02e",
+            "node_to": "N_DIb08a_top",
+            "port_from": "center",
+            "port_to": "top",
+            "element_from": "NOe02e",
+            "element_to": "DIb08a"
+        },
+        {
+            "node_from": "N_DI54a6_top",
+            "node_to": "N_BU1703_center",
+            "port_from": "top",
+            "port_to": "center",
+            "element_from": "DI54a6",
+            "element_to": "BU1703"
+        },
+        {
+            "node_from": "N_DIb08a_bot",
+            "node_to": "N_BU1703_p_16",
+            "port_from": "bottom",
+            "port_to": "p_16",
+            "element_from": "DIb08a",
+            "element_to": "BU1703"
+        },
+        {
+            "node_from": "N_DI8ec4_bot",
+            "node_to": "N_BU9b7e_p_12",
+            "port_from": "bottom",
+            "port_to": "p_12",
+            "element_from": "DI8ec4",
+            "element_to": "BU9b7e"
+        },
+        {
+            "node_from": "N_DIe445_top",
+            "node_to": "N_BU31c1_p_6",
+            "port_from": "top",
+            "port_to": "p_6",
+            "element_from": "DIe445",
+            "element_to": "BU31c1"
+        },
+        {
+            "node_from": "N_DId471_top",
+            "node_to": "N_BU31c1_p_16",
+            "port_from": "top",
+            "port_to": "p_16",
+            "element_from": "DId471",
+            "element_to": "BU31c1"
         }
     ],
     "analog_links": [
@@ -938,6 +1176,10 @@
             "to": "CAd0a6#0",
             "points": [
                 [
+                    1240.0,
+                    520.0
+                ],
+                [
                     990.0,
                     520.0
                 ],
@@ -946,11 +1188,45 @@
                     1010.0
                 ]
             ]
+        },
+        {
+            "from": "CU76ab",
+            "to": "CAd0a6#0",
+            "points": [
+                [
+                    1140.0,
+                    990.0
+                ]
+            ]
+        },
+        {
+            "from": "CU8b00",
+            "to": "CAd0a6#0",
+            "points": [
+                [
+                    1170.0,
+                    1040.0
+                ]
+            ]
+        },
+        {
+            "from": "CU02e8",
+            "to": "CAd0a6#0",
+            "points": [
+                [
+                    1170.0,
+                    920.0
+                ],
+                [
+                    1170.0,
+                    990.0
+                ]
+            ]
         }
     ],
     "view": {
-        "zoom": 0.9666,
-        "offset_x": -515.0,
-        "offset_y": -532.1
+        "zoom": 1.9934,
+        "offset_x": -1866.17,
+        "offset_y": -636.0
     }
 }
