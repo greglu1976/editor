@@ -446,6 +446,65 @@ def copy_figure(figure, container, number=None, base=""):
     return clone
 
 
+def _unique_copy_name(container, name):
+    """Имя копии узла: «(копия)», при повторе — «(копия 2)» и далее."""
+    existing = {str(item.get("name") or "") for item in container
+                if isinstance(item, dict)}
+    base = str(name or "").strip() or "Копия"
+    candidate = base + " (копия)"
+    index = 2
+    while candidate in existing:
+        candidate = "%s (копия %d)" % (base, index)
+        index += 1
+    return candidate
+
+
+def _unique_slot_id(container, value):
+    """Свободный ``id`` слота внутри той же коллекции входов/выходов."""
+    used = {str(item.get("id") or "") for item in container
+            if isinstance(item, dict)}
+    value = str(value or "")
+    if not value or value not in used:
+        return value
+    match = _TRAILING_NUMBER.match(value)
+    if match:
+        prefix, digits = match.groups()
+        number = int(digits) + 1
+        candidate = "%s%d" % (prefix, number)
+        while candidate in used:
+            number += 1
+            candidate = "%s%d" % (prefix, number)
+        return candidate
+    candidate = value + "_copy"
+    index = 2
+    while candidate in used:
+        candidate = "%s_copy%d" % (value, index)
+        index += 1
+    return candidate
+
+
+def duplicate_node(item, container):
+    """Вставить копию узла в тот же контейнер сразу после оригинала.
+
+    Копия получает собственное имя с пометкой «(копия)»; у входа/выхода
+    также обновляется ``id``, чтобы он не совпал с исходным слотом.
+    Возвращает новую запись.
+    """
+    if not isinstance(item, dict):
+        raise StructureError("узел нельзя скопировать")
+    index = next((position for position, value in enumerate(container)
+                  if value is item), None)
+    if index is None:
+        raise StructureError("узел не найден в контейнере")
+    clone = copy.deepcopy(item)
+    if "name" in clone:
+        clone["name"] = _unique_copy_name(container, clone.get("name"))
+    if "id" in clone:
+        clone["id"] = _unique_slot_id(container, clone.get("id"))
+    add(container, clone, index=index + 1)
+    return clone
+
+
 # ---------------------------------------------------------------------------
 # Привязка таблиц к шкафу
 # ---------------------------------------------------------------------------

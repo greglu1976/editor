@@ -171,6 +171,10 @@ _DATE = re.compile(r"^\d{2}\.\d{2}\.\d{4}$")
 _GENERIC_KINDS = ("block", "function", "slot", "setting", "parameter",
                  "fb_entry")
 
+#: Узлы функциональной модели, которые можно дублировать целиком.
+_DUPLICATE_KINDS = ("block", "function", "slot", "setting", "parameter",
+                    "fb_entry")
+
 #: Вид узла → ключ коллекции и класс схемы для добавления потомка.
 _GENERIC_CHILD = {
     "block": ("function_blocks", "FunctionBlock", "блок"),
@@ -218,6 +222,7 @@ class StandardEditorWindow(tk.Toplevel):
         self._meta_iid = None
         self._pending = None          # что записать в данные перед уходом
         self._current_node = None
+        self._clipboard = None        # (вид, контейнер, узел) для копии
         self._changed = False
         self._switching = False
         self._grid = None
@@ -266,6 +271,10 @@ class StandardEditorWindow(tk.Toplevel):
         self.tree.bind("<<TreeviewSelect>>", self._on_select)
         self.tree.bind("<Button-3>", self._on_right_click)
         self.tree.bind("<Delete>", lambda event: self._delete_selection())
+        self.tree.bind("<Control-d>",
+                       lambda event: self._duplicate_selection())
+        self.tree.bind("<Control-c>", self._copy_node)
+        self.tree.bind("<Control-v>", self._paste_node)
         # Перетаскивание мышью: разделы, подразделы, таблицы и рисунки.
         self.tree.bind("<ButtonPress-1>", self._on_drag_start, add="+")
         self.tree.bind("<B1-Motion>", self._on_drag_motion, add="+")
@@ -1932,16 +1941,17 @@ class StandardEditorWindow(tk.Toplevel):
         """Применить правки панели, изменить данные и перестроить дерево.
 
         Если ``action`` вернула список узлов, в дереве выделяются все они.
+        Возвращает ``False``, если правку применить не удалось.
         """
         if not self._apply_pending():
-            return
+            return False
         try:
             created = action()
         except (st.StructureError, AttributeError, KeyError, TypeError,
                 ValueError) as exc:
             # Ошибки добавления показываем окном, а не traceback в консоли.
             messagebox.showerror("Редактор стандарта", str(exc), parent=self)
-            return
+            return False
         self._changed = True
         self._update_title()
         if select_items is None:
@@ -1965,6 +1975,7 @@ class StandardEditorWindow(tk.Toplevel):
             self._switching = False
             self._current_node = iids[0]
             self._render(self._nodes.get(iids[0]))
+        return True
 
     def _add_section(self, parent_iid):
         container = self._child_container(parent_iid, "section")
@@ -2673,6 +2684,82 @@ class StandardEditorWindow(tk.Toplevel):
         elif iids:
             self._delete_node(iids[0])
 
+    # ---------------------------------------------------- дублирование узлов
+    def _copy_name(self, node):
+        """Имя узла для сообщения о копии."""
+        item = self._generic_item(node) if node else None
+        if isinstance(item, dict):
+            return str(item.get("name") or "").strip()
+        return ""
+
+    def _report_copy(self):
+        """Показать в строке состояния имя только что вставленной копии."""
+        name = self._copy_name(self._nodes.get(self._current_node))
+        self.status.config(text="Вставлена копия%s"
+                                % (": %s" % name if name else ""))
+
+    def _duplicate_selection(self):
+        """Ctrl+D: вставить копию выделенного узла."""
+        iids = self._selection_iids()
+        if len(iids) != 1:
+            self.status.config(text="Для копии выберите один узел")
+            return
+        self._duplicate_node(iids[0])
+
+    def _duplicate_node(self, iid):
+        """Вставить копию блока, функции, входа/выхода, уставки, параметра."""
+        owner = self._owners.get(iid)
+        kind = self._node_kind(iid)
+        if not owner or kind not in _DUPLICATE_KINDS:
+            return
+        container, item, _parent = owner
+        if not isinstance(item, dict) or not isinstance(container, list):
+            return
+
+        def action():
+            return st.duplicate_node(item, container)
+
+        if self._mutate(action):
+            self._report_copy()
+
+    def _copy_node(self, event=None):
+        """Ctrl+C: запомнить узел функциональной модели для вставки."""
+        iids = self._selection_iids()
+        if len(iids) != 1:
+            self.status.config(text="Для копии выберите один узел")
+            return "break"
+        iid = iids[0]
+        owner = self._owners.get(iid)
+        kind = self._node_kind(iid)
+        if kind not in _DUPLICATE_KINDS or not owner \
+                or not isinstance(owner[1], dict) \
+                or not isinstance(owner[0], list):
+            self.status.config(text="Этот узел копировать нельзя")
+            return "break"
+        self._clipboard = (kind, owner[0], owner[1])
+        self.status.config(text="Скопировано: %s"
+                                % self.tree.item(iid, "text"))
+        return "break"
+
+    def _paste_node(self, event=None):
+        """Ctrl+V: вставить копию запомненного узла рядом с оригиналом."""
+        if not self._clipboard:
+            self.status.config(text="Буфер пуст: сначала скопируйте узел")
+            return "break"
+        _kind, container, item = self._clipboard
+        if not isinstance(container, list) \
+                or not any(value is item for value in container):
+            self._clipboard = None
+            self.status.config(text="Исходный узел не найден — скопируйте заново")
+            return "break"
+
+        def action():
+            return st.duplicate_node(item, container)
+
+        if self._mutate(action):
+            self._report_copy()
+        return "break"
+
     def _delete_node(self, iid):
         owner = self._owners.get(iid)
         node = self._nodes.get(iid)
@@ -2828,6 +2915,8 @@ class StandardEditorWindow(tk.Toplevel):
             ]
         if kind == "fb_entry":
             return [
+                ("Дублировать функциональный блок",
+                 lambda: self._duplicate_node(iid)),
                 ("Добавить функцию…",
                  lambda: self._add_generic_child(iid, "function")),
                 None, ("Удалить функциональный блок",
@@ -2835,12 +2924,16 @@ class StandardEditorWindow(tk.Toplevel):
             ]
         if kind == "block":
             return [
+                ("Дублировать блок",
+                 lambda: self._duplicate_node(iid)),
                 ("Добавить функцию…",
                  lambda: self._add_generic_child(iid, "function")),
                 None, ("Удалить блок", lambda: self._delete_node(iid)),
             ]
         if kind == "function":
             return [
+                ("Дублировать функцию",
+                 lambda: self._duplicate_node(iid)),
                 ("Добавить вход…",
                  lambda: self._add_generic_child(iid, "slot", "in")),
                 ("Добавить выход…",
@@ -2853,12 +2946,21 @@ class StandardEditorWindow(tk.Toplevel):
             ]
         if kind == "slot":
             word = "выход" if node[2] == "out" else "вход"
-            return [("Удалить %s" % word,
+            return [("Дублировать %s" % word,
+                     lambda: self._duplicate_node(iid)),
+                    None,
+                    ("Удалить %s" % word,
                      lambda: self._delete_node(iid))]
         if kind == "setting":
-            return [("Удалить уставку", lambda: self._delete_node(iid))]
+            return [("Дублировать уставку",
+                     lambda: self._duplicate_node(iid)),
+                    None,
+                    ("Удалить уставку", lambda: self._delete_node(iid))]
         if kind == "parameter":
-            return [("Удалить параметр", lambda: self._delete_node(iid))]
+            return [("Дублировать параметр",
+                     lambda: self._duplicate_node(iid)),
+                    None,
+                    ("Удалить параметр", lambda: self._delete_node(iid))]
         if kind == "table_column":
             # Колонка — не отдельный узел модели: действия у самой таблицы.
             return []

@@ -1424,6 +1424,40 @@ def test_structure_ops(data):
           and es.validate(loaded) == [],
           "круговой save/load сохраняет структуру без потерь")
 
+    # Пункт 19: дублирование узлов функциональной модели.
+    import ea_schema as sc
+    block = sc.new_node("FunctionBlock", name="Блок")
+    function = sc.new_node("Function", name="Функция")
+    slot = sc.new_node("Input", name="Вход", id="in1")
+    setting = sc.new_node("Setting", name="Уставка")
+    parameter = sc.new_node("Parameter", name="Параметр")
+    st.add(block["functions"], function)
+    st.add(function["inputs"], slot)
+    st.add(function["settings"], setting)
+    st.add(function["parameters"], parameter)
+    st.add(ied["function_blocks"], block)
+
+    block_copy = st.duplicate_node(block, ied["function_blocks"])
+    check(block_copy is not block and block_copy["name"] == "Блок (копия)"
+          and len(block_copy["functions"]) == 1
+          and block_copy["functions"][0] is not function,
+          "блок функций скопирован вместе с функциями")
+    function_copy = st.duplicate_node(function, block["functions"])
+    check(function_copy["name"] == "Функция (копия)"
+          and function_copy["inputs"][0]["name"] == "Вход",
+          "функция скопирована со своими слотами")
+    slot_copy = st.duplicate_node(slot, function["inputs"])
+    check(slot_copy["name"] == "Вход (копия)" and slot_copy["id"] != "in1",
+          "вход скопирован с новым id")
+    setting_copy = st.duplicate_node(setting, function["settings"])
+    parameter_copy = st.duplicate_node(parameter, function["parameters"])
+    check(setting_copy["name"] == "Уставка (копия)"
+          and parameter_copy["name"] == "Параметр (копия)",
+          "уставка и параметр скопированы")
+    second_copy = st.duplicate_node(block, ied["function_blocks"])
+    check(second_copy["name"] == "Блок (копия 2)",
+          "повторная копия получает номер")
+
 
 def test_merge_all_cabinets():
     """Каталог и слияние шкафов всех стандартов (ea_merge)."""
@@ -1800,6 +1834,35 @@ def test_editor_fields():
               and item["parameters"][-1]["name"] == "Новый параметр",
               "параметр добавлен в функцию")
         check(None not in item, "параметр не попал в ключ None")
+
+        # Пункт 19: дублирование функции из меню.
+        function_iid = window._find_iid(item)
+        functions = window._owners[function_iid][0]
+        before = len(functions)
+        window.tree.selection_set(function_iid)
+        root.update()
+        labels = [entry[0] for entry in
+                  window._menu_items(function_iid,
+                                     window._nodes[function_iid]) if entry]
+        check(any("Дублировать функцию" in label for label in labels),
+              "в меню функции есть дублирование")
+        window._duplicate_node(function_iid)
+        root.update()
+        index = next(position for position, value in enumerate(functions)
+                     if value is item)
+        clone = functions[index + 1]
+        check(len(functions) == before + 1 and clone is not item
+              and clone["name"].endswith("(копия)")
+              and len(clone["settings"]) == len(item["settings"]),
+              "функция продублирована копией рядом с оригиналом")
+
+        window.tree.selection_set(window._find_iid(item))
+        root.update()
+        window._copy_node()
+        window._paste_node()
+        root.update()
+        check(len(functions) == before + 2,
+              "Ctrl+C и Ctrl+V вставляют копию узла")
 
         block_iid = next(iid for iid, node in window._nodes.items()
                          if node[0] == "block")
