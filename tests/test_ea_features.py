@@ -1346,6 +1346,44 @@ def test_editor_drag_reorder():
             after = container[key]
             check(after[0] is before[1] and after[1] is before[0],
                   "%s передвинут мышью внутри контейнера" % word)
+
+        # Пункт 21: рисунок можно поставить над таблицей и наоборот.
+        import ea_structure as st
+
+        def containers(data):
+            for section in data.get("sections") or []:
+                yield section
+                for sub in section.get("subsections") or []:
+                    yield sub
+                    for clause in sub.get("clauses") or []:
+                        yield clause
+                for clause in section.get("clauses") or []:
+                    yield clause
+
+        compact = next(item for item in containers(window.data)
+                       if len(item.get("tables") or []) == 1
+                       and not (item.get("figures") or []))
+        figure_item = st.new_figure(window.data, compact, name="Схема")
+        st.add(compact.setdefault("figures", []), figure_item)
+        window._fill_tree()
+        root.update()
+        table_item = compact["tables"][0]
+        drag(window._find_iid(figure_item), window._find_iid(table_item))
+        parent_iid = window._find_iid(compact)
+        order = window.tree.get_children(parent_iid)
+        check(order.index(window._find_iid(figure_item))
+              < order.index(window._find_iid(table_item)),
+              "рисунок перенесён мышью над таблицей")
+        check(all("order" in item for item in
+                  list(compact.get("tables") or [])
+                  + list(compact.get("figures") or [])),
+              "у блоков контейнера появился общий порядок")
+        drag(window._find_iid(table_item), window._find_iid(figure_item))
+        parent_iid = window._find_iid(compact)
+        order = window.tree.get_children(parent_iid)
+        check(order.index(window._find_iid(table_item))
+              < order.index(window._find_iid(figure_item)),
+              "таблица перенесена мышью над рисунком")
     except Exception as exc:                      # noqa: BLE001
         check(False, "перетаскивание мышью: %s" % exc)
     finally:
@@ -1457,6 +1495,31 @@ def test_structure_ops(data):
     second_copy = st.duplicate_node(block, ied["function_blocks"])
     check(second_copy["name"] == "Блок (копия 2)",
           "повторная копия получает номер")
+
+    # Пункт 21: общий порядок таблиц и рисунков в контейнере.
+    blocks = {"tables": [], "figures": []}
+    table_one = st.new_table(clone, {"name": "Первая", "headers": ["П"]})
+    table_two = st.new_table(clone, {"name": "Вторая", "headers": ["П"]})
+    figure = st.new_figure(clone, blocks, name="Схема")
+    st.add(blocks["tables"], table_one)
+    st.add(blocks["tables"], table_two)
+    st.add(blocks["figures"], figure)
+    check([kind for kind, _item in st.ordered_blocks(blocks)]
+          == ["table", "table", "figure"],
+          "без order порядок прежний: таблицы, затем рисунки")
+    st.move_block("figure", figure, blocks["figures"], blocks,
+                  anchor=table_one, after=False)
+    check([item for _kind, item in st.ordered_blocks(blocks)]
+          == [figure, table_one, table_two],
+          "рисунок перенесён над таблицей")
+    st.move_block("table", table_two, blocks["tables"], blocks,
+                  anchor=figure, after=False)
+    check([item for _kind, item in st.ordered_blocks(blocks)]
+          == [table_two, figure, table_one],
+          "таблица перенесена над рисунком")
+    check(blocks["tables"] == [table_two, table_one]
+          and blocks["figures"] == [figure],
+          "списки таблиц и рисунков переписаны в общем порядке")
 
 
 def test_merge_all_cabinets():
@@ -2132,6 +2195,39 @@ def test_analog_links_in_report():
         shutil.rmtree(folder, ignore_errors=True)
 
 
+def test_block_order_in_report():
+    """Пункт 21: отчёт выводит рисунки и таблицы в общем порядке."""
+    print("18. порядок таблиц и рисунков в отчёте")
+    import ea_docx
+    import ea_structure as st
+
+    container = {
+        "tables": [{"name": "Первая", "reference": "Таблица 1"},
+                   {"name": "Вторая", "reference": "Таблица 2"}],
+        "figures": [{"name": "Схема", "reference": "Рисунок 1"}],
+        "clauses": [],
+    }
+    st.move_block("figure", container["figures"][0],
+                  container["figures"], container,
+                  anchor=container["tables"][0], after=False)
+    calls = []
+    originals = (ea_docx._render_table, ea_docx._render_figure_block,
+                 ea_docx._text_block)
+    ea_docx._render_table = lambda doc, data, table, *a: calls.append(
+        ("table", table["name"]))
+    ea_docx._render_figure_block = lambda doc, figure, *a: calls.append(
+        ("figure", figure["name"]))
+    ea_docx._text_block = lambda *a: None
+    try:
+        ea_docx._render_container(None, {}, container, 2, 50, {}, {}, [])
+    finally:
+        (ea_docx._render_table, ea_docx._render_figure_block,
+         ea_docx._text_block) = originals
+    check(calls == [("figure", "Схема"), ("table", "Первая"),
+                    ("table", "Вторая")],
+          "отчёт выводит рисунок над таблицами в заданном порядке")
+
+
 def sc_missing(cls, key):
     """Есть ли поле ``key`` у класса ``cls`` в схеме structure2?"""
     import ea_schema as sc
@@ -2251,6 +2347,7 @@ def main(argv=None):
     test_structure2_schema()
     test_ied_scheme(data)
     test_analog_links_in_report()
+    test_block_order_in_report()
     if not args.no_gui:
         test_gui(data)
         test_fields()

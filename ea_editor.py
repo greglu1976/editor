@@ -325,8 +325,7 @@ class StandardEditorWindow(tk.Toplevel):
                                     open=False)
             self._register_node(node, ("text", "section", section), sections,
                            section, doc)
-            self._add_tables(node, section)
-            self._add_figures(node, section, section.get("number", ""))
+            self._add_blocks(node, section)
             clauses = section.setdefault("clauses", [])
             for clause in clauses:
                 self._tree_clause(node, clause, clauses)
@@ -338,8 +337,7 @@ class StandardEditorWindow(tk.Toplevel):
                                             text=title.strip(), open=False)
                 self._register_node(sub_node, ("text", "subsection", sub),
                                subsections, sub, node)
-                self._add_tables(sub_node, sub)
-                self._add_figures(sub_node, sub, sub.get("number", ""))
+                self._add_blocks(sub_node, sub)
                 sub_clauses = sub.setdefault("clauses", [])
                 for clause in sub_clauses:
                     self._tree_clause(sub_node, clause, sub_clauses)
@@ -440,14 +438,24 @@ class StandardEditorWindow(tk.Toplevel):
                             else (kind, entry))
                     self._register_node(enode, node, entries, entry, fnode)
 
-    def _add_tables(self, parent, container):
-        tables = container.setdefault("tables", [])
-        for table in tables:
-            label = "%s %s" % (table.get("reference") or "Таблица",
-                               table.get("name") or "")
-            node = self.tree.insert(parent, tk.END, text=label.strip())
-            self._register_node(node, ("table", table), tables, table, parent)
-            self._add_table_columns(node, table)
+    def _add_blocks(self, parent, container):
+        """Таблицы и рисунки контейнера — в общем порядке документа."""
+        for kind, item in st.ordered_blocks(container):
+            if kind == "table":
+                label = "%s %s" % (item.get("reference") or "Таблица",
+                                   item.get("name") or "")
+                node = self.tree.insert(parent, tk.END, text=label.strip())
+                self._register_node(node, ("table", item),
+                                    container.setdefault("tables", []),
+                                    item, parent)
+                self._add_table_columns(node, item)
+            else:
+                label = "%s %s" % (item.get("reference") or "Рисунок",
+                                   item.get("name") or "")
+                node = self.tree.insert(parent, tk.END, text=label.strip())
+                self._register_node(node, ("figure", item),
+                                    container.setdefault("figures", []),
+                                    item, parent)
 
     def _add_table_columns(self, node, table):
         """Колонки таблицы — дочерними узлами: состав виден прямо в дереве."""
@@ -457,14 +465,6 @@ class StandardEditorWindow(tk.Toplevel):
             self._register_node(column, ("table_column", table, index),
                                 None, table, node)
 
-    def _add_figures(self, parent, container, number):
-        figures = container.setdefault("figures", [])
-        for figure in figures:
-            label = "%s %s" % (figure.get("reference") or "Рисунок",
-                               figure.get("name") or "")
-            node = self.tree.insert(parent, tk.END, text=label.strip())
-            self._register_node(node, ("figure", figure), figures, figure, parent)
-
     def _tree_clause(self, parent, clause, clauses):
         text = (clause.get("content") or "").split("\n")[0]
         node = self.tree.insert(
@@ -472,8 +472,7 @@ class StandardEditorWindow(tk.Toplevel):
             text="%s %s" % (clause.get("number", ""), text[:90]))
         self._register_node(node, ("text", "clause", clause), clauses, clause,
                        parent)
-        self._add_tables(node, clause)
-        self._add_figures(node, clause, clause.get("number", ""))
+        self._add_blocks(node, clause)
 
     # ------------------------------------------------------------- выборка
     def _selection_iids(self):
@@ -537,7 +536,7 @@ class StandardEditorWindow(tk.Toplevel):
         return None
 
     def _drag_destination(self, source, target, where):
-        """План переноса: список, якорь и признак «после якоря»."""
+        """План переноса: список с якорем или контейнер общего порядка."""
         kind = self._drag_kind(source)
         owner = self._owners.get(source)
         if not kind or not owner or owner[1] is None:
@@ -565,23 +564,22 @@ class StandardEditorWindow(tk.Toplevel):
             else:
                 return None
         else:
-            key = "tables" if kind == "table" else "figures"
             if tkind in ("table", "figure") and towner:
                 container = self._container_for_iid(towner[2])
                 if container is None:
                     return None
-                dest = container.setdefault(key, [])
-                anchor = towner[1] if tkind == kind else None
-                after = where == "after" or (anchor is None
-                                             and where == "into")
+                anchor = towner[1]
+                after = where != "before"
             elif tkind in ("section", "subsection", "clause"):
                 container = self._container_for_iid(target)
                 if container is None:
                     return None
-                dest = container.setdefault(key, [])
                 anchor, after = None, False
             else:
                 return None
+            return {"container": container, "anchor": anchor,
+                    "after": after, "kind": kind,
+                    "word": self._DRAG_WORDS[kind]}
         return {"dest": dest, "anchor": anchor, "after": after,
                 "word": self._DRAG_WORDS[kind]}
 
@@ -633,6 +631,10 @@ class StandardEditorWindow(tk.Toplevel):
         label = self.tree.item(drag["iid"], "text")
 
         def action():
+            if plan.get("container") is not None:
+                return st.move_block(plan["kind"], owner[1], owner[0],
+                                     plan["container"], plan["anchor"],
+                                     plan["after"])
             return st.place_node(owner[1], owner[0], plan["dest"],
                                  plan["anchor"], plan["after"])
 

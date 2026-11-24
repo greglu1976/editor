@@ -37,6 +37,7 @@ import sys
 import tempfile
 
 import ea_standard as es
+import ea_structure as st
 
 try:
     from docx import Document
@@ -679,10 +680,11 @@ def _render_figure_block(doc, figure, references, counters, errors):
 def _render_container(doc, data, container, level, max_rows, counters,
                       references, errors):
     _text_block(doc, container.get("content"))
-    for table in container.get("tables") or []:
-        _render_table(doc, data, table, max_rows, counters, references)
-    for figure in container.get("figures") or []:
-        _render_figure_block(doc, figure, references, counters, errors)
+    for kind, item in st.ordered_blocks(container):
+        if kind == "table":
+            _render_table(doc, data, item, max_rows, counters, references)
+        else:
+            _render_figure_block(doc, item, references, counters, errors)
     for clause in container.get("clauses") or []:
         number = clause.get("number") or ""
         lines = _clause_lines(clause.get("content"))
@@ -692,8 +694,13 @@ def _render_container(doc, data, container, level, max_rows, counters,
             lines = [number]
         for line in lines:
             _body(doc, line)
-        for table in clause.get("tables") or []:
-            _render_table(doc, data, table, max_rows, counters, references)
+        for kind, item in st.ordered_blocks(clause):
+            if kind == "table":
+                _render_table(doc, data, item, max_rows, counters,
+                              references)
+            else:
+                _render_figure_block(doc, item, references, counters,
+                                     errors)
 
 
 def _render_sections(doc, data, max_rows, counters, references, errors):

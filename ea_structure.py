@@ -371,6 +371,7 @@ def copy_table(data, table, container, number=None, section_number=""):
     Возвращает новую таблицу.
     """
     clone = copy.deepcopy(table)
+    clone.pop("order", None)
     value = str(number or next_table_number(data, section_number)).strip()
     if not value:
         raise StructureError("не задан номер новой таблицы")
@@ -405,6 +406,7 @@ def move_node(node, source, target):
     if source is target:
         raise StructureError("узел уже находится в этом разделе")
     remove(source, node)
+    node.pop("order", None)
     add(target, node)
     return node
 
@@ -433,9 +435,82 @@ def place_node(node, source, target, anchor=None, after=False):
     return node
 
 
+# ---------------------------------------------------------------------------
+# Порядок таблиц и рисунков в документе
+# ---------------------------------------------------------------------------
+#: Вид блока документа → ключ его списка в контейнере.
+_BLOCK_KEYS = {"table": "tables", "figure": "figures"}
+
+
+def _has_order(item):
+    """Задано ли у блока числовое поле общего порядка."""
+    value = item.get("order") if isinstance(item, dict) else None
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def ordered_blocks(container):
+    """Таблицы и рисунки контейнера в порядке документа.
+
+    Пока ни у одного блока нет поля ``order``, порядок прежний: сначала
+    таблицы, затем рисунки. После первого переноса поле ``order`` задано у
+    всех блоков контейнера и определяет их общий порядок. Блоки без поля
+    (добавленные после переноса) идут в конце — так же, как они дописаны в
+    свои списки.
+    """
+    blocks = []
+    for kind, key in _BLOCK_KEYS.items():
+        for item in container.get(key) or []:
+            if isinstance(item, dict):
+                blocks.append((kind, item))
+    if not any(_has_order(item) for _kind, item in blocks):
+        return blocks
+    ordered = [(kind, item) for kind, item in blocks if _has_order(item)]
+    unordered = [(kind, item) for kind, item in blocks
+                 if not _has_order(item)]
+    ordered.sort(key=lambda pair: float(pair[1].get("order")))
+    return ordered + unordered
+
+
+def move_block(kind, item, source, target, anchor=None, after=False):
+    """Перенести таблицу/рисунок в контейнер с общим порядком блоков.
+
+    ``source`` — список, из которого берётся узел (``tables``/``figures``),
+    ``target`` — словарь раздела, подраздела или пункта. После переноса все
+    блоки целевого контейнера получают поле ``order``, а списки таблиц и
+    рисунков переписываются в общем порядке. Возвращает узел.
+    """
+    if kind not in _BLOCK_KEYS or not isinstance(item, dict):
+        raise StructureError("неизвестный вид блока: %s" % kind)
+    blocks = ordered_blocks(target)
+    if any(value is item for _kind, value in blocks):
+        blocks = [(block_kind, value) for block_kind, value in blocks
+                  if value is not item]
+    else:
+        remove(source, item)
+    item.pop("order", None)
+    if anchor is not None:
+        index = next((position for position, (_kind, value)
+                      in enumerate(blocks) if value is anchor), None)
+        if index is None:
+            index = len(blocks)
+        elif after:
+            index += 1
+    else:
+        index = len(blocks)
+    blocks.insert(index, (kind, item))
+    for position, (_kind, value) in enumerate(blocks):
+        value["order"] = position
+    target["tables"] = [value for block_kind, value in blocks
+                        if block_kind == "table"]
+    target["figures"] = [value for block_kind, value in blocks
+                         if block_kind == "figure"]
+    return item
+
+
 def copy_figure(figure, container, number=None, base=""):
     """Скопировать рисунок в другой контейнер с новым номером."""
     clone = copy.deepcopy(figure)
+    clone.pop("order", None)
     value = str(number or next_number(container.get("figures") or [],
                                       base)).strip()
     if not value:
