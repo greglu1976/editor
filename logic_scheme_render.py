@@ -520,6 +520,19 @@ def build_elements(data):
                 el.set_slots(payload.get("slots") or el.slots)
             except (TypeError, ValueError):
                 pass
+            # В экспорте должны сохраняться занятые слоты и их подписи:
+            # иначе контейнер выглядит пустым даже при привязанных шкафах.
+            cabinets = [str(value) for value in
+                        (payload.get("cabinets") or []) if value]
+            el.cabinets = (cabinets + [""] * el.slot_count())[:el.slot_count()]
+            labels = [str(value) for value in
+                      (payload.get("slot_labels") or [])]
+            el.slot_labels = (labels + [""] * el.slot_count())[:el.slot_count()]
+            points = [list(value or []) for value in
+                      (payload.get("link_points") or [])]
+            el.link_points = (points + [[] for _ in range(el.slot_count())])[
+                :el.slot_count()]
+            el.info = dict(payload.get("info") or {})
         if ll.is_logic_type(el.type):
             ll.restore_element(el, item.get("logic") or {})
         el.generate_ports()

@@ -15,6 +15,11 @@ CELL = 20
 ARC_STYLE = getattr(tk, "ARC", "arc")
 
 
+def snap(value, cell=CELL):
+    """Ближайший узел сетки — геометрия контейнеров не зависит от шага мыши."""
+    return round(float(value) / cell) * cell
+
+
 def draw_earth(canvas, gx, gy, zoom, direction="down"):
     """Символ заземления: три убывающих штриха (единый для всех элементов).
 
@@ -1320,11 +1325,12 @@ class Cabinet(Component):
     и испытательные блоки по напряжению и току.
     """
 
-    # Габарит кратен шагу сетки (10): кромки, точка привязки и порты
-    # комплектов попадают в узлы сетки, поэтому связи идут прямо.
+    # Габарит кратен ячейке (20): кромки, точка привязки и порты комплектов
+    # попадают в узлы сетки, поэтому связи идут прямо без дробных изломов.
     WIDTH = 200
     ROW_H = 40
     TOP_H = 20
+    BOTTOM_H = 20
     MAX_KOMPLETS = CABINET_MAX_KOMPLETS
 
     def __init__(self, comp_id, x, y, grid_size=20):
@@ -1362,7 +1368,7 @@ class Cabinet(Component):
     def bind_point(self):
         """Точка привязки шкафа к контейнеру КЭТ — на левой грани у заголовка."""
         x1, y1, _x2, _y2 = self._rect()
-        return (x1, y1 + 10)
+        return (x1, y1 + self.TOP_H)
 
     def analog_point(self, index=0):
         """Порт аналоговых цепей комплекта — на левой грани напротив комплекта."""
@@ -1374,15 +1380,16 @@ class Cabinet(Component):
         return max(1, len(self.komplets))
 
     def _rect(self):
-        height = self.TOP_H + self.row_count() * self.ROW_H
+        cx, cy = snap(self.x), snap(self.y)
+        height = self.TOP_H + self.row_count() * self.ROW_H + self.BOTTOM_H
         half_w = self.WIDTH / 2.0
         half_h = height / 2.0
-        return (self.x - half_w, self.y - half_h,
-                self.x + half_w, self.y + half_h)
+        return (cx - half_w, cy - half_h, cx + half_w, cy + half_h)
 
     def _komplekt_center(self, index):
-        x1, y1, _x2, _y2 = self._rect()
-        return (self.x, y1 + self.TOP_H + index * self.ROW_H + self.ROW_H / 2.0)
+        x1, y1, x2, _y2 = self._rect()
+        return ((x1 + x2) / 2.0,
+                y1 + self.TOP_H + index * self.ROW_H + self.ROW_H / 2.0)
 
     def generate_ports(self):
         self.ports = {}
@@ -1401,19 +1408,40 @@ class Cabinet(Component):
         sx2, sy2 = x2 * zoom + offset_x, y2 * zoom + offset_y
         lw = max(1, int(2 * zoom))
 
-        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#f2f6fb",
+        # Корпус, цветная полоса заголовка и тонкая «подошва».
+        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#f7faff",
                                 outline="#1f4e79", width=lw, tags="cabinet_body")
-        canvas.create_text((sx1 + sx2) / 2.0, sy1 + 9 * zoom,
-                           text=self.title, font=("Arial", int(8 * zoom)),
-                           fill="#1f4e79")
+        hy = (y1 + self.TOP_H) * zoom + offset_y
+        canvas.create_rectangle(sx1, sy1, sx2, hy, fill="#1f4e79",
+                                outline="#1f4e79", tags="cabinet_body")
+        canvas.create_text((sx1 + sx2) / 2.0, (sy1 + hy) / 2.0,
+                           text=self.title,
+                           font=("Arial", int(8 * zoom), "bold"),
+                           fill="white", tags="cabinet_body")
+        if self.BOTTOM_H:
+            canvas.create_line(sx1, (y2 - self.BOTTOM_H) * zoom + offset_y,
+                               sx2, (y2 - self.BOTTOM_H) * zoom + offset_y,
+                               fill="#d2deeb", width=1, tags="cabinet_body")
 
         for index, komplekt in enumerate(self.komplets):
             _cx, cy = self._komplekt_center(index)
             by1 = (cy - self.ROW_H / 2.0 + 2) * zoom + offset_y
             by2 = (cy + self.ROW_H / 2.0 - 2) * zoom + offset_y
+            fill = "#ffffff" if index % 2 == 0 else "#f2f6fb"
             canvas.create_rectangle(sx1 + 5 * zoom, by1, sx2 - 5 * zoom, by2,
-                                    fill="white", outline="#8a9bb0", width=1,
+                                    fill=fill, outline="#b9c9da", width=1,
                                     tags="cabinet_body")
+            # Номер комплекта — маленькая круглая метка в строке.
+            badge = sx1 + 13 * zoom
+            r = max(3.0, 5.5 * zoom)
+            canvas.create_oval(badge - r, (by1 + by2) / 2.0 - r,
+                               badge + r, (by1 + by2) / 2.0 + r,
+                               fill="#dce9f7", outline="#1f4e79", width=1,
+                               tags="cabinet_body")
+            canvas.create_text(badge, (by1 + by2) / 2.0,
+                               text=str(index + 1),
+                               font=("Arial", int(6 * zoom), "bold"),
+                               fill="#1f4e79", tags="cabinet_body")
             ieds = komplekts.effective_ieds(komplekt)
             if ieds:
                 suffix = " · {} ИЭУ".format(len(ieds))
@@ -1425,18 +1453,18 @@ class Cabinet(Component):
             blocks = komplekts.test_blocks_summary(komplekt)
             if blocks:
                 suffix += " · БИ " + blocks
-            canvas.create_text(sx1 + 9 * zoom, (by1 + by2) / 2.0,
+            canvas.create_text(sx1 + 24 * zoom, (by1 + by2) / 2.0,
                                text=name + suffix,
                                anchor="w", font=("Arial", int(7 * zoom)),
-                               fill="black")
+                               fill="#24384d", tags="cabinet_body")
             port = self.ports.get("komplekt{}".format(index))
             if port:
                 px = port["x"] * zoom + offset_x
                 py = port["y"] * zoom + offset_y
-                r = max(2.0, 2.5 * zoom)
+                r = max(2.5, 3.2 * zoom)
                 canvas.create_oval(px - r, py - r, px + r, py + r,
                                    fill="#1f4e79", outline="white",
-                                   tags="cabinet_body")
+                                   width=max(1, int(zoom)), tags="cabinet_body")
 
         self._draw_label(canvas, zoom, offset_x, offset_y)
 
@@ -1461,10 +1489,13 @@ class Container(Component):
     в строке слота (обновляется редактором).
     """
 
-    BODY_W = 250          # ширина корпуса контейнера
-    ROW_H = 46            # высота строки слота
-    TOP_H = 32            # полоса заголовка
+    # Все размеры кратны ячейке (20): кромки и точки слотов попадают в узлы
+    # сетки, линии привязки к шкафам идут прямо.
+    BODY_W = 240          # ширина корпуса контейнера
+    ROW_H = 40            # высота строки слота
+    TOP_H = 40            # полоса заголовка
     PAD = 20              # отступ от стенки контейнера
+    SLOT_PAD = 20         # отступ строки слота от внутренней стенки
     MAX_SLOTS = CONTAINER_MAX_SLOTS
     LABEL_CHARS = 24      # сколько символов подписи влезает в строку
 
@@ -1583,11 +1614,11 @@ class Container(Component):
 
     # -------------------------------------------------------- геометрия
     def _rect(self):
+        cx, cy = snap(self.x), snap(self.y)
         width = self.BODY_W + self.PAD * 2
-        height = self.TOP_H + self.slot_count() * self.ROW_H + self.PAD
+        height = self.TOP_H + self.slot_count() * self.ROW_H
         half_w, half_h = width / 2.0, height / 2.0
-        return (self.x - half_w, self.y - half_h,
-                self.x + half_w, self.y + half_h)
+        return (cx - half_w, cy - half_h, cx + half_w, cy + half_h)
 
     def content_top(self):
         return self._rect()[1] + self.TOP_H
@@ -1596,7 +1627,7 @@ class Container(Component):
         """Прямоугольник строки слота в мировых координатах."""
         x1, _y1, x2, _y2 = self._rect()
         top = self.content_top() + index * self.ROW_H
-        return x1 + 6, top, x2 - 6, top + self.ROW_H
+        return x1 + self.SLOT_PAD, top, x2 - self.SLOT_PAD, top + self.ROW_H
 
     def slot_center(self, index):
         """Точка подключения слота — на правой стенке контейнера."""
@@ -1623,13 +1654,13 @@ class Container(Component):
         sx2, sy2 = x2 * zoom + offset_x, y2 * zoom + offset_y
         lw = max(1, int(2 * zoom))
 
-        # Корпус и внутренние стенки
-        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#eef3f8",
+        # Корпус, внутренняя рамка и насыщенный заголовок.
+        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#f3f7fb",
                                 outline="#1f4e79", width=lw,
                                 tags="container_body")
         inset = 5 * zoom
         canvas.create_rectangle(sx1 + inset, sy1 + inset, sx2 - inset, sy2 - inset,
-                                fill="#f7fafd", outline="#9db4cc", width=1,
+                                fill="#fbfdff", outline="#a9bfd5", width=1,
                                 tags="container_body")
 
         # Заголовок: маркировка, типоразмер, счётчик шкафов
@@ -1637,20 +1668,23 @@ class Container(Component):
         canvas.create_rectangle(sx1, sy1, sx2, sy1 + header_h,
                                 fill="#1f4e79", outline="#1f4e79",
                                 tags="container_body")
+        canvas.create_line(sx1, sy1 + header_h, sx2, sy1 + header_h,
+                           fill="#0f3557", width=max(1, int(zoom)),
+                           tags="container_body")
         size_code = self.info.get("size_code", "")
         caption = self.code or "КЭТ"
         if size_code:
             caption = "{} · {}".format(caption, size_code)
-        canvas.create_text(sx1 + 8 * zoom, sy1 + header_h / 2.0, text=caption,
-                           anchor="w", font=("Arial", int(8 * zoom), "bold"),
+        canvas.create_text(sx1 + 10 * zoom, sy1 + header_h / 2.0, text=caption,
+                           anchor="w", font=("Arial", int(9 * zoom), "bold"),
                            fill="white", tags="container_body")
-        canvas.create_text(sx2 - 8 * zoom, sy1 + header_h / 2.0,
+        canvas.create_text(sx2 - 10 * zoom, sy1 + header_h / 2.0,
                            text="{} / {}".format(self.bound_count(),
                                                  self.slot_count()),
-                           anchor="e", font=("Arial", int(7 * zoom)),
+                           anchor="e", font=("Arial", int(8 * zoom)),
                            fill="#dce9f7", tags="container_body")
 
-        # Строки слотов сверху вниз
+        # Строки слотов сверху вниз: занятые выделены, свободные приглушены.
         font_size = max(1, int(7 * zoom))
         for index in range(self.slot_count()):
             left, top, right, bottom = self.slot_rect(index)
@@ -1660,34 +1694,43 @@ class Container(Component):
                           if index < len(self.cabinets) else "")
             label = (self.slot_labels[index]
                      if index < len(self.slot_labels) else "")
+            row_fill = "#e8f3e8" if cabinet_id else (
+                "#ffffff" if index % 2 == 0 else "#f4f7fb")
+            canvas.create_rectangle(sl, st, sr, sb, fill=row_fill,
+                                    outline="", tags="container_slot")
             if index:
-                canvas.create_line(sl, st, sr, st, fill="#c3d2e0", width=1,
+                canvas.create_line(sl, st, sr, st, fill="#cbd8e6", width=1,
                                    tags="container_slot")
-            if cabinet_id:
-                canvas.create_rectangle(sl, st, sr, sb, fill="#e6f0e6",
-                                        outline="", tags="container_slot")
-            canvas.create_text(sl + 6 * zoom, (st + sb) / 2.0,
-                               text=str(index + 1), anchor="w",
-                               font=("Arial", font_size),
-                               fill="#1f4e79" if cabinet_id else "#9db4cc",
+
+            # Номер слота — круглая метка, как у комплектов в шкафу.
+            badge = sl + 12 * zoom
+            r = max(3.0, 6.0 * zoom)
+            canvas.create_oval(badge - r, (st + sb) / 2.0 - r,
+                               badge + r, (st + sb) / 2.0 + r,
+                               fill="#dce9f7" if cabinet_id else "#eef2f7",
+                               outline="#1f4e79" if cabinet_id else "#b7c7d8",
+                               width=1, tags="container_slot")
+            canvas.create_text(badge, (st + sb) / 2.0, text=str(index + 1),
+                               font=("Arial", font_size, "bold"),
+                               fill="#1f4e79" if cabinet_id else "#8fa3b8",
                                tags="container_slot")
             if cabinet_id:
-                text, color = (label or "шкаф"), "black"
+                text, color = (label or "шкаф"), "#203b2a"
             else:
                 text, color = "свободно", "#9db4cc"
-            canvas.create_text(sl + 22 * zoom, (st + sb) / 2.0,
+            canvas.create_text(sl + 28 * zoom, (st + sb) / 2.0,
                                text=text, anchor="w",
                                font=("Arial", font_size), fill=color,
                                tags="container_slot")
 
-            # Точка подключения слота на правой стенке
+            # Точка подключения слота на правой стенке — всегда в узле сетки.
             port_x, port_y = self.slot_center(index)
             px = port_x * zoom + offset_x
             py = port_y * zoom + offset_y
-            r = max(2.0, 2.6 * zoom)
+            r = max(2.5, 3.2 * zoom)
             canvas.create_oval(px - r, py - r, px + r, py + r,
                                fill="#a0522d" if cabinet_id else "white",
-                               outline="#a0522d", width=1,
+                               outline="#a0522d", width=max(1, int(zoom)),
                                tags="container_slot")
 
         self._draw_label(canvas, zoom, offset_x, offset_y)

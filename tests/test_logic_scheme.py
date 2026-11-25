@@ -170,6 +170,25 @@ def test_payload():
           "признак вывода полей шины сохраняется в JSON")
 
 
+def test_export_container_bindings():
+    """Экспорт сцены сохраняет привязанные шкафы и подписи слотов КЭТ."""
+    print("1в. привязка слотов КЭТ при экспорте")
+    import logic_scheme_render as lsr
+    data = {"elements": [{
+        "type": "container", "id": "K1", "x": 200, "y": 200,
+        "container": {"code": "КЭТ", "slots": 3,
+                      "cabinets": ["CA1"], "slot_labels": ["ШЭТ 431"],
+                      "link_points": [[[260, 200]]]},
+    }]}
+    elements = lsr.build_elements(data)
+    container = elements["K1"]
+    check(container.cabinets == ["CA1", "", ""],
+          "занятый слот восстановлен в экспорте")
+    check(container.slot_labels[0] == "ШЭТ 431"
+          and container.bound_count() == 1,
+          "подпись и счётчик шкафа восстановлены")
+
+
 def test_full_signal_label():
     print("2а. полное обозначение сигнала на связи")
     block = ll.LogicBlock("B1", 0, 0)
@@ -1553,6 +1572,7 @@ def main(argv=None):
     test_payload()
     test_full_signal_label()
     test_structure2_model()
+    test_export_container_bindings()
     if args.no_gui:
         print("\nGUI-проверки пропущены (--no-gui)")
     elif tk is None:

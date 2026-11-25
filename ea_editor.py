@@ -21,6 +21,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import ea_catalog as ec
 import ea_edit as ee
+import ea_exchange as ex
 import ea_merge as em
 import ea_new_standard as ens
 import ea_report as er
@@ -3188,6 +3189,145 @@ class StandardEditorWindow(tk.Toplevel):
             else:
                 self.status.config(text="Метки перекрёстных ссылок удалены")
 
+    # -------------------------------------------------- обмен объектами JSON
+    def _export_nodes(self, iids):
+        """Выгрузить выбранные шкафы/комплекты/блоки/функции в JSON."""
+        records = ex.collect([self._nodes.get(iid) for iid in iids])
+        if not records:
+            messagebox.showinfo(
+                "Редактор стандарта",
+                "Выберите шкаф, комплект, функциональный блок или функцию.",
+                parent=self)
+            return
+        path = filedialog.asksaveasfilename(
+            title="Выгрузить объекты стандарта",
+            defaultextension=".json",
+            filetypes=[("JSON объекты", "*.json"), ("Все файлы", "*.*")],
+            initialfile="ea-objects.json", parent=self)
+        if not path:
+            return
+        try:
+            ex.save(path, records, source=self.path)
+        except (ex.ExchangeError, OSError) as exc:
+            messagebox.showerror("Редактор стандарта", str(exc), parent=self)
+            return
+        counts = ex.count_by_kind(records)
+        parts = ["%s: %d" % (ex.KIND_LABELS[kind], number)
+                 for kind, number in counts.items()]
+        self.status.config(text="Выгружено в %s (%s)"
+                                % (os.path.basename(path), ", ".join(parts)))
+
+    def _node_owner_of_kind(self, iid, kind):
+        """Ближайший предок дерева указанного вида (сам узел тоже считаем)."""
+        node = self._nodes.get(iid)
+        if node and node[0] == kind:
+            return node[1]
+        owner = self._owners.get(iid)
+        while owner:
+            iid = owner[2]
+            node = self._nodes.get(iid)
+            if node and node[0] == kind:
+                return node[1]
+            owner = self._owners.get(iid)
+        return None
+
+    def _function_owner_of_iid(self, iid):
+        """Блок, в который можно загрузить функцию, если он под курсором."""
+        node = self._nodes.get(iid)
+        if not node:
+            return None
+        if node[0] in ("fb_entry", "block"):
+            return node[1]
+        if node[0] == "function":
+            return node[2]
+        return None
+
+    def _choose_function_owner(self):
+        """Выбрать блок каталога или ИЭУ для загрузки отдельных функций."""
+        owners, labels, hints = [], {}, {}
+        for entry in self.data.get("functional_blocks") or []:
+            if not isinstance(entry, dict):
+                continue
+            owners.append(entry)
+            labels[id(entry)] = "Каталог ФБ — %s" % \
+                es.functional_block_label(entry)
+            hints[id(entry)] = "Функций: %d" % len(entry.get("functions") or [])
+        for cabinet in es.cabinets(self.data):
+            code = str(cabinet.get("cypher") or "")
+            for kit in cabinet.get("kits") or []:
+                number = str(kit.get("number") or "")
+                for ied in kit.get("ieds") or []:
+                    ied_number = str(ied.get("number") or "")
+                    for block in em.function_blocks(ied):
+                        owners.append(block)
+                        labels[id(block)] = "%s / %s / ИЭУ %s — %s" % (
+                            code, number, ied_number, em.block_label(block))
+                        hints[id(block)] = "Функций: %d" % \
+                            len(block.get("functions") or [])
+        if not owners:
+            messagebox.showinfo(
+                "Редактор стандарта",
+                "В стандарте нет блока, куда можно загрузить функцию.",
+                parent=self)
+            return None
+        return choose_item(
+            self, owners, "Куда загрузить функцию",
+            lambda item: labels.get(id(item), ""),
+            lambda item: hints.get(id(item), ""))
+
+    def _import_json(self, iid=None):
+        """Загрузить объекты из отдельного JSON-файла в текущий стандарт."""
+        path = filedialog.askopenfilename(
+            title="Загрузить объекты стандарта",
+            filetypes=[("JSON объекты", "*.json"), ("Все файлы", "*.*")],
+            parent=self)
+        if not path:
+            return
+        try:
+            records = ex.load(path)
+        except (ex.ExchangeError, OSError) as exc:
+            messagebox.showerror("Редактор стандарта", str(exc), parent=self)
+            return
+        counts = ex.count_by_kind(records)
+        skipped = []
+
+        cabinet = None
+        if counts.get("kit"):
+            cabinet = self._node_owner_of_kind(iid, "cabinet") if iid else None
+            if cabinet is None:
+                cabinet = self._choose_cabinet(
+                    es.cabinets(self.data),
+                    "В какой шкаф загрузить комплекты")
+                if cabinet is None:
+                    return
+
+        fb_owner = self._node_owner_of_kind(iid, "ied") if iid else None
+        function_owner = self._function_owner_of_iid(iid) if iid else None
+        if counts.get("function") and function_owner is None:
+            function_owner = self._choose_function_owner()
+            if function_owner is None:
+                # Остальные объекты файла всё равно можно загрузить.
+                records = [item for item in records
+                           if item["kind"] != "function"]
+                skipped.append(ex.KIND_LABELS["function"])
+
+        def action():
+            result = ex.apply(
+                self.data, records, cabinet=cabinet, fb_owner=fb_owner,
+                function_owner=function_owner)
+            self.data = result["data"]
+            return result["created"]
+
+        if not self._mutate(action):
+            return
+        parts = ["%s: %d" % (ex.KIND_LABELS[kind], number)
+                 for kind, number in ex.count_by_kind(records).items()]
+        message = "Загружено из %s (%s)" % (
+            os.path.basename(path), ", ".join(parts))
+        if skipped:
+            message += "; пропущено: %s" % ", ".join(skipped)
+        self.status.config(text=message)
+
     def _group_menu(self, group):
         """Меню действий над выделенной группой узлов."""
         kinds = {self._node_kind(iid) for iid in group}
@@ -3196,6 +3336,12 @@ class StandardEditorWindow(tk.Toplevel):
             items += [
                 ("Сформировать отчёт по выделенному (%d)…" % len(group),
                  lambda: self._report_nodes(group)),
+                None,
+            ]
+        if ex.collect([self._nodes.get(iid) for iid in group]):
+            items += [
+                ("Выгрузить выделенное (%d) в JSON…" % len(group),
+                 lambda: self._export_nodes(group)),
                 None,
             ]
         if kinds == {"table"}:
@@ -3238,6 +3384,8 @@ class StandardEditorWindow(tk.Toplevel):
                      lambda: self._add_fb_entry(iid)),
                     ("Пересобрать каталог из шкафов…",
                      lambda: self._rebuild_fb()),
+                    None,
+                    ("Загрузить из JSON…", lambda: self._import_json(iid)),
                 ]
             return [
                 ("Добавить шкафы из всех стандартов…",
@@ -3245,6 +3393,8 @@ class StandardEditorWindow(tk.Toplevel):
                 ("Добавить типовой шкаф из каталога…",
                  lambda: self._add_typical_cabinet(iid)),
                 ("Добавить пустой шкаф…", lambda: self._add_cabinet(iid)),
+                None,
+                ("Загрузить из JSON…", lambda: self._import_json(iid)),
             ]
         if kind == "meta":
             return []
@@ -3281,6 +3431,11 @@ class StandardEditorWindow(tk.Toplevel):
                 ("Добавить комплект…", lambda: self._add_kit(iid)),
                 ("Добавить типовой комплект из каталога…",
                  lambda: self._add_typical_kit(iid)),
+                None,
+                ("Выгрузить шкаф в JSON…",
+                 lambda: self._export_nodes([iid])),
+                ("Загрузить в шкаф из JSON…",
+                 lambda: self._import_json(iid)),
                 None, ("Удалить шкаф", lambda: self._delete_node(iid)),
             ]
         if kind == "kit":
@@ -3288,6 +3443,11 @@ class StandardEditorWindow(tk.Toplevel):
                 ("Добавить ИЭУ…", lambda: self._add_ied(iid)),
                 ("Дублировать комплект", lambda: self._duplicate_kit(iid)),
                 ("Переместить в другой шкаф…", lambda: self._move_kit(iid)),
+                None,
+                ("Выгрузить комплект в JSON…",
+                 lambda: self._export_nodes([iid])),
+                ("Загрузить в комплект из JSON…",
+                 lambda: self._import_json(iid)),
                 None, ("Удалить комплект", lambda: self._delete_node(iid)),
             ]
         if kind == "table":
@@ -3316,6 +3476,9 @@ class StandardEditorWindow(tk.Toplevel):
                  lambda: self._add_generic_child(iid, "block")),
                 ("Скопировать блоки в каталог ФБ…",
                  lambda: self._fb_from_ied(iid)),
+                None,
+                ("Загрузить блоки функций из JSON…",
+                 lambda: self._import_json(iid)),
                 None, ("Удалить ИЭУ", lambda: self._delete_node(iid)),
             ]
         if kind == "fb_entry":
@@ -3324,6 +3487,11 @@ class StandardEditorWindow(tk.Toplevel):
                  lambda: self._duplicate_node(iid)),
                 ("Добавить функцию…",
                  lambda: self._add_generic_child(iid, "function")),
+                None,
+                ("Выгрузить блок в JSON…",
+                 lambda: self._export_nodes([iid])),
+                ("Загрузить функцию из JSON…",
+                 lambda: self._import_json(iid)),
                 None, ("Удалить функциональный блок",
                        lambda: self._delete_node(iid)),
             ]
@@ -3333,12 +3501,20 @@ class StandardEditorWindow(tk.Toplevel):
                  lambda: self._duplicate_node(iid)),
                 ("Добавить функцию…",
                  lambda: self._add_generic_child(iid, "function")),
+                None,
+                ("Выгрузить блок в JSON…",
+                 lambda: self._export_nodes([iid])),
+                ("Загрузить функцию из JSON…",
+                 lambda: self._import_json(iid)),
                 None, ("Удалить блок", lambda: self._delete_node(iid)),
             ]
         if kind == "function":
             return [
                 ("Дублировать функцию",
                  lambda: self._duplicate_node(iid)),
+                None,
+                ("Выгрузить функцию в JSON…",
+                 lambda: self._export_nodes([iid])),
                 ("Добавить вход…",
                  lambda: self._add_generic_child(iid, "slot", "in")),
                 ("Добавить выход…",

@@ -129,11 +129,12 @@ def test_clean_points():
 
 
 def test_cabinet_port_grid():
-    """Все точки шкафа лежат в узлах сетки — связи не перекошиваются."""
+    """Все точки шкафа лежат в узлах ячейки — связи не перекошиваются."""
     print("1а. порты шкафа на сетке")
     import library
     for count in range(1, library.CABINET_MAX_KOMPLETS + 1):
-        cabinet = library.Cabinet("grid", 200, 300, grid_size=10)
+        # Центр намеренно смещён с сетки: геометрия сама приводит его к узлу.
+        cabinet = library.Cabinet("grid", 210, 307, grid_size=10)
         cabinet.komplets = library.normalize_komplets(
             [{"name": "К{}".format(index + 1)} for index in range(count)])
         cabinet.generate_ports()
@@ -141,9 +142,64 @@ def test_cabinet_port_grid():
         points = [(x1, y2), (x2, y2), cabinet.bind_point()]
         points += [cabinet.analog_point(index) for index in range(count)]
         points += [(port["x"], port["y"]) for port in cabinet.ports.values()]
-        check(all(abs(value % 10) < 0.001
+        check(all(abs(value % library.CELL) < 0.001
                   for point in points for value in point),
               "%d компл.: кромки и порты в узлах сетки" % count)
+
+
+def test_container_port_grid():
+    """Слоты КЭТ и точки привязки шкафов тоже лежат на сетке."""
+    print("1б. порты контейнера на сетке")
+    import library
+    results = []
+    for slots in range(1, library.CONTAINER_MAX_SLOTS + 1):
+        container = library.Container("-grid", 210, 307)
+        container.set_slots(slots)
+        x1, y1, x2, y2 = container._rect()
+        points = [(x1, y1), (x2, y2)]
+        points += [container.slot_center(index) for index in range(slots)]
+        results.append(all(abs(value % library.CELL) < 0.001
+                           for point in points for value in point))
+    check(all(results), "кромки и все слоты КЭТ в узлах сетки")
+
+
+def test_container_draw():
+    """Новая отрисовка шкафа, КЭТ и функционального блока не ломает экспорт."""
+    print("1в. отрисовка шкафа, контейнера и блока")
+    import library
+    import logic_library
+
+    class Canvas:
+        def __init__(self):
+            self.calls = []
+
+        def __getattr__(self, name):
+            if not name.startswith("create_"):
+                raise AttributeError(name)
+
+            def create(*_args, **_kwargs):
+                self.calls.append(name)
+                return len(self.calls)
+            return create
+
+        def bbox(self, _item):
+            return (0, 0, 10, 10)
+
+    cabinet = library.Cabinet("cab", 200, 300)
+    cabinet.komplets = library.normalize_komplets([{"name": "К1"}])
+    cabinet.generate_ports()
+    container = library.Container("ket", 400, 300)
+    container.set_slots(3)
+    container.cabinets[0] = cabinet.id
+    block = logic_library.LogicBlock("fb", 600, 300)
+    canvas = Canvas()
+    for element in (cabinet, container, block):
+        element.draw(canvas, 1.0, 0.0, 0.0)
+    check(len(canvas.calls) > 30
+          and "create_oval" in canvas.calls
+          and "create_rectangle" in canvas.calls,
+          "элементы отрисованы с метками портов: %d примитивов"
+          % len(canvas.calls))
 
 
 def test_route(app):
@@ -184,7 +240,7 @@ def test_hit(app):
     check(app._protection_point_at(sx + 60, sy + 60) is None,
           "мимо маркера — None")
 
-    sx, sy = app.world_to_screen(322.5, 205.5)
+    sx, sy = app.world_to_screen(322.5, 200.0)
     check(app._protection_segment_at(sx, sy) == (link, 0),
           "сегмент между портом и изломом определяется")
     check(app._protection_link_at(sx, sy) is link,
@@ -205,10 +261,10 @@ def test_edit(app):
     app.redraw_all()
 
     # Двойной клик по сегменту 0 — точка встаёт между портом и изломом
-    sx, sy = app.world_to_screen(322.5, 205.5)
+    sx, sy = app.world_to_screen(322.5, 200.0)
     app.on_double_click(_event(sx, sy))
     check(len(link["points"]) == 2, "двойной клик по сегменту вставил точку")
-    check(close(link["points"][0], [322.5, 205.5], 10.0),
+    check(close(link["points"][0], [322.5, 200.0], 10.0),
           "точка вставлена в месте клика (с привязкой к сетке)")
     check(app.selected_protection is link,
           "вставка выделяет связь для правки")
@@ -365,7 +421,7 @@ def test_right_click(app):
     _, _, link = _bent(app)
     app.redraw_all()
 
-    sx, sy = app.world_to_screen(322.5, 205.5)
+    sx, sy = app.world_to_screen(322.5, 200.0)
     hit = app._link_at(sx, sy)
     check(hit is not None and hit[0] == "protection"
           and hit[1] is link,
@@ -426,6 +482,8 @@ def main(argv=None):
 
     test_clean_points()
     test_cabinet_port_grid()
+    test_container_port_grid()
+    test_container_draw()
     if args.no_gui:
         print("\nGUI-проверки пропущены (--no-gui)")
     elif tk is None:

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import json
 import os
 import re
 import sys
@@ -3416,6 +3417,200 @@ def test_report_tables_font():
           "таблицы отчёта по НИР набраны кеглем 10")
 
 
+def _exchange_sample():
+    """Небольшой стандарт для проверки выгрузки/загрузки объектов."""
+    return {
+        "code": "ТЕСТ", "name": "Стандарт для обмена",
+        "sections": [],
+        "cabinets": [
+            {"cypher": "ШЭТ 1", "name": "Шкаф 1", "kits": [
+                {"number": 1, "description": "Комплект 1", "ieds": [
+                    {"number": 1, "description": "ИЭУ1", "function_blocks": [
+                        {"name": "Блок A", "russian_path": "Блок A",
+                         "functions": [{"name": "Функция A"}]}
+                    ]}
+                ]}
+            ]},
+            {"cypher": "ШЭТ 2", "name": "Шкаф 2", "kits": [
+                {"number": 1, "description": "Комплект 2", "ieds": [
+                    {"number": 1, "description": "ИЭУ2", "function_blocks": [
+                        {"name": "Блок B", "russian_path": "Блок B",
+                         "functions": [{"name": "Функция B"}]}
+                    ]}
+                ]}
+            ]},
+            {"cypher": "ШЭТ 3", "name": "Шкаф 3", "kits": [
+                {"number": 1, "description": "Комплект 3", "ieds": [
+                    {"number": 1, "description": "ИЭУ3", "function_blocks": [
+                        {"name": "Блок C", "russian_path": "Блок C",
+                         "functions": [{"name": "Функция C"}]}
+                    ]}
+                ]}
+            ]},
+        ],
+        "functional_blocks": [
+            {"name": "Каталог X", "russian_path": "Каталог X",
+             "functions": [{"name": "Функция X"}],
+             "cabinet": "ШЭТ 1", "kit": "1", "ied": "1"},
+        ],
+    }
+
+
+def test_exchange():
+    """Пункт 38: отдельный JSON со шкафами, комплектами, блоками, функциями."""
+    print("10д. выгрузка и загрузка объектов в отдельный JSON")
+    import ea_exchange as ex
+    import ea_structure as st
+    data = _exchange_sample()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "objects.json")
+    cab1 = data["cabinets"][0]
+    kit2 = data["cabinets"][1]["kits"][0]
+    entry = data["functional_blocks"][0]
+    func2 = data["cabinets"][2]["kits"][0]["ieds"][0] \
+        ["function_blocks"][0]["functions"][0]
+    nodes = [("cabinet", cab1), ("kit", kit2), ("fb_entry", entry),
+             ("function", func2)]
+
+    records = ex.collect(nodes)
+    check([item["kind"] for item in records] == [
+        "cabinet", "kit", "functional_block", "function"],
+        "выгружаются все четыре вида объектов")
+    check(ex.collect([("cabinet", cab1), ("kit", cab1["kits"][0])])
+          == [ex.collect([("cabinet", cab1)])[0]],
+          "вложенный комплект не дублируется при выгрузке шкафа")
+
+    ex.save(path, records, source="standard.json")
+    loaded = ex.load(path)
+    check(len(loaded) == 4
+          and loaded[0]["data"]["cypher"] == "ШЭТ 1"
+          and loaded[3]["data"]["name"] == "Функция C",
+          "файл обмена записан и прочитан без потери данных")
+    bad = os.path.join(folder, "bad.json")
+    with open(bad, "w", encoding="utf-8") as handle:
+        json.dump({"format": "standard", "version": 1,
+                   "objects": loaded}, handle)
+    try:
+        ex.load(bad)
+        check(False, "чужой формат файла отклонён")
+    except ex.ExchangeError:
+        check(True, "чужой формат файла отклонён")
+
+    target = {"sections": [], "cabinets": [], "functional_blocks": []}
+    target_cab = st.new_cabinet(target, cypher="ШЭТ 3")
+    st.add(target["cabinets"], target_cab)
+    st.add(target_cab["kits"], st.new_kit(target, target_cab))
+    target_block = {"name": "БлокПриёмник", "russian_path": "БлокПриёмник",
+                    "functions": []}
+    result = ex.apply(target, loaded, cabinet=target_cab,
+                      function_owner=target_block)
+    check(result["counts"] == {"cabinet": 1, "kit": 1,
+                               "functional_block": 1, "function": 1},
+          "все объекты загружены в целевой стандарт")
+    check(len(target["cabinets"]) == 2
+          and target["cabinets"][1]["cypher"] == "ШЭТ 1"
+          and len(target["cabinets"][1]["kits"][0]["ieds"][0]
+                  ["function_blocks"][0]["functions"]) == 1,
+          "шкаф загружен вместе с комплектом, ИЭУ и функцией")
+    check(target_cab["kits"][1]["number"] == 2,
+          "номер комплекта при конфликте заменён следующим")
+    check(target["functional_blocks"][0]["cabinet"] == "ШЭТ 1"
+          and target_block["functions"][0]["name"] == "Функция C",
+          "блок и функция попали в нужные владельцы")
+
+    before = copy.deepcopy(target)
+    try:
+        ex.apply(target, [loaded[0]], cabinet=target_cab,
+                 function_owner=target_block)
+        check(False, "повторная загрузка шкафа отклонена")
+    except ex.ExchangeError:
+        check(True, "повторная загрузка шкафа отклонена")
+    check(target == before, "при ошибке стандарт остался без изменений")
+
+
+def test_editor_exchange():
+    """Пункт 38: пункты меню и выгрузка/загрузка из редактора."""
+    print("10е. обмен объектами через контекстное меню редактора")
+    if tk is None:
+        print("  --   tkinter нет: проверка пропущена")
+        return
+    try:
+        import ea_editor
+        import ea_exchange as ex
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "редактор стандарта: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(_exchange_sample(), path)
+    window = second = None
+    try:
+        window = ea_editor.show(path, root)
+        root.update()
+        cab_iid = next(iid for iid, node in window._nodes.items()
+                       if node[0] == "cabinet")
+        labels = [entry[0] for entry in
+                  window._menu_items(cab_iid, window._nodes[cab_iid])
+                  if entry]
+        check("Выгрузить шкаф в JSON…" in labels
+              and "Загрузить в шкаф из JSON…" in labels,
+              "в меню шкафа есть выгрузка и загрузка")
+        fb_iid = next(iid for iid, node in window._nodes.items()
+                      if node[0] == "root" and node[1] == "fb")
+        labels = [entry[0] for entry in
+                  window._menu_items(fb_iid, window._nodes[fb_iid]) if entry]
+        check("Загрузить из JSON…" in labels,
+              "в меню каталога ФБ есть загрузка из JSON")
+        function_iid = next(iid for iid, node in window._nodes.items()
+                            if node[0] == "function")
+        labels = [entry[0] for entry in
+                  window._menu_items(function_iid,
+                                     window._nodes[function_iid]) if entry]
+        check("Выгрузить функцию в JSON…" in labels,
+              "в меню функции есть выгрузка в JSON")
+
+        out = os.path.join(folder, "cabinet.json")
+        original_save = ea_editor.filedialog.asksaveasfilename
+        ea_editor.filedialog.asksaveasfilename = lambda *a, **k: out
+        try:
+            window._export_nodes([cab_iid])
+            root.update()
+        finally:
+            ea_editor.filedialog.asksaveasfilename = original_save
+        check(os.path.isfile(out)
+              and [item["kind"] for item in ex.load(out)] == ["cabinet"],
+              "шкаф выгружен из редактора в отдельный JSON")
+
+        empty = os.path.join(folder, "empty.json")
+        es.save({"code": "ПУСТОЙ", "name": "Пустой стандарт",
+                 "sections": [], "cabinets": [], "functional_blocks": []},
+                empty)
+        second = ea_editor.show(empty, root)
+        root.update()
+        cabs_iid = next(iid for iid, node in second._nodes.items()
+                        if node[0] == "root" and node[1] == "cabs")
+        original_open = ea_editor.filedialog.askopenfilename
+        ea_editor.filedialog.askopenfilename = lambda *a, **k: out
+        try:
+            second._import_json(cabs_iid)
+            root.update()
+        finally:
+            ea_editor.filedialog.askopenfilename = original_open
+        check(len(second.data["cabinets"]) == 1
+              and second.data["cabinets"][0]["cypher"] == "ШЭТ 1",
+              "шкаф загружен из JSON в другой стандарт")
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "обмен объектами в редакторе: %s" % exc)
+    finally:
+        if second is not None:
+            second.destroy()
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
@@ -3447,6 +3642,7 @@ def main(argv=None):
     test_ied_scheme(data)
     test_analog_links_in_report()
     test_block_order_in_report()
+    test_exchange()
     if not args.no_gui:
         test_gui(data)
         test_block_order_in_viewer()
@@ -3459,6 +3655,7 @@ def main(argv=None):
         test_editor_reference()
         test_editor_update_standard()
         test_editor_renumber()
+        test_editor_exchange()
     print("")
     if FAILURES:
         print("ПРОВАЛЕНО: %d" % len(FAILURES))

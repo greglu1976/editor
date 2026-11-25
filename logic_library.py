@@ -1265,15 +1265,19 @@ class LogicBlock(LogicComponent):
         sx2, sy2 = self.world_to_screen(x2, y2)
         lw = max(1, int(2 * zoom))
 
-        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#fbfdff",
-                                outline="black", width=lw)
-        # Линия под заголовком отделяет имя контейнера от функций.
+        # Корпус и мягкая полоса заголовка — блок читается как контейнер,
+        # а не как набор разрозненных функций.
+        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#f8fbff",
+                                outline="#315b80", width=lw)
         hy = (y1 + self.HEADER) * zoom + offset_y
-        canvas.create_line(sx1, hy, sx2, hy, fill="#c8d3e0", width=1)
+        canvas.create_rectangle(sx1, sy1, sx2, hy, fill="#e7f0fa",
+                                outline="", tags="logic_block_body")
+        canvas.create_line(sx1, hy, sx2, hy, fill="#9db4cc", width=1)
         # Заголовок — по центру блока: кромки привязаны к сетке и могут
         # сместиться относительно точки вставки на полклетки.
         self._draw_title(canvas, zoom, offset_x, offset_y,
-                         (x1 + x2) / 2.0, y1 + self.HEADER / 2.0, size=9)
+                         (x1 + x2) / 2.0, y1 + self.HEADER / 2.0,
+                         size=9, color="#1f4e79")
         self._draw_name(canvas, zoom, offset_x, offset_y, x1 + 6, y1 + 4)
         if self.designation:
             canvas.create_text(sx2 - 6 * zoom, sy1 + 6 * zoom,
@@ -1295,8 +1299,12 @@ class LogicBlock(LogicComponent):
         sx1, sy1 = self.world_to_screen(fx1, fy1)
         sx2, sy2 = self.world_to_screen(fx2, fy2)
         lw = max(1, int(1.6 * zoom))
-        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="white",
-                                outline="#444444", width=lw)
+        canvas.create_rectangle(sx1, sy1, sx2, sy2, fill="#ffffff",
+                                outline="#5b7fa6", width=lw)
+        # Цветная полоса слева отделяет функцию от соседних и подсказывает,
+        # где входы.
+        canvas.create_line(sx1, sy1 + 4 * zoom, sx1, sy2 - 4 * zoom,
+                           fill="#9db4cc", width=max(1, int(zoom)))
         kind = (function.get("kind") or "AND").upper()
         symbol, kind_name = FUNCTION_KINDS.get(kind, FUNCTION_KINDS["CUSTOM"])
         inputs = function.get("inputs") or []
@@ -1310,7 +1318,7 @@ class LogicBlock(LogicComponent):
         canvas.create_text(sx1 + symbol_x * zoom, (sy1 + sy2) / 2.0,
                            text=symbol,
                            font=("Arial", _font_size(zoom, 13), "bold"),
-                           fill="black")
+                           fill="#1f4e79")
 
         for index, (slot, point) in enumerate(zip(
                 inputs, self._function_slot_points(fx1, py, height,
@@ -1318,6 +1326,9 @@ class LogicBlock(LogicComponent):
             sx, sy = self.world_to_screen(*point)
             canvas.create_line(sx - 6 * zoom, sy, sx, sy,
                                width=lw, fill="black")
+            r = max(2.0, 2.4 * zoom)
+            canvas.create_oval(sx - r, sy - r, sx + r, sy + r,
+                               fill="#1f4e79", outline="white", width=1)
             canvas.create_text(sx + 5 * zoom, sy,
                                text=slot_label(slot, "in%d" % index),
                                anchor="w",
@@ -1330,6 +1341,9 @@ class LogicBlock(LogicComponent):
             sx, sy = self.world_to_screen(*point)
             canvas.create_line(sx, sy, sx + 6 * zoom, sy,
                                width=lw, fill="black")
+            r = max(2.0, 2.4 * zoom)
+            canvas.create_oval(sx - r, sy - r, sx + r, sy + r,
+                               fill="#a0522d", outline="white", width=1)
             canvas.create_text(sx - 5 * zoom, sy,
                                text=slot_label(slot, "out%d" % index),
                                anchor="e",
