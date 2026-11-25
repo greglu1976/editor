@@ -1636,10 +1636,10 @@ class StandardEditorWindow(tk.Toplevel):
         import subprocess
         import sys
         try:
+            root = os.path.dirname(
+                os.path.dirname(os.path.abspath(__file__)))
             subprocess.Popen([sys.executable,
-                              os.path.join(os.path.dirname(
-                                  os.path.abspath(__file__)), "main.py"),
-                              path])
+                              os.path.join(root, "main.py"), path])
         except OSError as exc:
             messagebox.showerror("Схема ФЛС",
                                  "Не удалось открыть редактор:\n%s" % exc,

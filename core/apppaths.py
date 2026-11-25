@@ -24,6 +24,7 @@
 1. ``$EDITOR_DB/X`` — если задана переменная окружения (портативная папка);
 2. ``<папка exe>/db/X`` — обычная раскладка собранного приложения;
 3. ``<папка exe>/X`` — плоская раскладка (совместимость и запуск из исходников);
+   для ``structure.json`` дополнительно проверяется ``<папка exe>/structure/X``;
 4. ``<_MEIPASS>/db/X`` и ``<_MEIPASS>/X`` — данные, упакованные внутрь сборки
    (только чтение: временная папка распаковки существует до закрытия).
 
@@ -48,10 +49,12 @@ def is_frozen():
 
 
 def app_dir():
-    """Папка с exe в сборке, папка с модулями при обычном запуске."""
+    """Папка с exe в сборке, корень проекта при запуске из исходников."""
     if is_frozen():
         return os.path.dirname(os.path.abspath(sys.executable))
-    return os.path.dirname(os.path.abspath(__file__))
+    here = os.path.dirname(os.path.abspath(__file__))
+    # Рабочие модули лежат в core/, но данные по-прежнему живут в корне.
+    return os.path.dirname(here) if os.path.basename(here) == "core" else here
 
 
 def bundled_dir():
@@ -78,11 +81,13 @@ def ensure_db():
 def _candidates(name):
     """Возможные места файла данных в порядке приоритета."""
     places = [os.path.join(db_dir(), name),
-              os.path.join(app_dir(), name)]
+              os.path.join(app_dir(), name),
+              os.path.join(app_dir(), "structure", name)]
     bundled = bundled_dir()
     if bundled:
         places.append(os.path.join(bundled, DB_FOLDER, name))
         places.append(os.path.join(bundled, name))
+        places.append(os.path.join(bundled, "structure", name))
     return places
 
 

@@ -82,7 +82,7 @@ IED
 (`ea_model.LINK_KIND_BY_SLOT`) и подпись в редакторе
 (`ea_model.slot_type_title`).
 
-Доступ к модели — [`ea_model.py`](ea_model.py): `function_blocks(ied)` читает
+Доступ к модели — [`ea_model.py`](core/ea_model.py): `function_blocks(ied)` читает
 `function_blocks` или собирает их из старого плоского `functions`,
 `iter_functions(ied)` обходит функции всех блоков, `normalize_*` приводят
 поля к общему виду (`conditions` → `value` у параметра), `migrate_document()`
@@ -303,7 +303,7 @@ F9. Суффикс `/#/0` в упоминании (например, `Табли
 
 ## Исполняемая схема structure2
 
-[`ea_schema.py`](ea_schema.py) — исполняемое описание модели
+[`ea_schema.py`](core/ea_schema.py) — исполняемое описание модели
 `EA/structure2.xml` без зависимости от Enterprise Architect. Для каждого из
 35 классов заданы скалярные поля (в порядке атрибутов модели) и вложенные
 коллекции. API:
@@ -335,22 +335,26 @@ python tools/migrate_standards_structure2.py --add-children    # + пустые 
 
 ## Модули
 
+Рабочие модули лежат в [`core/`](core/__init__.py), данные и доступ к
+структуре РЗА — в [`structure/`](structure/__init__.py). Одноимённые файлы
+в корне — совместимые перенаправления для старых импортов.
+
 | Файл | Роль |
 |---|---|
-| [`ea_standard.py`](ea_standard.py) | чтение папки, обход дерева, `table_view()` — сборка строк таблицы из шкафа, `table_header_rows()` — один или два яруса шапки, `cabinet_card()`, `validate()`, CLI |
-| [`ea_schema.py`](ea_schema.py) | исполняемая схема structure2: поля, коллекции, псевдонимы, подписи и значения по умолчанию для всех классов модели; нормализация и фабрика узлов |
-| [`ea_model.py`](ea_model.py) | модель structure2: блоки функций, слоты и их типы, уставки, параметры, нормализация и миграция |
-| [`ea_ui.py`](ea_ui.py) | окно «СТО (EA)…»: дерево документа и шкафов, пункты/подпункты/таблицы/рисунки в общем порядке, таблицы и карточки, размещение на схеме, новый стандарт, DOCX |
-| [`ea_edit.py`](ea_edit.py) | обратимое представление таблиц: `load()` → шапка и строки, `save()` → обратно в `cabinets` |
-| [`ea_structure.py`](ea_structure.py) | фабрики новых узлов, добавление/удаление (`new_*`, `add`, `remove`, `delete_issues`), перенос и копирование таблиц и рисунков (`move_node`, `move_block`, `copy_table`, `copy_figure`, `next_table_number`), разделение описания шкафа и ИЭУ (`split_description_tables`), общий порядок пунктов, подпунктов, таблиц и рисунков (`ordered_items`, `move_item`, `ordered_blocks`), привязка таблиц к шкафу (`rebind_table`, `rebind_tables`), группа идентичных комплектов и перенос/копия комплектов (`kit_feeds_tables`, `identical_replacement`, `promote_kit`, `move_kit`, `copy_kit`) |
-| [`ea_editor.py`](ea_editor.py) | отдельное окно редактирования стандарта: текст, таблицы, карточки шкафов, комплекты, ИЭУ, блоки/функции/слоты/уставки/параметры, универсальная правка любого поля, контекстное меню дерева, отчёт по любому узлу и выделенной группе |
-| [`ea_report.py`](ea_report.py) | отчёт по элементу стандарта в DOCX: поля и значения из схемы structure2, вложенные коллекции, таблицы из шкафа с двухуровневой шапкой, сборка в фоновом потоке |
-| [`ea_catalog.py`](ea_catalog.py) | мост «шкаф стандарта ↔ каталог редактора»: `ensure_catalog()`, `kit_entry()`, `cabinet_from_catalog()`, `kit_from_catalog()`, `add_test_blocks()` |
-| [`ea_merge.py`](ea_merge.py) | каталог шкафов всех стандартов и слияние: `merge_cabinets()`, `add_catalog_cabinet()` |
-| [`ea_exchange.py`](ea_exchange.py) | выгрузка/загрузка выбранных шкафов, комплектов, функциональных блоков и функций в отдельный JSON (`collect`, `save`, `load`, `apply`); проверка формата и откат при ошибке |
-| [`ea_new_standard.py`](ea_new_standard.py) | новый стандарт на базе выбранного: реквизиты (включая флаг разделённого описания), отбор шкафов, замены, разделение форм описания и перенумерация |
-| [`ea_docx.py`](ea_docx.py) | выгрузка стандарта в Word: титул, оглавление, разделы и таблицы из шкафов, жёсткая ширина колонок и двухуровневая шапка с объединением ячеек, рисунки со схемами ФЛС и их формат/ориентация, закладки и перекрестные ссылки |
-| [`logic_scheme_render.py`](logic_scheme_render.py) | рендер ФЛС без редактора: сборка схемы из JSON, аналоговые цепи, PNG-экспорт, генерация заготовки из функций ИЭУ |
+| [`ea_standard.py`](core/ea_standard.py) | чтение папки, обход дерева, `table_view()` — сборка строк таблицы из шкафа, `table_header_rows()` — один или два яруса шапки, `cabinet_card()`, `validate()`, CLI |
+| [`ea_schema.py`](core/ea_schema.py) | исполняемая схема structure2: поля, коллекции, псевдонимы, подписи и значения по умолчанию для всех классов модели; нормализация и фабрика узлов |
+| [`ea_model.py`](core/ea_model.py) | модель structure2: блоки функций, слоты и их типы, уставки, параметры, нормализация и миграция |
+| [`ea_ui.py`](core/ea_ui.py) | окно «СТО (EA)…»: дерево документа и шкафов, пункты/подпункты/таблицы/рисунки в общем порядке, таблицы и карточки, размещение на схеме, новый стандарт, DOCX |
+| [`ea_edit.py`](core/ea_edit.py) | обратимое представление таблиц: `load()` → шапка и строки, `save()` → обратно в `cabinets` |
+| [`ea_structure.py`](core/ea_structure.py) | фабрики новых узлов, добавление/удаление (`new_*`, `add`, `remove`, `delete_issues`), перенос и копирование таблиц и рисунков (`move_node`, `move_block`, `copy_table`, `copy_figure`, `next_table_number`), разделение описания шкафа и ИЭУ (`split_description_tables`), общий порядок пунктов, подпунктов, таблиц и рисунков (`ordered_items`, `move_item`, `ordered_blocks`), привязка таблиц к шкафу (`rebind_table`, `rebind_tables`), группа идентичных комплектов и перенос/копия комплектов (`kit_feeds_tables`, `identical_replacement`, `promote_kit`, `move_kit`, `copy_kit`) |
+| [`ea_editor.py`](core/ea_editor.py) | отдельное окно редактирования стандарта: текст, таблицы, карточки шкафов, комплекты, ИЭУ, блоки/функции/слоты/уставки/параметры, универсальная правка любого поля, контекстное меню дерева, отчёт по любому узлу и выделенной группе |
+| [`ea_report.py`](core/ea_report.py) | отчёт по элементу стандарта в DOCX: поля и значения из схемы structure2, вложенные коллекции, таблицы из шкафа с двухуровневой шапкой, сборка в фоновом потоке |
+| [`ea_catalog.py`](core/ea_catalog.py) | мост «шкаф стандарта ↔ каталог редактора»: `ensure_catalog()`, `kit_entry()`, `cabinet_from_catalog()`, `kit_from_catalog()`, `add_test_blocks()` |
+| [`ea_merge.py`](core/ea_merge.py) | каталог шкафов всех стандартов и слияние: `merge_cabinets()`, `add_catalog_cabinet()` |
+| [`ea_exchange.py`](core/ea_exchange.py) | выгрузка/загрузка выбранных шкафов, комплектов, функциональных блоков и функций в отдельный JSON (`collect`, `save`, `load`, `apply`); проверка формата и откат при ошибке |
+| [`ea_new_standard.py`](core/ea_new_standard.py) | новый стандарт на базе выбранного: реквизиты (включая флаг разделённого описания), отбор шкафов, замены, разделение форм описания и перенумерация |
+| [`ea_docx.py`](core/ea_docx.py) | выгрузка стандарта в Word: титул, оглавление, разделы и таблицы из шкафов, жёсткая ширина колонок и двухуровневая шапка с объединением ячеек, рисунки со схемами ФЛС и их формат/ориентация, закладки и перекрестные ссылки |
+| [`logic_scheme_render.py`](core/logic_scheme_render.py) | рендер ФЛС без редактора: сборка схемы из JSON, аналоговые цепи, PNG-экспорт, генерация заготовки из функций ИЭУ |
 | [`main.py`](main.py) | кнопка «СТО (EA)…» на вкладке «Стандарты» и метод `show_ea_standards` |
 | [`EA/docx2json.py`](EA/docx2json.py) | сборка JSON стандарта из DOCX по модели EA |
 | [`tools/migrate_standards_structure2.py`](tools/migrate_standards_structure2.py) | перевод JSON стандартов на structure2: `function_blocks` и новые поля модели по `ea_schema.py` (`--check` — только отчёт, `--add-children` — пустые коллекции) |

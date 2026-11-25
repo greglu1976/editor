@@ -88,7 +88,12 @@ def plan():
     """Список ``(источник, путь внутри db, обязателен)``."""
     items = []
     for name, required in DATA_FILES:
-        items.append((os.path.join(ROOT, name), name, required))
+        source = os.path.join(ROOT, name)
+        if not os.path.exists(source):
+            # structure.json хранится в папке structure/, в db попадает
+            # под прежним именем — код читает его через apppaths.
+            source = os.path.join(ROOT, "structure", os.path.basename(name))
+        items.append((source, os.path.basename(name), required))
 
     ea = os.path.join(ROOT, "EA")
     for path in sorted(glob.glob(os.path.join(ea, "*.json"))):

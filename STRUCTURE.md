@@ -57,6 +57,15 @@ python3 tests/test_packaging.py          # 7. пути данных, db, сбо�
 
 ## Место в git
 
+Рабочие скрипты редактора вынесены в [`core/`](core/__init__.py)
+(каталоги, схемы, отчёты, экспорт, UI), а модули и файлы хранения структуры —
+в [`structure/`](structure/__init__.py) (`structure.py`, `structure_tools.py`,
+`cabs_data.py`, `cabs_sto.py`, `structure.json`, `sto_drafts.json`). Корневые
+одноимённые `*.py` — тонкие перенаправления на новые пакеты: старые импорты
+продолжают работать, но новая кодовая база импортирует из `core.*` и
+`structure.*`. Пути данных по-прежнему задаёт `apppaths`, поэтому `structure.json`
+находится и в корне (старые схемы), и в `structure/`.
+
 В репозитории — код: [`structure.py`](structure.py) (модуль доступа),
 [`structure_tools.py`](structure_tools.py),
 [`tools/build_structure.py`](tools/build_structure.py),

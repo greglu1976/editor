@@ -41,8 +41,9 @@ try:                                    # pypdf нужен только для �
 except Exception:                       # pragma: no cover
     PdfReader = None
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-OUT_PATH = os.path.join(HERE, "sto_drafts.json")
+# Скрипт живёт в core/, а данные хранятся в structure/ рядом с корнем проекта.
+HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT_PATH = os.path.join(HERE, "structure", "sto_drafts.json")
 
 #: Тег, которым помечаются шкафы и комплекты невыпущенных СТО.
 TAG = "Невыпущенные СТО"

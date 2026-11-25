@@ -9,38 +9,26 @@ import math
 import copy
 import os
 from datetime import datetime
-import library
-import pdfunderlay
-import pdfexport
-import ssdexport
-import cabs
-import komplekts
-import containers as ketlib
-import docxreport
 import structure
-import structure_tools
-import apppaths
-import ui_theme
-import ribbon_icons
-import logic_library
-import logic_editor
-import logic_scheme_render
-import report_selection
-import report_nir
-import scheme_io
+from core import (library, pdfunderlay, pdfexport, ssdexport, cabs,
+                  komplekts, docxreport, apppaths, ui_theme, ribbon_icons,
+                  logic_library, logic_editor, logic_scheme_render,
+                  report_selection, report_nir, scheme_io)
+from core import containers as ketlib
+from structure import structure_tools
 
 try:
-    import pdf2json
+    from core import pdf2json
 except Exception:  # подписи в подложке необязательны
     pdf2json = None
 
 try:
-    import pngexport
+    from core import pngexport
 except Exception:  # экспорт в PNG требует Pillow — без него просто нет кнопки
     pngexport = None
 
 try:
-    import appicon
+    from core import appicon
 except Exception:
     appicon = None
 
@@ -48,7 +36,7 @@ except Exception:
 # Префиксы обозначений, русские наименования типов и название программы —
 # общий источник для main и вынесенных модулей (report_selection,
 # report_nir, scheme_io): element_info собирает таблицы из logic_library.
-from element_info import (PREFIX_BY_TYPE,          # noqa: F401
+from core.element_info import (PREFIX_BY_TYPE,     # noqa: F401
                           ELEMENT_TYPE_TITLES,      # noqa: F401
                           APP_TITLE)                # noqa: F401
 

@@ -300,10 +300,40 @@ def test_modules_have_no_flat_paths():
     check(os.path.normcase(ea_standard.FOLDER)
           == os.path.normcase(apppaths.data_dir("EA")),
           "ea_standard.FOLDER = apppaths.data_dir")
-    for name in ("structure.py", "ea_standard.py", "structure_tools.py"):
-        source = open(os.path.join(ROOT, name), encoding="utf-8").read()
+    places = {
+        "structure.py": os.path.join(ROOT, "structure", "structure.py"),
+        "ea_standard.py": os.path.join(ROOT, "core", "ea_standard.py"),
+        "structure_tools.py": os.path.join(ROOT, "structure",
+                                           "structure_tools.py"),
+    }
+    for name, path in places.items():
+        source = open(path, encoding="utf-8").read()
         flat = 'os.path.join(os.path.dirname(os.path.abspath(__file__)), "structure.json")'
         check(flat not in source, "%s не собирает путь к structure.json" % name)
+
+
+def test_source_layout():
+    """Пункт 32: новые пакеты на месте, старые импорты работают."""
+    print("10. структура исходников")
+    import importlib
+    check(os.path.isdir(os.path.join(ROOT, "core"))
+          and os.path.isfile(os.path.join(ROOT, "core", "__init__.py")),
+          "пакет core/ на месте")
+    check(os.path.isfile(os.path.join(ROOT, "structure", "__init__.py"))
+          and os.path.isfile(os.path.join(ROOT, "structure", "structure.json")),
+          "пакет structure/ со структурой на месте")
+    check(os.path.normcase(apppaths.app_dir()) == os.path.normcase(ROOT),
+          "apppaths указывает на корень, а не на core/")
+    path = apppaths.data_path("structure.json")
+    check(os.path.normcase(path)
+          == os.path.normcase(os.path.join(ROOT, "structure",
+                                           "structure.json")),
+          "structure.json находится через apppaths")
+    for old, new in (("cabs", "core.cabs"),
+                     ("structure_tools", "structure.structure_tools"),
+                     ("cabs_data", "structure.cabs_data")):
+        check(importlib.import_module(old) is importlib.import_module(new),
+              "%s перенаправляет на %s" % (old, new))
 
 
 def main():
@@ -320,6 +350,7 @@ def main():
         test_icon()
         test_command_line()
         test_modules_have_no_flat_paths()
+        test_source_layout()
     except Exception:                       # noqa: BLE001
         import traceback
         traceback.print_exc()
