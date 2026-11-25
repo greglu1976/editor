@@ -36,6 +36,7 @@ import cabs                    # noqa: E402
 import ea_catalog              # noqa: E402
 import ea_docx                 # noqa: E402
 import ea_new_standard as ns   # noqa: E402
+import ea_schema as sc         # noqa: E402
 import ea_standard as es       # noqa: E402
 import komplekts               # noqa: E402
 
@@ -57,6 +58,29 @@ def check(condition, message):
     else:
         print("  FAIL %s" % message)
         FAILURES.append(message)
+
+
+def heading_texts(doc):
+    """Тексты заголовков: стили с уровнем структуры (``outlineLvl``).
+
+    В отчёте по стандарту заголовки получают стиль из поля ``header_style``
+    («ДОК Текст …», «ДОК ПРИЛ …»), а не «Heading N», поэтому определять их по
+    имени стиля нельзя.
+    """
+    from docx.oxml.ns import qn
+
+    def is_heading(style):
+        seen = set()
+        while style is not None and style.style_id not in seen:
+            seen.add(style.style_id)
+            props = style.element.find(qn("w:pPr"))
+            if props is not None and props.find(qn("w:outlineLvl")) is not None:
+                return True
+            style = style.base_style
+        return False
+
+    return [paragraph.text for paragraph in doc.paragraphs
+            if paragraph.style is not None and is_heading(paragraph.style)]
 
 
 # ---------------------------------------------------------------------------
@@ -331,14 +355,61 @@ def test_docx(data):
     doc = Document(path)
     check(len(doc.sections) == 1,
           "рисунки без формата не меняют параметры страницы")
-    headings = [paragraph.text for paragraph in doc.paragraphs
-                if paragraph.style.name.startswith("Heading")]
+    headings = heading_texts(doc)
     check(any(text.startswith("Шкаф защит батареи") for text in headings),
           "заголовок подраздела шкафа на месте")
     check(not any(text[:1].isdigit() for text in headings),
           "номера разделов и подразделов не вписаны в заголовки")
     check(not any(text.startswith("Приложение. Шкафы") for text in headings),
           "приложения со шкафами нет")
+
+    # Пункт 36: оформление берётся из стилей шаблона — заголовки по полю
+    # header_style, подписи таблиц и рисунков — из стилей «ДОК … Название».
+    sections = es.sections(data)
+    section = next(item for item in sections
+                   if item.get("header_style") and item.get("header")
+                   and str(item.get("number") or "")[:1].isdigit())
+    subsection = next(sub for item in sections
+                      for sub in item.get("subsections") or []
+                      if sub.get("header_style") and sub.get("header"))
+    section_paragraph = next(paragraph for paragraph in doc.paragraphs
+                             if paragraph.text.strip()
+                             == str(section["header"]).strip())
+    subsection_paragraph = next(paragraph for paragraph in doc.paragraphs
+                                if paragraph.text.strip()
+                                == str(subsection["header"]).strip())
+    check(section_paragraph.style.name == section["header_style"]
+          and subsection_paragraph.style.name == subsection["header_style"],
+          "стили заголовков взяты из header_style")
+    table_caption = next(paragraph for paragraph in doc.paragraphs
+                         if paragraph.text.startswith("Таблица 5.2 —"))
+    figure_caption = next(paragraph for paragraph in doc.paragraphs
+                          if paragraph.text.startswith("Рисунок 5."))
+    check(table_caption.style.name == ea_docx.TABLE_CAPTION_STYLE
+          and figure_caption.style.name == ea_docx.FIGURE_CAPTION_STYLE,
+          "подписи таблицы и рисунка оформлены стилями «ДОК … Название»")
+    label_run = next((run for run in table_caption.runs
+                      if run.text == "Таблица"), None)
+    check(label_run is not None
+          and label_run._r.find(qn("w:rPr")) is not None
+          and label_run._r.find(qn("w:rPr")).find(qn("w:spacing")) is not None,
+          "надпись «Таблица» разрежена отдельно от названия")
+    appendix_style = next((str(item.get("header_style") or "")
+                           for item in sections
+                           if ea_docx._is_appendix(item)
+                           and item.get("header_style")), "")
+    appendix_paragraph = next(paragraph for paragraph in doc.paragraphs
+                              if paragraph.text.startswith("ПРИЛОЖЕНИЕ"))
+    check(bool(appendix_style)
+          and appendix_paragraph.style.name == appendix_style
+          and appendix_paragraph.text.startswith("ПРИЛОЖЕНИЕ А."),
+          "заголовок приложения: стиль из JSON и буква из номера")
+    appendix_caption = next((paragraph for paragraph in doc.paragraphs
+                             if paragraph.text.startswith("Таблица Б.")), None)
+    check(appendix_caption is not None
+          and appendix_caption.style.name
+          == ea_docx.APPENDIX_TABLE_CAPTION_STYLE,
+          "подпись таблицы приложения оформлена стилем «ПРИЛ …»")
 
     # Перекрестные ссылки: подписи — закладки, упоминания в тексте — REF.
     body_xml = doc.element.body.xml
@@ -506,6 +577,31 @@ def test_docx(data):
           and any("файл не найден" in item
                   for item in bad_counters["ошибки_рисунков"]),
           "ошибка вставки рисунка сообщается вызывающей стороне")
+
+
+def test_table_style():
+    """Пункт 37: поле «Стиль таблицы» и его применение при выгрузке."""
+    print("3е. стиль таблицы из поля table_style")
+    try:
+        from docx import Document
+    except ImportError:
+        print("  --   python-docx нет: проверка пропущена")
+        return
+    keys = [key for key, _kind, _default in sc.fields("Table")]
+    check("table_style" in keys, "у таблицы есть поле «Стиль таблицы»")
+    template = ea_docx.template_path(os.path.dirname(REFERENCE))
+    if not template:
+        print("  --   template.docx нет: проверка стиля пропущена")
+        return
+    doc = Document(template)
+    ea_docx._table(doc, ["Параметр", "Значение"], [["а", "б"]],
+                   style="Таблица_ГОСТ")
+    check(doc.tables[-1].style.name == "Таблица_ГОСТ",
+          "стиль таблицы из поля применён")
+    ea_docx._table(doc, ["Параметр", "Значение"], [["а", "б"]],
+                   style="Нет такого стиля")
+    check(doc.tables[-1].style.name == "Table Grid",
+          "неизвестный стиль заменён на «Table Grid»")
 
 
 # ---------------------------------------------------------------------------
@@ -1184,6 +1280,16 @@ def test_editor():
         check(window.tree.item(window._find_iid(target_table), "text")
               == "Таблица 99.99 " + new_name,
               "подпись таблицы в дереве обновилась")
+        check("table_style" in window.vars,
+              "в панели таблицы есть поле «Стиль таблицы»")
+        window.vars["table_style"].set("Таблица_ГОСТ")
+        window._apply_pending()
+        check(target_table.get("table_style") == "Таблица_ГОСТ",
+              "стиль таблицы сохраняется в поле")
+        window.vars["table_style"].set("")
+        window._apply_pending()
+        check("table_style" not in target_table,
+              "пустой стиль убирает поле из таблицы")
 
         # смена вида данных таблицы шкафа отклоняется
         original_error = ea_editor.messagebox.showerror
@@ -1687,13 +1793,16 @@ def test_editor_report():
         original_info = ea_editor.messagebox.showinfo
         original_error = ea_editor.messagebox.showerror
         errors = []
+        finished = []
         ea_editor.filedialog.asksaveasfilename = lambda *a, **k: out
-        ea_editor.messagebox.showinfo = lambda *a, **k: None
+        # Отчёт строится в фоне: файл появляется раньше, чем дописан, поэтому
+        # ждём не файла, а итогового сообщения «Отчёт сохранён».
+        ea_editor.messagebox.showinfo = lambda *a, **k: finished.append(a)
         ea_editor.messagebox.showerror = lambda *a, **k: errors.append(a)
         try:
             window._report_nodes([function_iid])
-            deadline = time.time() + 30
-            while not os.path.isfile(out) and time.time() < deadline:
+            deadline = time.time() + 60
+            while not finished and not errors and time.time() < deadline:
                 root.update()
                 time.sleep(0.05)
             root.update()
@@ -1701,7 +1810,9 @@ def test_editor_report():
             ea_editor.filedialog.asksaveasfilename = original_save
             ea_editor.messagebox.showinfo = original_info
             ea_editor.messagebox.showerror = original_error
-        check(os.path.isfile(out) and not errors
+        if errors:
+            print("   ошибки отчёта: %s" % (errors,))
+        check(bool(finished) and not errors and os.path.isfile(out)
               and os.path.getsize(out) > 10000,
               "отчёт из редактора записан в DOCX")
     except Exception as exc:                      # noqa: BLE001
@@ -1853,6 +1964,64 @@ def test_editor_update_standard():
         check(False, "обновление стандарта: %s" % exc)
     finally:
         ea_editor.messagebox.showinfo = original_info
+        ea_editor.messagebox.showerror = original_error
+        if window is not None:
+            window.destroy()
+        root.destroy()
+
+
+def test_editor_renumber():
+    """Пункт 35: кнопка «Перенумеровать» в редакторе стандарта."""
+    print("10ж. перенумерация структуры в редакторе")
+    if tk is None:
+        print("  --   tkinter нет: редактор не проверяется")
+        return
+    try:
+        import ea_editor
+        root = tk.Tk()
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "редактор стандарта: %s" % exc)
+        return
+    root.withdraw()
+    folder = tempfile.mkdtemp()
+    path = os.path.join(folder, "standard.json")
+    es.save(es.load(REFERENCE), path)
+    window = None
+    original_error = ea_editor.messagebox.showerror
+    ea_editor.messagebox.showerror = lambda *a, **k: None
+    try:
+        window = ea_editor.show(path, root)
+        root.update()
+        check(hasattr(window, "renumber_structure"),
+              "в редакторе есть перенумерация структуры")
+        section = next(item for item in window.data["sections"]
+                       if any(sub.get("clauses")
+                              for sub in item.get("subsections") or []))
+        sub = next(item for item in section["subsections"]
+                   if item.get("clauses"))
+        clause = sub["clauses"][0]
+        section["number"] = "99"
+        sub["number"] = "99.9"
+        clause["number"] = "99.9.9"
+        window.renumber_structure()
+        root.update()
+        position = (section["subsections"].index(sub)
+                    + len(section.get("clauses") or []) + 1)
+        expected_sub = "%s.%d" % (section["number"], position)
+        check(section["number"].isdigit()
+              and sub["number"] == expected_sub
+              and clause["number"] == expected_sub + ".1",
+              "номера приведены к структуре дерева")
+        iid = window._find_iid(section)
+        check(iid is not None
+              and window.tree.item(iid, "text").startswith(
+                  section["number"] + " "),
+              "дерево показывает новый номер раздела")
+        check("Перенумеровано" in window.status.cget("text"),
+              "в статусе отчёта о перенумерации")
+    except Exception as exc:                      # noqa: BLE001
+        check(False, "перенумерация в редакторе: %s" % exc)
+    finally:
         ea_editor.messagebox.showerror = original_error
         if window is not None:
             window.destroy()
@@ -2063,6 +2232,65 @@ def test_structure_ops(data):
     check(copy is not kit_a1 and copy["identical"] == kit_a1["identical"]
           and copy["number"] == 2 and "копия" in copy["description"],
           "копия комплекта сохраняет группу «Идентичны»")
+
+
+def test_renumber_document():
+    """Пункт 35: перенумерация разделов, подразделов, пунктов, подпунктов."""
+    print("11а. перенумерация структуры документа")
+    import ea_new_standard as ns
+
+    doc = {"sections": [
+        {"number": "", "header": "Введение", "clauses": [],
+         "subsections": []},
+        {"number": "7", "header": "Область применения",
+         "header_style": "ДОК Текст 3/4уров 1-раздел", "clauses": [],
+         "subsections": [
+             {"number": "7.9", "header": "Термины", "clauses": [
+                 {"number": "7.9.4", "content": "текст", "subclauses": [
+                     {"number": "7.9.4.8", "content": "подпункт"}]}]},
+             {"number": "7.3", "header": "Сокращения", "clauses": []}]},
+        {"number": "3", "header": "Общие положения",
+         "clauses": [
+             {"number": "3.9", "content": "пункт", "subclauses": []},
+             {"number": "3.1", "content": "пункт", "subclauses": []}],
+         "subsections": [
+             {"number": "3.5", "header": "Подраздел", "clauses": [
+                 {"number": "3.5.7", "content": "пункт",
+                  "subclauses": []}]}]},
+        {"number": "Ж", "header": "Приложение Ж",
+         "header_style": "ДОК ПРИЛ ур1 Заголовок",
+         "clauses": [{"number": "Ж.9", "content": "пункт",
+                      "subclauses": []}], "subsections": []},
+        {"number": "Д", "header": "Приложение Д",
+         "header_style": "ПРИЛ Заголовок",
+         "clauses": [{"number": "Д.2", "content": "пункт",
+                      "subclauses": []}], "subsections": []},
+        {"number": "", "header": "Библиография", "clauses": [],
+         "subsections": []},
+    ]}
+    counts = ns.renumber_document(doc)
+    sections = doc["sections"]
+    check([section["number"] for section in sections]
+          == ["", "1", "2", "А", "Б", ""],
+          "разделы: 1, 2, приложения А, Б, без номера — как было")
+    check(counts["sections"] == 4, "перенумеровано разделов: %d"
+          % counts["sections"])
+    check([sub["number"] for sub in sections[1]["subsections"]]
+          == ["1.1", "1.2"], "подразделы идут подряд")
+    check(sections[1]["subsections"][0]["clauses"][0]["number"] == "1.1.1"
+          and sections[1]["subsections"][0]["clauses"][0]["subclauses"][0]
+          ["number"] == "1.1.1.1",
+          "пункт и подпункт получили номера родителя")
+    check([clause["number"] for clause in sections[2]["clauses"]]
+          == ["2.1", "2.2"]
+          and sections[2]["subsections"][0]["number"] == "2.3"
+          and sections[2]["subsections"][0]["clauses"][0]["number"] == "2.3.1",
+          "пункты и подраздел делят общую последовательность")
+    check(sections[3]["clauses"][0]["number"] == "А.1"
+          and sections[4]["clauses"][0]["number"] == "Б.1",
+          "пункты приложений нумеруются буквой приложения")
+    again = ns.renumber_document(doc)
+    check(sum(again.values()) == 0, "повторная перенумерация ничего не меняет")
 
 
 def test_merge_all_cabinets():
@@ -2907,8 +3135,7 @@ def test_element_report(data):
     check(os.path.isfile(path) and counters["поля"] > 100,
           "отчёт по шкафу собран: %d полей" % counters["поля"])
     doc = Document(path)
-    headings = [paragraph.text for paragraph in doc.paragraphs
-                if paragraph.style.name.startswith("Heading")]
+    headings = heading_texts(doc)
     check(any(cabinet["cypher"] in text for text in headings),
           "в отчёте есть заголовок шкафа")
     check("Комплекты (1)" in headings and "ИЭУ (1)" in headings,
@@ -2929,8 +3156,7 @@ def test_element_report(data):
     path = os.path.join(folder, "function.docx")
     er.build(data, [er.target("Function", function)], path)
     doc = Document(path)
-    headings = [paragraph.text for paragraph in doc.paragraphs
-                if paragraph.style.name.startswith("Heading")]
+    headings = heading_texts(doc)
     check(any(text.startswith("Функция — ") for text in headings),
           "в отчёте есть заголовок функции")
     fields = next(table for table in doc.tables
@@ -2950,8 +3176,7 @@ def test_element_report(data):
                         max_rows=3)
     doc = Document(path)
     check(counters["таблицы"] == 1, "таблица данных посчитана")
-    headings = [paragraph.text for paragraph in doc.paragraphs
-                if paragraph.style.name.startswith("Heading")]
+    headings = heading_texts(doc)
     check(any(table["reference"] in text for text in headings),
           "в отчёте есть заголовок таблицы")
     data_table = doc.tables[1]
@@ -2970,8 +3195,7 @@ def test_element_report(data):
              path, max_rows=1)
     doc = Document(path)
     texts = [paragraph.text for paragraph in doc.paragraphs]
-    headings = [paragraph.text for paragraph in doc.paragraphs
-                if paragraph.style.name.startswith("Heading")]
+    headings = heading_texts(doc)
     check("Элементов в отчёте: 2." in texts,
           "в отчёте указано число элементов группы")
     check(any(text.startswith("Шкаф — ") for text in headings)
@@ -3203,6 +3427,7 @@ def main(argv=None):
     test_new_standard(data)
     test_split_descriptions(data)
     test_docx(data)
+    test_table_style()
     test_element_report(data)
     test_reference_number_switch()
     test_reference_labels()
@@ -3214,6 +3439,7 @@ def main(argv=None):
     test_main_method_exists()
     test_edit_model()
     test_structure_ops(data)
+    test_renumber_document()
     test_merge_all_cabinets()
     test_typical_transfer()
     test_functional_blocks(data)
@@ -3232,6 +3458,7 @@ def main(argv=None):
         test_editor_report()
         test_editor_reference()
         test_editor_update_standard()
+        test_editor_renumber()
     print("")
     if FAILURES:
         print("ПРОВАЛЕНО: %d" % len(FAILURES))

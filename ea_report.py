@@ -199,7 +199,8 @@ def _render_table(doc, data, table, max_rows, counters):
         return
     shown = ed._table(doc, headers, rows, max_rows=max_rows,
                       widths_mm=table.get("colums_width") or [],
-                      header_rows=es.table_header_rows(table))
+                      header_rows=es.table_header_rows(table),
+                      style=table.get("table_style"))
     if max_rows and len(rows) > shown:
         ed._body(doc, "Показано %d из %d строк." % (shown, len(rows)))
 

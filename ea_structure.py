@@ -340,6 +340,8 @@ def new_table(data, spec, number=None):
         "number": value,
         "name": name or "Новая таблица",
         "reference": reference,
+        # Пустой список — ширины не заданы, колонки считаются по содержимому.
+        "colums_width": [],
         "rows": _form_rows(headers),
     }
     if code:

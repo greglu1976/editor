@@ -361,6 +361,92 @@ def renumber_standard(data, starts=None):
     return table_map
 
 
+#: Буквы приложений по ГОСТ 2.105 (без Ё, З, Й, О, Ч, Ъ, Ы, Ь).
+_APPENDIX_LETTERS = "АБВГДЕЖИКЛМНПРСТУФХЦШЩЭЮЯ"
+
+
+def _is_appendix(section):
+    """Раздел — приложение: буквенный номер или стиль «ПРИЛ …»."""
+    number = str(section.get("number") or "").strip()
+    style = str(section.get("header_style") or "").casefold()
+    if "прил" in style:
+        return True
+    return bool(number) and not number[0].isdigit() and number.isalpha()
+
+
+def _child_number(prefix, position):
+    """Номер ребёнка: «5.3» при известном префиксе, иначе «3»."""
+    return "%s.%d" % (prefix, position) if prefix else str(position)
+
+
+def _renumber_subclauses(clause, prefix, counts):
+    """Подпункты пункта: <пункт>.<номер>; вложенность сохраняется."""
+    for position, subclause in enumerate(clause.get("subclauses") or [], 1):
+        number = _child_number(prefix, position)
+        if str(subclause.get("number") or "") != number:
+            counts["subclauses"] += 1
+        subclause["number"] = number
+        _renumber_subclauses(subclause, number, counts)
+
+
+def _renumber_children(container, prefix, counts):
+    """Пункты и подразделы контейнера — в порядке дерева редактора.
+
+    Сначала идут пункты (они и в дереве выше), затем подразделы; общая
+    последовательность не даёт двум детям один и тот же номер.
+    """
+    position = 0
+    for clause in container.get("clauses") or []:
+        position += 1
+        number = _child_number(prefix, position)
+        if str(clause.get("number") or "") != number:
+            counts["clauses"] += 1
+        clause["number"] = number
+        _renumber_subclauses(clause, number, counts)
+    for subsection in container.get("subsections") or []:
+        position += 1
+        number = _child_number(prefix, position)
+        if str(subsection.get("number") or "") != number:
+            counts["subsections"] += 1
+        subsection["number"] = number
+        _renumber_children(subsection, number, counts)
+
+
+def renumber_document(data):
+    """Перенумеровать разделы, подразделы, пункты и подпункты по структуре.
+
+    Нумерованные разделы идут подряд (1, 2, …); приложения — буквенный
+    номер или стиль «ПРИЛ …» — получают А, Б, В… по порядку; разделы без
+    номера («Введение», «Библиография») остаются без номера. Внутри
+    контейнера сначала нумеруются пункты, затем подразделы — в том же
+    порядке, в каком они показаны в дереве редактора.
+
+    Возвращает счётчики изменённых номеров по видам.
+    """
+    counts = {"sections": 0, "subsections": 0, "clauses": 0,
+              "subclauses": 0}
+    numeric = 0
+    appendix = 0
+    for section in es.sections(data):
+        number = str(section.get("number") or "").strip()
+        if _is_appendix(section):
+            if appendix < len(_APPENDIX_LETTERS):
+                new = _APPENDIX_LETTERS[appendix]
+            else:
+                new = "А%d" % (appendix - len(_APPENDIX_LETTERS) + 1)
+            appendix += 1
+        elif number:
+            numeric += 1
+            new = str(numeric)
+        else:
+            new = ""
+        if new != number:
+            counts["sections"] += 1
+        section["number"] = new
+        _renumber_children(section, new, counts)
+    return counts
+
+
 # ---------------------------------------------------------------------------
 # Проверка
 # ---------------------------------------------------------------------------

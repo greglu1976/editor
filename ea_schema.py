@@ -93,6 +93,9 @@ CLASSES = {
             ("reference", "s", ""),
             ("number", "s", ""),
             ("colums_width", "l", []),
+            # Стиль таблицы из template.docx (например «Таблица_ГОСТ»).
+            # Пустое значение — оформление по умолчанию, «Table Grid».
+            ("table_style", "s", ""),
             # Поле не описано в UML, но используется редактором как ссылка
             # на шкаф, из которого собираются строки таблицы.
             ("cabinet", "s", ""),
@@ -492,6 +495,7 @@ LABELS = {
     "format": "Формат",
     "orientation": "Ориентация",
     "colums_width": "Ширина колонок",
+    "table_style": "Стиль таблицы",
     "cabinet": "Шкаф",
     "rows": "Строки",
     "cypher": "Шифр шкафа",
@@ -596,7 +600,9 @@ EXTRA_FIELDS = {("Table", "cabinet"), ("Cabinet", "containers"),
                 ("Section", "ref"), ("Subsection", "ref"),
                 ("Table", "ref"), ("Figure", "ref"),
                 ("Standard", "description_split"),
-                ("Table", "description_part"), ("Table", "kit")}
+                ("Table", "description_part"), ("Table", "kit"),
+                # Стиль таблицы Word из template.docx — дополнение редактора.
+                ("Table", "table_style")}
 # LD/LN/DO/DA — дополнение редактора к UML: при миграции не добавляются,
 # но создаются у новых узлов и доступны в редакторе и отчётах.
 EXTRA_FIELDS.update(

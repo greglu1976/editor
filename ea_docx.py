@@ -16,9 +16,11 @@ r"""Выгрузка стандарта EA в DOCX.
 
 Если в папке стандартов (рядом с JSON или в ``EA/``) лежит ``template.docx``,
 он берётся за основу: сохраняются его стили, колонтитулы и параметры
-страницы, а содержимое строится заново. Номера разделов и подразделов в
-заголовки не пишутся — их автоматически проставляет шаблон нумерацией
-стилей «Заголовок 1» и «Заголовок 2».
+страницы, а содержимое строится заново. Оформление заголовков берётся из поля
+``header_style`` раздела/подраздела, подписей — из стилей «ДОК Таблица
+Название», «ДОК Рисунок Название» и их приложенческих вариантов; номер
+проставляет нумерация стиля, а если её нет — нумерация заголовков шаблона
+(1, 1.1, …).
 
 Перекрёстные ссылки: упоминания «Таблица 5.2/#/0» и метки ``\ref{метка}``
 (поле ``ref`` таблицы, рисунка, раздела или подраздела) превращаются в поля
@@ -55,6 +57,7 @@ import ea_structure as st
 try:
     from docx import Document
     from docx.enum.section import WD_ORIENT, WD_SECTION
+    from docx.enum.style import WD_STYLE_TYPE
     from docx.enum.table import WD_TABLE_ALIGNMENT
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml import OxmlElement
@@ -68,6 +71,16 @@ FONT = "Times New Roman"
 HEADER_FILL = "DCE6F1"
 USABLE_CM = 26.7          # А4 в альбомной ориентации минус поля 1,5 см
 TEMPLATE_NAME = "template.docx"
+#: Нумерация заголовков шаблона (numId 49): 1, 1.1, 1.1.1.
+HEADING_NUM_ID = 49
+#: Стили подписей таблиц и рисунков из template.docx.
+TABLE_CAPTION_STYLE = "ДОК Таблица Название"
+FIGURE_CAPTION_STYLE = "ДОК Рисунок Название"
+APPENDIX_TABLE_CAPTION_STYLE = "ДОК ПРИЛ Таблица Название"
+APPENDIX_FIGURE_CAPTION_STYLE = "ДОК ПРИЛ Рисунок Название"
+#: Разрежение надписи «Таблица»/«Рисунок» в подписи, twips (1 пт).
+CAPTION_LABEL_SPACING = 20
+_CAPTION_LABEL = re.compile(r"^(Таблица|Рисунок)\b")
 #: Реквизит стандарта с путём к DOCX, который должен открывать отчёт.
 TITLE_PAGE_FIELD = "title_page"
 
@@ -87,6 +100,62 @@ def _font(run, size=None, bold=None, italic=None):
         run.bold = True
     if italic:
         run.italic = True
+
+
+def _letter_spacing(run, twips):
+    """Разрежение символов фрагмента (``w:spacing``), в twips."""
+    if not twips:
+        return
+    props = run._r.get_or_add_rPr()
+    spacing = OxmlElement("w:spacing")
+    spacing.set(qn("w:val"), str(int(twips)))
+    # В rPr порядок элементов задан схемой: spacing идёт после color и
+    # перед w/kern/sz, иначе Word может проигнорировать разрежение.
+    props.insert_element_before(
+        spacing, "w:w", "w:kern", "w:position", "w:sz", "w:szCs",
+        "w:highlight", "w:u", "w:effect", "w:bdr", "w:shd", "w:fitText",
+        "w:vertAlign", "w:rtl", "w:cs", "w:em", "w:lang",
+        "w:eastAsianLayout", "w:specVanish", "w:oMath")
+
+
+def _paragraph_style(doc, name):
+    """Стиль абзаца из шаблона по имени; None, если стиля нет."""
+    name = str(name or "").strip()
+    if not name:
+        return None
+    try:
+        style = doc.styles[name]
+    except KeyError:
+        return None
+    try:
+        return style if style.type == WD_STYLE_TYPE.PARAGRAPH else None
+    except AttributeError:                          # pragma: no cover
+        return None
+
+
+def _style_numbering(style):
+    """(numId, ilvl) из стиля или его basedOn; None, если нумерации нет."""
+    seen = set()
+    while style is not None and style.style_id not in seen:
+        seen.add(style.style_id)
+        props = style.element.find(qn("w:pPr"))
+        num = props.find(qn("w:numPr")) if props is not None else None
+        if num is not None:
+            num_id = num.find(qn("w:numId"))
+            level = num.find(qn("w:ilvl"))
+            value = num_id.get(qn("w:val")) if num_id is not None else None
+            if value not in (None, "0"):
+                return value, (level.get(qn("w:val"))
+                               if level is not None else "0")
+        style = style.base_style
+    return None
+
+
+def _set_numbering(paragraph, num_id, level="0"):
+    """Задать нумерацию абзаца явно, поверх стиля."""
+    num = paragraph._p.get_or_add_pPr().get_or_add_numPr()
+    num.get_or_add_ilvl().val = int(level)
+    num.get_or_add_numId().val = int(num_id)
 
 
 def _cell(cell, text, size=10, bold=False, align=None):
@@ -288,8 +357,23 @@ def _header_widths(header_rows, headers):
     return result
 
 
+def _table_style(doc, name):
+    """Стиль таблицы из шаблона по имени; None, если стиля нет."""
+    name = str(name or "").strip()
+    if not name:
+        return None
+    try:
+        style = doc.styles[name]
+    except KeyError:
+        return None
+    try:
+        return name if style.type == WD_STYLE_TYPE.TABLE else None
+    except AttributeError:                          # pragma: no cover
+        return None
+
+
 def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None,
-           header_rows=None):
+           header_rows=None, style=None):
     """Таблица с шапкой; возвращает число выведенных строк данных."""
     if not headers:
         return 0
@@ -297,7 +381,7 @@ def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None,
     shown = rows[:max_rows] if max_rows else rows
     table = doc.add_table(rows=len(shown) + len(header_rows),
                           cols=len(headers))
-    table.style = "Table Grid"
+    table.style = _table_style(doc, style) or "Table Grid"
     table.alignment = WD_TABLE_ALIGNMENT.CENTER
     table.autofit = False
     available = _available_cm(doc)
@@ -343,17 +427,43 @@ def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None,
     return len(shown)
 
 
+def _caption_run(paragraph, text, size, bold, italic):
+    """Фрагмент подписи; слова «Таблица»/«Рисунок» — с разрежением."""
+    if not text:
+        return
+    match = _CAPTION_LABEL.match(text)
+    if match:
+        run = paragraph.add_run(match.group(1))
+        _font(run, size, bold=bold, italic=italic)
+        _letter_spacing(run, CAPTION_LABEL_SPACING)
+        text = text[match.end():]
+        if not text:
+            return
+    _font(paragraph.add_run(text), size, bold=bold, italic=italic)
+
+
 def _caption(doc, text, bookmark=None, bookmark_id=0,
-             bold=True, italic=False, number=""):
+             bold=True, italic=False, number="", style=None):
     """Подпись таблицы или рисунка.
 
     Закладка охватывает только номер в заголовке подписи, а не весь текст:
     тогда поле REF возвращает ровно номер («5.2»), в том числе с
     переключателем ``\\#"0"``. Имя и остальная подпись остаются вне закладки.
+
+    ``style`` — стиль подписи из шаблона (поле таблицы/рисунка). У этих
+    стилей своя автонумерация «Таблица N —»; она выключена, потому что номер
+    уже входит в текст подписи и должен совпадать с JSON и закладкой.
     """
     paragraph = doc.add_paragraph()
-    paragraph.paragraph_format.space_before = Pt(6)
-    paragraph.paragraph_format.space_after = Pt(2)
+    custom = _paragraph_style(doc, style)
+    if custom is not None:
+        paragraph.style = custom
+        _set_numbering(paragraph, 0)
+        size = bold = italic = None
+    else:
+        paragraph.paragraph_format.space_before = Pt(6)
+        paragraph.paragraph_format.space_after = Pt(2)
+        size = 9
     paragraph.paragraph_format.keep_with_next = True
     head, separator, tail = str(text).partition(" — ")
     pattern = (re.compile(r"(?<![\d.])%s(?![\d.])" % re.escape(number))
@@ -362,23 +472,19 @@ def _caption(doc, text, bookmark=None, bookmark_id=0,
     if match is None:
         finish = (_bookmark(paragraph, bookmark, bookmark_id)
                   if bookmark else None)
-        _font(paragraph.add_run(text), 9, bold=bold, italic=italic)
+        _caption_run(paragraph, text, size, bold, italic)
         if finish is not None:
             finish()
         return
-    if match.start():
-        _font(paragraph.add_run(head[:match.start()]), 9, bold=bold,
-              italic=italic)
+    _caption_run(paragraph, head[:match.start()], size, bold, italic)
     finish = _bookmark(paragraph, bookmark, bookmark_id)
-    _font(paragraph.add_run(match.group(0)), 9, bold=bold, italic=italic)
+    _font(paragraph.add_run(match.group(0)), size, bold=bold, italic=italic)
     finish()
-    rest = head[match.end():]
-    if rest:
-        _font(paragraph.add_run(rest), 9, bold=bold, italic=italic)
+    _caption_run(paragraph, head[match.end():], size, bold, italic)
     if separator:
-        _font(paragraph.add_run(separator), 9, bold=bold, italic=italic)
+        _font(paragraph.add_run(separator), size, bold=bold, italic=italic)
     if tail:
-        _font(paragraph.add_run(tail), 9, bold=bold, italic=italic)
+        _caption_run(paragraph, tail, size, bold, italic)
 
 
 def _body(doc, text):
@@ -417,22 +523,33 @@ def _clause_lines(content):
     return result
 
 
-def _heading(doc, text, level, numbered=True):
+def _heading(doc, text, level, numbered=True, style=None):
     """Заголовок уровня ``level``; номер ставит шаблон, а не текст.
 
+    ``style`` — имя стиля абзаца из шаблона (поле ``header_style``). Тогда
+    оформление берётся из стиля, а не из «Заголовок N»; если у стиля нет
+    своей нумерации, абзацу явно задаётся нумерация заголовков шаблона
+    (numId 49), иначе номера разделов и подразделов исчезли бы.
+
     ``numbered=False`` отключает автонумерацию абзаца (``numId=0``) — для
-    «Содержания» и разделов без номера вроде «Введения», иначе они сдвинули
-    бы нумерацию разделов шаблона.
+    «Содержания», разделов без номера вроде «Введения» и приложений, у
+    которых номер уже вписан в текст.
     """
-    heading = doc.add_heading(level=level)
+    custom = _paragraph_style(doc, style)
+    if custom is not None:
+        heading = doc.add_paragraph(style=custom)
+    else:
+        heading = doc.add_heading(level=level)
     run = heading.add_run(text)
-    _font(run, {1: 14, 2: 12, 3: 11}.get(level, 11), bold=True)
-    heading.paragraph_format.space_before = Pt(10)
-    heading.paragraph_format.space_after = Pt(4)
-    heading.paragraph_format.keep_with_next = True
+    if custom is None:
+        _font(run, {1: 14, 2: 12, 3: 11}.get(level, 11), bold=True)
+        heading.paragraph_format.space_before = Pt(10)
+        heading.paragraph_format.space_after = Pt(4)
+        heading.paragraph_format.keep_with_next = True
     if not numbered:
-        props = heading._p.get_or_add_pPr()
-        props.get_or_add_numPr().get_or_add_numId().val = 0
+        heading._p.get_or_add_pPr().get_or_add_numPr().get_or_add_numId().val = 0
+    elif custom is not None and not _style_numbering(custom):
+        _set_numbering(heading, HEADING_NUM_ID, level - 1)
     return heading
 
 
@@ -834,7 +951,8 @@ def _title_page(doc, data, stats):
     doc.add_page_break()
 
 
-def _render_table(doc, data, table, max_rows, counters, references):
+def _render_table(doc, data, table, max_rows, counters, references,
+                  appendix=False):
     headers, rows = es.table_view(data, table)
     reference = table.get("reference") or ""
     name = table.get("name") or ""
@@ -847,12 +965,15 @@ def _render_table(doc, data, table, max_rows, counters, references):
     bookmark, is_new = _register_reference(references, caption_key)
     title = ("%s — %s" % (reference, name)).strip(" —")
     _caption(doc, title, bookmark if is_new else None, 1000 + len(references),
-             number=number)
+             number=number,
+             style=(APPENDIX_TABLE_CAPTION_STYLE if appendix
+                    else TABLE_CAPTION_STYLE))
     _register_labels(references, table, number, bookmark, title=title)
     counters["таблицы"] += 1
     counters["строки"] += _table(doc, headers, rows, max_rows=max_rows,
                                  widths_mm=table.get("colums_width") or [],
-                                 header_rows=es.table_header_rows(table))
+                                 header_rows=es.table_header_rows(table),
+                                 style=table.get("table_style"))
 
 
 # ---------------------------------------------------------------------------
@@ -1020,7 +1141,8 @@ def _scheme_image(doc, figure, errors=None):
     return True
 
 
-def _render_figure_block(doc, figure, references, counters, errors):
+def _render_figure_block(doc, figure, references, counters, errors,
+                         appendix=False):
     """Картинка схемы и подпись, при необходимости на своей странице."""
     page = _figure_page(figure)
     original = _page_snapshot(doc.sections[-1]) if page else None
@@ -1035,7 +1157,9 @@ def _render_figure_block(doc, figure, references, counters, errors):
     bookmark, is_new = _register_reference(references, reference)
     title = "%s — %s" % (reference, figure.get("name") or "")
     _caption(doc, title, bookmark if is_new else None, 1000 + len(references),
-             bold=False, italic=True, number=number)
+             bold=False, italic=True, number=number,
+             style=(APPENDIX_FIGURE_CAPTION_STYLE if appendix
+                    else FIGURE_CAPTION_STYLE))
     _register_labels(references, figure, number, bookmark, title=title.strip())
     paragraph = doc.paragraphs[-1]
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -1045,18 +1169,21 @@ def _render_figure_block(doc, figure, references, counters, errors):
 
 
 def _render_item(doc, data, kind, item, max_rows, counters, references,
-                 errors):
+                 errors, appendix=False):
     """Вывести один элемент контейнера: пункт, подпункт, таблицу, рисунок."""
     if kind == "table":
-        _render_table(doc, data, item, max_rows, counters, references)
+        _render_table(doc, data, item, max_rows, counters, references,
+                      appendix)
     elif kind == "figure":
-        _render_figure_block(doc, item, references, counters, errors)
+        _render_figure_block(doc, item, references, counters, errors,
+                             appendix)
     else:
         _render_clause(doc, data, item, max_rows, counters, references,
-                       errors)
+                       errors, appendix)
 
 
-def _render_clause(doc, data, clause, max_rows, counters, references, errors):
+def _render_clause(doc, data, clause, max_rows, counters, references, errors,
+                   appendix=False):
     """Пункт или подпункт: номер с текстом и вложенные элементы по порядку."""
     number = str(clause.get("number") or "")
     lines = _clause_lines(clause.get("content"))
@@ -1068,48 +1195,80 @@ def _render_clause(doc, data, clause, max_rows, counters, references, errors):
         _body(doc, line)
     for kind, item in st.ordered_items(clause):
         _render_item(doc, data, kind, item, max_rows, counters, references,
-                     errors)
+                     errors, appendix)
 
 
 def _render_container(doc, data, container, level, max_rows, counters,
-                      references, errors):
+                      references, errors, appendix=False):
     _text_block(doc, container.get("content"))
     for kind, item in st.ordered_items(container):
         _render_item(doc, data, kind, item, max_rows, counters, references,
-                     errors)
+                     errors, appendix)
+
+
+def _is_appendix(section):
+    """Раздел — приложение: буквенный номер или стиль «ПРИЛ …»."""
+    number = str(section.get("number") or "").strip()
+    style = str(section.get("header_style") or "").casefold()
+    if "прил" in style:
+        return True
+    return bool(number) and not number[0].isdigit() and number.isalpha()
+
+
+def _appendix_title(number, title):
+    """«ПРИЛОЖЕНИЕ А. Название» — номер из JSON, а не счётчик Word.
+
+    Автонумерация стилей «ПРИЛ …» начинается заново у каждого стиля, поэтому
+    два приложения с разными стилями получили бы одну и ту же букву «А».
+    Текст с номером из JSON надёжнее и совпадает с полем SET/REF.
+    """
+    title = str(title or "").strip()
+    if not number:
+        return title or "ПРИЛОЖЕНИЕ"
+    if title.casefold().startswith(("приложение", "прил")):
+        return title
+    label = "ПРИЛОЖЕНИЕ %s" % number
+    return "%s. %s" % (label, title) if title else label
 
 
 def _render_sections(doc, data, max_rows, counters, references, errors):
     """Разделы и подразделы: в тексте заголовка только название.
 
-    Номер раздела и подраздела не выводится — его автоматически проставляет
-    шаблон Word через нумерацию стилей «Заголовок 1» и «Заголовок 2».
+    Номер раздела и подраздела в текст не вписывается — его проставляет
+    нумерация стиля (заголовков шаблона или стиля из ``header_style``).
+    Исключение — приложения: их буква берётся из JSON, см.
+    :func:`_appendix_title`.
     """
     for section in es.sections(data):
         number = str(section.get("number") or "").strip()
         header = str(section.get("header") or "").strip()
         if not header and not number:
             continue
-        _heading(doc, header or number, 1,
-                 numbered=bool(number) and bool(header))
+        appendix = _is_appendix(section)
+        text = (_appendix_title(number, header) if appendix
+                else (header or number))
+        _heading(doc, text, 1,
+                 numbered=not appendix and bool(number) and bool(header),
+                 style=section.get("header_style"))
         bookmark = _register_heading(references, number)
         _register_labels(references, section, number, bookmark,
                          title=header or number)
         counters["разделы"] += 1
         _render_container(doc, data, section, 2, max_rows, counters,
-                          references, errors)
+                          references, errors, appendix)
         for sub in section.get("subsections") or []:
             sub_number = str(sub.get("number") or "").strip()
             title = str(sub.get("header") or "").strip()
             if not title and not sub_number:
                 continue
             _heading(doc, title or sub_number, 2,
-                     numbered=bool(sub_number) and bool(title))
+                     numbered=bool(sub_number) and bool(title),
+                     style=sub.get("header_style"))
             bookmark = _register_heading(references, sub_number)
             _register_labels(references, sub, sub_number, bookmark,
                              title=title or sub_number)
             _render_container(doc, data, sub, 3, max_rows, counters,
-                              references, errors)
+                              references, errors, appendix)
 
 
 def _reference_index(doc, references):

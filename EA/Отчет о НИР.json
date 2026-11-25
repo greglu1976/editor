@@ -2375,7 +2375,8 @@
               "cabinet": "ШЭТ 431.11-1",
               "description_part": "kit",
               "kit": "1",
-              "order": 4
+              "order": 4,
+              "colums_width": []
             },
             {
               "number": "5.3",
@@ -3214,7 +3215,8 @@
               ],
               "cabinet": "ШЭТ 431.12-1",
               "description_part": "kit",
-              "kit": "1"
+              "kit": "1",
+              "colums_width": []
             },
             {
               "number": "5.32",
@@ -3376,7 +3378,8 @@
               ],
               "cabinet": "ШЭТ 431.12-1",
               "description_part": "kit",
-              "kit": "3"
+              "kit": "3",
+              "colums_width": []
             }
           ],
           "figures": [
@@ -3926,7 +3929,8 @@
               ],
               "cabinet": "ШЭТ 431.13-1",
               "description_part": "kit",
-              "kit": "1"
+              "kit": "1",
+              "colums_width": []
             }
           ],
           "figures": [
@@ -4476,7 +4480,8 @@
               ],
               "cabinet": "ШЭТ 431.14-1",
               "description_part": "kit",
-              "kit": "1"
+              "kit": "1",
+              "colums_width": []
             }
           ],
           "figures": [

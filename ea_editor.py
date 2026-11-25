@@ -261,6 +261,8 @@ class StandardEditorWindow(tk.Toplevel):
         _button(top, "Перечитать", self.reload, width=12, side=tk.RIGHT)
         _button(top, "Обновить стандарт", self.update_standard,
                 width=18, side=tk.RIGHT)
+        _button(top, "Перенумеровать", self.renumber_structure,
+                width=16, side=tk.RIGHT)
         _button(top, "Проверить", self.check, width=10, side=tk.RIGHT)
         _button(top, "Закрыть", self.close, width=10, side=tk.RIGHT)
 
@@ -930,9 +932,17 @@ class StandardEditorWindow(tk.Toplevel):
         tk.Entry(form, textvariable=name, font=ui_theme.font(9),
                  width=90).grid(row=1, column=1, sticky="we", pady=2)
         self.vars["name"] = name
+        # Стиль таблицы из template.docx: имя стиля Word, пусто — «Table Grid».
+        tk.Label(form, text="Стиль таблицы:", font=ui_theme.font(9),
+                 anchor="w").grid(row=2, column=0, sticky="w", pady=2)
+        table_style = tk.StringVar(
+            value=str(table.get("table_style") or ""))
+        tk.Entry(form, textvariable=table_style, font=ui_theme.font(9),
+                 width=40).grid(row=2, column=1, sticky="w", pady=2)
+        self.vars["table_style"] = table_style
         if table.get("cabinet"):
             link = tk.Frame(form)
-            link.grid(row=2, column=0, columnspan=2, sticky="we", pady=(2, 0))
+            link.grid(row=3, column=0, columnspan=2, sticky="we", pady=(2, 0))
             tk.Label(link, text="Данные шкафа: %s" % table.get("cabinet"),
                      font=ui_theme.font(8), fg=ui_theme.TEXT_MUTED,
                      anchor="w").pack(side=tk.LEFT)
@@ -975,8 +985,10 @@ class StandardEditorWindow(tk.Toplevel):
             changed = bool(self._grid_apply()) or changed
         number = str(self.vars["number"].get()).strip()
         name = str(self.vars["name"].get()).strip()
+        table_style = str(self.vars["table_style"].get()).strip()
         old_number = str(table.get("number") or "")
         old_name = str(table.get("name") or "")
+        old_style = str(table.get("table_style") or "")
         # проверяем только изменённые поля: в данных встречаются таблицы
         # без номера и наименования, их нельзя ломать при простом открытии
         if number != old_number:
@@ -1008,6 +1020,12 @@ class StandardEditorWindow(tk.Toplevel):
             changed = True
         if name != old_name:
             table["name"] = name
+            changed = True
+        if table_style != old_style:
+            if table_style:
+                table["table_style"] = table_style
+            else:
+                table.pop("table_style", None)
             changed = True
         if changed:
             label = "%s %s" % (table.get("reference") or "Таблица", name)
@@ -3433,6 +3451,30 @@ class StandardEditorWindow(tk.Toplevel):
         self.status.config(
             text="Стандарт обновлён: описаний ИЭУ %d, перенумеровано таблиц "
                  "%d, замечаний %d" % (forms, len(mapping), len(problems)))
+
+    def renumber_structure(self):
+        """Пункт 35: перенумеровать разделы, подразделы, пункты, подпункты."""
+        if not self._apply_pending():
+            return
+        try:
+            counts = ens.renumber_document(self.data)
+        except (ValueError, KeyError, TypeError) as exc:
+            messagebox.showerror("Редактор стандарта",
+                                 "Не удалось перенумеровать:\n%s" % exc,
+                                 parent=self)
+            return
+        changed = sum(counts.values())
+        if not changed:
+            self.status.config(text="Нумерация уже соответствует структуре")
+            return
+        self._changed = True
+        self._update_title()
+        self._fill_tree()
+        self.status.config(
+            text="Перенумеровано: разделов %d, подразделов %d, "
+                 "пунктов %d, подпунктов %d"
+                 % (counts["sections"], counts["subsections"],
+                    counts["clauses"], counts["subclauses"]))
 
     def save(self, event=None):
         if not self._apply_pending():
