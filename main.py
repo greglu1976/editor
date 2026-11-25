@@ -4061,7 +4061,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             placed, missing = self._expand_container(container, definition)
         self._sync_containers()
         self.current_tool = "select"
-        self.canvas.config(cursor="arrow")
+        self._set_tool_cursor("select")
         self._mark_active_tool()
         self.redraw_all()
 
@@ -4977,7 +4977,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         # Выбран контейнер — новый шкаф сразу встаёт в его свободный слот
         bound = self._auto_bind_cabinet(cabinet, target_container)
         self.current_tool = "select"
-        self.canvas.config(cursor="arrow")
+        self._set_tool_cursor("select")
         self._mark_active_tool()
         self.redraw_all()
         if bound and target_container is not None:
@@ -5010,7 +5010,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self.elements[block.id] = block
         self.selected_elements = [block.id]
         self.current_tool = "select"
-        self.canvas.config(cursor="arrow")
+        self._set_tool_cursor("select")
         self._mark_active_tool()
         self.redraw_all()
         return block
@@ -6561,7 +6561,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         if not self._pan_active:
             return "break"
         self._pan_active = False
-        self.canvas.config(cursor="crosshair" if self.current_tool != "select" else "arrow")
+        self._set_tool_cursor()
         # Полная перерисовка: подтягивает сетку и линии к новым краям полотна
         self.redraw_all()
         return "break"
@@ -7077,6 +7077,22 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self.redraw_all()
 
     # ================= ПЕРЕКРЕСТИЕ КУРСОРА (КАК В AUTOCAD) =================
+    def _tool_cursor(self, tool=None):
+        """Курсор полотна для инструмента с учётом режима «Перекрестие».
+
+        В режиме линий через курсор указатель-стрелка заменяется на
+        перекрестие. Инструменты размещения и так работают перекрестием,
+        а «фleur»/стрелки изменения размера сохраняются вызывающей стороной.
+        """
+        tool = self.current_tool if tool is None else tool
+        if tool == "select" and getattr(self, "crosshair_enabled", False):
+            return "crosshair"
+        return "crosshair" if tool != "select" else "arrow"
+
+    def _set_tool_cursor(self, tool=None):
+        """Применить курсор инструмента к полотну."""
+        self.canvas.config(cursor=self._tool_cursor(tool))
+
     def toggle_crosshair(self):
         """Включает/выключает линии перекрестия по курсору."""
         self.crosshair_enabled = bool(self.crosshair_var.get())
@@ -7084,6 +7100,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self._pointer_pos = self._pointer_on_canvas()
         else:
             self._pointer_pos = None
+        self._set_tool_cursor()
         self._draw_crosshair()
 
     def _pointer_on_canvas(self):
@@ -7625,7 +7642,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             return
 
         if self.current_tool == "select":
-            cursor = "arrow"
+            cursor = self._tool_cursor("select")
             for el_id in self.selected_elements:
                 el = self.elements.get(el_id)
                 if el is None or el.type not in ("bus", "logic_bus"):
@@ -7711,7 +7728,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         if hasattr(self, "set_logic_link_kind"):
             if logic_library.is_schematic_type(tool):
                 self.set_logic_link_kind("schematic", switch_tool=False)
-        self.canvas.config(cursor="crosshair" if tool != "select" else "arrow")
+        self._set_tool_cursor(tool)
         self._mark_active_tool()
         if had_protection_start:
             self.redraw_all()
@@ -8892,8 +8909,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self._dragging_logic_mark = None
             self._point_drag_changed = False
             self._pre_change_state = None
-            self.canvas.config(cursor="arrow" if self.current_tool == "select"
-                               else "crosshair")
+            self._set_tool_cursor()
             self.redraw_all()
             return
 
@@ -8905,8 +8921,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self._dragging_logic_route = None
             self._point_drag_changed = False
             self._pre_change_state = None
-            self.canvas.config(cursor="arrow" if self.current_tool == "select"
-                               else "crosshair")
+            self._set_tool_cursor()
             self.redraw_all()
             return
 
@@ -8918,8 +8933,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self._dragging_point = None
             self._point_drag_changed = False
             self._pre_change_state = None
-            self.canvas.config(cursor="arrow" if self.current_tool == "select"
-                               else "crosshair")
+            self._set_tool_cursor()
             self.redraw_all()
             return
 
@@ -8931,8 +8945,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self._dragging_comment = None
             self._comment_drag_changed = False
             self._pre_change_state = None
-            self.canvas.config(cursor="arrow" if self.current_tool == "select"
-                               else "crosshair")
+            self._set_tool_cursor()
             self.redraw_all()
             return
 
@@ -8944,8 +8957,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self._dragging_field = None
             self._field_drag_changed = False
             self._pre_change_state = None
-            self.canvas.config(cursor="arrow" if self.current_tool == "select"
-                               else "crosshair")
+            self._set_tool_cursor()
             return
 
         # ЗАВЕРШЕНИЕ ПЕРЕТАСКИВАНИЯ ПОДПИСИ
@@ -8955,8 +8967,7 @@ class CircuitEditor(report_selection.SelectionReportMixin,
             self._dragging_label = None
             self._label_drag_changed = False
             self._pre_change_state = None
-            self.canvas.config(cursor="arrow" if self.current_tool == "select"
-                               else "crosshair")
+            self._set_tool_cursor()
             return
 
         # ЗАВЕРШЕНИЕ РАМКИ ВЫДЕЛЕНИЯ

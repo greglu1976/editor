@@ -442,6 +442,28 @@ def test_right_click(app):
           "перед редактированием связь выделяется")
 
 
+def test_crosshair_cursor(app):
+    """Пункт 40: режим линий меняет стрелку на перекрестие."""
+    print("2а. курсор при включённом перекрестии")
+    app.set_tool("select")
+    app.crosshair_var.set(False)
+    app.toggle_crosshair()
+    check(app.canvas.cget("cursor") == "arrow",
+          "без перекрестия инструмент «Выбрать» показывает стрелку")
+    app.crosshair_var.set(True)
+    app.toggle_crosshair()
+    check(app.canvas.cget("cursor") == "crosshair",
+          "в режиме линий «Выбрать» показывает перекрестие")
+    app.set_tool("connect")
+    check(app.canvas.cget("cursor") == "crosshair",
+          "инструмент связи остаётся перекрестием")
+    app.set_tool("select")
+    app.crosshair_var.set(False)
+    app.toggle_crosshair()
+    check(app.canvas.cget("cursor") == "arrow",
+          "после выключения стрелка возвращается")
+
+
 def run_gui():
     import main
     try:
@@ -464,6 +486,7 @@ def run_gui():
         app.show_cabinets = True
         app.show_containers = True
         test_route(app)
+        test_crosshair_cursor(app)
         test_hit(app)
         test_edit(app)
         test_round_trip(app)
