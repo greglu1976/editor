@@ -22,8 +22,11 @@ r"""Выгрузка стандарта EA в DOCX.
 
 Перекрёстные ссылки: упоминания «Таблица 5.2/#/0» и метки ``\ref{метка}``
 (поле ``ref`` таблицы, рисунка, раздела или подраздела) превращаются в поля
-Word `REF … \h \#"0"` — в документе виден только номер. Метки разбирает
-:mod:`ea_schema`, закладки ставятся на подписи и заголовки.
+Word `REF … \#"0"` — в документе виден только номер. Метки разбирает
+:mod:`ea_schema`. У подписи таблицы/рисунка закладка охватывает только
+номер (ссылка ещё и кликабельна), у раздела номер объявляет поле SET в
+начале отчёта — поэтому REF всегда возвращает один номер, а не весь текст
+подписи или заголовка.
 
 Если в реквизите ``title_page`` указан DOCX титульного листа, он берётся
 за основу без очистки: готовое содержимое остаётся первым, а сгенерированный
@@ -341,17 +344,41 @@ def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None,
 
 
 def _caption(doc, text, bookmark=None, bookmark_id=0,
-             bold=True, italic=False):
+             bold=True, italic=False, number=""):
+    """Подпись таблицы или рисунка.
+
+    Закладка охватывает только номер в заголовке подписи, а не весь текст:
+    тогда поле REF возвращает ровно номер («5.2»), в том числе с
+    переключателем ``\\#"0"``. Имя и остальная подпись остаются вне закладки.
+    """
     paragraph = doc.add_paragraph()
     paragraph.paragraph_format.space_before = Pt(6)
     paragraph.paragraph_format.space_after = Pt(2)
     paragraph.paragraph_format.keep_with_next = True
-    finish = (_bookmark(paragraph, bookmark, bookmark_id)
-              if bookmark else None)
-    run = paragraph.add_run(text)
-    _font(run, 9, bold=bold, italic=italic)
-    if finish is not None:
-        finish()
+    head, separator, tail = str(text).partition(" — ")
+    pattern = (re.compile(r"(?<![\d.])%s(?![\d.])" % re.escape(number))
+               if bookmark and number else None)
+    match = pattern.search(head) if pattern is not None else None
+    if match is None:
+        finish = (_bookmark(paragraph, bookmark, bookmark_id)
+                  if bookmark else None)
+        _font(paragraph.add_run(text), 9, bold=bold, italic=italic)
+        if finish is not None:
+            finish()
+        return
+    if match.start():
+        _font(paragraph.add_run(head[:match.start()]), 9, bold=bold,
+              italic=italic)
+    finish = _bookmark(paragraph, bookmark, bookmark_id)
+    _font(paragraph.add_run(match.group(0)), 9, bold=bold, italic=italic)
+    finish()
+    rest = head[match.end():]
+    if rest:
+        _font(paragraph.add_run(rest), 9, bold=bold, italic=italic)
+    if separator:
+        _font(paragraph.add_run(separator), 9, bold=bold, italic=italic)
+    if tail:
+        _font(paragraph.add_run(tail), 9, bold=bold, italic=italic)
 
 
 def _body(doc, text):
@@ -409,8 +436,9 @@ def _heading(doc, text, level, numbered=True):
     return heading
 
 
-def _field(paragraph, instruction, result="Обновите поле (F9)"):
-    run = paragraph.add_run()
+def _field_element(instruction, result="Обновите поле (F9)"):
+    """XML-элемент ``w:r`` с полем Word: begin, инструкция, результат, end."""
+    run = OxmlElement("w:r")
     begin = OxmlElement("w:fldChar")
     begin.set(qn("w:fldCharType"), "begin")
     instr = OxmlElement("w:instrText")
@@ -424,6 +452,13 @@ def _field(paragraph, instruction, result="Обновите поле (F9)"):
     end = OxmlElement("w:fldChar")
     end.set(qn("w:fldCharType"), "end")
     for element in (begin, instr, separate, text, end):
+        run.append(element)
+    return run
+
+
+def _field(paragraph, instruction, result="Обновите поле (F9)"):
+    run = paragraph.add_run()
+    for element in _field_element(instruction, result):
         run._r.append(element)
     return run
 
@@ -480,17 +515,22 @@ class ReferenceRegistry(dict):
 
     Обычный ``dict`` здесь тоже годится: функции умеют работать и с ним
     (например, в проверках). ``numbers`` хранит видимый номер метки для кэша
-    поля, ``entries`` — список «метка — объект — номер» для таблицы меток.
+    поля, ``entries`` — список «метка — объект — номер» для таблицы меток,
+    ``definitions`` — пары «закладка — номер» для полей SET, которые
+    объявляют закладки заголовков (номер раздела ставит шаблон, в тексте
+    заголовка его нет).
     """
 
     def __init__(self):
         super().__init__()
         self.numbers = {}
         self.entries = []
+        self.definitions = []
+        self.declared = set()
 
 
 def _unique_name(references, base):
-    """Свободное имя закладки: ``RefT_5_2``, ``RefL_3`` и т. п."""
+    """Свободное имя закладки: ``RefT_5_2``, ``RefS_3`` и т. п."""
     used = set(references.values())
     if base not in used:
         return base
@@ -498,6 +538,17 @@ def _unique_name(references, base):
     while "%s_%d" % (base, index) in used:
         index += 1
     return "%s_%d" % (base, index)
+
+
+#: В имени закладки Word допускает буквы, цифры и «_»; кириллицу в номерах
+#: приложений («А», «Б») заменяем, чтобы имя точно читалось Word.
+_BOOKMARK_UNSAFE = re.compile(r"[^0-9A-Za-z_]")
+
+
+def _bookmark_part(value):
+    """ASCII-часть имени закладки: точки и недопустимые символы → «_»."""
+    text = _BOOKMARK_UNSAFE.sub("_", str(value or "").replace(".", "_"))
+    return text or "0"
 
 
 #: «Таблица 5.2», «табл. 5.2», «Рисунок 4.1», «рис. 4.1» и т. п.
@@ -537,7 +588,7 @@ def _register_reference(references, reference):
         return None, False
     if key in references:
         return references[key], False
-    base = "Ref%s_%s" % (key[0], key[1].replace(".", "_"))
+    base = "Ref%s_%s" % (key[0], _bookmark_part(key[1]))
     name = _unique_name(references, base)
     references[key] = name
     return name, True
@@ -548,6 +599,8 @@ def _register_labels(references, item, number, bookmark, title=""):
 
     Метка — простое имя: в тексте пишется ``\\ref{метка}``, в DOCX
     получается REF-поле с переключателем ``\\#"0"`` (только номер).
+    Ссылка указывает на закладку самого объекта: на подписи таблицы/рисунка
+    закладка охватывает только номер, у раздела её объявляет поле SET.
     """
     if not bookmark or not isinstance(item, dict):
         return []
@@ -556,8 +609,7 @@ def _register_labels(references, item, number, bookmark, title=""):
         key = ("R", sc.normalize_ref_label(label))
         if key in references:
             continue
-        references[key] = _unique_name(
-            references, "RefL_%d" % (len(references) + 1))
+        references[key] = bookmark
         numbers = getattr(references, "numbers", None)
         if numbers is not None:
             numbers[key] = str(number or "")
@@ -570,7 +622,12 @@ def _register_labels(references, item, number, bookmark, title=""):
 
 
 def _register_heading(references, number):
-    """Закладка на заголовке раздела/подраздела по его номеру."""
+    """Закладка на заголовке раздела/подраздела по его номеру.
+
+    Номер раздела проставляет шаблон, в тексте заголовка его нет, поэтому
+    закладку с номером объявляет поле SET в начале отчёта. Здесь только
+    резервируется имя закладки.
+    """
     number = str(number or "").strip()
     if not number:
         return None
@@ -578,8 +635,14 @@ def _register_heading(references, number):
     if key in references:
         return references[key]
     name = _unique_name(references,
-                        "RefS_%s" % number.replace(".", "_"))
+                        "RefS_%s" % _bookmark_part(number))
     references[key] = name
+    definitions = getattr(references, "definitions", None)
+    if definitions is not None:
+        definitions.append((name, number))
+    declared = getattr(references, "declared", None)
+    if declared is not None:
+        declared.add(name)
     return name
 
 
@@ -596,20 +659,6 @@ def _bookmark(paragraph, name, ident):
         paragraph._p.append(end)
 
     return finish
-
-
-def _bookmark_paragraph(paragraph, name, ident):
-    """Закладка на готовом абзаце: start — до текста, end — после."""
-    element = paragraph._p
-    start = OxmlElement("w:bookmarkStart")
-    start.set(qn("w:id"), str(ident))
-    start.set(qn("w:name"), name)
-    end = OxmlElement("w:bookmarkEnd")
-    end.set(qn("w:id"), str(ident))
-    props = element.find(qn("w:pPr"))
-    position = list(element).index(props) + 1 if props is not None else 0
-    element.insert(position, start)
-    element.append(end)
 
 
 def _copy_run_props(source, target):
@@ -641,6 +690,7 @@ def _link_references(doc, references, skip=0):
         return
     used_names = set(references.values())
     numbers = getattr(references, "numbers", None) or {}
+    declared = getattr(references, "declared", None) or set()
     for index, element in enumerate(doc.element.body.iter(qn("w:p"))):
         if index < skip:
             continue
@@ -676,8 +726,19 @@ def _link_references(doc, references, skip=0):
                 # Суффикс /#/0 убирается из видимого текста: остаётся номер.
                 visible = match.group("number") if only_number \
                     else match.group(0)
+                if name and not only_number:
+                    # «Таблица 5.2» — слово остаётся текстом, поле REF
+                    # подставляет только номер из закладки подписи.
+                    _text_run(paragraph, match.group("label") + " ",
+                              source_run)
+                    visible = match.group("number")
             if name:
-                instruction = " REF %s \\h" % name
+                # У закладки-номера раздела (SET) нет места для перехода,
+                # поэтому \h не ставим: ссылка показывает номер, но не
+                # уводит в начало документа.
+                instruction = " REF %s" % name
+                if name not in declared:
+                    instruction += " \\h"
                 if only_number:
                     instruction += r' \#"0"'
                 field = _field(paragraph, instruction + " ", result=visible)
@@ -687,6 +748,35 @@ def _link_references(doc, references, skip=0):
             cursor = match.end()
         if cursor < len(text):
             _text_run(paragraph, text[cursor:], source_run)
+
+
+def _number_bookmarks(doc, references, skip=0):
+    """Объявить закладки номеров разделов полями SET в начале отчёта.
+
+    Номер раздела проставляет шаблон, в тексте заголовка его нет, поэтому
+    закладку с номером создаёт поле ``SET``: ``{ SET RefS_5_3 "5.3" }``.
+    Поля стоят в первом абзаце отчёта, то есть раньше всех REF, — так
+    работают и ссылки вперёд, на раздел, который идёт ниже по документу.
+    """
+    definitions = getattr(references, "definitions", None) or []
+    if not definitions:
+        return
+    paragraphs = list(doc.element.body.iter(qn("w:p")))
+
+    def is_section_break(element):
+        props = element.find(qn("w:pPr"))
+        return props is not None and props.find(qn("w:sectPr")) is not None
+
+    target = next((element for index, element in enumerate(paragraphs)
+                   if index >= skip and not is_section_break(element)), None)
+    if target is None:
+        return
+    props = target.find(qn("w:pPr"))
+    position = list(target).index(props) + 1 if props is not None else 0
+    for offset, (name, number) in enumerate(definitions):
+        target.insert(position + offset,
+                      _field_element(' SET %s "%s" ' % (name, number),
+                                     result=""))
 
 
 def _setup(doc, layout=True):
@@ -756,7 +846,8 @@ def _render_table(doc, data, table, max_rows, counters, references):
     caption_key = reference or ("Таблица %s" % number if number else "")
     bookmark, is_new = _register_reference(references, caption_key)
     title = ("%s — %s" % (reference, name)).strip(" —")
-    _caption(doc, title, bookmark if is_new else None, 1000 + len(references))
+    _caption(doc, title, bookmark if is_new else None, 1000 + len(references),
+             number=number)
     _register_labels(references, table, number, bookmark, title=title)
     counters["таблицы"] += 1
     counters["строки"] += _table(doc, headers, rows, max_rows=max_rows,
@@ -944,7 +1035,7 @@ def _render_figure_block(doc, figure, references, counters, errors):
     bookmark, is_new = _register_reference(references, reference)
     title = "%s — %s" % (reference, figure.get("name") or "")
     _caption(doc, title, bookmark if is_new else None, 1000 + len(references),
-             bold=False, italic=True)
+             bold=False, italic=True, number=number)
     _register_labels(references, figure, number, bookmark, title=title.strip())
     paragraph = doc.paragraphs[-1]
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -999,11 +1090,9 @@ def _render_sections(doc, data, max_rows, counters, references, errors):
         header = str(section.get("header") or "").strip()
         if not header and not number:
             continue
-        paragraph = _heading(doc, header or number, 1,
-                             numbered=bool(number) and bool(header))
+        _heading(doc, header or number, 1,
+                 numbered=bool(number) and bool(header))
         bookmark = _register_heading(references, number)
-        if bookmark:
-            _bookmark_paragraph(paragraph, bookmark, 1000 + len(references))
         _register_labels(references, section, number, bookmark,
                          title=header or number)
         counters["разделы"] += 1
@@ -1014,12 +1103,9 @@ def _render_sections(doc, data, max_rows, counters, references, errors):
             title = str(sub.get("header") or "").strip()
             if not title and not sub_number:
                 continue
-            paragraph = _heading(doc, title or sub_number, 2,
-                                 numbered=bool(sub_number) and bool(title))
+            _heading(doc, title or sub_number, 2,
+                     numbered=bool(sub_number) and bool(title))
             bookmark = _register_heading(references, sub_number)
-            if bookmark:
-                _bookmark_paragraph(paragraph, bookmark,
-                                    1000 + len(references))
             _register_labels(references, sub, sub_number, bookmark,
                              title=title or sub_number)
             _render_container(doc, data, sub, 3, max_rows, counters,
@@ -1122,8 +1208,11 @@ def build(data, path, toc=True, max_rows=0):
         _toc(doc)
         doc.add_page_break()
     _render_sections(doc, data, max_rows, counters, references, figure_errors)
-    _reference_index(doc, references)
+    # Сначала ссылки в тексте, затем таблица меток: иначе её собственные
+    # подписи («Таблица 5.2», «рис.1» в метке) тоже стали бы полями.
     _link_references(doc, references, skip=skip_paragraphs)
+    _reference_index(doc, references)
+    _number_bookmarks(doc, references, skip=skip_paragraphs)
     doc.save(path)
     counters["размер"] = os.path.getsize(path)
     return counters

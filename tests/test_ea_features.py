@@ -3069,12 +3069,26 @@ def test_named_references(data):
 
     caption = next(paragraph for paragraph in doc.paragraphs
                    if paragraph.text.startswith("Таблица 5.2 —"))
-    check("bookmarkStart" in caption._p.xml,
-          "подпись таблицы держит закладку")
-    heading = next(paragraph for paragraph in doc.paragraphs
-                   if paragraph.text == "Область применения")
-    check("bookmarkStart" in heading._p.xml,
-          "заголовок раздела тоже получил закладку")
+    caption_xml = caption._p.xml
+    start = caption_xml.find("<w:bookmarkStart")
+    start = caption_xml.find(">", start) + 1 if start >= 0 else -1
+    end = caption_xml.find("<w:bookmarkEnd")
+    check(start > 0 and end > start, "подпись таблицы держит закладку")
+    marked = re.sub(r"<[^>]+>", "", caption_xml[start:end]).strip()
+    check(marked == "5.2",
+          "закладка подписи содержит только номер: %r" % marked)
+
+    body_xml = doc.element.body.xml
+    check(' SET RefS_1 "1" ' in body_xml,
+          "номер раздела объявлен полем SET")
+    targets = set(re.findall(r" REF (\S+)", body_xml))
+    bookmarks = set(re.findall(
+        r'<w:bookmarkStart[^>]*w:name="([^"]*)"', body_xml))
+    declared = set(re.findall(
+        r'<w:instrText[^>]*> SET (\S+) "', body_xml))
+    check(targets and targets <= bookmarks | declared,
+          "все REF указывают на существующие закладки: %s"
+          % ", ".join(sorted(targets - bookmarks - declared)))
 
     index = next((paragraph for paragraph in doc.paragraphs
                   if paragraph.text == "Метки перекрёстных ссылок"), None)
