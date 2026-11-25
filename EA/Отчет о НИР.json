@@ -2122,7 +2122,7 @@
             },
             {
               "number": "5.3.2",
-              "content": "В составе шкафа установлены два идентичных комплекта защит БСК 110–330 кВ.  \\ref{tabledesc}. См. рис. \\ref{pict}",
+              "content": "В составе шкафа установлены два идентичных комплекта защит БСК 110–330 кВ. ",
               "subclauses": [],
               "tables": [],
               "figures": [],
@@ -2130,7 +2130,7 @@
             },
             {
               "number": "5.3.3",
-              "content": "Описание шкафа ШЭТ 431.11-1 и ссылки на информационные материалы, определяющие типовые требования, приведены в таблице Таблица 5.2 -.",
+              "content": "Описание шкафа ШЭТ 431.11-1 и ссылки на информационные материалы, определяющие типовые требования, приведены в таблице.",
               "subclauses": [],
               "tables": [],
               "figures": [],
@@ -2170,6 +2170,65 @@
                 },
                 {
                   "content": [
+                    "Область применения в рамках типовых схем РУ",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Вводы питания оперативного постоянного тока шкафа",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Ряды зажимов",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Основные компоненты шкафа",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Эскиз общего вида",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": [],
+              "order": 3,
+              "ref": "tabledesc",
+              "description_part": "cabinet"
+            },
+            {
+              "number": "5.16",
+              "name": "Описание ИЭУ1 в составе ШЭТ 431.11-1",
+              "reference": "Таблица 5.16",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование комплекта",
+                    ""
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
                     "Управляемый элемент",
                     ""
                   ],
@@ -2194,23 +2253,7 @@
                 },
                 {
                   "content": [
-                    "Область применения в рамках типовых схем РУ [ГОСТ Р 59279]",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Функции ИТС [14] в составе шкафа",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Вводы питания оперативного постоянного тока шкафа",
+                    "Функции ИТС в составе шкафа",
                     ""
                   ],
                   "is_header_first_row": false,
@@ -2322,30 +2365,6 @@
                 },
                 {
                   "content": [
-                    "Ряды зажимов",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Основные компоненты шкафа",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Эскиз общего вида",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
                     "Структурно-функциональная схема",
                     ""
                   ],
@@ -2353,9 +2372,10 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": [],
-              "order": 3,
-              "ref": "tabledesc"
+              "cabinet": "ШЭТ 431.11-1",
+              "description_part": "kit",
+              "kit": "1",
+              "order": 4
             },
             {
               "number": "5.3",
@@ -2375,7 +2395,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 4
+              "order": 5
             },
             {
               "number": "5.4",
@@ -2394,7 +2414,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 5
+              "order": 6
             },
             {
               "number": "5.5",
@@ -2415,7 +2435,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 6
+              "order": 7
             },
             {
               "number": "5.6",
@@ -2435,7 +2455,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 7
+              "order": 8
             },
             {
               "number": "5.7",
@@ -2454,7 +2474,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 8
+              "order": 9
             },
             {
               "number": "5.8",
@@ -2476,7 +2496,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 9
+              "order": 10
             },
             {
               "number": "5.9",
@@ -2495,7 +2515,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 10
+              "order": 11
             },
             {
               "number": "5.10",
@@ -2533,7 +2553,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 11
+              "order": 12
             },
             {
               "number": "5.11",
@@ -2553,7 +2573,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 12
+              "order": 13
             },
             {
               "number": "5.12",
@@ -2571,7 +2591,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 13
+              "order": 14
             },
             {
               "number": "5.13",
@@ -2590,7 +2610,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 14
+              "order": 15
             },
             {
               "number": "5.14",
@@ -2622,7 +2642,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 15
+              "order": 16
             },
             {
               "number": "5.15",
@@ -2641,7 +2661,7 @@
                 }
               ],
               "colums_width": [],
-              "order": 16
+              "order": 17
             }
           ],
           "figures": [
@@ -2652,7 +2672,7 @@
               "scheme": "C:/WWWW/www_ai/schemes/220-13Н СКРМ.json",
               "format": "",
               "orientation": "",
-              "order": 17,
+              "order": 18,
               "ref": "pict"
             },
             {
@@ -2662,7 +2682,7 @@
               "scheme": "",
               "format": "",
               "orientation": "",
-              "order": 18
+              "order": 19
             }
           ]
         },
@@ -2688,9 +2708,9 @@
           ],
           "tables": [
             {
-              "number": "5.16",
+              "number": "5.17",
               "name": "Описание ШЭТ 431.12-1",
-              "reference": "Таблица 5.16",
+              "reference": "Таблица 5.17",
               "cabinet": "ШЭТ 431.12-1",
               "rows": [
                 {
@@ -2719,6 +2739,336 @@
                 },
                 {
                   "content": [
+                    "Область применения в рамках типовых схем РУ",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Вводы питания оперативного постоянного тока шкафа",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Ряды зажимов",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Основные компоненты шкафа",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Эскиз общего вида",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": [],
+              "description_part": "cabinet"
+            },
+            {
+              "number": "5.18",
+              "name": "Входные аналоговые измерения ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.18",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Аналоговая цепь",
+                    "Испытательный блок в шкафу",
+                    "Количество контактов испытательного блока с учетом регистрации его состояния",
+                    "Примечание"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.19",
+              "name": "Внутренние дискретные цепи ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.19",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Дискретный сигнал",
+                    "Направление",
+                    "Примечание"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.20",
+              "name": "Информационные сигналы в составе входящих сообщений ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.20",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование сигнала",
+                    "Отображение в ИМ",
+                    "Наименование и макс. количество источников сигнала",
+                    "Наименование и макс. количество источников сигнала",
+                    "РАС"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.21",
+              "name": "Функциональные клавиши ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.21",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Назначение ФК",
+                    "Краткое наименование ФК",
+                    "Состояние индикации «0» светодиода ФК",
+                    "Состояние индикации «1» светодиода ФК"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.22",
+              "name": "Светодиодная сигнализация ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.22",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Функциональное назначение светодиода",
+                    "Обозначение на лицевой панели ИЭУ",
+                    "Режим сигнализации"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.23",
+              "name": "Сообщения и отчеты, исходящие от ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.23",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Назначение",
+                    "Отправитель (ldName)",
+                    "Идентификатор (ID)",
+                    "Наборы данных",
+                    "Класс",
+                    "Примечания"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.24",
+              "name": "Информационные сигналы в составе исходящих сообщений ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.24",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование сигнала",
+                    "Отображение в ИМ",
+                    "Приемник"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.25",
+              "name": "Информационные сигналы в составе исходящих отчетов ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.25",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Информационный сигнал",
+                    "Информационный сигнал",
+                    "КТ",
+                    "ЦУС",
+                    "РДУ",
+                    "РАС",
+                    "Отображение в ИМ",
+                    "Отображение в ИМ"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Наименование",
+                    "Статус",
+                    "КТ",
+                    "ЦУС",
+                    "РДУ",
+                    "РАС",
+                    "DO",
+                    "DA"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": true
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.26",
+              "name": "Осциллографируемые аналоговые сигналы ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.26",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Описание аналогового сигнала",
+                    "Канал",
+                    "Наименование",
+                    "Пуск РАС"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.27",
+              "name": "Команды управления от АСУ ТП для ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.27",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование сигнала",
+                    "Отображение в ИМ"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.28",
+              "name": "Основные параметры функций РЗА ИЭУ ШЭТ 431.12-1",
+              "reference": "Таблица 5.28",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование",
+                    "Пояснение",
+                    "Состояния программного переключателя"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.29",
+              "name": "Ряды зажимов шкафа ШЭТ 431.12-1",
+              "reference": "Таблица 5.29",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Номера клемм",
+                    "Кол-во",
+                    "Тип клемм по",
+                    "Тип клемм по",
+                    "Назначение"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Номера клемм",
+                    "Кол-во",
+                    "функциональному назначению \n(И –испытательная, \nР - разборная)",
+                    "типу подключения\n(В – винтовая, П - пружинная",
+                    "Назначение"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": true
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.30",
+              "name": "Основные компоненты шкафа ШЭТ 431.12-1",
+              "reference": "Таблица 5.30",
+              "cabinet": "ШЭТ 431.12-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование",
+                    "Характеристика",
+                    "Количество, шт."
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.31",
+              "name": "Описание ИЭУ1(2) в составе ШЭТ 431.12-1",
+              "reference": "Таблица 5.31",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование комплекта",
+                    ""
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
                     "Управляемый элемент",
                     ""
                   ],
@@ -2743,23 +3093,7 @@
                 },
                 {
                   "content": [
-                    "Область применения в рамках типовых схем РУ [ГОСТ Р 59279]",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Функции ИТС [14] в составе шкафа",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Вводы питания оперативного постоянного тока шкафа",
+                    "Функции ИТС в составе шкафа",
                     ""
                   ],
                   "is_header_first_row": false,
@@ -2871,7 +3205,33 @@
                 },
                 {
                   "content": [
-                    "Ряды зажимов",
+                    "Структурно-функциональная схема",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                }
+              ],
+              "cabinet": "ШЭТ 431.12-1",
+              "description_part": "kit",
+              "kit": "1"
+            },
+            {
+              "number": "5.32",
+              "name": "Описание ИЭУ3 в составе ШЭТ 431.12-1",
+              "reference": "Таблица 5.32",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование комплекта",
+                    ""
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Управляемый элемент",
                     ""
                   ],
                   "is_header_first_row": false,
@@ -2879,7 +3239,7 @@
                 },
                 {
                   "content": [
-                    "Основные компоненты шкафа",
+                    "Защищаемый элемент",
                     ""
                   ],
                   "is_header_first_row": false,
@@ -2887,7 +3247,119 @@
                 },
                 {
                   "content": [
-                    "Эскиз общего вида",
+                    "Основные функции",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Функции ИТС в составе шкафа",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Цифровые порты",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Поясняющая схема подключения",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Входные аналоговые измерения",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Внутренние дискретные цепи",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Информационные сигналы в составе входящих сообщений",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Функциональные клавиши",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Светодиодная сигнализация",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Сообщения и отчеты, исходящие от ИЭУ",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Информационные сигналы в составе исходящих сообщений",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Информационные сигналы в составе исходящих отчетов",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Осциллографируемые аналоговые сигналы",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Команды управления от АСУ ТП",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Основные параметры функций РЗА",
                     ""
                   ],
                   "is_header_first_row": false,
@@ -2902,280 +3374,9 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
-            },
-            {
-              "number": "5.17",
-              "name": "Входные аналоговые измерения ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.17",
               "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Аналоговая цепь",
-                    "Испытательный блок в шкафу",
-                    "Количество контактов испытательного блока с учетом регистрации его состояния",
-                    "Примечание"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.18",
-              "name": "Внутренние дискретные цепи ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.18",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Дискретный сигнал",
-                    "Направление",
-                    "Примечание"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.19",
-              "name": "Информационные сигналы в составе входящих сообщений ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.19",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование сигнала",
-                    "Отображение в ИМ",
-                    "Наименование и макс. количество источников сигнала",
-                    "Наименование и макс. количество источников сигнала",
-                    "РАС"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.20",
-              "name": "Функциональные клавиши ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.20",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Назначение ФК",
-                    "Краткое наименование ФК",
-                    "Состояние индикации «0» светодиода ФК",
-                    "Состояние индикации «1» светодиода ФК"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.21",
-              "name": "Светодиодная сигнализация ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.21",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Функциональное назначение светодиода",
-                    "Обозначение на лицевой панели ИЭУ",
-                    "Режим сигнализации"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.22",
-              "name": "Сообщения и отчеты, исходящие от ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.22",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Назначение",
-                    "Отправитель (ldName)",
-                    "Идентификатор (ID)",
-                    "Наборы данных",
-                    "Класс",
-                    "Примечания"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.23",
-              "name": "Информационные сигналы в составе исходящих сообщений ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.23",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование сигнала",
-                    "Отображение в ИМ",
-                    "Приемник"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.24",
-              "name": "Информационные сигналы в составе исходящих отчетов ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.24",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Информационный сигнал",
-                    "Информационный сигнал",
-                    "КТ",
-                    "ЦУС",
-                    "РДУ",
-                    "РАС",
-                    "Отображение в ИМ",
-                    "Отображение в ИМ"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Наименование",
-                    "Статус",
-                    "КТ",
-                    "ЦУС",
-                    "РДУ",
-                    "РАС",
-                    "DO",
-                    "DA"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.25",
-              "name": "Осциллографируемые аналоговые сигналы ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.25",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Описание аналогового сигнала",
-                    "Канал",
-                    "Наименование",
-                    "Пуск РАС"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.26",
-              "name": "Команды управления от АСУ ТП для ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.26",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование сигнала",
-                    "Отображение в ИМ"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.27",
-              "name": "Основные параметры функций РЗА ИЭУ ШЭТ 431.12-1",
-              "reference": "Таблица 5.27",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование",
-                    "Пояснение",
-                    "Состояния программного переключателя"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.28",
-              "name": "Ряды зажимов шкафа ШЭТ 431.12-1",
-              "reference": "Таблица 5.28",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Номера клемм",
-                    "Кол-во",
-                    "Тип клемм по",
-                    "Тип клемм по",
-                    "Назначение"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Номера клемм",
-                    "Кол-во",
-                    "функциональному назначению \n(И –испытательная, \nР - разборная)",
-                    "типу подключения\n(В – винтовая, П - пружинная",
-                    "Назначение"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.29",
-              "name": "Основные компоненты шкафа ШЭТ 431.12-1",
-              "reference": "Таблица 5.29",
-              "cabinet": "ШЭТ 431.12-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование",
-                    "Характеристика",
-                    "Количество, шт."
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
+              "description_part": "kit",
+              "kit": "3"
             }
           ],
           "figures": [
@@ -3219,9 +3420,9 @@
           ],
           "tables": [
             {
-              "number": "5.30",
+              "number": "5.33",
               "name": "Описание ШЭТ 431.13-1",
-              "reference": "Таблица 5.30",
+              "reference": "Таблица 5.33",
               "cabinet": "ШЭТ 431.13-1",
               "rows": [
                 {
@@ -3250,6 +3451,336 @@
                 },
                 {
                   "content": [
+                    "Область применения в рамках типовых схем РУ",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Вводы питания оперативного постоянного тока шкафа",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Ряды зажимов",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Основные компоненты шкафа",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Эскиз общего вида",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": [],
+              "description_part": "cabinet"
+            },
+            {
+              "number": "5.34",
+              "name": "Входные аналоговые измерения ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.34",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Аналоговая цепь",
+                    "Испытательный блок в шкафу",
+                    "Количество контактов испытательного блока с учетом регистрации его состояния",
+                    "Примечание"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.35",
+              "name": "Внутренние дискретные цепи ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.35",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Дискретный сигнал",
+                    "Направление",
+                    "Примечание"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.36",
+              "name": "Информационные сигналы в составе входящих сообщений ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.36",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование сигнала",
+                    "Отображение в ИМ",
+                    "Наименование и макс. количество источников сигнала",
+                    "Наименование и макс. количество источников сигнала",
+                    "РАС"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.37",
+              "name": "Функциональные клавиши ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.37",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Назначение ФК",
+                    "Краткое наименование ФК",
+                    "Состояние индикации «0» светодиода ФК",
+                    "Состояние индикации «1» светодиода ФК"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.38",
+              "name": "Светодиодная сигнализация ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.38",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Функциональное назначение светодиода",
+                    "Обозначение на лицевой панели ИЭУ",
+                    "Режим сигнализации"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.39",
+              "name": "Сообщения и отчеты, исходящие от ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.39",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Назначение",
+                    "Отправитель (ldName)",
+                    "Идентификатор (ID)",
+                    "Наборы данных",
+                    "Класс",
+                    "Примечания"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.40",
+              "name": "Информационные сигналы в составе исходящих сообщений ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.40",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование сигнала",
+                    "Отображение в ИМ",
+                    "Приемник"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.41",
+              "name": "Информационные сигналы в составе исходящих отчетов ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.41",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Информационный сигнал",
+                    "Информационный сигнал",
+                    "КТ",
+                    "ЦУС",
+                    "РДУ",
+                    "РАС",
+                    "Отображение в ИМ",
+                    "Отображение в ИМ"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Наименование",
+                    "Статус",
+                    "КТ",
+                    "ЦУС",
+                    "РДУ",
+                    "РАС",
+                    "DO",
+                    "DA"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": true
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.42",
+              "name": "Осциллографируемые аналоговые сигналы ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.42",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Описание аналогового сигнала",
+                    "Канал",
+                    "Наименование",
+                    "Пуск РАС"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.43",
+              "name": "Команды управления от АСУ ТП для ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.43",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование сигнала",
+                    "Отображение в ИМ"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.44",
+              "name": "Основные параметры функций РЗА ИЭУ ШЭТ 431.13-1",
+              "reference": "Таблица 5.44",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование",
+                    "Пояснение",
+                    "Состояния программного переключателя"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.45",
+              "name": "Ряды зажимов шкафа ШЭТ 431.13-1",
+              "reference": "Таблица 5.45",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Номера клемм",
+                    "Кол-во",
+                    "Тип клемм по",
+                    "Тип клемм по",
+                    "Назначение"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Номера клемм",
+                    "Кол-во",
+                    "функциональному назначению \n(И –испытательная, \nР - разборная)",
+                    "типу подключения\n(В – винтовая, П - пружинная",
+                    "Назначение"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": true
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.46",
+              "name": "Основные компоненты шкафа ШЭТ 431.13-1",
+              "reference": "Таблица 5.46",
+              "cabinet": "ШЭТ 431.13-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование",
+                    "Характеристика",
+                    "Количество, шт."
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.47",
+              "name": "Описание ИЭУ1 в составе ШЭТ 431.13-1",
+              "reference": "Таблица 5.47",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование комплекта",
+                    ""
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
                     "Управляемый элемент",
                     ""
                   ],
@@ -3274,23 +3805,7 @@
                 },
                 {
                   "content": [
-                    "Область применения в рамках типовых схем РУ [ГОСТ Р 59279]",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Функции ИТС [14] в составе шкафа",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Вводы питания оперативного постоянного тока шкафа",
+                    "Функции ИТС в составе шкафа",
                     ""
                   ],
                   "is_header_first_row": false,
@@ -3402,30 +3917,6 @@
                 },
                 {
                   "content": [
-                    "Ряды зажимов",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Основные компоненты шкафа",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Эскиз общего вида",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
                     "Структурно-функциональная схема",
                     ""
                   ],
@@ -3433,280 +3924,9 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
-            },
-            {
-              "number": "5.31",
-              "name": "Входные аналоговые измерения ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.31",
               "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Аналоговая цепь",
-                    "Испытательный блок в шкафу",
-                    "Количество контактов испытательного блока с учетом регистрации его состояния",
-                    "Примечание"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.32",
-              "name": "Внутренние дискретные цепи ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.32",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Дискретный сигнал",
-                    "Направление",
-                    "Примечание"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.33",
-              "name": "Информационные сигналы в составе входящих сообщений ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.33",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование сигнала",
-                    "Отображение в ИМ",
-                    "Наименование и макс. количество источников сигнала",
-                    "Наименование и макс. количество источников сигнала",
-                    "РАС"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.34",
-              "name": "Функциональные клавиши ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.34",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Назначение ФК",
-                    "Краткое наименование ФК",
-                    "Состояние индикации «0» светодиода ФК",
-                    "Состояние индикации «1» светодиода ФК"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.35",
-              "name": "Светодиодная сигнализация ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.35",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Функциональное назначение светодиода",
-                    "Обозначение на лицевой панели ИЭУ",
-                    "Режим сигнализации"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.36",
-              "name": "Сообщения и отчеты, исходящие от ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.36",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Назначение",
-                    "Отправитель (ldName)",
-                    "Идентификатор (ID)",
-                    "Наборы данных",
-                    "Класс",
-                    "Примечания"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.37",
-              "name": "Информационные сигналы в составе исходящих сообщений ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.37",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование сигнала",
-                    "Отображение в ИМ",
-                    "Приемник"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.38",
-              "name": "Информационные сигналы в составе исходящих отчетов ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.38",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Информационный сигнал",
-                    "Информационный сигнал",
-                    "КТ",
-                    "ЦУС",
-                    "РДУ",
-                    "РАС",
-                    "Отображение в ИМ",
-                    "Отображение в ИМ"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Наименование",
-                    "Статус",
-                    "КТ",
-                    "ЦУС",
-                    "РДУ",
-                    "РАС",
-                    "DO",
-                    "DA"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.39",
-              "name": "Осциллографируемые аналоговые сигналы ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.39",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Описание аналогового сигнала",
-                    "Канал",
-                    "Наименование",
-                    "Пуск РАС"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.40",
-              "name": "Команды управления от АСУ ТП для ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.40",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование сигнала",
-                    "Отображение в ИМ"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.41",
-              "name": "Основные параметры функций РЗА ИЭУ ШЭТ 431.13-1",
-              "reference": "Таблица 5.41",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование",
-                    "Пояснение",
-                    "Состояния программного переключателя"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.42",
-              "name": "Ряды зажимов шкафа ШЭТ 431.13-1",
-              "reference": "Таблица 5.42",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Номера клемм",
-                    "Кол-во",
-                    "Тип клемм по",
-                    "Тип клемм по",
-                    "Назначение"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Номера клемм",
-                    "Кол-во",
-                    "функциональному назначению \n(И –испытательная, \nР - разборная)",
-                    "типу подключения\n(В – винтовая, П - пружинная",
-                    "Назначение"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.43",
-              "name": "Основные компоненты шкафа ШЭТ 431.13-1",
-              "reference": "Таблица 5.43",
-              "cabinet": "ШЭТ 431.13-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование",
-                    "Характеристика",
-                    "Количество, шт."
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
+              "description_part": "kit",
+              "kit": "1"
             }
           ],
           "figures": [
@@ -3750,9 +3970,9 @@
           ],
           "tables": [
             {
-              "number": "5.44",
+              "number": "5.48",
               "name": "Описание ШЭТ 431.14-1",
-              "reference": "Таблица 5.44",
+              "reference": "Таблица 5.48",
               "cabinet": "ШЭТ 431.14-1",
               "rows": [
                 {
@@ -3781,6 +4001,336 @@
                 },
                 {
                   "content": [
+                    "Область применения в рамках типовых схем РУ",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Вводы питания оперативного постоянного тока шкафа",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Ряды зажимов",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Основные компоненты шкафа",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Эскиз общего вида",
+                    ""
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": [],
+              "description_part": "cabinet"
+            },
+            {
+              "number": "5.49",
+              "name": "Входные аналоговые измерения ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.49",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Аналоговая цепь",
+                    "Испытательный блок в шкафу",
+                    "Количество контактов испытательного блока с учетом регистрации его состояния",
+                    "Примечание"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.50",
+              "name": "Внутренние дискретные цепи ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.50",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Дискретный сигнал",
+                    "Направление",
+                    "Примечание"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.51",
+              "name": "Информационные сигналы в составе входящих сообщений ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.51",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование сигнала",
+                    "Отображение в ИМ",
+                    "Наименование и макс. количество источников сигнала",
+                    "Наименование и макс. количество источников сигнала",
+                    "РАС"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.52",
+              "name": "Функциональные клавиши ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.52",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Назначение ФК",
+                    "Краткое наименование ФК",
+                    "Состояние индикации «0» светодиода ФК",
+                    "Состояние индикации «1» светодиода ФК"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.53",
+              "name": "Светодиодная сигнализация ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.53",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Функциональное назначение светодиода",
+                    "Обозначение на лицевой панели ИЭУ",
+                    "Режим сигнализации"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.54",
+              "name": "Сообщения и отчеты, исходящие от ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.54",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Назначение",
+                    "Отправитель (ldName)",
+                    "Идентификатор (ID)",
+                    "Наборы данных",
+                    "Класс",
+                    "Примечания"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.55",
+              "name": "Информационные сигналы в составе исходящих сообщений ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.55",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование сигнала",
+                    "Отображение в ИМ",
+                    "Приемник"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.56",
+              "name": "Информационные сигналы в составе исходящих отчетов ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.56",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Информационный сигнал",
+                    "Информационный сигнал",
+                    "КТ",
+                    "ЦУС",
+                    "РДУ",
+                    "РАС",
+                    "Отображение в ИМ",
+                    "Отображение в ИМ"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Наименование",
+                    "Статус",
+                    "КТ",
+                    "ЦУС",
+                    "РДУ",
+                    "РАС",
+                    "DO",
+                    "DA"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": true
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.57",
+              "name": "Осциллографируемые аналоговые сигналы ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.57",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Описание аналогового сигнала",
+                    "Канал",
+                    "Наименование",
+                    "Пуск РАС"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.58",
+              "name": "Команды управления от АСУ ТП для ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.58",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование сигнала",
+                    "Отображение в ИМ"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.59",
+              "name": "Основные параметры функций РЗА ИЭУ ШЭТ 431.14-1",
+              "reference": "Таблица 5.59",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование",
+                    "Пояснение",
+                    "Состояния программного переключателя"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.60",
+              "name": "Ряды зажимов шкафа ШЭТ 431.14-1",
+              "reference": "Таблица 5.60",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Номера клемм",
+                    "Кол-во",
+                    "Тип клемм по",
+                    "Тип клемм по",
+                    "Назначение"
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
+                    "Номера клемм",
+                    "Кол-во",
+                    "функциональному назначению \n(И –испытательная, \nР - разборная)",
+                    "типу подключения\n(В – винтовая, П - пружинная",
+                    "Назначение"
+                  ],
+                  "is_header_first_row": false,
+                  "is_header_second_row": true
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.61",
+              "name": "Основные компоненты шкафа ШЭТ 431.14-1",
+              "reference": "Таблица 5.61",
+              "cabinet": "ШЭТ 431.14-1",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование",
+                    "Характеристика",
+                    "Количество, шт."
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                }
+              ],
+              "colums_width": []
+            },
+            {
+              "number": "5.62",
+              "name": "Описание ИЭУ1 в составе ШЭТ 431.14-1",
+              "reference": "Таблица 5.62",
+              "rows": [
+                {
+                  "content": [
+                    "Наименование комплекта",
+                    ""
+                  ],
+                  "is_header_first_row": true,
+                  "is_header_second_row": false
+                },
+                {
+                  "content": [
                     "Управляемый элемент",
                     ""
                   ],
@@ -3805,23 +4355,7 @@
                 },
                 {
                   "content": [
-                    "Область применения в рамках типовых схем РУ [ГОСТ Р 59279]",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Функции ИТС [14] в составе шкафа",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Вводы питания оперативного постоянного тока шкафа",
+                    "Функции ИТС в составе шкафа",
                     ""
                   ],
                   "is_header_first_row": false,
@@ -3933,30 +4467,6 @@
                 },
                 {
                   "content": [
-                    "Ряды зажимов",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Основные компоненты шкафа",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Эскиз общего вида",
-                    ""
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
                     "Структурно-функциональная схема",
                     ""
                   ],
@@ -3964,280 +4474,9 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
-            },
-            {
-              "number": "5.45",
-              "name": "Входные аналоговые измерения ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.45",
               "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Аналоговая цепь",
-                    "Испытательный блок в шкафу",
-                    "Количество контактов испытательного блока с учетом регистрации его состояния",
-                    "Примечание"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.46",
-              "name": "Внутренние дискретные цепи ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.46",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Дискретный сигнал",
-                    "Направление",
-                    "Примечание"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.47",
-              "name": "Информационные сигналы в составе входящих сообщений ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.47",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование сигнала",
-                    "Отображение в ИМ",
-                    "Наименование и макс. количество источников сигнала",
-                    "Наименование и макс. количество источников сигнала",
-                    "РАС"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.48",
-              "name": "Функциональные клавиши ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.48",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Назначение ФК",
-                    "Краткое наименование ФК",
-                    "Состояние индикации «0» светодиода ФК",
-                    "Состояние индикации «1» светодиода ФК"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.49",
-              "name": "Светодиодная сигнализация ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.49",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Функциональное назначение светодиода",
-                    "Обозначение на лицевой панели ИЭУ",
-                    "Режим сигнализации"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.50",
-              "name": "Сообщения и отчеты, исходящие от ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.50",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Назначение",
-                    "Отправитель (ldName)",
-                    "Идентификатор (ID)",
-                    "Наборы данных",
-                    "Класс",
-                    "Примечания"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.51",
-              "name": "Информационные сигналы в составе исходящих сообщений ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.51",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование сигнала",
-                    "Отображение в ИМ",
-                    "Приемник"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.52",
-              "name": "Информационные сигналы в составе исходящих отчетов ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.52",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Информационный сигнал",
-                    "Информационный сигнал",
-                    "КТ",
-                    "ЦУС",
-                    "РДУ",
-                    "РАС",
-                    "Отображение в ИМ",
-                    "Отображение в ИМ"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Наименование",
-                    "Статус",
-                    "КТ",
-                    "ЦУС",
-                    "РДУ",
-                    "РАС",
-                    "DO",
-                    "DA"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.53",
-              "name": "Осциллографируемые аналоговые сигналы ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.53",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Описание аналогового сигнала",
-                    "Канал",
-                    "Наименование",
-                    "Пуск РАС"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.54",
-              "name": "Команды управления от АСУ ТП для ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.54",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование сигнала",
-                    "Отображение в ИМ"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.55",
-              "name": "Основные параметры функций РЗА ИЭУ ШЭТ 431.14-1",
-              "reference": "Таблица 5.55",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование",
-                    "Пояснение",
-                    "Состояния программного переключателя"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.56",
-              "name": "Ряды зажимов шкафа ШЭТ 431.14-1",
-              "reference": "Таблица 5.56",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Номера клемм",
-                    "Кол-во",
-                    "Тип клемм по",
-                    "Тип клемм по",
-                    "Назначение"
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                },
-                {
-                  "content": [
-                    "Номера клемм",
-                    "Кол-во",
-                    "функциональному назначению \n(И –испытательная, \nР - разборная)",
-                    "типу подключения\n(В – винтовая, П - пружинная",
-                    "Назначение"
-                  ],
-                  "is_header_first_row": false,
-                  "is_header_second_row": true
-                }
-              ],
-              "colums_width": []
-            },
-            {
-              "number": "5.57",
-              "name": "Основные компоненты шкафа ШЭТ 431.14-1",
-              "reference": "Таблица 5.57",
-              "cabinet": "ШЭТ 431.14-1",
-              "rows": [
-                {
-                  "content": [
-                    "Наименование",
-                    "Характеристика",
-                    "Количество, шт."
-                  ],
-                  "is_header_first_row": true,
-                  "is_header_second_row": false
-                }
-              ],
-              "colums_width": []
+              "description_part": "kit",
+              "kit": "1"
             }
           ],
           "figures": [
@@ -4267,7 +4506,7 @@
     {
       "number": "А",
       "header": "Структурно-функциональные схемы",
-      "header_style": "ПРИЛ Заголовок",
+      "header_style": "ДОК ПРИЛ ур1 Заголовок",
       "content": "",
       "subsections": [],
       "tables": [],
@@ -47880,5 +48119,5 @@
     }
   ],
   "title_page": "",
-  "description_split": false
+  "description_split": true
 }
