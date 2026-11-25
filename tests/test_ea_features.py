@@ -3227,9 +3227,9 @@ def test_reference_number_switch():
     }
     ea_docx._link_references(doc, references)
     xml = doc.element.body.xml
-    check('REF RefT_5_1 \\h \\#"0"' in xml,
-          "поле REF для /#/0 получило переключатель \\#\"0\"")
-    check('REF RefF_4_1 \\h ' in xml and 'REF RefF_4_1 \\h \\#' not in xml,
+    check('REF RefT_5_1 \\h ' in xml and '\\#' not in xml,
+          "REF без числового переключателя: закладка и так содержит номер")
+    check('REF RefF_4_1 \\h ' in xml,
           "обычная ссылка осталась ссылкой на подпись")
     text = doc.paragraphs[0].text
     check(text == "См. 5.1 и Рисунок 4.1, также Таблица 5.2",
@@ -3285,8 +3285,8 @@ def test_named_references(data):
           "Нет неизвестная метка.",
           "метки заменены номерами: %s" % mention.text)
     xml = mention._p.xml
-    check(xml.count(" REF ") == 4 and xml.count(r' \#"0"') == 4,
-          "ссылки по меткам — поля REF только на номер")
+    check(xml.count(" REF ") == 4 and '\\#' not in xml,
+          "ссылки по меткам — поля REF без числового переключателя")
     names = re.findall(r"REF (\S+)", xml)
     check(len(names) == 4 and len(set(names)) == 4,
           "метки указывают на четыре разные закладки")
