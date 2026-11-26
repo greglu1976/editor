@@ -31,6 +31,9 @@ CLASSES = {
             ("property", "s", ""),
             ("date", "s", ""),
             ("title_page", "s", ""),
+            # Стиль основного текста из template.docx: абзацы получают его
+            # явно, поэтому кегль берётся из стиля, а не задаётся фрагментом.
+            ("text_style", "s", ""),
             # Новый формат описания шкафа: отдельные таблицы шкафа и ИЭУ.
             ("description_split", "b", False),
         ],
@@ -476,6 +479,7 @@ LABELS = {
     "property": "Принадлежность",
     "date": "Дата введения",
     "title_page": "Титульный лист (DOCX)",
+    "text_style": "Стиль текста",
     "description_split": "Разделять описание шкафа и ИЭУ",
     "description_part": "Часть описания",
     "kit": "ИЭУ (номер)",
@@ -596,6 +600,7 @@ EXTRA_FIELDS = {("Table", "cabinet"), ("Cabinet", "containers"),
                 ("Kit", "identical"),
                 ("Standard", "functional_blocks"),
                 ("Standard", "title_page"),
+                ("Standard", "text_style"),
                 # Метки перекрёстных ссылок — дополнение редактора к UML.
                 ("Section", "ref"), ("Subsection", "ref"),
                 ("Table", "ref"), ("Figure", "ref"),

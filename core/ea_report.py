@@ -193,26 +193,28 @@ def field_rows(class_name, item):
 def _render_table(doc, data, table, max_rows, counters):
     """Таблица элемента: шапка из формы, строки — из шкафа."""
     headers, rows = es.table_view(data, table)
+    text_style = data.get(ed.TEXT_STYLE_FIELD)
     counters["таблицы"] += 1
     if not headers:
-        ed._body(doc, "Таблица пуста.")
+        ed._body(doc, "Таблица пуста.", text_style)
         return
     shown = ed._table(doc, headers, rows, max_rows=max_rows,
                       widths_mm=table.get("colums_width") or [],
                       header_rows=es.table_header_rows(table),
                       style=table.get("table_style"))
     if max_rows and len(rows) > shown:
-        ed._body(doc, "Показано %d из %d строк." % (shown, len(rows)))
+        ed._body(doc, "Показано %d из %d строк." % (shown, len(rows)),
+                 text_style)
 
 
-def _render_fields(doc, class_name, item, counters):
+def _render_fields(doc, class_name, item, counters, text_style=""):
     rows = field_rows(class_name, item)
     if rows:
         counters["поля"] += len(rows)
         ed._table(doc, ["Поле", "Значение"], rows, size=10,
                   widths_mm=[55, 125])
     else:
-        ed._body(doc, "Заполненных полей нет.")
+        ed._body(doc, "Заполненных полей нет.", text_style)
 
 
 def _is_leaf(class_name):
@@ -266,10 +268,12 @@ def _render_children(doc, data, class_name, item, level, depth, max_rows,
             continue
         for value in values:
             if not isinstance(value, dict):
-                ed._body(doc, _value_text(value))
+                ed._body(doc, _value_text(value),
+                         data.get(ed.TEXT_STYLE_FIELD))
                 continue
             ed._caption(doc, element_title(child_class, value), bold=True)
-            _render_fields(doc, child_class, value, counters)
+            _render_fields(doc, child_class, value, counters,
+                           data.get(ed.TEXT_STYLE_FIELD))
             _render_children(doc, data, child_class, value, level + 1,
                              depth - 1, max_rows, counters)
 
@@ -278,7 +282,8 @@ def _render_target(doc, data, item, max_rows, depth, counters):
     class_name = item["class"]
     heading = item.get("title") or element_title(class_name, item.get("item"))
     ed._heading(doc, heading, 1, numbered=False)
-    _render_fields(doc, class_name, item.get("item"), counters)
+    _render_fields(doc, class_name, item.get("item"), counters,
+                   data.get(ed.TEXT_STYLE_FIELD))
     if class_name == "Table":
         # Собственные строки таблицы — не поле, а отдельная таблица отчёта.
         _render_table(doc, data, item.get("item"), max_rows, counters)
@@ -315,19 +320,21 @@ def build(data, targets, path, title="", max_rows=0,
     ed._page_number(section)
 
     ed._heading(doc, title or "Отчёт по стандарту", 1, numbered=False)
+    text_style = data.get(ed.TEXT_STYLE_FIELD)
     standard = _join(data.get("code"), data.get("name"))
     if standard:
-        ed._body(doc, "Стандарт: %s." % standard)
+        ed._body(doc, "Стандарт: %s." % standard, text_style)
     if len(targets) > 1:
-        ed._body(doc, "Элементов в отчёте: %d." % len(targets))
+        ed._body(doc, "Элементов в отчёте: %d." % len(targets), text_style)
         for index, item in enumerate(targets, 1):
             ed._body(doc, "%d. %s" % (
                 index, item.get("title") or element_title(
-                    item["class"], item.get("item"))))
+                    item["class"], item.get("item"))), text_style)
     elif targets[0]["class"] == "Standard":
         ed._body(doc, "Элемент: реквизиты%s."
                  % (" и состав стандарта"
-                    if targets[0].get("children", True) else " стандарта"))
+                    if targets[0].get("children", True) else " стандарта"),
+                 text_style)
 
     counters = {"элементы": len(targets), "таблицы": 0, "поля": 0}
     for item in targets:

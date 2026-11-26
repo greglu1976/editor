@@ -465,9 +465,39 @@ def test_docx(data):
         styled_heading = next(paragraph for paragraph in doc.paragraphs
                               if paragraph.style.name
                               == "ДОК Заголовок вкл в содержание")
+        heading_size = style_font_size(styled_heading.style)
         check(all(run.font.size is None for run in styled_heading.runs)
-              and style_font_size(styled_heading.style) == 14,
-              "кегль заголовка взят из стиля (14 пт), а не из фрагмента")
+              and heading_size is not None and heading_size > 10,
+              "кегль заголовка взят из стиля (%.0f пт), а не из фрагмента"
+              % (heading_size or 0))
+
+        # Пункт 44 (продолжение): абзацы основного текста получают стиль
+        # «Обычный», а кегль берут из него, а не из фрагмента.
+        body_paragraph = next(paragraph for paragraph in doc.paragraphs
+                              if paragraph.style.name == "Normal"
+                              and len(paragraph.text.strip()) > 40
+                              and all(run.font.size is None
+                                      for run in paragraph.runs))
+        check(style_font_size(body_paragraph.style) == 12,
+              "основной текст берёт кегль из стиля «Обычный» (12 пт)")
+
+    check("text_style" in [key for key, _kind, _default
+                           in sc.fields("Standard")],
+          "у стандарта есть поле «Стиль текста»")
+    check(ea_docx._paragraph_style(doc, "Обычный") is not None
+          and ea_docx._paragraph_style(doc, "Обычный").name == "Normal",
+          "русское имя «Обычный» находит стиль Normal")
+    styled_data = copy.deepcopy(data)
+    styled_data["text_style"] = "ДОК Текст"
+    styled_path = os.path.join(tempfile.mkdtemp(), "styled.docx")
+    ea_docx.build(styled_data, styled_path, toc=False, max_rows=1)
+    styled_doc = Document(styled_path)
+    styled_body = next(paragraph for paragraph in styled_doc.paragraphs
+                       if paragraph.style.name == "ДОК Текст"
+                       and len(paragraph.text.strip()) > 40)
+    check(all(run.font.size is None for run in styled_body.runs)
+          and style_font_size(styled_body.style) == 14,
+          "стиль текста из реквизита применён к абзацам (14 пт)")
 
     # Пункт 29: двухуровневая шапка выводится двумя ярусами, а одинаковые
     # ячейки объединяются по горизонтали и вертикали.
@@ -676,6 +706,7 @@ def test_fields():
         dialog.vars["property"].set("ПАО «Тест»")
         dialog.vars["date"].set("01.01.2027")
         dialog.vars["title_page"].set("title_page.docx")
+        dialog.vars["text_style"].set("ДОК Текст")
         dialog.split_var.set(True)
         dialog.save()
         saved = es.load(path)
@@ -686,6 +717,8 @@ def test_fields():
         check(saved["date"] == "01.01.2027", "дата сохранена")
         check(saved["title_page"] == "title_page.docx",
               "ссылка на титульный DOCX сохранена")
+        check(saved["text_style"] == "ДОК Текст",
+              "стиль текста сохранён в реквизитах")
         check(saved.get("description_split") is True,
               "флаг разделённого описания сохранён в реквизитах")
         check(window._data["code"] == "НОВЫЙ ШИФР",
@@ -1019,6 +1052,8 @@ def test_editor():
                     if node[0] == "meta")
         window.tree.selection_set(meta)
         root.update()
+        check("text_style" in window.vars,
+              "в реквизитах есть поле «Стиль текста»")
         window.vars["name"].set("Стандарт из редактора")
         window.save()
         root.update()
@@ -3019,7 +3054,8 @@ def test_block_order_in_report():
     ea_docx._render_figure_block = lambda doc, figure, *a: calls.append(
         ("figure", figure["name"]))
     ea_docx._text_block = lambda *a: None
-    ea_docx._body = lambda doc, text: calls.append(("text", text))
+    ea_docx._body = lambda doc, text, style=None: calls.append(
+        ("text", text))
     try:
         ea_docx._render_container(None, {}, container, 2, 50, {}, {}, [])
     finally:

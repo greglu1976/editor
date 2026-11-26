@@ -16,7 +16,8 @@ r"""Выгрузка стандарта EA в DOCX.
 
 Если в папке стандартов (рядом с JSON или в ``EA/``) лежит ``template.docx``,
 он берётся за основу: сохраняются его стили, колонтитулы и параметры
-страницы, а содержимое строится заново. Оформление заголовков берётся из поля
+страницы, а содержимое строится заново. Оформление основного текста берётся
+из поля ``text_style`` (по умолчанию «Обычный»), заголовков — из поля
 ``header_style`` раздела/подраздела, подписей — из стилей «ДОК Таблица
 Название», «ДОК Рисунок Название» и их приложенческих вариантов; номер
 проставляет нумерация стиля, а если её нет — нумерация заголовков шаблона
@@ -33,7 +34,8 @@ Word `REF … \h`. Метки разбирает :mod:`ea_schema`. У подпи
 
 Если в реквизите ``title_page`` указан DOCX титульного листа, он берётся
 за основу без очистки: готовое содержимое остаётся первым, а сгенерированный
-отчёт добавляется после него новой секцией (книжная A4, поля 1,5 см).
+отчёт добавляется после него новой секцией (книжная A4, поля наследуются от
+последней секции титула).
 Колонтитулы титула в отчёт не переносятся: в верхнем колонтитуле новой
 секции продолжается нумерация страниц, нижний остаётся пустым.
 
@@ -84,6 +86,12 @@ CAPTION_LABEL_SPACING = 20
 _CAPTION_LABEL = re.compile(r"^(Таблица|Рисунок)\b")
 #: Реквизит стандарта с путём к DOCX, который должен открывать отчёт.
 TITLE_PAGE_FIELD = "title_page"
+#: Реквизит со стилем основного текста (по умолчанию — «Обычный»).
+TEXT_STYLE_FIELD = "text_style"
+#: Русские имена стилей Word, которые python-docx знает по-английски.
+STYLE_ALIASES = {"обычный": "Normal", "normal": "Normal",
+                 "заголовок 1": "Heading 1", "заголовок 2": "Heading 2",
+                 "заголовок 3": "Heading 3"}
 
 
 class DocxError(Exception):
@@ -120,18 +128,36 @@ def _letter_spacing(run, twips):
 
 
 def _paragraph_style(doc, name):
-    """Стиль абзаца из шаблона по имени; None, если стиля нет."""
+    """Стиль абзаца из шаблона по имени; None, если стиля нет.
+
+    Русское имя «Обычный» python-docx не находит: стиль называется
+    ``Normal``. Алиасы из :data:`STYLE_ALIASES` переводят такие имена, а
+    поиск без учёта регистра — варианты написания.
+    """
     name = str(name or "").strip()
     if not name:
         return None
-    try:
-        style = doc.styles[name]
-    except KeyError:
-        return None
-    try:
-        return style if style.type == WD_STYLE_TYPE.PARAGRAPH else None
-    except AttributeError:                          # pragma: no cover
-        return None
+    candidates = [name, STYLE_ALIASES.get(name.casefold(), "")]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            style = doc.styles[candidate]
+        except KeyError:
+            continue
+        try:
+            if style.type == WD_STYLE_TYPE.PARAGRAPH:
+                return style
+        except AttributeError:                      # pragma: no cover
+            continue
+    for style in doc.styles:
+        try:
+            if (style.type == WD_STYLE_TYPE.PARAGRAPH
+                    and str(style.name or "").casefold() == name.casefold()):
+                return style
+        except AttributeError:                      # pragma: no cover
+            continue
+    return None
 
 
 def _style_numbering(style):
@@ -488,21 +514,32 @@ def _caption(doc, text, bookmark=None, bookmark_id=0,
         _caption_run(paragraph, tail, size, bold, italic)
 
 
-def _body(doc, text):
-    """Абзац основного текста: по ширине, с красной строкой."""
+def _body(doc, text, style=None):
+    """Абзац основного текста: стиль из реквизита, по ширине, с красной строкой.
+
+    Кегль фрагмента не задаётся: шрифт берётся из стиля абзаца. По умолчанию
+    это «Обычный» (``Normal``), поэтому реквизит ``text_style`` позволяет
+    выбрать другой стиль текста, не переопределяя шрифт вручную.
+    """
     paragraph = doc.add_paragraph()
-    paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-    paragraph.paragraph_format.first_line_indent = Cm(1.25)
-    paragraph.paragraph_format.space_after = Pt(0)
-    run = paragraph.add_run(text)
-    _font(run, 10)
+    style = str(style or "").strip()
+    custom = _paragraph_style(doc, style) if style else None
+    if custom is None:
+        # Пустой или неизвестный стиль — «Обычный» с обычной вёрсткой отчёта.
+        custom = _paragraph_style(doc, "Normal")
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        paragraph.paragraph_format.first_line_indent = Cm(1.25)
+        paragraph.paragraph_format.space_after = Pt(0)
+    if custom is not None:
+        paragraph.style = custom
+    paragraph.add_run(text)
 
 
-def _text_block(doc, content):
+def _text_block(doc, content, style=None):
     for line in str(content or "").split("\n"):
         line = line.strip()
         if line:
-            _body(doc, line)
+            _body(doc, line, style)
 
 
 def _clause_lines(content):
@@ -903,9 +940,9 @@ def _setup(doc, layout=True, template=False):
 
     ``template`` — документ собран из ``template.docx`` или титульного DOCX.
     Тогда стили шаблона не переопределяются: «ДОК Заголовок 1» и другие
-    стили на основе ``Normal`` сохраняют свой кегль (14 пт), а не получают
-    10 пт отчёта. Для нового пустого документа ``Normal`` настраивается
-    явно — иначе отчёт набрался бы шрифтом Word по умолчанию.
+    стили на основе ``Normal`` сохраняют свой кегль (например, 12 пт), а не
+    получают 10 пт отчёта. Для нового пустого документа ``Normal``
+    настраивается явно — иначе отчёт набрался бы шрифтом Word по умолчанию.
     """
     if layout:
         section = doc.sections[0]
@@ -1203,7 +1240,7 @@ def _render_clause(doc, data, clause, max_rows, counters, references, errors,
     elif number:
         lines = [number]
     for line in lines:
-        _body(doc, line)
+        _body(doc, line, data.get(TEXT_STYLE_FIELD))
     for kind, item in st.ordered_items(clause):
         _render_item(doc, data, kind, item, max_rows, counters, references,
                      errors, appendix)
@@ -1211,7 +1248,7 @@ def _render_clause(doc, data, clause, max_rows, counters, references, errors,
 
 def _render_container(doc, data, container, level, max_rows, counters,
                       references, errors, appendix=False):
-    _text_block(doc, container.get("content"))
+    _text_block(doc, container.get("content"), data.get(TEXT_STYLE_FIELD))
     for kind, item in st.ordered_items(container):
         _render_item(doc, data, kind, item, max_rows, counters, references,
                      errors, appendix)
@@ -1345,22 +1382,23 @@ def build_labels(data, path):
         doc = Document()
         _setup(doc)
     entries = collect_labels(data)
+    text_style = data.get(TEXT_STYLE_FIELD)
     _heading(doc, "Метки перекрёстных ссылок", 1, numbered=False)
     standard = " ".join(
         str(value or "").strip()
         for value in (data.get("code"), data.get("name"))
         if str(value or "").strip())
     if standard:
-        _body(doc, "Стандарт: %s." % standard)
+        _body(doc, "Стандарт: %s." % standard, text_style)
     _body(doc, r"В тексте метка пишется как \ref{имя метки}; "
-               "в отчёте показывается только номер.")
-    _body(doc, "Всего меток: %d." % len(entries))
+               "в отчёте показывается только номер.", text_style)
+    _body(doc, "Всего меток: %d." % len(entries), text_style)
     if entries:
         _table(doc, ["Метка", "Объект", "Номер"],
                [list(entry) for entry in entries], size=10,
                widths_mm=[70, 88, 32])
     else:
-        _body(doc, "В стандарте нет меток перекрёстных ссылок.")
+        _body(doc, "В стандарте нет меток перекрёстных ссылок.", text_style)
     doc.save(path)
     return {"метки": len(entries), "размер": os.path.getsize(path)}
 
