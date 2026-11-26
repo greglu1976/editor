@@ -23,13 +23,21 @@
                         "iec": "",
                         "iec_name": "",
                         "LNclass": "",
+                        "LD": "",
+                        "LN": "",
+                        "DO": "",
+                        "DA": "",
                         "inputs": [
                             {
                                 "id": "in1",
                                 "name": "A1",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "analog_process_level"
+                                "type": "analog_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "outputs": [
@@ -38,14 +46,22 @@
                                 "name": "Срабатывание",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "discrete_process_level"
+                                "type": "discrete_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             },
                             {
                                 "id": "out2",
                                 "name": "Пуск",
                                 "description": "",
                                 "iec_name": "Str",
-                                "type": "discrete_process_level"
+                                "type": "discrete_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "settings": [
@@ -78,13 +94,21 @@
                         "iec": "",
                         "iec_name": "",
                         "LNclass": "",
+                        "LD": "",
+                        "LN": "",
+                        "DO": "",
+                        "DA": "",
                         "inputs": [
                             {
                                 "id": "in1",
                                 "name": "A1",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "analog_process_level"
+                                "type": "analog_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "outputs": [
@@ -93,7 +117,11 @@
                                 "name": "Срабатывание",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "discrete_process_level"
+                                "type": "discrete_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "settings": [],
@@ -103,8 +131,15 @@
                 "isMainFunction": true,
                 "isInITS": true,
                 "iec_name": "",
+                "LD": "",
+                "LN": "",
+                "DO": "",
+                "DA": "",
                 "russian_path": "",
-                "corp_prof_name": ""
+                "corp_prof_name": "",
+                "cabinet": "",
+                "kit": "",
+                "ied": ""
             }
         },
         {
@@ -122,7 +157,8 @@
                 "signal_iec": "",
                 "signal_no": "",
                 "color": "#00acc1",
-                "rotation": 0
+                "rotation": 0,
+                "show_fields": false
             }
         },
         {
@@ -140,7 +176,8 @@
                 "signal_iec": "",
                 "signal_no": "",
                 "color": "#00acc1",
-                "rotation": 0
+                "rotation": 0,
+                "show_fields": false
             }
         },
         {
@@ -196,20 +233,32 @@
                         "iec": "",
                         "iec_name": "",
                         "LNclass": "",
+                        "LD": "",
+                        "LN": "",
+                        "DO": "",
+                        "DA": "",
                         "inputs": [
                             {
                                 "id": "in1",
                                 "name": "A1",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "analog_process_level"
+                                "type": "analog_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             },
                             {
                                 "id": "in2",
                                 "name": "A2",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "analog_process_level"
+                                "type": "analog_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "outputs": [
@@ -218,7 +267,11 @@
                                 "name": "Срабатывание",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "discrete_process_level"
+                                "type": "discrete_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "settings": [],
@@ -232,6 +285,10 @@
                         "iec": "",
                         "iec_name": "",
                         "LNclass": "",
+                        "LD": "",
+                        "LN": "",
+                        "DO": "",
+                        "DA": "",
                         "inputs": [],
                         "outputs": [
                             {
@@ -239,7 +296,11 @@
                                 "name": "Срабатывание",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "discrete_process_level"
+                                "type": "discrete_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "settings": [],
@@ -249,8 +310,15 @@
                 "isMainFunction": false,
                 "isInITS": false,
                 "iec_name": "",
+                "LD": "",
+                "LN": "",
+                "DO": "",
+                "DA": "",
                 "russian_path": "",
-                "corp_prof_name": ""
+                "corp_prof_name": "",
+                "cabinet": "",
+                "kit": "",
+                "ied": ""
             }
         },
         {
@@ -327,13 +395,21 @@
                         "iec": "",
                         "iec_name": "",
                         "LNclass": "",
+                        "LD": "",
+                        "LN": "",
+                        "DO": "",
+                        "DA": "",
                         "inputs": [
                             {
                                 "id": "in1",
                                 "name": "A1",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "analog_process_level"
+                                "type": "analog_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "outputs": [
@@ -342,14 +418,22 @@
                                 "name": "Срабатывание",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "discrete_process_level"
+                                "type": "discrete_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             },
                             {
                                 "id": "out2",
                                 "name": "Пуск",
                                 "description": "",
                                 "iec_name": "Str",
-                                "type": "discrete_process_level"
+                                "type": "discrete_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "settings": [
@@ -382,13 +466,21 @@
                         "iec": "",
                         "iec_name": "",
                         "LNclass": "",
+                        "LD": "",
+                        "LN": "",
+                        "DO": "",
+                        "DA": "",
                         "inputs": [
                             {
                                 "id": "in1",
                                 "name": "A1",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "analog_process_level"
+                                "type": "analog_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "outputs": [
@@ -397,7 +489,11 @@
                                 "name": "Срабатывание",
                                 "description": "",
                                 "iec_name": "",
-                                "type": "discrete_process_level"
+                                "type": "discrete_process_level",
+                                "LD": "",
+                                "LN": "",
+                                "DO": "",
+                                "DA": ""
                             }
                         ],
                         "settings": [],
@@ -407,8 +503,15 @@
                 "isMainFunction": true,
                 "isInITS": true,
                 "iec_name": "",
+                "LD": "",
+                "LN": "",
+                "DO": "",
+                "DA": "",
                 "russian_path": "",
-                "corp_prof_name": ""
+                "corp_prof_name": "",
+                "cabinet": "",
+                "kit": "",
+                "ied": ""
             }
         }
     ],
@@ -442,9 +545,9 @@
             "to": "LO8220#p4",
             "kind": "internal",
             "id": "2",
-            "continuation": "2",
+            "continuation": "3",
             "number": "1011",
-            "ru": "Срабатывание",
+            "ru": "ЗВП / Сигнальная ступень: Срабатывание",
             "arrow": false
         },
         {
@@ -643,7 +746,7 @@
             "id": "11",
             "continuation": "10",
             "number": "1021",
-            "ru": "Срабатывание",
+            "ru": "ЗПВГ / Сигнальная ступень: Срабатывание",
             "arrow": false
         },
         {
@@ -671,8 +774,8 @@
         }
     ],
     "view": {
-        "zoom": 0.8208,
-        "offset_x": 494.04,
-        "offset_y": 245.46
+        "zoom": 1.9254,
+        "offset_x": -737.46,
+        "offset_y": 73.48
     }
 }
