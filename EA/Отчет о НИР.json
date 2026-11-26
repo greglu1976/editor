@@ -1281,7 +1281,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "merge_cells": false
             },
             {
               "number": "4.1",
@@ -1388,7 +1389,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "merge_cells": false
             },
             {
               "number": "4.2",
@@ -1536,7 +1538,8 @@
                   "is_header_second_row": false
                 }
               ],
-              "colums_width": []
+              "colums_width": [],
+              "merge_cells": false
             }
           ],
           "figures": []
