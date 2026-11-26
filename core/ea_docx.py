@@ -633,8 +633,7 @@ class ReferenceRegistry(dict):
 
     Обычный ``dict`` здесь тоже годится: функции умеют работать и с ним
     (например, в проверках). ``numbers`` хранит видимый номер метки для кэша
-    поля, ``entries`` — список «метка — объект — номер» для таблицы меток,
-    ``definitions`` — пары «закладка — номер» для полей SET, которые
+    поля, ``definitions`` — пары «закладка — номер» для полей SET, которые
     объявляют закладки заголовков (номер раздела ставит шаблон, в тексте
     заголовка его нет).
     """
@@ -642,7 +641,6 @@ class ReferenceRegistry(dict):
     def __init__(self):
         super().__init__()
         self.numbers = {}
-        self.entries = []
         self.definitions = []
         self.declared = set()
 
@@ -714,7 +712,7 @@ def _register_reference(references, reference):
     return name, True
 
 
-def _register_labels(references, item, number, bookmark, title=""):
+def _register_labels(references, item, number, bookmark):
     """Связать метки поля ``ref`` с закладкой объекта.
 
     Метка — простое имя: в тексте пишется ``\\ref{метка}``, в DOCX
@@ -733,10 +731,6 @@ def _register_labels(references, item, number, bookmark, title=""):
         numbers = getattr(references, "numbers", None)
         if numbers is not None:
             numbers[key] = str(number or "")
-        entries = getattr(references, "entries", None)
-        if entries is not None:
-            entries.append((label, title or str(number or ""),
-                            str(number or "")))
         found.append(label)
     return found
 
@@ -981,7 +975,7 @@ def _render_table(doc, data, table, max_rows, counters, references,
              number=number,
              style=(APPENDIX_TABLE_CAPTION_STYLE if appendix
                     else TABLE_CAPTION_STYLE))
-    _register_labels(references, table, number, bookmark, title=title)
+    _register_labels(references, table, number, bookmark)
     counters["таблицы"] += 1
     counters["строки"] += _table(doc, headers, rows, max_rows=max_rows,
                                  widths_mm=table.get("colums_width") or [],
@@ -1173,7 +1167,7 @@ def _render_figure_block(doc, figure, references, counters, errors,
              bold=False, italic=True, number=number,
              style=(APPENDIX_FIGURE_CAPTION_STYLE if appendix
                     else FIGURE_CAPTION_STYLE))
-    _register_labels(references, figure, number, bookmark, title=title.strip())
+    _register_labels(references, figure, number, bookmark)
     paragraph = doc.paragraphs[-1]
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
     if original is not None:
@@ -1264,8 +1258,7 @@ def _render_sections(doc, data, max_rows, counters, references, errors):
                  numbered=not appendix and bool(number) and bool(header),
                  style=section.get("header_style"))
         bookmark = _register_heading(references, number)
-        _register_labels(references, section, number, bookmark,
-                         title=header or number)
+        _register_labels(references, section, number, bookmark)
         counters["разделы"] += 1
         _render_container(doc, data, section, 2, max_rows, counters,
                           references, errors, appendix)
@@ -1278,23 +1271,94 @@ def _render_sections(doc, data, max_rows, counters, references, errors):
                      numbered=bool(sub_number) and bool(title),
                      style=sub.get("header_style"))
             bookmark = _register_heading(references, sub_number)
-            _register_labels(references, sub, sub_number, bookmark,
-                             title=title or sub_number)
+            _register_labels(references, sub, sub_number, bookmark)
             _render_container(doc, data, sub, 3, max_rows, counters,
                               references, errors, appendix)
 
 
-def _reference_index(doc, references):
-    """Таблица объявленных меток — только если они действительно есть."""
-    entries = getattr(references, "entries", None) or []
-    if not entries:
-        return
+def collect_labels(data):
+    """Метки перекрёстных ссылок стандарта: (метка, объект, номер).
+
+    Обход повторяет порядок вывода отчёта: раздел, его пункты, таблицы и
+    рисунки, затем подразделы. Метка попадает в список даже без номера
+    объекта — отдельный отчёт должен показывать и такие ошибки.
+    """
+    entries, seen = [], set()
+
+    def add(item, title, number):
+        number = str(number or "").strip()
+        for label in sc.reference_labels((item or {}).get("ref")):
+            key = sc.normalize_ref_label(label)
+            if key in seen:
+                continue
+            seen.add(key)
+            entries.append((label, str(title or number), number))
+
+    def add_items(container):
+        for kind, item in st.ordered_items(container):
+            if kind == "table":
+                title = ("%s — %s" % (item.get("reference") or "",
+                                      item.get("name") or "")).strip(" —")
+                add(item, title, item.get("number"))
+            elif kind == "figure":
+                title = "%s — %s" % (item.get("reference") or "Рисунок",
+                                     item.get("name") or "")
+                add(item, title, item.get("number"))
+            elif kind in ("clause", "subclause"):
+                add_items(item)
+
+    for section in es.sections(data):
+        number = str(section.get("number") or "").strip()
+        title = str(section.get("header") or "").strip()
+        add(section, title or number, number)
+        add_items(section)
+        for sub in section.get("subsections") or []:
+            sub_number = str(sub.get("number") or "").strip()
+            sub_title = str(sub.get("header") or "").strip()
+            add(sub, sub_title or sub_number, sub_number)
+            add_items(sub)
+    return entries
+
+
+def build_labels(data, path):
+    """Записать отдельный DOCX со списком меток перекрёстных ссылок.
+
+    В обычный отчёт по стандарту эта таблица больше не попадает (пункт 43):
+    метки выводятся только этим отчётом.
+    """
+    if Document is None:
+        raise DocxError("не установлен python-docx: "
+                        "python -m pip install python-docx")
+    folder = os.path.dirname(os.path.abspath(path))
+    if folder and not os.path.isdir(folder):
+        raise DocxError("нет папки: %s" % folder)
+    template = template_path(folder)
+    if template:
+        doc = Document(template)
+        _clear_body(doc)
+        _setup(doc, layout=False, template=True)
+    else:
+        doc = Document()
+        _setup(doc)
+    entries = collect_labels(data)
     _heading(doc, "Метки перекрёстных ссылок", 1, numbered=False)
+    standard = " ".join(
+        str(value or "").strip()
+        for value in (data.get("code"), data.get("name"))
+        if str(value or "").strip())
+    if standard:
+        _body(doc, "Стандарт: %s." % standard)
     _body(doc, r"В тексте метка пишется как \ref{имя метки}; "
                "в отчёте показывается только номер.")
-    _table(doc, ["Метка", "Объект", "Номер"],
-           [list(entry) for entry in entries], size=10,
-           widths_mm=[70, 88, 32])
+    _body(doc, "Всего меток: %d." % len(entries))
+    if entries:
+        _table(doc, ["Метка", "Объект", "Номер"],
+               [list(entry) for entry in entries], size=10,
+               widths_mm=[70, 88, 32])
+    else:
+        _body(doc, "В стандарте нет меток перекрёстных ссылок.")
+    doc.save(path)
+    return {"метки": len(entries), "размер": os.path.getsize(path)}
 
 
 def template_path(folder=None):
@@ -1380,10 +1444,9 @@ def build(data, path, toc=True, max_rows=0):
         _toc(doc)
         doc.add_page_break()
     _render_sections(doc, data, max_rows, counters, references, figure_errors)
-    # Сначала ссылки в тексте, затем таблица меток: иначе её собственные
-    # подписи («Таблица 5.2», «рис.1» в метке) тоже стали бы полями.
+    # Таблица меток в обычный отчёт не выводится (пункт 43): для неё есть
+    # отдельный отчёт build_labels(). Ссылки в тексте заменяются полями REF.
     _link_references(doc, references, skip=skip_paragraphs)
-    _reference_index(doc, references)
     _number_bookmarks(doc, references, skip=skip_paragraphs)
     doc.save(path)
     counters["размер"] = os.path.getsize(path)

@@ -20,6 +20,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 import ea_catalog as ec
+import ea_docx
 import ea_edit as ee
 import ea_exchange as ex
 import ea_merge as em
@@ -264,6 +265,8 @@ class StandardEditorWindow(tk.Toplevel):
                 width=18, side=tk.RIGHT)
         _button(top, "Перенумеровать", self.renumber_structure,
                 width=16, side=tk.RIGHT)
+        _button(top, "Отчёт по меткам", self.labels_report,
+                width=18, side=tk.RIGHT)
         _button(top, "Проверить", self.check, width=10, side=tk.RIGHT)
         _button(top, "Закрыть", self.close, width=10, side=tk.RIGHT)
 
@@ -3125,6 +3128,31 @@ class StandardEditorWindow(tk.Toplevel):
             % (path, counters.get("элементы"), counters.get("таблицы"),
                counters.get("поля")), parent=self)
         self.status.config(text="Отчёт: %s" % path)
+
+    def labels_report(self):
+        """Сохранить отдельный DOCX со списком меток перекрёстных ссылок."""
+        if not self._apply_pending():
+            return
+        base = re.sub(r"[^0-9A-Za-zА-Яа-яЁё]+", " ",
+                      self.data.get("code") or "").strip() or "standard"
+        path = filedialog.asksaveasfilename(
+            parent=self, title="Куда сохранить отчёт по меткам",
+            initialdir=es.folder(), initialfile=base + " — метки.docx",
+            defaultextension=".docx", filetypes=[("Word", "*.docx")])
+        if not path:
+            return
+        try:
+            counters = ea_docx.build_labels(self.data, path)
+        except Exception as exc:                      # noqa: BLE001
+            messagebox.showerror(
+                "Отчёт по меткам",
+                "Не удалось собрать отчёт:\n%s" % exc, parent=self)
+            return
+        messagebox.showinfo(
+            "Отчёт по меткам",
+            "Отчёт сохранён:\n%s\n\nМеток: %s"
+            % (path, counters.get("метки", 0)), parent=self)
+        self.status.config(text="Отчёт по меткам: %s" % path)
 
     def _reference_item(self, node):
         """Объект дерева, к которому можно привязать метку ссылки."""

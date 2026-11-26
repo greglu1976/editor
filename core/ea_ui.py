@@ -124,6 +124,7 @@ class EAStandardWindow(tk.Toplevel):
         _button(top, "Новый стандарт…", self.new_standard, width=17,
                 side=tk.RIGHT)
         _button(top, "DOCX…", self.export_docx, width=10, side=tk.RIGHT)
+        _button(top, "Метки…", self.export_labels, width=10, side=tk.RIGHT)
 
         tk.Label(self, text="Таблицы в документе — только форма; строки "
                             "собираются из шкафа (поле «cabinet»).",
@@ -755,6 +756,31 @@ class EAStandardWindow(tk.Toplevel):
         thread = threading.Thread(target=work, daemon=True)
         thread.start()
         self._await_docx(thread, progress, bar, path, outcome)
+
+    def export_labels(self):
+        """Выгрузить отдельный DOCX со списком меток перекрёстных ссылок."""
+        if not self._data:
+            return
+        base = re.sub(r"[^0-9A-Za-zА-Яа-яЁё]+", " ",
+                      self._data.get("code") or "").strip() or "standard"
+        path = filedialog.asksaveasfilename(
+            parent=self, title="Куда сохранить отчёт по меткам",
+            initialdir=es.folder(), initialfile=base + " — метки.docx",
+            defaultextension=".docx", filetypes=[("Word", "*.docx")])
+        if not path:
+            return
+        try:
+            counters = ea_docx.build_labels(self._data, path)
+        except Exception as exc:                      # noqa: BLE001
+            messagebox.showerror(
+                "Отчёт по меткам",
+                "Не удалось собрать отчёт:\n%s" % exc, parent=self)
+            return
+        messagebox.showinfo(
+            "Отчёт по меткам",
+            "Отчёт сохранён:\n%s\n\nМеток: %s"
+            % (path, counters.get("метки", 0)), parent=self)
+        self.status.config(text="Метки: %s" % path)
 
     def _await_docx(self, thread, progress, bar, path, outcome):
         if thread.is_alive():

@@ -3336,14 +3336,30 @@ def test_named_references(data):
           "все REF указывают на существующие закладки: %s"
           % ", ".join(sorted(targets - bookmarks - declared)))
 
+    # Пункт 43: в обычном отчёте таблицы меток нет — она выводится
+    # отдельным отчётом.
     index = next((paragraph for paragraph in doc.paragraphs
                   if paragraph.text == "Метки перекрёстных ссылок"), None)
-    check(index is not None, "в отчёте есть таблица объявленных меток")
     index_table = next((item for item in doc.tables
                         if [cell.text for cell in item.rows[0].cells]
                         == ["Метка", "Объект", "Номер"]), None)
-    check(index_table is not None and len(index_table.rows) == 6,
-          "в таблицу попали все пять меток четырёх объектов")
+    check(index is None and index_table is None,
+          "в обычном отчёте нет таблицы меток")
+
+    labels_path = os.path.join(tempfile.mkdtemp(), "labels.docx")
+    counters = ea_docx.build_labels(clone, labels_path)
+    labels_doc = Document(labels_path)
+    labels_table = next((item for item in labels_doc.tables
+                         if [cell.text for cell in item.rows[0].cells]
+                         == ["Метка", "Объект", "Номер"]), None)
+    check(counters["метки"] == 5 and labels_table is not None
+          and len(labels_table.rows) == 6,
+          "отчёт по меткам: пять меток четырёх объектов")
+    import ea_editor
+    import ea_ui
+    check(hasattr(ea_editor.StandardEditorWindow, "labels_report")
+          and hasattr(ea_ui.EAStandardWindow, "export_labels"),
+          "кнопки отчёта по меткам есть в редакторе и просмотрщике")
 
 
 def test_title_page_before_report(data):
