@@ -14,8 +14,9 @@
   «I тип => II тип» не превращается заодно в «III тип»;
 * при отборе шкафов удаляются их подразделы, таблицы-формы, рисунки и строки
   общих таблиц, где упомянуты только снятые шкафы;
-* перенумерация: подразделы шкафов идут подряд (5.3, 5.4, …), таблицы —
-  сквозной нумерацией (5.2, 5.3, …), рисунки шкафов — своей; ссылки
+* перенумерация: разделы, подразделы, пункты и подпункты — по дереву;
+  подразделы шкафов идут подряд (5.3, 5.4, …), таблицы — сквозной
+  нумерацией (5.2, 5.3, …), рисунки шкафов — своей; ссылки
   «Таблица 5.x» и «Рисунок 5.x» в тексте обновляются;
 * после сборки — проверка целостности: реквизиты, уникальность шифров и
   номеров таблиц, ссылки таблиц на шкафы.
@@ -53,6 +54,10 @@ BOOL_META_FIELDS = (
 
 #: Ссылка на таблицу или рисунок: «Таблица 5.12», «рисунке 5.3».
 _REF_RE = re.compile(r"(таблиц\w*|рисун\w*)(\s+)5\.(\d+)", re.IGNORECASE)
+#: Любая ссылка с номером — для общей перенумерации документа.
+_BLOCK_REF_RE = re.compile(
+    r"(таблиц\w*|рисун\w*)(\s+)([0-9А-Яа-яЁё]+(?:\.[0-9]+)*)",
+    re.IGNORECASE)
 
 
 class StandardError(Exception):
@@ -412,21 +417,48 @@ def _renumber_children(container, prefix, counts):
         _renumber_children(subsection, number, counts)
 
 
+def _block_plan(container, prefix, sequence, plan, maps):
+    """План номеров таблиц и рисунков контейнера: ``(вид, элемент, старый, новый)``.
+
+    Номер считается по разделу (``5.1``, ``А.1``), а не по подразделу:
+    таблицы и рисунки идут сквозной нумерацией внутри раздела, как в ГОСТ.
+    Объекты без номера — вспомогательные, их не считаем и не меняем.
+    """
+    for kind, item in st.ordered_items(container):
+        if kind in ("table", "figure"):
+            old = str(item.get("number") or "").strip()
+            if not old:
+                continue
+            key = "tables" if kind == "table" else "figures"
+            sequence[key] += 1
+            new = "%s.%d" % (prefix, sequence[key])
+            plan.append((kind, item, old, new))
+            maps[key][old] = new
+        elif kind in ("clause", "subclause"):
+            _block_plan(item, prefix, sequence, plan, maps)
+    for subsection in container.get("subsections") or []:
+        _block_plan(subsection, prefix, sequence, plan, maps)
+
+
 def renumber_document(data):
-    """Перенумеровать разделы, подразделы, пункты и подпункты по структуре.
+    """Перенумеровать разделы, подразделы, пункты, подпункты, таблицы, рисунки.
 
     Нумерованные разделы идут подряд (1, 2, …); приложения — буквенный
     номер или стиль «ПРИЛ …» — получают А, Б, В… по порядку; разделы без
     номера («Введение», «Библиография») остаются без номера. Внутри
     контейнера сначала нумеруются пункты, затем подразделы — в том же
-    порядке, в каком они показаны в дереве редактора.
+    порядке, в каком они показаны в дереве редактора. Таблицы и рисунки
+    получают номер своего раздела сквозной нумерацией (5.1, 5.2, …; А.1),
+    а ссылки «Таблица 5.x» и «Рисунок 5.x» в тексте обновляются.
 
     Возвращает счётчики изменённых номеров по видам.
     """
     counts = {"sections": 0, "subsections": 0, "clauses": 0,
-              "subclauses": 0}
+              "subclauses": 0, "tables": 0, "figures": 0}
     numeric = 0
     appendix = 0
+    plan = []
+    maps = {"tables": {}, "figures": {}}
     for section in es.sections(data):
         number = str(section.get("number") or "").strip()
         if _is_appendix(section):
@@ -444,6 +476,35 @@ def renumber_document(data):
             counts["sections"] += 1
         section["number"] = new
         _renumber_children(section, new, counts)
+        if new:
+            _block_plan(section, new, {"tables": 0, "figures": 0},
+                        plan, maps)
+
+    # Ссылки заменяются по карте старых номеров до присвоения новых:
+    # иначе «5.2 → 5.3 → 5.4» сдвинуло бы номер дважды.
+    def fix(text):
+        def repl(match):
+            word, space, old = match.group(1), match.group(2), match.group(3)
+            mapping = (maps["tables"] if word.casefold().startswith("таблиц")
+                       else maps["figures"])
+            return "%s%s%s" % (word, space, mapping.get(old, old))
+        return _BLOCK_REF_RE.sub(repl, text)
+
+    if plan:
+        _rewrite_strings(data, fix)
+
+    for kind, item, old, new in plan:
+        key = "tables" if kind == "table" else "figures"
+        if old != new:
+            counts[key] += 1
+        item["number"] = new
+        label = "Таблица" if kind == "table" else "Рисунок"
+        reference = str(item.get("reference") or "").strip()
+        numbered = re.compile(
+            r"^%s\s+[0-9А-Яа-яЁё]+(?:\.[0-9]+)*(?:\s|$)" % re.escape(label),
+            re.IGNORECASE)
+        if not reference or numbered.match(reference):
+            item["reference"] = "%s %s" % (label, new)
     return counts
 
 
@@ -521,6 +582,11 @@ def build(source, meta=None, replacements=None, keep=None, renumber=True,
             notes.append("таблиц описания ИЭУ: %d" % forms)
 
     mapping = renumber_standard(data, starts) if renumber else {}
+    if renumber:
+        # Таблицы и рисунки — по реальному порядку дерева, а не только по
+        # спискам: объект с чужим номером (например, 5.16 перед 5.3)
+        # получает номер своего места.
+        renumber_document(data)
     if mapping:
         notes.append("перенумеровано таблиц: %d" % len(mapping))
 

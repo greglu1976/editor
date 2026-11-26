@@ -3682,9 +3682,10 @@ class StandardEditorWindow(tk.Toplevel):
         self._fill_tree()
         self.status.config(
             text="Перенумеровано: разделов %d, подразделов %d, "
-                 "пунктов %d, подпунктов %d"
+                 "пунктов %d, подпунктов %d, таблиц %d, рисунков %d"
                  % (counts["sections"], counts["subsections"],
-                    counts["clauses"], counts["subclauses"]))
+                    counts["clauses"], counts["subclauses"],
+                    counts["tables"], counts["figures"]))
 
     def save(self, event=None):
         if not self._apply_pending():

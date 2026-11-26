@@ -2089,6 +2089,15 @@ def test_editor_renumber():
               and sub["number"] == expected_sub
               and clause["number"] == expected_sub + ".1",
               "номера приведены к структуре дерева")
+        table = next(item for item in es.iter_tables(window.data)
+                     if str(item.get("number") or "").startswith("5."))
+        table["number"] = "99.99"
+        table["reference"] = "Таблица 99.99"
+        window.renumber_structure()
+        root.update()
+        check(str(table["number"]).startswith("5.")
+              and table["reference"] == "Таблица %s" % table["number"],
+              "кнопка перенумерует таблицы и их ссылки")
         iid = window._find_iid(section)
         check(iid is not None
               and window.tree.item(iid, "text").startswith(
@@ -2318,6 +2327,8 @@ def test_renumber_document():
 
     doc = {"sections": [
         {"number": "", "header": "Введение", "clauses": [],
+         "tables": [{"number": "9.9", "reference": "Таблица 9.9",
+                     "name": "Без номера раздела"}],
          "subsections": []},
         {"number": "7", "header": "Область применения",
          "header_style": "ДОК Текст 3/4уров 1-раздел", "clauses": [],
@@ -2327,15 +2338,23 @@ def test_renumber_document():
                      {"number": "7.9.4.8", "content": "подпункт"}]}]},
              {"number": "7.3", "header": "Сокращения", "clauses": []}]},
         {"number": "3", "header": "Общие положения",
+         "tables": [{"number": "3.9", "reference": "Таблица 3.9",
+                     "name": "Таблица"}],
          "clauses": [
-             {"number": "3.9", "content": "пункт", "subclauses": []},
+             {"number": "3.9", "content": "пункт, см. таблицу 3.9 и "
+                                          "рисунок 3.8", "subclauses": []},
              {"number": "3.1", "content": "пункт", "subclauses": []}],
          "subsections": [
-             {"number": "3.5", "header": "Подраздел", "clauses": [
+             {"number": "3.5", "header": "Подраздел",
+              "figures": [{"number": "3.8", "reference": "Рисунок 3.8",
+                           "name": "Рисунок"}],
+              "clauses": [
                  {"number": "3.5.7", "content": "пункт",
                   "subclauses": []}]}]},
         {"number": "Ж", "header": "Приложение Ж",
          "header_style": "ДОК ПРИЛ ур1 Заголовок",
+         "tables": [{"number": "Ж.9", "reference": "Таблица Ж.9",
+                     "name": "Таблица приложения"}],
          "clauses": [{"number": "Ж.9", "content": "пункт",
                       "subclauses": []}], "subsections": []},
         {"number": "Д", "header": "Приложение Д",
@@ -2366,6 +2385,21 @@ def test_renumber_document():
     check(sections[3]["clauses"][0]["number"] == "А.1"
           and sections[4]["clauses"][0]["number"] == "Б.1",
           "пункты приложений нумеруются буквой приложения")
+    check(sections[2]["tables"][0]["number"] == "2.1"
+          and sections[2]["tables"][0]["reference"] == "Таблица 2.1",
+          "таблица получила номер раздела")
+    check(sections[2]["subsections"][0]["figures"][0]["number"] == "2.1",
+          "рисунок получил номер раздела")
+    check("таблицу 2.1 и рисунок 2.1"
+          in sections[2]["clauses"][0]["content"],
+          "ссылки на таблицу и рисунок обновлены")
+    check(sections[3]["tables"][0]["number"] == "А.1",
+          "таблица приложения нумеруется буквой приложения")
+    check(sections[0]["tables"][0]["number"] == "9.9",
+          "в разделе без номера таблица не меняется")
+    check(counts["tables"] == 2 and counts["figures"] == 1,
+          "счётчики таблиц и рисунков: %d, %d"
+          % (counts["tables"], counts["figures"]))
     again = ns.renumber_document(doc)
     check(sum(again.values()) == 0, "повторная перенумерация ничего не меняет")
 
