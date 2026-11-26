@@ -3420,12 +3420,19 @@ def test_title_page_before_report(data):
           "текст готового титула не переписывается")
 
     report = doc.sections[-1]
+    title_section = doc.sections[-2]
     check(report.orientation == WD_ORIENT.PORTRAIT,
           "отчёт после титула идёт в книжной ориентации")
     check(abs(report.page_width.cm - 21.0) < 0.01
           and abs(report.page_height.cm - 29.7) < 0.01,
           "отчёт после титула — A4: %.1f×%.1f см"
           % (report.page_width.cm, report.page_height.cm))
+    # Пункт 47: поля отчёта продолжают поля титула, а не сбрасываются.
+    check(all(abs(getattr(report, name).cm - getattr(title_section, name).cm)
+              < 0.01
+              for name in ("left_margin", "right_margin",
+                           "top_margin", "bottom_margin")),
+          "поля отчёта продолжают поля титула")
     check(report._sectPr.find(qn("w:titlePg")) is None,
           "у отчёта нет особого колонтитула первой страницы титула")
     check(not report.header.is_linked_to_previous,
@@ -3434,6 +3441,8 @@ def test_title_page_before_report(data):
           "нижний колонтитул отчёта не наследуется от титула")
     header_xml = report.header._element.xml
     check("PAGE" in header_xml, "в верхнем колонтитуле отчёта поле PAGE")
+    check("Обновите поле" not in header_xml,
+          "поле PAGE не показывает заглушку вместо номера")
     check("КОЛОНТИТУЛ ТИТУЛА" not in header_xml,
           "логотип и текст титула не попали в верхний колонтитул")
     footer_text = "\n".join(paragraph.text
