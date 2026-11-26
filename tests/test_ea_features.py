@@ -61,6 +61,17 @@ def check(condition, message):
         FAILURES.append(message)
 
 
+def style_font_size(style):
+    """Кегль стиля с учётом ``basedOn``: у «ДОК …» он наследуется от Normal."""
+    seen = set()
+    while style is not None and style.style_id not in seen:
+        seen.add(style.style_id)
+        if style.font.size is not None:
+            return style.font.size.pt
+        style = style.base_style
+    return None
+
+
 def heading_texts(doc):
     """Тексты заголовков: стили с уровнем структуры (``outlineLvl``).
 
@@ -445,8 +456,18 @@ def test_docx(data):
         sizes = {run.font.size.pt for row in match.rows
                  for cell in row.cells for paragraph in cell.paragraphs
                  for run in paragraph.runs if run.font.size}
-        check(doc.styles["Normal"].font.size.pt == 10 and sizes <= {10},
+        check(sizes <= {10},
               "таблицы отчёта набраны кеглем 10 (%s)" % (sizes or "стиль"))
+
+        # Пункт 44: кегль заголовка берётся из стиля шаблона, а не из
+        # фрагмента. «ДОК Заголовок 1» наследует 14 пт от Normal шаблона —
+        # отчёт не должен переопределять Normal на 10 пт.
+        styled_heading = next(paragraph for paragraph in doc.paragraphs
+                              if paragraph.style.name
+                              == "ДОК Заголовок вкл в содержание")
+        check(all(run.font.size is None for run in styled_heading.runs)
+              and style_font_size(styled_heading.style) == 14,
+              "кегль заголовка взят из стиля (14 пт), а не из фрагмента")
 
     # Пункт 29: двухуровневая шапка выводится двумя ярусами, а одинаковые
     # ячейки объединяются по горизонтали и вертикали.

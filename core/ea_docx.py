@@ -94,8 +94,8 @@ class DocxError(Exception):
 # Оформление
 # ---------------------------------------------------------------------------
 def _font(run, size=None, bold=None, italic=None):
-    """Оформление фрагмента; шрифт и кегль 10 уже заданы стилем."""
-    if size and size != 10:
+    """Оформление фрагмента; кегль задаётся явно, стиль абзаца не меняется."""
+    if size:
         run.font.size = Pt(size)
     if bold:
         run.bold = True
@@ -900,7 +900,15 @@ def _number_bookmarks(doc, references, skip=0):
                                      result=""))
 
 
-def _setup(doc, layout=True):
+def _setup(doc, layout=True, template=False):
+    """Параметры страницы и стили по умолчанию.
+
+    ``template`` — документ собран из ``template.docx`` или титульного DOCX.
+    Тогда стили шаблона не переопределяются: «ДОК Заголовок 1» и другие
+    стили на основе ``Normal`` сохраняют свой кегль (14 пт), а не получают
+    10 пт отчёта. Для нового пустого документа ``Normal`` настраивается
+    явно — иначе отчёт набрался бы шрифтом Word по умолчанию.
+    """
     if layout:
         section = doc.sections[0]
         section.orientation = WD_ORIENT.LANDSCAPE
@@ -911,9 +919,10 @@ def _setup(doc, layout=True):
         section.top_margin = Cm(1.5)
         section.bottom_margin = Cm(1.5)
         _page_number(section)
-    normal = doc.styles["Normal"]
-    normal.font.name = FONT
-    normal.font.size = Pt(10)
+    if not template:
+        normal = doc.styles["Normal"]
+        normal.font.name = FONT
+        normal.font.size = Pt(10)
     for level, size in ((1, 14), (2, 12), (3, 11)):
         try:
             style = doc.styles["Heading %d" % level]
@@ -1348,14 +1357,14 @@ def build(data, path, toc=True, max_rows=0):
         # начинается новой секцией сразу после него.
         doc = Document(title)
         skip_paragraphs = sum(1 for _ in doc.element.body.iter(qn("w:p")))
-        _setup(doc, layout=False)
+        _setup(doc, layout=False, template=True)
         _report_after_title(doc)
     else:
         template = template_path(folder)
         if template:
             doc = Document(template)
             _clear_body(doc)
-            _setup(doc, layout=False)
+            _setup(doc, layout=False, template=True)
         else:
             doc = Document()
             _setup(doc)
