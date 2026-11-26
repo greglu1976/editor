@@ -323,12 +323,26 @@ def _body_cell(cell, text, size=10):
     _font(paragraph.add_run(str(text or "")), size)
 
 
+def _has_text(text):
+    """В значении есть буквы или цифры — только такие ячейки объединяем."""
+    return any(char.isalnum() for char in str(text or ""))
+
+
+def _merge_enabled(table):
+    """Поле таблицы ``merge_cells``: по умолчанию объединение включено."""
+    value = (table or {}).get("merge_cells", True)
+    if isinstance(value, str):
+        return value.strip().lower() not in ("0", "нет", "false", "no")
+    return bool(value)
+
+
 def _body_merges(rows, columns):
     """Прямоугольники одинаковых соседних ячеек строк данных.
 
     Одинаковые значения сливаются по горизонтали, а если та же группа
-    повторяется в следующей строке — и по вертикали. Пустые ячейки не
-    трогаются: иначе пропала бы сетка таблицы. Возвращает
+    повторяется в следующей строке — и по вертикали. Объединяются только
+    ячейки с текстом: прочерки, стрелки и кавычки («-», «>>», «»») остаются
+    отдельными, иначе пропадает сетка таблицы. Возвращает
     ``(r1, c1, r2, c2, текст)`` — границы областей и их значение.
     """
     matrix = []
@@ -341,7 +355,7 @@ def _body_merges(rows, columns):
     for row_index, values in enumerate(matrix):
         current = {}
         for start, end, text in _header_groups(values):
-            if not text:
+            if not _has_text(text):
                 continue
             key = (start, end, text)
             region = previous.get(key)
@@ -492,7 +506,7 @@ def _table_style(doc, name):
 
 
 def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None,
-           header_rows=None, style=None):
+           header_rows=None, style=None, merge=True):
     """Таблица с шапкой; возвращает число выведенных строк данных."""
     if not headers:
         return 0
@@ -527,7 +541,8 @@ def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None,
             _cell(row.cells[index],
                   values[index] if index < len(values) else "", size)
     # Пункт 46: одинаковые значения по горизонтали и вертикали сливаются.
-    _merge_body(table, len(header_rows), shown, len(headers), size)
+    if merge:
+        _merge_body(table, len(header_rows), shown, len(headers), size)
     for index, width in enumerate(widths):
         unit = Mm if fixed else Cm
         table.columns[index].width = unit(width)
@@ -1122,7 +1137,8 @@ def _render_table(doc, data, table, max_rows, counters, references,
     counters["строки"] += _table(doc, headers, rows, max_rows=max_rows,
                                  widths_mm=table.get("colums_width") or [],
                                  header_rows=es.table_header_rows(table),
-                                 style=table.get("table_style"))
+                                 style=table.get("table_style"),
+                                 merge=_merge_enabled(table))
 
 
 # ---------------------------------------------------------------------------

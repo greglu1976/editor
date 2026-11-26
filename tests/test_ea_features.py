@@ -552,6 +552,25 @@ def test_docx(data):
           and merged.cell(1, 2)._tc is merged.cell(2, 2)._tc,
           "вертикальные объединения захватывают все одинаковые строки")
 
+    # Пункт 46: ячейки без текста («-», «>>», «»») не объединяются.
+    plain_doc = Document()
+    ea_docx._setup(plain_doc)
+    ea_docx._table(plain_doc, ["A", "B", "C"],
+                   [["-", "-", ">>"], ["-", "-", ">>"],
+                    ["«»", "«»", "—"]])
+    plain_xml = plain_doc.tables[0]._tbl.xml
+    check("<w:gridSpan" not in plain_xml and "<w:vMerge" not in plain_xml,
+          "прочерки, стрелки и кавычки не объединяются")
+
+    # Пункт 46: объединение отключается полем таблицы merge_cells.
+    off_doc = Document()
+    ea_docx._setup(off_doc)
+    ea_docx._table(off_doc, ["A", "B", "C"],
+                   [["1", "1", "2"], ["1", "1", "2"]], merge=False)
+    off_xml = off_doc.tables[0]._tbl.xml
+    check("<w:gridSpan" not in off_xml and "<w:vMerge" not in off_xml,
+          "поле merge_cells=False отключает объединение")
+
     # шаблон: колонтитул и параметры страницы сохраняются, тело заменяется
     template_dir = tempfile.mkdtemp()
     template = os.path.join(template_dir, ea_docx.TEMPLATE_NAME)
@@ -673,6 +692,11 @@ def test_table_style():
         return
     keys = [key for key, _kind, _default in sc.fields("Table")]
     check("table_style" in keys, "у таблицы есть поле «Стиль таблицы»")
+    check("merge_cells" in keys, "у таблицы есть поле «Объединять ячейки»")
+    check(ea_docx._merge_enabled({}) is True
+          and ea_docx._merge_enabled({"merge_cells": False}) is False
+          and ea_docx._merge_enabled({"merge_cells": "0"}) is False,
+          "объединение включено по умолчанию и выключается полем")
     template = ea_docx.template_path(os.path.dirname(REFERENCE))
     if not template:
         print("  --   template.docx нет: проверка стиля пропущена")
@@ -1384,6 +1408,16 @@ def test_editor():
         window._apply_pending()
         check("table_style" not in target_table,
               "пустой стиль убирает поле из таблицы")
+        check("merge_cells" in window.vars,
+              "в панели таблицы есть флажок объединения ячеек")
+        window.vars["merge_cells"].set(False)
+        window._apply_pending()
+        check(target_table.get("merge_cells") is False,
+              "флажок объединения сохраняется в таблице")
+        window.vars["merge_cells"].set(True)
+        window._apply_pending()
+        check(target_table.get("merge_cells") is True,
+              "объединение включается обратно")
 
         # смена вида данных таблицы шкафа отклоняется
         original_error = ea_editor.messagebox.showerror

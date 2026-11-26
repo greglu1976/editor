@@ -950,9 +950,17 @@ class StandardEditorWindow(tk.Toplevel):
         tk.Entry(form, textvariable=table_style, font=ui_theme.font(9),
                  width=40).grid(row=2, column=1, sticky="w", pady=2)
         self.vars["table_style"] = table_style
+        # Объединение одинаковых ячеек строк данных при выгрузке в DOCX.
+        merge_cells = tk.BooleanVar(
+            value=bool(table.get("merge_cells", True)))
+        tk.Checkbutton(form, text="Объединять одинаковые ячейки",
+                       variable=merge_cells, font=ui_theme.font(9),
+                       anchor="w").grid(row=3, column=0, columnspan=2,
+                                        sticky="w", pady=2)
+        self.vars["merge_cells"] = merge_cells
         if table.get("cabinet"):
             link = tk.Frame(form)
-            link.grid(row=3, column=0, columnspan=2, sticky="we", pady=(2, 0))
+            link.grid(row=4, column=0, columnspan=2, sticky="we", pady=(2, 0))
             tk.Label(link, text="Данные шкафа: %s" % table.get("cabinet"),
                      font=ui_theme.font(8), fg=ui_theme.TEXT_MUTED,
                      anchor="w").pack(side=tk.LEFT)
@@ -996,9 +1004,11 @@ class StandardEditorWindow(tk.Toplevel):
         number = str(self.vars["number"].get()).strip()
         name = str(self.vars["name"].get()).strip()
         table_style = str(self.vars["table_style"].get()).strip()
+        merge_cells = bool(self.vars["merge_cells"].get())
         old_number = str(table.get("number") or "")
         old_name = str(table.get("name") or "")
         old_style = str(table.get("table_style") or "")
+        old_merge = bool(table.get("merge_cells", True))
         # проверяем только изменённые поля: в данных встречаются таблицы
         # без номера и наименования, их нельзя ломать при простом открытии
         if number != old_number:
@@ -1036,6 +1046,9 @@ class StandardEditorWindow(tk.Toplevel):
                 table["table_style"] = table_style
             else:
                 table.pop("table_style", None)
+            changed = True
+        if merge_cells != old_merge:
+            table["merge_cells"] = merge_cells
             changed = True
         if changed:
             label = "%s %s" % (table.get("reference") or "Таблица", name)

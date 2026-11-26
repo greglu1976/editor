@@ -101,6 +101,8 @@ CLASSES = {
             # Стиль таблицы из template.docx (например «Таблица_ГОСТ»).
             # Пустое значение — оформление по умолчанию, «Table Grid».
             ("table_style", "s", ""),
+            # Объединять одинаковые ячейки строк данных (пункт 46).
+            ("merge_cells", "b", True),
             # Поле не описано в UML, но используется редактором как ссылка
             # на шкаф, из которого собираются строки таблицы.
             ("cabinet", "s", ""),
@@ -503,6 +505,7 @@ LABELS = {
     "orientation": "Ориентация",
     "colums_width": "Ширина колонок",
     "table_style": "Стиль таблицы",
+    "merge_cells": "Объединять ячейки",
     "cabinet": "Шкаф",
     "rows": "Строки",
     "cypher": "Шифр шкафа",
@@ -611,7 +614,9 @@ EXTRA_FIELDS = {("Table", "cabinet"), ("Cabinet", "containers"),
                 ("Standard", "description_split"),
                 ("Table", "description_part"), ("Table", "kit"),
                 # Стиль таблицы Word из template.docx — дополнение редактора.
-                ("Table", "table_style")}
+                ("Table", "table_style"),
+                # Объединение одинаковых ячеек — дополнение редактора.
+                ("Table", "merge_cells")}
 # LD/LN/DO/DA — дополнение редактора к UML: при миграции не добавляются,
 # но создаются у новых узлов и доступны в редакторе и отчётах.
 EXTRA_FIELDS.update(

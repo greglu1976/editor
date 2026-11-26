@@ -201,7 +201,8 @@ def _render_table(doc, data, table, max_rows, counters):
     shown = ed._table(doc, headers, rows, max_rows=max_rows,
                       widths_mm=table.get("colums_width") or [],
                       header_rows=es.table_header_rows(table),
-                      style=table.get("table_style"))
+                      style=table.get("table_style"),
+                      merge=ed._merge_enabled(table))
     if max_rows and len(rows) > shown:
         ed._body(doc, "Показано %d из %d строк." % (shown, len(rows)),
                  text_style)
