@@ -40,6 +40,11 @@ Word `REF … \h`. Метки разбирает :mod:`ea_schema`. У подпи
 Колонтитулы титула в отчёт не переносятся: в верхнем колонтитуле новой
 секции продолжается нумерация страниц, нижний остаётся пустым.
 
+Отдельный отчёт «DOCX(новые таблицы)» (``build_new_tables``, пункт 48)
+выводит восемь видов таблиц в форме эталонного «Шаблон приложения. Шкафы
+РЗА ХХХ (фирма-разработчик).docx»: новые шапки, групповые строки и пары
+LNclass/DO. Обычная выгрузка при этом не меняется.
+
     python ea_docx.py --out "Отчет.docx"
     python ea_docx.py --file "EA/....json" --out "Отчет.docx" --max-rows 50
     python ea_docx.py --out "Отчет.docx" --no-toc
@@ -1116,8 +1121,16 @@ def _title_page(doc, data, stats):
 
 
 def _render_table(doc, data, table, max_rows, counters, references,
-                  appendix=False):
-    headers, rows = es.table_view(data, table)
+                  appendix=False, new_tables=False):
+    """Вывести таблицу; при ``new_tables`` — в форме пункта 48."""
+    if new_tables and es.supports_new_view(table):
+        headers, rows = es.new_table_view(data, table)
+        header_rows = es.new_table_header_rows(table)
+        widths = []
+    else:
+        headers, rows = es.table_view(data, table)
+        header_rows = es.table_header_rows(table)
+        widths = table.get("colums_width") or []
     reference = table.get("reference") or ""
     name = table.get("name") or ""
     number = str(table.get("number") or "")
@@ -1135,8 +1148,8 @@ def _render_table(doc, data, table, max_rows, counters, references,
     _register_labels(references, table, number, bookmark)
     counters["таблицы"] += 1
     counters["строки"] += _table(doc, headers, rows, max_rows=max_rows,
-                                 widths_mm=table.get("colums_width") or [],
-                                 header_rows=es.table_header_rows(table),
+                                 widths_mm=widths,
+                                 header_rows=header_rows,
                                  style=table.get("table_style"),
                                  merge=_merge_enabled(table))
 
@@ -1334,11 +1347,11 @@ def _render_figure_block(doc, figure, references, counters, errors,
 
 
 def _render_item(doc, data, kind, item, max_rows, counters, references,
-                 errors, appendix=False):
+                 errors, appendix=False, new_tables=False):
     """Вывести один элемент контейнера: пункт, подпункт, таблицу, рисунок."""
     if kind == "table":
         _render_table(doc, data, item, max_rows, counters, references,
-                      appendix)
+                      appendix, new_tables)
     elif kind == "figure":
         _render_figure_block(doc, item, references, counters, errors,
                              appendix)
@@ -1348,7 +1361,7 @@ def _render_item(doc, data, kind, item, max_rows, counters, references,
 
 
 def _render_clause(doc, data, clause, max_rows, counters, references, errors,
-                   appendix=False):
+                   appendix=False, new_tables=False):
     """Пункт или подпункт: номер с текстом и вложенные элементы по порядку."""
     number = str(clause.get("number") or "")
     lines = _clause_lines(clause.get("content"))
@@ -1360,15 +1373,15 @@ def _render_clause(doc, data, clause, max_rows, counters, references, errors,
         _body(doc, line, data.get(TEXT_STYLE_FIELD))
     for kind, item in st.ordered_items(clause):
         _render_item(doc, data, kind, item, max_rows, counters, references,
-                     errors, appendix)
+                     errors, appendix, new_tables)
 
 
 def _render_container(doc, data, container, level, max_rows, counters,
-                      references, errors, appendix=False):
+                      references, errors, appendix=False, new_tables=False):
     _text_block(doc, container.get("content"), data.get(TEXT_STYLE_FIELD))
     for kind, item in st.ordered_items(container):
         _render_item(doc, data, kind, item, max_rows, counters, references,
-                     errors, appendix)
+                     errors, appendix, new_tables)
 
 
 def _is_appendix(section):
@@ -1396,7 +1409,8 @@ def _appendix_title(number, title):
     return "%s. %s" % (label, title) if title else label
 
 
-def _render_sections(doc, data, max_rows, counters, references, errors):
+def _render_sections(doc, data, max_rows, counters, references, errors,
+                     new_tables=False):
     """Разделы и подразделы: в тексте заголовка только название.
 
     Номер раздела и подраздела в текст не вписывается — его проставляет
@@ -1419,7 +1433,7 @@ def _render_sections(doc, data, max_rows, counters, references, errors):
         _register_labels(references, section, number, bookmark)
         counters["разделы"] += 1
         _render_container(doc, data, section, 2, max_rows, counters,
-                          references, errors, appendix)
+                          references, errors, appendix, new_tables)
         for sub in section.get("subsections") or []:
             sub_number = str(sub.get("number") or "").strip()
             title = str(sub.get("header") or "").strip()
@@ -1431,7 +1445,7 @@ def _render_sections(doc, data, max_rows, counters, references, errors):
             bookmark = _register_heading(references, sub_number)
             _register_labels(references, sub, sub_number, bookmark)
             _render_container(doc, data, sub, 3, max_rows, counters,
-                              references, errors, appendix)
+                              references, errors, appendix, new_tables)
 
 
 def collect_labels(data):
@@ -1565,8 +1579,13 @@ def _clear_body(doc):
         body.remove(child)
 
 
-def build(data, path, toc=True, max_rows=0):
-    """Записать стандарт в DOCX. Возвращает счётчики выведенного."""
+def build(data, path, toc=True, max_rows=0, new_tables=False):
+    """Записать стандарт в DOCX. Возвращает счётчики выведенного.
+
+    ``new_tables=True`` включает вид таблиц из пункта 48: для восьми видов
+    данных из эталонного «Шаблон приложения…» берутся новые шапки и строки,
+    остальные таблицы остаются в прежнем виде.
+    """
     if Document is None:
         raise DocxError("не установлен python-docx: "
                         "python -m pip install python-docx")
@@ -1602,7 +1621,8 @@ def build(data, path, toc=True, max_rows=0):
     if toc:
         _toc(doc, data.get(TOC_STYLE_FIELD))
         doc.add_page_break()
-    _render_sections(doc, data, max_rows, counters, references, figure_errors)
+    _render_sections(doc, data, max_rows, counters, references, figure_errors,
+                     new_tables)
     # Таблица меток в обычный отчёт не выводится (пункт 43): для неё есть
     # отдельный отчёт build_labels(). Ссылки в тексте заменяются полями REF.
     _link_references(doc, references, skip=skip_paragraphs)
@@ -1610,6 +1630,11 @@ def build(data, path, toc=True, max_rows=0):
     doc.save(path)
     counters["размер"] = os.path.getsize(path)
     return counters
+
+
+def build_new_tables(data, path, toc=True, max_rows=0):
+    """Отчёт с новым видом таблиц (пункт 48) — обёртка над :func:`build`."""
+    return build(data, path, toc=toc, max_rows=max_rows, new_tables=True)
 
 
 # ---------------------------------------------------------------------------
@@ -1624,6 +1649,8 @@ def main(argv=None):
                         help="не более N строк в таблице (0 — все)")
     parser.add_argument("--no-toc", action="store_true",
                         help="без оглавления")
+    parser.add_argument("--new-tables", action="store_true",
+                        help="таблицы в новом виде (пункт 48)")
     args = parser.parse_args(argv)
 
     path = args.file or es.default_base()
@@ -1633,7 +1660,7 @@ def main(argv=None):
     try:
         data = es.load(path)
         counters = build(data, args.out, toc=not args.no_toc,
-                         max_rows=args.max_rows)
+                         max_rows=args.max_rows, new_tables=args.new_tables)
     except (DocxError, OSError, ValueError) as exc:
         print("Ошибка: %s" % exc)
         return 1

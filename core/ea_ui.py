@@ -124,6 +124,8 @@ class EAStandardWindow(tk.Toplevel):
         _button(top, "Новый стандарт…", self.new_standard, width=17,
                 side=tk.RIGHT)
         _button(top, "DOCX…", self.export_docx, width=10, side=tk.RIGHT)
+        _button(top, "DOCX(новые таблицы)…", self.export_new_tables,
+                width=22, side=tk.RIGHT)
         _button(top, "Метки…", self.export_labels, width=10, side=tk.RIGHT)
 
         tk.Label(self, text="Таблицы в документе — только форма; строки "
@@ -724,13 +726,24 @@ class EAStandardWindow(tk.Toplevel):
 
     def export_docx(self):
         """Выгрузить текущий стандарт в Word; таблицы — из шкафов."""
+        self._export_docx_with(ea_docx.build, "Куда сохранить документ",
+                               ".docx")
+
+    def export_new_tables(self):
+        """Отчёт Word с таблицами в новом виде (пункт 48)."""
+        self._export_docx_with(ea_docx.build_new_tables,
+                               "Куда сохранить отчёт с новыми таблицами",
+                               " — новые таблицы.docx")
+
+    def _export_docx_with(self, builder, dialog_title, suffix):
+        """Общая сборка DOCX: ``builder`` выбирает вид таблиц."""
         if not self._data:
             return
         base = re.sub(r"[^0-9A-Za-zА-Яа-яЁё]+", " ",
                       self._data.get("code") or "").strip() or "standard"
         path = filedialog.asksaveasfilename(
-            parent=self, title="Куда сохранить документ",
-            initialdir=es.folder(), initialfile=base + ".docx",
+            parent=self, title=dialog_title,
+            initialdir=es.folder(), initialfile=base + suffix,
             defaultextension=".docx", filetypes=[("Word", "*.docx")])
         if not path:
             return
@@ -749,7 +762,7 @@ class EAStandardWindow(tk.Toplevel):
 
         def work():
             try:
-                outcome["counters"] = ea_docx.build(self._data, path)
+                outcome["counters"] = builder(self._data, path)
             except Exception as exc:                  # noqa: BLE001
                 outcome["error"] = exc
 

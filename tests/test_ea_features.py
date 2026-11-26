@@ -3798,6 +3798,89 @@ def test_editor_exchange():
         root.destroy()
 
 
+def test_new_tables_report(data):
+    """Пункт 48: отдельный отчёт с таблицами в новом виде."""
+    print("3г. DOCX с новыми таблицами")
+    try:
+        from docx import Document
+    except ImportError:                # pragma: no cover
+        print("  --   python-docx нет: проверка пропущена")
+        return
+    found = {}
+    for table in es.iter_tables(data):
+        kind = es.table_kind(table.get("name"))
+        if kind in es.NEW_VIEW_KINDS and kind not in found:
+            found[kind] = table
+    check(len(found) == len(es.NEW_VIEW_KINDS),
+          "в стандарте есть все восемь видов новых таблиц")
+    check(es.supports_new_view(found["analog_inputs"])
+          and not es.supports_new_view(
+              {"name": "Описание ШЭТ ХХХ"}),
+          "новый вид применяется только к заданным восьми таблицам")
+
+    # Старый вид не тронут: редактор и обычный отчёт сохраняют форму JSON.
+    old_headers, _old_rows = es.table_view(data, found["incoming_goose_signals"])
+    check(len(old_headers) == 5,
+          "обычный вид таблицы входящих сообщений остался прежним")
+
+    expected = {
+        "incoming_goose_signals": 7,
+        "functional_buttons": 6,
+        "leds": 4,
+        "datasets": 6,
+        "goose_signals": 5,
+        "report_signals": 8,
+        "control_commands": 3,
+    }
+    for kind, width in expected.items():
+        headers, rows = es.new_table_view(data, found[kind])
+        check(len(headers) == width and bool(rows),
+              "новый вид %s: %d колонок, %d строк"
+              % (kind, len(headers), len(rows)))
+    _headers, rows = es.new_table_view(data, found["incoming_goose_signals"])
+    check(len(rows[0]) == 7 and rows[0][2] == "ПДС ОР БСК",
+          "источники сигнала разнесены по трём колонкам")
+    _headers, rows = es.new_table_view(data, found["goose_signals"])
+    check(rows[0][:3] == ["Имя набора данных", "dsgo_PS", ""]
+          and rows[1][1:3] == ["RBRE", "BlkOp.stVal"],
+          "исходящие сообщения: имя набора и LNclass/DO.DA")
+    _headers, rows = es.new_table_view(data, found["report_signals"])
+    check(len(es.new_table_header_rows(found["report_signals"])) == 2
+          and rows[0][:2] == ["Имя набора данных:", "dsrpt_DT"]
+          and rows[1][6:] == ["PDIF", "Op"],
+          "отчёты: двухуровневая шапка, имя набора и LNclass/DO")
+    _headers, rows = es.new_table_view(data, found["control_commands"])
+    check(rows[0][1] == "LLN0.Mod",
+          "команды управления: LLNclass.DO из info_model")
+    _headers, rows = es.new_table_view(data, found["datasets"])
+    check(rows[0][0] == "Сообщения" and rows[0][2] == "goID"
+          and any(row[0] == "Отчеты" and row[2] == "rptID" for row in rows)
+          and rows[-1][0].startswith("Примечание – x"),
+          "наборы данных: группы «Сообщения»/«Отчеты» и примечание")
+
+    folder = tempfile.mkdtemp()
+    out = os.path.join(folder, "new_tables.docx")
+    counters = ea_docx.build_new_tables(data, out, toc=False, max_rows=3)
+    doc = Document(out)
+    heads = [[cell.text for cell in table.rows[0].cells]
+             for table in doc.tables]
+    check(es.NEW_VIEW_HEADERS["incoming_goose_signals"] in heads
+          and es.NEW_VIEW_HEADERS["control_commands"] in heads,
+          "в DOCX новые шапки tables вместо старых")
+    check(not any(len(head) == 5 and head[0] == "Наименование сигнала"
+                  and head[2].startswith("Наименование и макс.")
+                  for head in heads),
+          "старого вида таблиц в новом отчёте нет")
+    check(counters["таблицы"] > 0 and counters["строки"] > 0
+          and counters["размер"] > 0,
+          "счётчики нового отчёта заполнены")
+    import ea_editor
+    import ea_ui
+    check(hasattr(ea_ui.EAStandardWindow, "export_new_tables")
+          and hasattr(ea_editor.StandardEditorWindow, "new_tables_report"),
+          "кнопка DOCX(новые таблицы) есть в просмотрщике и редакторе")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--no-gui", action="store_true")
@@ -3815,6 +3898,7 @@ def main(argv=None):
     test_reference_labels()
     test_named_references(data)
     test_title_page_before_report(data)
+    test_new_tables_report(data)
     test_report_tables_font()
     test_archive()
     test_rebuild_from_standards()

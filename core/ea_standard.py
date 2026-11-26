@@ -873,6 +873,198 @@ def table_view(data, table):
     return headers, _cabinet_rows_for(kind, cabinet_item)
 
 
+# ---------------------------------------------------------------------------
+# Пункт 48: новый вид таблиц для отдельного отчёта.
+# ---------------------------------------------------------------------------
+#: Виды таблиц, для которых в «Шаблон приложения. Шкафы РЗА ХХХ …» задана
+#: новая форма. Остальные таблицы в новом отчёте выводятся как раньше.
+NEW_VIEW_KINDS = (
+    "analog_inputs", "incoming_goose_signals", "functional_buttons", "leds",
+    "datasets", "goose_signals", "report_signals", "control_commands",
+)
+#: Подписи новых таблиц — в том порядке и написании, как в эталонном DOCX.
+NEW_VIEW_HEADERS = {
+    "analog_inputs": [
+        "Аналоговая цепь", "Испытательный блок в шкафу",
+        "Количество контактов испытательного блока с учетом регистрации "
+        "его состояния", "Описание"],
+    "incoming_goose_signals": [
+        "Наименование сигнала", "Отображение в ИМ",
+        "Наименование источников сигнала",
+        "Макс. количество источников сигнала",
+        "Порядковый номер источника сигналов", "РАС", "Примечание"],
+    "functional_buttons": [
+        "Назначение ФК", "Краткое наименование ФК",
+        "Состояние индикации «0» светодиода ФК",
+        "Состояние индикации «1» светодиода ФК",
+        "Режим сигнализации светодиода", "Примечание"],
+    "leds": [
+        "Функциональное назначение светодиода",
+        "Обозначение на лицевой панели ИЭУ", "Режим сигнализации",
+        "Примечание"],
+    "datasets": [
+        "Назначение", "Отправитель (ldName)", "Идентификатор (ID)",
+        "Наборы данных", "Класс", "Примечания"],
+    "goose_signals": [
+        "Сигнал", "LNclass", "DO.DA", "Приемник", "Примечание"],
+    "report_signals": [
+        "Информационный сигнал / Наименование",
+        "Информационный сигнал / Статус", "КТ", "ЦУС", "РДУ", "РАС",
+        "Отображение в ИМ / LNclass", "Отображение в ИМ / DO"],
+    "control_commands": [
+        "Наименование сигнала", "Отображение в ИМ (LNclass.DO)",
+        "Примечание"],
+}
+#: Двухъярусная шапка таблицы «Исходящие отчёты» в эталоне.
+NEW_REPORT_HEADER_ROWS = [
+    ["Информационный сигнал", "Информационный сигнал", "КТ", "ЦУС", "РДУ",
+     "РАС", "Отображение в ИМ", "Отображение в ИМ"],
+    ["Наименование", "Статус", "КТ", "ЦУС", "РДУ", "РАС", "LNclass", "DO"],
+]
+
+
+def _ln_class(value):
+    """Класс LN из пути «LNclass/PRXY1.Op»: PRXY1 → PRXY, LLN0 → LLN0."""
+    token = str(value or "").strip().split("/")[-1].split(".")[0]
+    if not token or token.upper().startswith("LLN"):
+        return token
+    stripped = token.rstrip("0123456789")
+    return stripped if len(stripped) >= 3 else token
+
+
+def _ln_do(value):
+    """DO из пути «LNclass/PRXY1.Op»: PRXY1.Op → Op."""
+    return str(value or "").strip().split("/")[-1].split(".", 1)[-1]
+
+
+def _ln_class_do(value):
+    """Пара «класс.DO» из пути IEC 61850 (LLN0.Mod, RBRE1.BlkOp.stVal)."""
+    token = str(value or "").strip().split("/")[-1]
+    return "%s.%s" % (_ln_class(token), _ln_do(token)) if token else ""
+
+
+def supports_new_view(table):
+    """Есть ли для таблицы новая форма из эталонного DOCX (пункт 48)."""
+    return table_kind((table or {}).get("name")) in NEW_VIEW_KINDS
+
+
+def new_table_header_rows(table):
+    """Шапка новой таблицы: один или два яруса."""
+    kind = table_kind((table or {}).get("name"))
+    if kind == "report_signals":
+        return [list(row) for row in NEW_REPORT_HEADER_ROWS]
+    return [list(NEW_VIEW_HEADERS.get(kind, []))]
+
+
+def new_table_view(data, table):
+    """``(шапка, строки)`` в новом виде (пункт 48).
+
+    Старая функция :func:`table_view` не меняется: редактор и обычный отчёт
+    по-прежнему показывают формы из JSON. Здесь строки собираются из тех же
+    карточек шкафа, но с колонками и групповыми строками из эталонного
+    «Шаблон приложения. Шкафы РЗА ХХХ (фирма-разработчик).docx».
+    """
+    kind = table_kind((table or {}).get("name"))
+    if kind not in NEW_VIEW_KINDS:
+        return table_view(data, table)
+    headers = list(NEW_VIEW_HEADERS[kind])
+    code = table.get("cabinet")
+    cabinet_item = cabinet(data, code) if code else None
+    if cabinet_item is None:
+        return headers, []
+    ied = _ied(cabinet_item)
+    if kind == "analog_inputs":
+        return headers, _rows_analog(ied)
+    if kind == "incoming_goose_signals":
+        return headers, [[_text(s.get("signal")), _text(s.get("info_model")),
+                          _text(s.get("source")), _text(s.get("max_number")),
+                          _text(s.get("source_number")), _text(s.get("RAS")),
+                          _text(s.get("note"))]
+                         for s in ied.get("incoming_goose_signals") or []]
+    if kind == "functional_buttons":
+        return headers, [[_text(b.get("mapping")), _text(b.get("short_name")),
+                          _text(b.get("disable_condition")),
+                          _text(b.get("enable_condition")),
+                          _text(b.get("mode")), _text(b.get("note"))]
+                         for b in ied.get("functional_buttons") or []]
+    if kind == "leds":
+        return headers, [[_text(led.get("mapping")), _text(led.get("name")),
+                          _text(led.get("mode")), _text(led.get("note"))]
+                         for led in ied.get("leds") or []]
+    if kind == "datasets":
+        return headers, _new_dataset_rows(ied)
+    if kind == "goose_signals":
+        return headers, _new_goose_rows(ied)
+    if kind == "report_signals":
+        return headers, _new_report_rows(ied)
+    return headers, _new_command_rows(ied)
+
+
+def _repeat_after_first(value, first):
+    """Первое значение в группе — само имя, остальные — кавычка-повтор."""
+    return _text(value) if first else "»"
+
+
+def _new_dataset_rows(ied):
+    rows = []
+    for reports in (False, True):
+        rows.append(["Отчеты" if reports else "Сообщения", "",
+                     "rptID" if reports else "goID", "", "", ""])
+        first = True
+        for item in ied.get("datasets") or []:
+            if (item.get("class") == "-") != reports:
+                continue
+            rows.append([_text(item.get("mapping")),
+                         _repeat_after_first(item.get("sender"), first),
+                         _text(item.get("id")), _text(item.get("name")),
+                         _text(item.get("class")), _text(item.get("note"))])
+            first = False
+    note = "Примечание – x определяется проектом"
+    rows.append([note] * len(NEW_VIEW_HEADERS["datasets"]))
+    return rows
+
+
+def _new_goose_rows(ied):
+    rows = []
+    for dataset in ied.get("datasets") or []:
+        if dataset.get("class") == "-":
+            continue
+        rows.append(["Имя набора данных", _text(dataset.get("name")),
+                     "", "", ""])
+        for signal in dataset.get("signals") or []:
+            source = signal.get("DO") or signal.get("info_model")
+            rows.append([_text(signal.get("name")),
+                         _ln_class(source),
+                         ("%s.%s" % (_ln_do(source), _text(signal.get("DA")))
+                          if _text(signal.get("DA")) else _ln_do(source)),
+                         _text(signal.get("destination")),
+                         _text(signal.get("note"))])
+    return rows
+
+
+def _new_report_rows(ied):
+    rows = []
+    for dataset in ied.get("datasets") or []:
+        if dataset.get("class") != "-":
+            continue
+        name = _text(dataset.get("name"))
+        rows.append(["Имя набора данных:", name] + [name] * 6)
+        for signal in dataset.get("signals") or []:
+            rows.append([_text(signal.get("name")),
+                         _text(signal.get("status")), _text(signal.get("KT")),
+                         _text(signal.get("cus")), _text(signal.get("rdu")),
+                         _text(signal.get("RAS")),
+                         _ln_class(signal.get("DO")),
+                         _ln_do(signal.get("DO"))])
+    return rows
+
+
+def _new_command_rows(ied):
+    return [[_text(c.get("name")), _ln_class_do(c.get("info_model")),
+             _text(c.get("note"))]
+            for c in ied.get("control_commands") or []]
+
+
 def table_headers(data, table):
     """Только подписи колонок таблицы — без сборки строк.
 
