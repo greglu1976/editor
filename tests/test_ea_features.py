@@ -375,6 +375,13 @@ def test_docx(data):
     check(not any(text.startswith("Приложение. Шкафы") for text in headings),
           "приложения со шкафами нет")
 
+    # Пункт 42: «Содержание» оформляется стилем «Заголовок оглавления»,
+    # а не «Заголовок 1»; стиль вынесен в реквизит toc_style.
+    toc_heading = next(paragraph for paragraph in doc.paragraphs
+                       if paragraph.text.strip() == "Содержание")
+    check(toc_heading.style.name == "TOC Heading",
+          "«Содержание» оформлено стилем «Заголовок оглавления»")
+
     # Пункт 36: оформление берётся из стилей шаблона — заголовки по полю
     # header_style, подписи таблиц и рисунков — из стилей «ДОК … Название».
     sections = es.sections(data)
@@ -484,13 +491,17 @@ def test_docx(data):
     check("text_style" in [key for key, _kind, _default
                            in sc.fields("Standard")],
           "у стандарта есть поле «Стиль текста»")
+    check("toc_style" in [key for key, _kind, _default
+                          in sc.fields("Standard")],
+          "у стандарта есть поле «Стиль заголовка содержания»")
     check(ea_docx._paragraph_style(doc, "Обычный") is not None
           and ea_docx._paragraph_style(doc, "Обычный").name == "Normal",
           "русское имя «Обычный» находит стиль Normal")
     styled_data = copy.deepcopy(data)
     styled_data["text_style"] = "ДОК Текст"
+    styled_data["toc_style"] = "ДОК Заголовок 1"
     styled_path = os.path.join(tempfile.mkdtemp(), "styled.docx")
-    ea_docx.build(styled_data, styled_path, toc=False, max_rows=1)
+    ea_docx.build(styled_data, styled_path, max_rows=1)
     styled_doc = Document(styled_path)
     styled_body = next(paragraph for paragraph in styled_doc.paragraphs
                        if paragraph.style.name == "ДОК Текст"
@@ -498,6 +509,10 @@ def test_docx(data):
     check(all(run.font.size is None for run in styled_body.runs)
           and style_font_size(styled_body.style) == 14,
           "стиль текста из реквизита применён к абзацам (14 пт)")
+    styled_toc = next(paragraph for paragraph in styled_doc.paragraphs
+                      if paragraph.text.strip() == "Содержание")
+    check(styled_toc.style.name == "ДОК Заголовок 1",
+          "стиль заголовка содержания из реквизита применён")
 
     # Пункт 29: двухуровневая шапка выводится двумя ярусами, а одинаковые
     # ячейки объединяются по горизонтали и вертикали.
@@ -707,6 +722,7 @@ def test_fields():
         dialog.vars["date"].set("01.01.2027")
         dialog.vars["title_page"].set("title_page.docx")
         dialog.vars["text_style"].set("ДОК Текст")
+        dialog.vars["toc_style"].set("Заголовок оглавления")
         dialog.split_var.set(True)
         dialog.save()
         saved = es.load(path)
@@ -719,6 +735,8 @@ def test_fields():
               "ссылка на титульный DOCX сохранена")
         check(saved["text_style"] == "ДОК Текст",
               "стиль текста сохранён в реквизитах")
+        check(saved["toc_style"] == "Заголовок оглавления",
+              "стиль заголовка содержания сохранён в реквизитах")
         check(saved.get("description_split") is True,
               "флаг разделённого описания сохранён в реквизитах")
         check(window._data["code"] == "НОВЫЙ ШИФР",
@@ -1054,6 +1072,8 @@ def test_editor():
         root.update()
         check("text_style" in window.vars,
               "в реквизитах есть поле «Стиль текста»")
+        check("toc_style" in window.vars,
+              "в реквизитах есть поле «Стиль заголовка содержания»")
         window.vars["name"].set("Стандарт из редактора")
         window.save()
         root.update()

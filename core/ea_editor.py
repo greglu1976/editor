@@ -789,6 +789,7 @@ class StandardEditorWindow(tk.Toplevel):
             ("date", "Дата введения", 16),
             ("title_page", "Титульный лист (DOCX)", 44),
             ("text_style", "Стиль текста", 32),
+            ("toc_style", "Стиль заголовка содержания", 32),
         )
         row = 0
         for key, label, width in fields:
@@ -816,7 +817,9 @@ class StandardEditorWindow(tk.Toplevel):
                             "Титульный лист: DOCX открывает отчёт, дальше "
                             "идёт сгенерированный документ.\n"
                             "Стиль текста: стиль абзацев из template.docx, "
-                            "по умолчанию «Обычный».",
+                            "по умолчанию «Обычный».\n"
+                            "Стиль заголовка содержания: по умолчанию "
+                            "«Заголовок оглавления».",
                  font=ui_theme.font(8), fg=ui_theme.TEXT_MUTED,
                  anchor="w", justify="left").grid(
                      row=row, column=0, columnspan=3,

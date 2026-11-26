@@ -17,8 +17,9 @@ r"""Выгрузка стандарта EA в DOCX.
 Если в папке стандартов (рядом с JSON или в ``EA/``) лежит ``template.docx``,
 он берётся за основу: сохраняются его стили, колонтитулы и параметры
 страницы, а содержимое строится заново. Оформление основного текста берётся
-из поля ``text_style`` (по умолчанию «Обычный»), заголовков — из поля
-``header_style`` раздела/подраздела, подписей — из стилей «ДОК Таблица
+из поля ``text_style`` (по умолчанию «Обычный»), заголовка содержания — из
+поля ``toc_style`` (по умолчанию «Заголовок оглавления»), заголовков — из
+поля ``header_style`` раздела/подраздела, подписей — из стилей «ДОК Таблица
 Название», «ДОК Рисунок Название» и их приложенческих вариантов; номер
 проставляет нумерация стиля, а если её нет — нумерация заголовков шаблона
 (1, 1.1, …).
@@ -88,8 +89,14 @@ _CAPTION_LABEL = re.compile(r"^(Таблица|Рисунок)\b")
 TITLE_PAGE_FIELD = "title_page"
 #: Реквизит со стилем основного текста (по умолчанию — «Обычный»).
 TEXT_STYLE_FIELD = "text_style"
+#: Реквизит со стилем заголовка «Содержание».
+TOC_STYLE_FIELD = "toc_style"
+#: Стиль заголовка оглавления по умолчанию (в Word — «Заголовок оглавления»).
+TOC_STYLE = "Заголовок оглавления"
 #: Русские имена стилей Word, которые python-docx знает по-английски.
 STYLE_ALIASES = {"обычный": "Normal", "normal": "Normal",
+                 "заголовок оглавления": "TOC Heading",
+                 "toc heading": "TOC Heading",
                  "заголовок 1": "Heading 1", "заголовок 2": "Heading 2",
                  "заголовок 3": "Heading 3"}
 
@@ -618,8 +625,15 @@ def _field(paragraph, instruction, result="Обновите поле (F9)"):
     return run
 
 
-def _toc(doc):
-    _heading(doc, "Содержание", 1, numbered=False)
+def _toc(doc, style=None):
+    """Заголовок «Содержание» и поле оглавления.
+
+    Стиль заголовка берётся из реквизита ``toc_style``; по умолчанию —
+    «Заголовок оглавления» (``TOC Heading``), а не «Заголовок 1». Если
+    стиля нет в документе, остаётся обычный заголовок первого уровня.
+    """
+    _heading(doc, "Содержание", 1, numbered=False,
+             style=str(style or "").strip() or TOC_STYLE)
     paragraph = doc.add_paragraph()
     _field(paragraph, r'TOC \o "1-2" \h \z \u')
 
@@ -1483,7 +1497,7 @@ def build(data, path, toc=True, max_rows=0):
     if not title:
         _title_page(doc, data, stats)
     if toc:
-        _toc(doc)
+        _toc(doc, data.get(TOC_STYLE_FIELD))
         doc.add_page_break()
     _render_sections(doc, data, max_rows, counters, references, figure_errors)
     # Таблица меток в обычный отчёт не выводится (пункт 43): для неё есть
