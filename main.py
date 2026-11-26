@@ -9512,17 +9512,11 @@ class CircuitEditor(report_selection.SelectionReportMixin,
         self._ribbon_group(page, "Редактор", lambda row: [
             self._ribbon_button(row, "СТО (EA)…", self.show_ea_standards,
                                 _ri_structure, 96).pack(side=tk.LEFT),
-            self._ribbon_button(row, "Редактор стандарта…",
-                                self.edit_ea_standard,
-                                _ri_structure, 140).pack(side=tk.LEFT,
-                                                         padx=(4, 0)),
         ])
         tk.Label(page, text="«СТО (EA)…» — стандарт в новой структуре (папка EA):\n"
                             "таблицы собираются из шкафов, шкаф и комплект\n"
-                            "ставятся на схему, новый стандарт и DOCX —\n"
-                            "в окне «СТО (EA)…».\n"
-                            "«Редактор стандарта…» — правка текста, таблиц\n"
-                            "и карточек шкафов в отдельном окне.",
+                            "ставятся на схему, новый стандарт, DOCX и\n"
+                            "DOCX(новые таблицы) — в окне «СТО (EA)…».",
                  bg=ui_theme.RIBBON, fg=ui_theme.TEXT_MUTED,
                  font=ui_theme.font(8), justify="left").pack(
                      side=tk.LEFT, padx=12)

@@ -66,6 +66,33 @@ def _button(parent, text, command, width=0, side=tk.LEFT, padx=(0, 4)):
     return button
 
 
+def _toolbar_button(parent, text, command, width=0, side=tk.LEFT,
+                    accent=False, padx=(0, 6)):
+    """Кнопка верхней панели в стиле окна: плоская, с акцентом на главной."""
+    button = tk.Button(
+        parent, text=text, command=command, cursor="hand2",
+        font=ui_theme.font(9, "bold") if accent else ui_theme.font(9),
+        bg=ui_theme.ACCENT if accent else ui_theme.RIBBON,
+        fg=ui_theme.ON_ACCENT if accent else ui_theme.TEXT,
+        activebackground=(ui_theme.ACCENT_SOFT if accent
+                          else ui_theme.HOVER),
+        activeforeground=ui_theme.ON_ACCENT if accent else ui_theme.ACCENT,
+        relief="flat", bd=0, padx=10, pady=4,
+        highlightbackground=ui_theme.BORDER,
+        highlightcolor=ui_theme.BORDER, highlightthickness=1)
+    if width:
+        button.config(width=width)
+    button.pack(side=side, padx=padx, pady=3)
+    return button
+
+
+def _toolbar_separator(parent):
+    """Тонкая вертикальная черта между группами кнопок."""
+    line = tk.Frame(parent, bg=ui_theme.BORDER, width=1)
+    line.pack(side=tk.LEFT, fill=tk.Y, padx=7, pady=5)
+    return line
+
+
 def open_folder(path):
     """Открыть папку в проводнике (Windows/Linux)."""
     if not path or not os.path.isdir(path):
@@ -103,35 +130,65 @@ class EAStandardWindow(tk.Toplevel):
         _place_on_parent(self, parent)
 
     # ------------------------------------------------------------------ UI
+    def _toolbar_group(self, parent, caption, buttons):
+        """Небольшая подписанная группа кнопок во втором ряду."""
+        cell = tk.Frame(parent, bg=ui_theme.RIBBON)
+        cell.pack(side=tk.LEFT, padx=(8, 0))
+        tk.Label(cell, text=caption, bg=ui_theme.RIBBON,
+                 fg=ui_theme.TEXT_MUTED,
+                 font=ui_theme.font(8)).pack(anchor="w", padx=(2, 0))
+        row = tk.Frame(cell, bg=ui_theme.RIBBON)
+        row.pack(anchor="w")
+        for text, command, width in buttons:
+            _toolbar_button(row, text, command, width=width, side=tk.LEFT)
+        return cell
+
     def _build(self):
-        top = tk.Frame(self)
-        top.pack(fill=tk.X, padx=10, pady=(8, 2))
+        # Два аккуратных ряда вместо одной переполненной строки.
+        top = tk.Frame(self, bg=ui_theme.RIBBON,
+                       highlightbackground=ui_theme.BORDER,
+                       highlightthickness=1)
+        top.pack(fill=tk.X, padx=10, pady=(8, 0))
         tk.Label(top, text="Стандарт:", font=ui_theme.font(9),
-                 anchor="w").pack(side=tk.LEFT)
+                 bg=ui_theme.RIBBON, fg=ui_theme.TEXT_SOFT,
+                 anchor="w").pack(side=tk.LEFT, padx=(8, 0))
         self.combo = ttk.Combobox(top, state="readonly", width=42,
                                   font=ui_theme.font(9))
-        self.combo.pack(side=tk.LEFT, padx=(6, 4))
+        self.combo.pack(side=tk.LEFT, padx=(6, 4), pady=3)
         self.combo.bind("<<ComboboxSelected>>", lambda event: self._combo_changed())
-        _button(top, "Обновить", self.reload, width=10, side=tk.RIGHT)
-        _button(top, "Открыть папку", lambda: open_folder(es.folder()),
-                side=tk.RIGHT)
-        _button(top, "Проверить", self.check, width=10, side=tk.RIGHT)
-        _button(top, "Обновить шкафы и комплекты", self.update_cabinets_and_kits,
-                side=tk.RIGHT)
-        _button(top, "Реквизиты…", self.edit_standard, width=12,
-                side=tk.RIGHT)
-        _button(top, "Редактор…", self.open_editor, width=12, side=tk.RIGHT)
-        _button(top, "Новый стандарт…", self.new_standard, width=17,
-                side=tk.RIGHT)
-        _button(top, "DOCX…", self.export_docx, width=10, side=tk.RIGHT)
-        _button(top, "DOCX(новые таблицы)…", self.export_new_tables,
-                width=22, side=tk.RIGHT)
-        _button(top, "Метки…", self.export_labels, width=10, side=tk.RIGHT)
+        _toolbar_button(top, "Метки…", self.export_labels,
+                        width=10, side=tk.RIGHT)
+        _toolbar_button(top, "DOCX(новые таблицы)…", self.export_new_tables,
+                        width=22, side=tk.RIGHT, accent=True)
+        _toolbar_button(top, "DOCX…", self.export_docx,
+                        width=10, side=tk.RIGHT)
+        _toolbar_button(top, "Новый стандарт…", self.new_standard,
+                        width=17, side=tk.RIGHT)
+
+        tools = tk.Frame(self, bg=ui_theme.RIBBON,
+                         highlightbackground=ui_theme.BORDER,
+                         highlightthickness=1)
+        tools.pack(fill=tk.X, padx=10, pady=(4, 0))
+        self._toolbar_group(tools, "Файл", [
+            ("Обновить", self.reload, 10),
+            ("Открыть папку", lambda: open_folder(es.folder()), 0),
+        ])
+        _toolbar_separator(tools)
+        self._toolbar_group(tools, "Сверка", [
+            ("Проверить", self.check, 10),
+            ("Обновить шкафы и комплекты", self.update_cabinets_and_kits, 0),
+        ])
+        _toolbar_separator(tools)
+        self._toolbar_group(tools, "Правка", [
+            ("Реквизиты…", self.edit_standard, 12),
+            ("Редактор…", self.open_editor, 12),
+        ])
 
         tk.Label(self, text="Таблицы в документе — только форма; строки "
                             "собираются из шкафа (поле «cabinet»).",
-                 font=ui_theme.font(8), fg=ui_theme.TEXT_MUTED, anchor="w",
-                 justify="left").pack(fill=tk.X, padx=10, pady=(0, 4))
+                 font=ui_theme.font(8), bg=ui_theme.WINDOW,
+                 fg=ui_theme.TEXT_MUTED, anchor="w",
+                 justify="left").pack(fill=tk.X, padx=10, pady=(6, 4))
 
         panes = ttk.PanedWindow(self, orient=tk.HORIZONTAL)
         panes.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 6))

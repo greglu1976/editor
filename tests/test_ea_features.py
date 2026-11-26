@@ -826,6 +826,23 @@ def test_gui(data):
     try:
         window = ea_ui.show(app, REFERENCE)
         root.update()
+        def labels_in(widget):
+            result = []
+            for child in widget.winfo_children():
+                try:
+                    text = str(child.cget("text"))
+                except tk.TclError:
+                    text = ""
+                if text:
+                    result.append(text)
+                result.extend(labels_in(child))
+            return result
+
+        button_rows = [labels_in(child) for child in window.winfo_children()]
+        check(any("DOCX…" in row for row in button_rows)
+              and any("Открыть папку" in row
+                      and "Редактор…" in row for row in button_rows),
+              "кнопки окна «СТО (EA)…» разнесены в два ряда")
         kits = [iid for iid, node in window._nodes.items()
                 if node[0] == "kit"]
         ieds = [iid for iid, node in window._nodes.items()
@@ -984,6 +1001,10 @@ def test_main_method_exists():
           "кнопка «Обновить из СТО» зарегистрирована в ленте")
     check("\"Обновить из стандартов (EA)\"" in source,
           "кнопка «Обновить из стандартов (EA)» есть в окне структуры")
+    check("\"Редактор стандарта…\"" not in source,
+          "кнопка «Редактор стандарта…» убрана с ленты «Стандарты»")
+    check("DOCX(новые таблицы)" in source,
+          "лента «Стандарты» указывает на DOCX с новыми таблицами")
 
 
 def test_edit_model():
@@ -3879,6 +3900,10 @@ def test_new_tables_report(data):
     check(hasattr(ea_ui.EAStandardWindow, "export_new_tables")
           and hasattr(ea_editor.StandardEditorWindow, "new_tables_report"),
           "кнопка DOCX(новые таблицы) есть в просмотрщике и редакторе")
+    import inspect
+    source = inspect.getsource(ea_ui.EAStandardWindow._build)
+    check(source.index("DOCX(новые таблицы)…") < source.index('"DOCX…"'),
+          "в окне стандартов новая кнопка стоит рядом с DOCX… справа")
 
 
 def main(argv=None):
