@@ -66,7 +66,9 @@ try:
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
+    from docx.oxml.table import ST_Merge
     from docx.shared import Cm, Emu, Mm, Pt, RGBColor
+    from docx.table import _Cell
     from docx.text.paragraph import Paragraph
 except ImportError:                                   # pragma: no cover
     Document = None
@@ -309,6 +311,89 @@ def _hard_width(table, widths):
     layout.set(qn("w:type"), "fixed")
 
 
+def _body_cell(cell, text, size=10):
+    """Текст объединённой ячейки — один раз, без повторов."""
+    for extra in cell.paragraphs[1:]:
+        extra._element.getparent().remove(extra._element)
+    paragraph = cell.paragraphs[0]
+    for run in list(paragraph.runs):
+        run._element.getparent().remove(run._element)
+    paragraph.paragraph_format.space_after = Pt(0)
+    paragraph.paragraph_format.space_before = Pt(0)
+    _font(paragraph.add_run(str(text or "")), size)
+
+
+def _body_merges(rows, columns):
+    """Прямоугольники одинаковых соседних ячеек строк данных.
+
+    Одинаковые значения сливаются по горизонтали, а если та же группа
+    повторяется в следующей строке — и по вертикали. Пустые ячейки не
+    трогаются: иначе пропала бы сетка таблицы. Возвращает
+    ``(r1, c1, r2, c2, текст)`` — границы областей и их значение.
+    """
+    matrix = []
+    for values in rows:
+        matrix.append([str(values[index] or "").strip()
+                       if index < len(values) else ""
+                       for index in range(columns)])
+    regions = []
+    previous = {}
+    for row_index, values in enumerate(matrix):
+        current = {}
+        for start, end, text in _header_groups(values):
+            if not text:
+                continue
+            key = (start, end, text)
+            region = previous.get(key)
+            if region is not None:
+                regions[region][2] = row_index
+                current[key] = region
+            else:
+                current[key] = len(regions)
+                regions.append([row_index, start, row_index, end, text])
+        previous = current
+    return [tuple(region) for region in regions]
+
+
+def _merge_region(table, top, left, bottom, right, text, size=10):
+    """Слить прямоугольник ячеек прямо в XML.
+
+    ``_Cell.merge`` строит объединение через ``_grow_to`` и на больших
+    таблицах работает квадратично, поэтому ``gridSpan`` и ``vMerge``
+    проставляются на месте: лишние ячейки строки удаляются, у нижних
+    остаётся пустой абзац.
+    """
+    span = right - left + 1
+    top_tc = None
+    for row_index in range(top, bottom + 1):
+        tc = table.rows[row_index]._tr.tc_at_grid_offset(left)
+        if row_index == top:
+            top_tc = tc
+        while tc.grid_span < span:
+            following = tc._next_tc
+            if following is None:
+                break
+            tc.grid_span = tc.grid_span + following.grid_span
+            following._remove()
+        if bottom > top:
+            tc.vMerge = (ST_Merge.RESTART if row_index == top
+                         else ST_Merge.CONTINUE)
+        if row_index > top:
+            tc.clear_content()
+            tc.add_p()
+    # Обёртка над уже найденной ячейкой: table.cell() пересобирает всю
+    # сетку таблицы и на тысячах объединений заметно тормозит.
+    _body_cell(_Cell(top_tc, table), text, size)
+
+
+def _merge_body(table, offset, rows, columns, size=10):
+    """Объединить одинаковые ячейки строк данных (пункт 46)."""
+    for r1, c1, r2, c2, text in _body_merges(rows, columns):
+        if (r1, c1) == (r2, c2):
+            continue
+        _merge_region(table, offset + r1, c1, offset + r2, c2, text, size)
+
+
 def _header_cell(cell, text, size=10):
     """Подпись шапки в (возможно, объединённой) ячейке."""
     paragraphs = cell.paragraphs
@@ -441,21 +526,23 @@ def _table(doc, headers, rows, size=10, max_rows=0, widths_mm=None,
         for index in range(len(headers)):
             _cell(row.cells[index],
                   values[index] if index < len(values) else "", size)
+    # Пункт 46: одинаковые значения по горизонтали и вертикали сливаются.
+    _merge_body(table, len(header_rows), shown, len(headers), size)
     for index, width in enumerate(widths):
         unit = Mm if fixed else Cm
         table.columns[index].width = unit(width)
-        # Колонки Liberty/Word всё равно пересчитывают ширину ячеек,
-        # поэтому жёсткую ширину проставляем и на каждой ячейке.
-        for row_index, row in enumerate(table.rows):
-            cell = row.cells[index]
-            span = cell.grid_span if row_index < len(header_rows) else 1
-            if span > 1:
-                # У объединённой ячейки ширина — сумма её колонок.
-                if index and row.cells[index - 1]._tc is cell._tc:
-                    continue
-                cell.width = unit(sum(widths[index:index + span]))
-            else:
-                cell.width = unit(width)
+    # Колонки Liberty/Word всё равно пересчитывают ширину ячеек,
+    # поэтому жёсткую ширину проставляем и на каждой ячейке. Обходим сетку
+    # один раз: `row.cells` пересобирает её целиком и на больших таблицах
+    # работает квадратично.
+    columns = len(widths)
+    cells = table._cells
+    for position, cell in enumerate(cells):
+        index = position % columns
+        if index and cells[position - 1]._tc is cell._tc:
+            continue
+        # У объединённой ячейки ширина — сумма её колонок.
+        cell.width = unit(sum(widths[index:index + cell.grid_span]))
     if fixed:
         _hard_width(table, widths)
     return len(shown)

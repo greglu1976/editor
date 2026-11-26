@@ -535,6 +535,23 @@ def test_docx(data):
                   is not None for row in two_table.rows[:2]),
               "оба яруса шапки повторяются на новой странице")
 
+    # Пункт 46: одинаковые значения строк данных объединяются так же, как
+    # ячейки шапки, — по горизонтали и по вертикали.
+    merge_doc = Document()
+    ea_docx._setup(merge_doc)
+    ea_docx._table(merge_doc, ["A", "B", "C"],
+                   [["1", "1", "2"], ["1", "1", "2"], ["3", "3", "3"]])
+    merged = merge_doc.tables[0]
+    merge_xml = merged._tbl.xml
+    check(merge_xml.count("<w:gridSpan") >= 2 and "<w:vMerge" in merge_xml,
+          "одинаковые значения строк объединены по горизонтали и вертикали")
+    check(merged.cell(1, 0).text == "1" and merged.cell(1, 2).text == "2"
+          and len(merged.cell(1, 0).paragraphs) == 1,
+          "текст объединённой ячейки не дублируется")
+    check(merged.cell(1, 0)._tc is merged.cell(2, 1)._tc
+          and merged.cell(1, 2)._tc is merged.cell(2, 2)._tc,
+          "вертикальные объединения захватывают все одинаковые строки")
+
     # шаблон: колонтитул и параметры страницы сохраняются, тело заменяется
     template_dir = tempfile.mkdtemp()
     template = os.path.join(template_dir, ea_docx.TEMPLATE_NAME)
