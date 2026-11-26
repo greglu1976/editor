@@ -4554,7 +4554,7 @@
     {
       "number": "Б",
       "header": "Обозначение регистрируемых дискретных сигналов в осциллограмме",
-      "header_style": "ПРИЛ Заголовок",
+      "header_style": "ДОК ПРИЛ ур1 Заголовок",
       "content": "",
       "subsections": [],
       "tables": [
@@ -5189,7 +5189,7 @@
     {
       "number": "В",
       "header": "Таблица применимости типовых шкафов",
-      "header_style": "ПРИЛ Заголовок",
+      "header_style": "ДОК ПРИЛ ур1 Заголовок",
       "content": "",
       "subsections": [],
       "tables": [
@@ -54652,6 +54652,7 @@
       "ied": "1"
     }
   ],
-  "title_page": "",
-  "description_split": true
+  "title_page": "template.docx",
+  "description_split": true,
+  "text_style": ""
 }
